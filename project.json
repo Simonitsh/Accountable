@@ -1,0 +1,25 @@
+{
+  "overview": "Cumulative is a behavioral-science-driven social accountability PWA that uses the WOOP framework to help users build lasting habits through goal setting, daily check-ins, and accountability partner support.",
+  "features": [
+    "WOOP Goal Builder — multi-step wizard (Wish, Outcome, Obstacle, If-Then Plan)",
+    "Daily check-in dashboard with one-tap success and swipe-to-skip gestures",
+    "Accountability partner connections with mutual consent flow",
+    "Partner Feed with High-Five social interactions",
+    "Analytics with 30-day trend chart and streak tracking",
+    "Tier-based goal limits (Free: 3, Plus: 10, Power: 25) with Admin override",
+    "Fully installable PWA with Web App Manifest and Service Worker",
+    "Neumorphic dark UI with glowing accent colors and tactile components"
+  ],
+  "category": "productivity",
+  "tags": [
+    "habit-tracking",
+    "accountability",
+    "woop",
+    "goals",
+    "social",
+    "pwa",
+    "neumorphic",
+    "freemium"
+  ],
+  "last_updated": "2026-04-30T09:35:13.453Z"
+}

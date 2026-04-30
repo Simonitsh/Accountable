@@ -1,0 +1,132 @@
+// Version: 1.0.0
+type AdminAuditEntry__250483748 =
+  {
+    limit : Nat;
+    setBy : UserId__158757552;
+    targetPrincipal : UserId__158757552;
+    timestamp : Timestamp__301639476
+  };
+type CheckInId__143223767 = Nat;
+type CheckInType__225513767 = {#skip; #success};
+type CheckIn__661112040 =
+  {
+    checkInType : CheckInType__225513767;
+    goalId : GoalId__1036611184;
+    id : CheckInId__143223767;
+    obstacleTemplateId : ?ObstacleTemplateId__228170292;
+    owner : UserId__158757552;
+    timestamp : Timestamp__301639476
+  };
+type ConnectionId__509734217 = Nat;
+type ConnectionStatus__1022222714 = {#accepted; #pending; #rejected};
+type Connection__54064141 =
+  {
+    createdAt : Timestamp__301639476;
+    fromPrincipal : UserId__158757552;
+    id : ConnectionId__509734217;
+    var status : ConnectionStatus__1022222714;
+    toPrincipal : UserId__158757552
+  };
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type GoalId__1036611184 = Nat;
+type GoalState__810211879 = {#abandoned; #active; #completed; #paused};
+type Goal__520167328 =
+  {
+    createdAt : Timestamp__301639476;
+    id : GoalId__1036611184;
+    var ifThenPlan : Text;
+    obstacleTemplateId : ?ObstacleTemplateId__228170292;
+    outcome : Text;
+    owner : UserId__158757552;
+    var state : GoalState__810211879;
+    var updatedAt : Timestamp__301639476;
+    var wish : Text;
+    var wishDescription : Text
+  };
+type InteractionId__442803793 = Nat;
+type InteractionType__486718376 = {#highFive};
+type Interaction__467696781 =
+  {
+    checkInId : CheckInId__143223767;
+    fromPrincipal : UserId__158757552;
+    id : InteractionId__442803793;
+    interactionType : InteractionType__486718376;
+    timestamp : Timestamp__301639476
+  };
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type ObstacleTemplateId__228170292 = Nat;
+type ObstacleTemplate__309430647 =
+  {
+    description : Text;
+    id : ObstacleTemplateId__228170292;
+    owner : UserId__158757552;
+    title : Text
+  };
+type SubscriptionTier__75232000 = {#tier1; #tier2; #tier3};
+type Timestamp__301639476 = Int;
+type UserId__158757552 = Principal;
+type UserProfile__775633023 =
+  {
+    var createdAt : Timestamp__301639476;
+    var customGoalLimit : ?Nat;
+    id : UserId__158757552;
+    var role : UserRole__451090586;
+    var tier : SubscriptionTier__75232000;
+    var username : Text
+  };
+type UserRole__451090586 = {#admin; #user};
+actor {
+  stable var auditLog :
+    {
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?AdminAuditEntry__250483748]];
+      var elementIndex : Nat__490723111
+    };
+  stable var checkIns :
+    {
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?CheckIn__661112040]];
+      var elementIndex : Nat__490723111
+    };
+  stable var connections :
+    {
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?Connection__54064141]];
+      var elementIndex : Nat__490723111
+    };
+  stable var goals :
+    {
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?Goal__520167328]];
+      var elementIndex : Nat__490723111
+    };
+  stable var interactions :
+    {
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?Interaction__467696781]];
+      var elementIndex : Nat__490723111
+    };
+  stable nextCheckInId : [var Nat];
+  stable nextConnectionId : [var Nat];
+  stable nextGoalId : [var Nat];
+  stable nextInteractionId : [var Nat];
+  stable nextObstacleTemplateId : [var Nat];
+  stable var obstacleTemplates :
+    {
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?ObstacleTemplate__309430647]];
+      var elementIndex : Nat__490723111
+    };
+  stable profiles :
+    {
+      var root : Node__46230540<UserId__158757552, UserProfile__775633023>;
+      var size : Nat__490723111
+    }
+};

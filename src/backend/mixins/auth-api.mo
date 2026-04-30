@@ -1,0 +1,46 @@
+import Map "mo:core/Map";
+import List "mo:core/List";
+import Runtime "mo:core/Runtime";
+import Common "../types/common";
+import AuthTypes "../types/auth";
+import AuthLib "../lib/auth";
+
+mixin (
+  profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+  auditLog : List.List<AuthTypes.AdminAuditEntry>,
+) {
+  public shared ({ caller }) func register(username : Text) : async AuthTypes.UserProfilePublic {
+    if (caller.isAnonymous()) Runtime.trap("Anonymous callers cannot register");
+    let profile = AuthLib.getOrCreateProfile(profiles, caller);
+    profile.username := username;
+    AuthLib.toPublic(profile);
+  };
+
+  public shared query ({ caller }) func getMyProfile() : async AuthTypes.UserProfilePublic {
+    let profile = AuthLib.ensureRegistered(profiles, caller);
+    AuthLib.toPublic(profile);
+  };
+
+  public shared query ({ caller }) func getUserProfile(target : Common.UserId) : async ?AuthTypes.UserProfilePublic {
+    // Admin can look up any profile; regular users can only look up their own
+    if (AuthLib.isAdmin(profiles, caller) or caller == target) {
+      AuthLib.getUserProfilePublic(profiles, target);
+    } else {
+      null;
+    };
+  };
+
+  public shared ({ caller }) func setUserGoalLimit(target : Common.UserId, limit : Nat) : async () {
+    AuthLib.setUserGoalLimit(profiles, auditLog, caller, target, limit);
+  };
+
+  public shared query ({ caller }) func getAdminAuditLog() : async [AuthTypes.AdminAuditEntry] {
+    if (not AuthLib.isAdmin(profiles, caller)) Runtime.trap("Unauthorized: admin only");
+    auditLog.toArray();
+  };
+
+  public shared query ({ caller }) func listAllUsers() : async [AuthTypes.UserProfilePublic] {
+    if (not AuthLib.isAdmin(profiles, caller)) Runtime.trap("Unauthorized: admin only");
+    AuthLib.listAllUsers(profiles);
+  };
+};

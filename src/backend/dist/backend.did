@@ -1,0 +1,177 @@
+type UserRole = 
+ variant {
+   admin;
+   user;
+ };
+type UserProfilePublic = 
+ record {
+   goalLimit: nat;
+   id: UserId;
+   role: UserRole;
+   tier: SubscriptionTier;
+   username: text;
+ };
+type UserId = principal;
+type UpdateGoalRequest = 
+ record {
+   ifThenPlan: opt text;
+   wish: opt text;
+   wishDescription: opt text;
+ };
+type Timestamp = int;
+type SubscriptionTier = 
+ variant {
+   tier1;
+   tier2;
+   tier3;
+ };
+type RecordCheckInRequest = 
+ record {
+   checkInType: CheckInType;
+   goalId: GoalId;
+   obstacleTemplateId: opt ObstacleTemplateId;
+ };
+type ObstacleTemplateId = nat;
+type ObstacleTemplate = 
+ record {
+   description: text;
+   id: ObstacleTemplateId;
+   owner: UserId;
+   title: text;
+ };
+type InteractionType = variant {highFive;};
+type InteractionId = nat;
+type Interaction = 
+ record {
+   checkInId: CheckInId;
+   fromPrincipal: UserId;
+   id: InteractionId;
+   interactionType: InteractionType;
+   timestamp: Timestamp;
+ };
+type GoalState = 
+ variant {
+   abandoned;
+   active;
+   completed;
+   paused;
+ };
+type GoalPublic = 
+ record {
+   createdAt: Timestamp;
+   id: GoalId;
+   ifThenPlan: text;
+   obstacleTemplateId: opt ObstacleTemplateId;
+   outcome: text;
+   owner: UserId;
+   state: GoalState;
+   updatedAt: Timestamp;
+   wish: text;
+   wishDescription: text;
+ };
+type GoalId = nat;
+type GoalAnalytics = 
+ record {
+   completionRate: float64;
+   currentStreak: nat;
+   goalId: GoalId;
+   goalName: text;
+   longestStreak: nat;
+   totalMissed: nat;
+   totalSkips: nat;
+   totalSuccesses: nat;
+ };
+type FeedItem = 
+ record {
+   checkIn: CheckIn;
+   goalName: text;
+   highFiveCount: nat;
+   partnerDisplayName: text;
+ };
+type CreateObstacleRequest = 
+ record {
+   description: text;
+   title: text;
+ };
+type CreateGoalRequest = 
+ record {
+   ifThenPlan: text;
+   obstacleTemplateId: opt ObstacleTemplateId;
+   outcome: text;
+   wish: text;
+   wishDescription: text;
+ };
+type ConnectionStatus = 
+ variant {
+   accepted;
+   pending;
+   rejected;
+ };
+type ConnectionPublic = 
+ record {
+   createdAt: Timestamp;
+   fromPrincipal: UserId;
+   id: ConnectionId;
+   status: ConnectionStatus;
+   toPrincipal: UserId;
+ };
+type ConnectionId = nat;
+type CheckInType = 
+ variant {
+   skip;
+   success;
+ };
+type CheckInId = nat;
+type CheckIn = 
+ record {
+   checkInType: CheckInType;
+   goalId: GoalId;
+   id: CheckInId;
+   obstacleTemplateId: opt ObstacleTemplateId;
+   owner: UserId;
+   timestamp: Timestamp;
+ };
+type AnalyticsSummary = 
+ record {
+   dailySuccessRate30Days: vec float64;
+   goals: vec GoalAnalytics;
+ };
+type AdminAuditEntry = 
+ record {
+   limit: nat;
+   setBy: UserId;
+   targetPrincipal: UserId;
+   timestamp: Timestamp;
+ };
+service : {
+  createGoal: (request: CreateGoalRequest) -> (GoalPublic);
+  createObstacleTemplate: (request: CreateObstacleRequest) ->
+   (ObstacleTemplate);
+  getAdminAuditLog: () -> (vec AdminAuditEntry) query;
+  getAnalytics: () -> (AnalyticsSummary) query;
+  getCheckInsForGoal: (goalId: GoalId) -> (vec CheckIn) query;
+  getGoal: (goalId: GoalId) -> (opt GoalPublic) query;
+  getInteractionCount: (checkInId: CheckInId) -> (nat) query;
+  getMyProfile: () -> (UserProfilePublic) query;
+  getPartnerFeed: () -> (vec FeedItem) query;
+  getUserProfile: (target: UserId) -> (opt UserProfilePublic) query;
+  listAllUsers: () -> (vec UserProfilePublic) query;
+  listConnections: () -> (vec ConnectionPublic) query;
+  listMyCheckIns: () -> (vec CheckIn) query;
+  listMyGoals: () -> (vec GoalPublic) query;
+  listMyObstacleTemplates: () -> (vec ObstacleTemplate) query;
+  listPendingRequests: () -> (vec ConnectionPublic) query;
+  recordCheckIn: (request: RecordCheckInRequest) -> (CheckIn);
+  recordInteraction: (checkInId: CheckInId, interactionType:
+   InteractionType) -> (Interaction);
+  register: (username: text) -> (UserProfilePublic);
+  respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);
+  sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
+  setUserGoalLimit: (target: UserId, limit: nat) -> ();
+  updateGoal: (goalId: GoalId, request: UpdateGoalRequest) ->
+   (variant {
+      err: text;
+      ok: GoalPublic;
+    });
+  updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
+}

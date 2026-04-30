@@ -1,0 +1,115 @@
+export type UserRole = "user" | "admin";
+export type SubscriptionTier = 1 | 2 | 3;
+export type GoalState = "active" | "completed" | "archived";
+export type CheckInType = "success" | "skip";
+export type ConnectionStatus = "pending" | "accepted" | "rejected";
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  role: UserRole;
+  tier: SubscriptionTier;
+  goalLimit: number;
+}
+
+export interface Goal {
+  id: string;
+  owner: string;
+  wish: string;
+  wishDescription: string;
+  outcome: string;
+  obstacleTemplateId?: string;
+  ifThenPlan: string;
+  state: GoalState;
+  createdAt: bigint;
+  updatedAt: bigint;
+}
+
+export interface CheckIn {
+  id: string;
+  goalId: string;
+  owner: string;
+  checkInType: CheckInType;
+  obstacleTemplateId?: string;
+  timestamp: bigint;
+}
+
+export interface Connection {
+  id: string;
+  fromPrincipal: string;
+  toPrincipal: string;
+  status: ConnectionStatus;
+  createdAt: bigint;
+}
+
+export interface FeedItem {
+  checkIn: CheckIn;
+  goalName: string;
+  partnerDisplayName: string;
+  highFiveCount: number;
+}
+
+export interface GoalAnalytics {
+  goalId: string;
+  goalName: string;
+  successCount: number;
+  skipCount: number;
+  missedCount: number;
+  currentStreak: number;
+}
+
+export interface AnalyticsSummary {
+  goals: GoalAnalytics[];
+  dailySuccessRate30Days: number[];
+}
+
+export interface ObstacleTemplate {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export const OBSTACLE_TEMPLATES: ObstacleTemplate[] = [
+  {
+    id: "low_energy",
+    label: "Low Energy",
+    description: "I feel tired or lack motivation",
+  },
+  {
+    id: "time_crunch",
+    label: "Time Crunch",
+    description: "I ran out of time or had competing priorities",
+  },
+  {
+    id: "distraction",
+    label: "Distraction",
+    description: "I got pulled away by distractions",
+  },
+  {
+    id: "social_pressure",
+    label: "Social Pressure",
+    description: "External demands took over",
+  },
+  {
+    id: "environment",
+    label: "Environment",
+    description: "My environment wasn't set up for success",
+  },
+  {
+    id: "health",
+    label: "Health",
+    description: "Physical or mental health issues got in the way",
+  },
+];
+
+export const TIER_GOAL_LIMITS: Record<SubscriptionTier, number> = {
+  1: 3,
+  2: 10,
+  3: 25,
+};
+
+export const TIER_LABELS: Record<SubscriptionTier, string> = {
+  1: "Free",
+  2: "Plus",
+  3: "Power",
+};
