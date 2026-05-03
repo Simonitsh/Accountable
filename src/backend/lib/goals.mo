@@ -22,6 +22,8 @@ module {
       state = goal.state;
       createdAt = goal.createdAt;
       updatedAt = goal.updatedAt;
+      iconName = goal.iconName;
+      themeColor = goal.themeColor;
     };
   };
 
@@ -55,6 +57,8 @@ module {
       var state = #active;
       createdAt = now;
       var updatedAt = now;
+      var iconName = request.iconName;
+      var themeColor = request.themeColor;
     };
     goals.add(goal);
     #ok(toPublic(goal));
@@ -121,6 +125,14 @@ module {
         };
         switch (request.ifThenPlan) {
           case (?p) { g.ifThenPlan := p };
+          case null {};
+        };
+        switch (request.iconName) {
+          case (?i) { g.iconName := ?i };
+          case null {};
+        };
+        switch (request.themeColor) {
+          case (?c) { g.themeColor := ?c };
           case null {};
         };
         g.updatedAt := Time.now();

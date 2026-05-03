@@ -167,6 +167,8 @@ module {
         state = g.state;
         createdAt = g.createdAt;
         updatedAt = g.updatedAt;
+        iconName = g.iconName;
+        themeColor = g.themeColor;
       };
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);

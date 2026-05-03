@@ -56,7 +56,10 @@ export function FeedItem({ item, index }: FeedItemProps) {
 
   return (
     <article
-      className="card-neumorphic bg-card border border-border/50 rounded-xl p-4 flex flex-col gap-3"
+      className="card-neumorphic bg-card rounded-xl p-4 flex flex-col gap-3"
+      style={{
+        borderLeft: "1px solid rgba(255,255,255,0.06)",
+      }}
       data-ocid={`feed.item.${index}`}
       aria-label={`${item.partnerDisplayName}'s check-in for ${item.goalName}`}
     >

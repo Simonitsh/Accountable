@@ -26,8 +26,22 @@
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <!-- Anti-flash theme initializer: applies stored theme before first paint -->
+    <script>
+      (function () {
+        var theme = localStorage.getItem('cumulative-theme') || 'dark';
+        var root = document.documentElement;
+        if (theme === 'light') {
+          root.classList.remove('dark');
+          root.classList.add('light');
+        } else {
+          root.classList.add('dark');
+          root.classList.remove('light');
+        }
+      })();
+    </script>
   </head>
-  <body class="dark">
+  <body>
     <div id="root"></div>
     <script type="module" src="./src/main.tsx"></script>
     <script>

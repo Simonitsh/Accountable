@@ -25,6 +25,9 @@ module {
     {
       id = profile.id;
       username = profile.username;
+      displayName = profile.displayName;
+      avatarEmoji = profile.avatarEmoji;
+      timezone = profile.timezone;
       role = profile.role;
       tier = profile.tier;
       goalLimit = getGoalLimit(profile);
@@ -41,6 +44,9 @@ module {
         let newProfile : AuthTypes.UserProfile = {
           id = caller;
           var username = caller.toText();
+          var displayName = "";
+          var avatarEmoji = "";
+          var timezone = "";
           var role = #user;
           var tier = #tier1;
           var customGoalLimit = null;
@@ -50,6 +56,61 @@ module {
         newProfile;
       };
     };
+  };
+
+  /// Check username availability (case-insensitive, min 2 chars).
+  /// Returns true if the username is free to use.
+  public func isUsernameAvailable(
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+    username : Text,
+  ) : Bool {
+    if (username.size() < 2) return false;
+    let lower = username.toLower();
+    for (profile in profiles.values()) {
+      if (profile.username.toLower() == lower) return false;
+    };
+    true;
+  };
+
+  /// Check username availability excluding a specific principal (for re-registration).
+  public func isUsernameAvailableForCaller(
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+    username : Text,
+    excludeId : Common.UserId,
+  ) : Bool {
+    if (username.size() < 2) return false;
+    let lower = username.toLower();
+    for ((id, profile) in profiles.entries()) {
+      if (id != excludeId and profile.username.toLower() == lower) return false;
+    };
+    true;
+  };
+
+  public func updateProfile(
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+    caller : Common.UserId,
+    displayName : ?Text,
+    avatarEmoji : ?Text,
+  ) : AuthTypes.UserProfilePublic {
+    let profile = getOrCreateProfile(profiles, caller);
+    switch (displayName) {
+      case (?dn) { profile.displayName := dn };
+      case null {};
+    };
+    switch (avatarEmoji) {
+      case (?ae) { profile.avatarEmoji := ae };
+      case null {};
+    };
+    toPublic(profile);
+  };
+
+  public func setTimezone(
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+    caller : Common.UserId,
+    tz : Text,
+  ) : () {
+    let profile = ensureRegistered(profiles, caller);
+    profile.timezone := tz;
   };
 
   public func ensureRegistered(

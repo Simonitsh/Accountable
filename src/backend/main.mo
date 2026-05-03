@@ -15,37 +15,38 @@ import AnalyticsApi "mixins/analytics-api";
 
 
 
+
+
 actor {
   // Auth & user state
   let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
-  var auditLog = List.empty<AuthTypes.AdminAuditEntry>();
+  let auditLog = List.empty<AuthTypes.AdminAuditEntry>();
 
   // ─────────────────────────────────────────────────────────────────────────
   // GOAL & OBSTACLE STORAGE — READ THIS BEFORE EDITING
   // ─────────────────────────────────────────────────────────────────────────
-  // `goals` and `obstacleTemplates` MUST stay as `var`.
-  // Changing them to `let` will silently discard every goal on each call.
-  // This bug has occurred twice — do not remove this warning.
+  // `goals` and `obstacleTemplates` use List (mutable growable arrays).
+  // List.add() mutates in place — the binding itself never needs reassignment.
   //
   // `nextGoalId` and `nextObstacleTemplateId` are single-element mutable
   // arrays ([var Nat]) so the Goals module can increment them by reference.
   // They MUST remain [var Nat] — never [Nat].
   // ─────────────────────────────────────────────────────────────────────────
-  var goals = List.empty<GoalTypes.Goal>();            // ⚠️ MUST be `var`
-  var obstacleTemplates = List.empty<GoalTypes.ObstacleTemplate>(); // ⚠️ MUST be `var`
+  let goals = List.empty<GoalTypes.Goal>();
+  let obstacleTemplates = List.empty<GoalTypes.ObstacleTemplate>();
   let nextGoalId : [var Nat] = [var 0];               // ⚠️ MUST be [var Nat]
   let nextObstacleTemplateId : [var Nat] = [var 0];   // ⚠️ MUST be [var Nat]
 
   // Check-in state
-  var checkIns = List.empty<CheckInTypes.CheckIn>();
+  let checkIns = List.empty<CheckInTypes.CheckIn>();
   let nextCheckInId : [var Nat] = [var 0];
 
   // Connection state
-  var connections = List.empty<ConnectionTypes.Connection>();
+  let connections = List.empty<ConnectionTypes.Connection>();
   let nextConnectionId : [var Nat] = [var 0];
 
   // Feed & interaction state
-  var interactions = List.empty<FeedTypes.Interaction>();
+  let interactions = List.empty<FeedTypes.Interaction>();
   let nextInteractionId : [var Nat] = [var 0];
 
   // Mixins
@@ -55,4 +56,23 @@ actor {
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
   include AnalyticsApi(goals, checkIns);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DEV-ONLY: Full data reset — wipes all canister state so the app behaves
+  // as if no user has ever onboarded. NOT a production feature.
+  // ─────────────────────────────────────────────────────────────────────────
+  public func devReset() : async () {
+    profiles.clear();
+    auditLog.clear();
+    goals.clear();
+    obstacleTemplates.clear();
+    nextGoalId[0] := 0;
+    nextObstacleTemplateId[0] := 0;
+    checkIns.clear();
+    nextCheckInId[0] := 0;
+    connections.clear();
+    nextConnectionId[0] := 0;
+    interactions.clear();
+    nextInteractionId[0] := 0;
+  };
 };

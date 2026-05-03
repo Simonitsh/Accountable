@@ -41,8 +41,14 @@ export function LoginPage() {
         <div
           className={cn(
             "flex items-center justify-center w-20 h-20 rounded-3xl mb-5",
-            "bg-card shadow-neumorphic-emboss-dark shadow-glow-success transition-smooth",
+            "bg-card transition-smooth",
           )}
+          style={{
+            boxShadow:
+              "-5px -5px 14px rgba(65,65,75,0.5), 8px 8px 22px rgba(0,0,0,0.88)",
+            borderTop: "1px solid rgba(255,255,255,0.13)",
+            borderLeft: "1px solid rgba(255,255,255,0.07)",
+          }}
         >
           <Target
             size={36}
@@ -65,7 +71,13 @@ export function LoginPage() {
           return (
             <div
               key={feature.label}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card shadow-neumorphic-emboss-dark"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card"
+              style={{
+                boxShadow:
+                  "-4px -4px 10px rgba(65,65,75,0.45), 6px 6px 16px rgba(0,0,0,0.82)",
+                borderTop: "1px solid rgba(255,255,255,0.12)",
+                borderLeft: "1px solid rgba(255,255,255,0.06)",
+              }}
             >
               <Icon
                 size={18}
@@ -88,12 +100,18 @@ export function LoginPage() {
           data-ocid="login.primary_button"
           className={cn(
             "w-full py-4 px-6 rounded-2xl font-display font-semibold text-base transition-smooth",
-            "bg-card shadow-neumorphic-emboss-dark",
+            "bg-card",
             "text-[oklch(var(--color-accent-success))]",
-            "hover:shadow-glow-success active:scale-[0.98]",
+            "active:scale-[0.98]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100",
           )}
+          style={{
+            boxShadow:
+              "-4px -4px 10px rgba(65,65,75,0.45), 6px 6px 18px rgba(0,0,0,0.85)",
+            borderTop: "1px solid rgba(255,255,255,0.13)",
+            borderLeft: "1px solid rgba(255,255,255,0.07)",
+          }}
         >
           {isLoggingIn ? (
             <span className="flex items-center justify-center gap-2">

@@ -26,7 +26,9 @@ export interface GoalAnalytics {
 }
 export interface CreateGoalRequest {
     wish: string;
+    themeColor?: string;
     wishDescription: string;
+    iconName?: string;
     ifThenPlan: string;
     obstacleTemplateId?: ObstacleTemplateId;
     outcome: string;
@@ -42,7 +44,9 @@ export interface GoalPublic {
     owner: UserId;
     createdAt: Timestamp;
     wish: string;
+    themeColor?: string;
     wishDescription: string;
+    iconName?: string;
     ifThenPlan: string;
     updatedAt: Timestamp;
     state: GoalState;
@@ -51,10 +55,13 @@ export interface GoalPublic {
 }
 export interface UserProfilePublic {
     id: UserId;
+    timezone: string;
     username: string;
+    displayName: string;
     role: UserRole;
     tier: SubscriptionTier;
     goalLimit: bigint;
+    avatarEmoji: string;
 }
 export interface CreateObstacleRequest {
     title: string;
@@ -105,7 +112,9 @@ export interface AdminAuditEntry {
 }
 export interface UpdateGoalRequest {
     wish?: string;
+    themeColor?: string;
     wishDescription?: string;
+    iconName?: string;
     ifThenPlan?: string;
 }
 export enum CheckInType {
@@ -135,17 +144,31 @@ export enum UserRole {
     admin = "admin",
     user = "user"
 }
+export enum Variant_notFound_unauthorized {
+    notFound = "notFound",
+    unauthorized = "unauthorized"
+}
 export interface backendInterface {
     createGoal(request: CreateGoalRequest): Promise<GoalPublic>;
     createObstacleTemplate(request: CreateObstacleRequest): Promise<ObstacleTemplate>;
+    deleteCheckIn(checkInId: CheckInId): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: Variant_notFound_unauthorized;
+    }>;
+    devReset(): Promise<void>;
     getAdminAuditLog(): Promise<Array<AdminAuditEntry>>;
     getAnalytics(): Promise<AnalyticsSummary>;
     getCheckInsForGoal(goalId: GoalId): Promise<Array<CheckIn>>;
+    getCheckInsForPeriod(goalId: GoalId, fromTimestamp: bigint, toTimestamp: bigint): Promise<Array<CheckIn>>;
     getGoal(goalId: GoalId): Promise<GoalPublic | null>;
     getInteractionCount(checkInId: CheckInId): Promise<bigint>;
     getMyProfile(): Promise<UserProfilePublic>;
     getPartnerFeed(): Promise<Array<FeedItem>>;
     getUserProfile(target: UserId): Promise<UserProfilePublic | null>;
+    isUsernameAvailable(username: string): Promise<boolean>;
     listAllUsers(): Promise<Array<UserProfilePublic>>;
     listConnections(): Promise<Array<ConnectionPublic>>;
     listMyCheckIns(): Promise<Array<CheckIn>>;
@@ -157,6 +180,7 @@ export interface backendInterface {
     register(username: string): Promise<UserProfilePublic>;
     respondToConnection(connectionId: ConnectionId, accept: boolean): Promise<boolean>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;
+    setTimezone(tz: string): Promise<void>;
     setUserGoalLimit(target: UserId, limit: bigint): Promise<void>;
     updateGoal(goalId: GoalId, request: UpdateGoalRequest): Promise<{
         __kind__: "ok";
@@ -166,4 +190,5 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
+    updateMyProfile(displayName: string | null, avatarEmoji: string | null): Promise<UserProfilePublic>;
 }

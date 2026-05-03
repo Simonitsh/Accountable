@@ -1,13 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowUpCircle, X, Zap } from "lucide-react";
-import type { UserProfile } from "../types";
+import type { UserProfilePublic } from "../backend.d.ts";
 import { type SubscriptionTier, TIER_GOAL_LIMITS, TIER_LABELS } from "../types";
 
 interface TierLimitModalProps {
   open: boolean;
   onClose: () => void;
-  userProfile: UserProfile | null;
+  userProfile: UserProfilePublic | null;
+}
+
+function toNumericTier(tier: UserProfilePublic["tier"]): SubscriptionTier {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
 }
 
 function getNextTier(current: SubscriptionTier): SubscriptionTier | null {
@@ -48,7 +54,9 @@ export default function TierLimitModal({
   const navigate = useNavigate();
   if (!open) return null;
 
-  const currentTier = (userProfile?.tier ?? 1) as SubscriptionTier;
+  const currentTier = userProfile
+    ? toNumericTier(userProfile.tier)
+    : (1 as SubscriptionTier);
   const nextTier = getNextTier(currentTier);
   const currentLimit = TIER_GOAL_LIMITS[currentTier];
   const nextLimit = nextTier ? TIER_GOAL_LIMITS[nextTier] : null;
@@ -68,7 +76,13 @@ export default function TierLimitModal({
         aria-modal="true"
         aria-label="Goal Limit Reached"
         data-ocid="tier_limit.dialog"
-        className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] max-w-sm w-full mx-auto rounded-2xl bg-card border border-border shadow-neumorphic-emboss-dark overflow-hidden p-0 m-auto"
+        className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] max-w-sm w-full mx-auto rounded-2xl bg-card border border-border/20 overflow-hidden p-0 m-auto"
+        style={{
+          boxShadow:
+            "-5px -5px 16px rgba(65,65,75,0.5), 9px 9px 24px rgba(0,0,0,0.9)",
+          borderTop: "1px solid rgba(255,255,255,0.13)",
+          borderLeft: "1px solid rgba(255,255,255,0.07)",
+        }}
       >
         {/* Header */}
         <div className="relative px-5 pt-5 pb-4 border-b border-border">
@@ -102,7 +116,7 @@ export default function TierLimitModal({
         {/* Body */}
         <div className="px-5 py-5 space-y-4">
           {/* Current tier card */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/20">
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 Current Plan

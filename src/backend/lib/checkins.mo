@@ -83,6 +83,34 @@ module {
     checkIns.values().filter(func(c) { c.goalId == goalId and c.owner == caller }).toArray();
   };
 
+  public func deleteCheckIn(
+    checkIns : List.List<CheckInTypes.CheckIn>,
+    checkInId : Common.CheckInId,
+    caller : Common.UserId,
+  ) : { #ok; #err : { #notFound; #unauthorized } } {
+    switch (checkIns.find(func(c) { c.id == checkInId })) {
+      case null #err(#notFound);
+      case (?c) {
+        if (c.owner != caller) return #err(#unauthorized);
+        checkIns.retain(func(c) { c.id != checkInId });
+        #ok;
+      };
+    };
+  };
+
+  public func getCheckInsForPeriod(
+    checkIns : List.List<CheckInTypes.CheckIn>,
+    goalId : Common.GoalId,
+    caller : Common.UserId,
+    fromTimestamp : Int,
+    toTimestamp : Int,
+  ) : [CheckInTypes.CheckIn] {
+    checkIns.values().filter(func(c) {
+      c.goalId == goalId and c.owner == caller and
+      c.timestamp >= fromTimestamp and c.timestamp <= toTimestamp
+    }).toArray();
+  };
+
   public func getCheckInsForPartners(
     checkIns : List.List<CheckInTypes.CheckIn>,
     partnerIds : [Common.UserId],

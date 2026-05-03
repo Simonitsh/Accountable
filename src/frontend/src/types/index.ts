@@ -7,6 +7,7 @@ export type ConnectionStatus = "pending" | "accepted" | "rejected";
 export interface UserProfile {
   id: string;
   username: string;
+  displayName: string;
   role: UserRole;
   tier: SubscriptionTier;
   goalLimit: number;
@@ -21,6 +22,8 @@ export interface Goal {
   obstacleTemplateId?: string;
   ifThenPlan: string;
   state: GoalState;
+  iconName?: string;
+  themeColor?: string;
   createdAt: bigint;
   updatedAt: bigint;
 }

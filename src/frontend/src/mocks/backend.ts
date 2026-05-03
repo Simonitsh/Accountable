@@ -83,6 +83,8 @@ export const mockBackend: backendInterface = {
     description: request.description,
   }),
 
+  devReset: async () => {},
+
   getAdminAuditLog: async () => [],
 
   getAnalytics: async () => ({
@@ -112,6 +114,9 @@ export const mockBackend: backendInterface = {
   getMyProfile: async () => ({
     id: mockPrincipal,
     username: "alex_cumulative",
+    displayName: "Alex",
+    avatarEmoji: "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     tier: SubscriptionTier.tier1,
     goalLimit: BigInt(3),
@@ -126,7 +131,16 @@ export const mockBackend: backendInterface = {
     },
   ],
 
-  getUserProfile: async () => null,
+  getUserProfile: async () => ({
+    id: mockPrincipal,
+    username: "alex_cumulative",
+    displayName: "Demo User",
+    avatarEmoji: "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    role: UserRole.user,
+    tier: SubscriptionTier.tier1,
+    goalLimit: BigInt(3),
+  }),
 
   listAllUsers: async () => [],
 
@@ -160,6 +174,9 @@ export const mockBackend: backendInterface = {
   register: async (username) => ({
     id: mockPrincipal,
     username,
+    displayName: username,
+    avatarEmoji: "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     tier: SubscriptionTier.tier1,
     goalLimit: BigInt(3),
@@ -177,6 +194,8 @@ export const mockBackend: backendInterface = {
 
   setUserGoalLimit: async () => undefined,
 
+  setTimezone: async () => undefined,
+
   updateGoal: async (goalId, request) => ({
     __kind__: "ok",
     ok: {
@@ -189,4 +208,31 @@ export const mockBackend: backendInterface = {
   }),
 
   updateGoalState: async () => true,
+
+  deleteCheckIn: async (_checkInId) => ({ __kind__: "ok", ok: null }),
+
+  getCheckInsForPeriod: async (goalId, _from, _to) => [
+    {
+      id: BigInt(1),
+      owner: mockPrincipal,
+      goalId,
+      checkInType: CheckInType.success,
+      obstacleTemplateId: undefined,
+      timestamp: BigInt(Date.now()) * BigInt(1_000_000),
+    },
+  ],
+
+  isUsernameAvailable: async (username: string) => username !== "alex_cumulative",
+
+  updateMyProfile: async (displayName, _avatarEmoji) => ({
+    id: mockPrincipal,
+    username: "alex_cumulative",
+    displayName: displayName ?? "",
+    avatarEmoji: "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    role: UserRole.user,
+    tier: SubscriptionTier.tier1,
+    goalLimit: BigInt(3),
+  }),
 };
+

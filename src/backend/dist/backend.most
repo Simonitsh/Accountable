@@ -34,12 +34,14 @@ type GoalState__810211879 = {#abandoned; #active; #completed; #paused};
 type Goal__520167328 =
   {
     createdAt : Timestamp__301639476;
+    var iconName : ?Text;
     id : GoalId__1036611184;
     var ifThenPlan : Text;
     obstacleTemplateId : ?ObstacleTemplateId__228170292;
     outcome : Text;
     owner : UserId__158757552;
     var state : GoalState__810211879;
+    var themeColor : ?Text;
     var updatedAt : Timestamp__301639476;
     var wish : Text;
     var wishDescription : Text
@@ -74,40 +76,43 @@ type Timestamp__301639476 = Int;
 type UserId__158757552 = Principal;
 type UserProfile__775633023 =
   {
+    var avatarEmoji : Text;
     var createdAt : Timestamp__301639476;
     var customGoalLimit : ?Nat;
+    var displayName : Text;
     id : UserId__158757552;
     var role : UserRole__451090586;
     var tier : SubscriptionTier__75232000;
+    var timezone : Text;
     var username : Text
   };
 type UserRole__451090586 = {#admin; #user};
 actor {
-  stable var auditLog :
+  stable auditLog :
     {
       var blockIndex : Nat__490723111;
       var blocks : [var [var ?AdminAuditEntry__250483748]];
       var elementIndex : Nat__490723111
     };
-  stable var checkIns :
+  stable checkIns :
     {
       var blockIndex : Nat__490723111;
       var blocks : [var [var ?CheckIn__661112040]];
       var elementIndex : Nat__490723111
     };
-  stable var connections :
+  stable connections :
     {
       var blockIndex : Nat__490723111;
       var blocks : [var [var ?Connection__54064141]];
       var elementIndex : Nat__490723111
     };
-  stable var goals :
+  stable goals :
     {
       var blockIndex : Nat__490723111;
       var blocks : [var [var ?Goal__520167328]];
       var elementIndex : Nat__490723111
     };
-  stable var interactions :
+  stable interactions :
     {
       var blockIndex : Nat__490723111;
       var blocks : [var [var ?Interaction__467696781]];
@@ -118,7 +123,7 @@ actor {
   stable nextGoalId : [var Nat];
   stable nextInteractionId : [var Nat];
   stable nextObstacleTemplateId : [var Nat];
-  stable var obstacleTemplates :
+  stable obstacleTemplates :
     {
       var blockIndex : Nat__490723111;
       var blocks : [var [var ?ObstacleTemplate__309430647]];

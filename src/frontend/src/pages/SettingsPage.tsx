@@ -2,9 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight, Info, Lock, Settings, Zap } from "lucide-react";
+import type { UserProfilePublic } from "../backend.d.ts";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { TIER_GOAL_LIMITS, TIER_LABELS } from "../types";
 import type { SubscriptionTier } from "../types";
+
+function toNumericTier(tier: UserProfilePublic["tier"]): SubscriptionTier {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
+}
 
 // ─── Tier plan data ───────────────────────────────────────────────────────────
 const PLANS: {
@@ -125,9 +132,9 @@ export function SettingsPage() {
     );
   }
 
-  const tier = (profile?.tier ?? 1) as SubscriptionTier;
+  const tier = profile ? toNumericTier(profile.tier) : (1 as SubscriptionTier);
   const defaultLimit = TIER_GOAL_LIMITS[tier];
-  const isOverridden = !!profile && profile.goalLimit !== defaultLimit;
+  const isOverridden = !!profile && Number(profile.goalLimit) !== defaultLimit;
 
   return (
     <div
@@ -175,7 +182,7 @@ export function SettingsPage() {
         />
         <InfoRow
           label="Goal limit"
-          value={profile?.goalLimit ?? defaultLimit}
+          value={profile ? Number(profile.goalLimit) : defaultLimit}
           mono
         />
         {isOverridden && (

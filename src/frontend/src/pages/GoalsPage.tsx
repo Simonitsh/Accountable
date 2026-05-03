@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Archive,
   CheckCircle2,
   Clock,
   Edit3,
@@ -49,8 +48,6 @@ function stateLabel(state: GoalStateType): string {
       return "Completed";
     case GoalState.paused:
       return "Paused";
-    case GoalState.abandoned:
-      return "Abandoned";
     default:
       return "Unknown";
   }
@@ -76,12 +73,6 @@ function stateBadgeStyle(state: GoalStateType): React.CSSProperties {
         color: "oklch(var(--color-accent-missed))",
         border: "1px solid oklch(var(--color-accent-missed) / 0.25)",
       };
-    case GoalState.abandoned:
-      return {
-        backgroundColor: "oklch(var(--color-accent-social) / 0.1)",
-        color: "oklch(var(--color-accent-social) / 0.7)",
-        border: "1px solid oklch(var(--color-accent-social) / 0.2)",
-      };
     default:
       return {};
   }
@@ -103,7 +94,6 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: GoalState.active, label: "Active" },
   { key: GoalState.paused, label: "Paused" },
   { key: GoalState.completed, label: "Completed" },
-  { key: GoalState.abandoned, label: "Abandoned" },
 ];
 
 // ─── Edit Form ────────────────────────────────────────────────────────────────
@@ -250,6 +240,8 @@ interface GoalDetailProps {
   isChangingState: boolean;
   onUpdateGoal: (goalId: bigint, req: UpdateGoalRequest) => void;
   isUpdating: boolean;
+  onDeleteGoal: (goalId: bigint) => void;
+  isDeleting: boolean;
 }
 
 function GoalDetailPanel({
@@ -259,14 +251,15 @@ function GoalDetailPanel({
   isChangingState,
   onUpdateGoal,
   isUpdating,
+  onDeleteGoal,
+  isDeleting,
 }: GoalDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isActive = goal.state === GoalState.active;
   const isPaused = goal.state === GoalState.paused;
   const isCompleted = goal.state === GoalState.completed;
-  const isAbandoned = goal.state === GoalState.abandoned;
 
   function handleSaveEdit(req: UpdateGoalRequest) {
     onUpdateGoal(goal.id, req);
@@ -279,18 +272,32 @@ function GoalDetailPanel({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
-        className="rounded-2xl border border-border bg-card p-5 space-y-4"
+        className="rounded-2xl border border-border/20 bg-card p-5 space-y-4"
+        style={{
+          boxShadow:
+            "-5px -5px 14px rgba(65,65,75,0.5), 8px 8px 22px rgba(0,0,0,0.88)",
+          borderTop: "1px solid rgba(255,255,255,0.12)",
+          borderLeft: "1px solid rgba(255,255,255,0.06)",
+        }}
         data-ocid="goals.detail_panel"
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">
-              Keystone Habit
+              Macro Goal
             </p>
             <h3 className="font-display text-xl font-bold text-foreground leading-tight">
               {goal.wish}
             </h3>
+            {goal.wishDescription && (
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 block mb-0.5">
+                  Keystone Habit
+                </span>
+                {goal.wishDescription}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {!isEditing && (isActive || isPaused) && (
@@ -325,7 +332,6 @@ function GoalDetailPanel({
             {goal.state === GoalState.active && <Flame size={10} />}
             {goal.state === GoalState.paused && <Pause size={10} />}
             {goal.state === GoalState.completed && <CheckCircle2 size={10} />}
-            {goal.state === GoalState.abandoned && <Archive size={10} />}
             {stateLabel(goal.state)}
           </span>
           <span className="text-xs text-muted-foreground">
@@ -352,16 +358,6 @@ function GoalDetailPanel({
               className="space-y-3"
               data-ocid="goals.detail_view"
             >
-              {goal.wishDescription && (
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
-                    Description
-                  </p>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {goal.wishDescription}
-                  </p>
-                </div>
-              )}
               {goal.outcome && (
                 <div>
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
@@ -396,7 +392,7 @@ function GoalDetailPanel({
                   size="sm"
                   variant="outline"
                   onClick={() => onStateChange(goal.id, GoalState.paused)}
-                  disabled={isChangingState}
+                  disabled={isChangingState || isDeleting}
                   className="gap-1.5 text-xs"
                   data-ocid="goals.pause_button"
                 >
@@ -408,61 +404,35 @@ function GoalDetailPanel({
                   size="sm"
                   variant="outline"
                   onClick={() => onStateChange(goal.id, GoalState.completed)}
-                  disabled={isChangingState}
+                  disabled={isChangingState || isDeleting}
                   className="gap-1.5 text-xs"
                   data-ocid="goals.complete_button"
                 >
                   <CheckCircle2 size={12} />
                   Mark Complete
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowAbandonConfirm(true)}
-                  disabled={isChangingState}
-                  className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
-                  data-ocid="goals.abandon_button"
-                >
-                  <Trash2 size={12} />
-                  Abandon
-                </Button>
               </>
             )}
             {isPaused && (
-              <>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => onStateChange(goal.id, GoalState.active)}
-                  disabled={isChangingState}
-                  className="gap-1.5 text-xs button-primary-neon"
-                  data-ocid="goals.reactivate_button"
-                >
-                  <Play size={12} />
-                  Reactivate
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowAbandonConfirm(true)}
-                  disabled={isChangingState}
-                  className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
-                  data-ocid="goals.abandon_from_pause_button"
-                >
-                  <Trash2 size={12} />
-                  Abandon
-                </Button>
-              </>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => onStateChange(goal.id, GoalState.active)}
+                disabled={isChangingState || isDeleting}
+                className="gap-1.5 text-xs button-primary-neon"
+                data-ocid="goals.reactivate_button"
+              >
+                <Play size={12} />
+                Reactivate
+              </Button>
             )}
-            {(isCompleted || isAbandoned) && (
+            {isCompleted && (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 onClick={() => onStateChange(goal.id, GoalState.active)}
-                disabled={isChangingState}
+                disabled={isChangingState || isDeleting}
                 className="gap-1.5 text-xs"
                 data-ocid="goals.restore_button"
               >
@@ -470,45 +440,54 @@ function GoalDetailPanel({
                 Restore as Active
               </Button>
             )}
-            {isChangingState && (
+            {/* Delete Goal — available for all states */}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isChangingState || isDeleting}
+              className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
+              data-ocid="goals.delete_button"
+            >
+              <Trash2 size={12} />
+              Delete Goal
+            </Button>
+            {(isChangingState || isDeleting) && (
               <span
                 className="text-xs text-muted-foreground flex items-center gap-1.5"
                 data-ocid="goals.state_change_loading_state"
               >
                 <span className="w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" />
-                Updating…
+                {isDeleting ? "Deleting…" : "Updating…"}
               </span>
             )}
           </div>
         )}
       </motion.div>
 
-      {/* Abandon confirmation dialog */}
-      <AlertDialog
-        open={showAbandonConfirm}
-        onOpenChange={setShowAbandonConfirm}
-      >
-        <AlertDialogContent data-ocid="goals.abandon_dialog">
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent data-ocid="goals.delete_dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Abandon this goal?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this goal?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{goal.wish}" will be marked as abandoned. You can restore it
-              later, but it will no longer appear in your active dashboard.
+              "{goal.wish}" will be permanently deleted. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-ocid="goals.abandon_cancel_button">
-              Keep it
+            <AlertDialogCancel data-ocid="goals.delete_cancel_button">
+              Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                setShowAbandonConfirm(false);
-                onStateChange(goal.id, GoalState.abandoned);
+                setShowDeleteConfirm(false);
+                onDeleteGoal(goal.id);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-ocid="goals.abandon_confirm_button"
+              data-ocid="goals.delete_confirm_button"
             >
-              Yes, abandon
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -523,6 +502,7 @@ export function GoalsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>(GoalState.active);
   const [selectedGoalId, setSelectedGoalId] = useState<bigint | null>(null);
   const [changingStateId, setChangingStateId] = useState<bigint | null>(null);
+  const [deletingGoalId, setDeletingGoalId] = useState<bigint | null>(null);
   const { actor, isFetching } = useBackend();
   const queryClient = useQueryClient();
 
@@ -583,6 +563,26 @@ export function GoalsPage() {
     },
   });
 
+  const deleteGoalMutation = useMutation({
+    mutationFn: async ({ goalId }: { goalId: bigint }) => {
+      if (!actor) throw new Error("Actor not ready");
+      // Backend uses "abandoned" state as deletion; these goals are hidden from the UI
+      return actor.updateGoalState(goalId, GoalState.abandoned);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myGoals"] });
+      toast.success("Goal deleted.");
+      setSelectedGoalId(null);
+    },
+    onError: (err: Error) => {
+      console.error("[GoalsPage] deleteGoal error:", err);
+      toast.error("Failed to delete goal. Please try again.");
+    },
+    onSettled: () => {
+      setDeletingGoalId(null);
+    },
+  });
+
   function handleStateChange(goalId: bigint, newState: GoalStateType) {
     setChangingStateId(goalId);
     updateStateMutation.mutate({ goalId, newState });
@@ -593,12 +593,23 @@ export function GoalsPage() {
     updateGoalMutation.mutate({ goalId, req });
   }
 
-  const filtered = goals.filter((g) =>
+  function handleDeleteGoal(goalId: bigint) {
+    setDeletingGoalId(goalId);
+    deleteGoalMutation.mutate({ goalId });
+  }
+
+  // Exclude abandoned goals from the list entirely
+  const visibleGoals = goals.filter((g) => g.state !== GoalState.abandoned);
+
+  const filtered = visibleGoals.filter((g) =>
     activeFilter === "all" ? true : g.state === activeFilter,
   );
 
-  const activeCount = goals.filter((g) => g.state === GoalState.active).length;
-  const selectedGoal = goals.find((g) => g.id === selectedGoalId) ?? null;
+  const activeCount = visibleGoals.filter(
+    (g) => g.state === GoalState.active,
+  ).length;
+  const selectedGoal =
+    visibleGoals.find((g) => g.id === selectedGoalId) ?? null;
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-6">
@@ -643,8 +654,8 @@ export function GoalsPage() {
         {FILTER_TABS.map((tab) => {
           const count =
             tab.key === "all"
-              ? goals.length
-              : goals.filter((g) => g.state === tab.key).length;
+              ? visibleGoals.length
+              : visibleGoals.filter((g) => g.state === tab.key).length;
           const isActive = activeFilter === tab.key;
           return (
             <button
@@ -669,7 +680,9 @@ export function GoalsPage() {
               {tab.label}
               {count > 0 && (
                 <span
-                  className={`text-[10px] font-mono ${isActive ? "text-foreground" : "text-muted-foreground/60"}`}
+                  className={`text-[10px] font-mono ${
+                    isActive ? "text-foreground" : "text-muted-foreground/60"
+                  }`}
                 >
                   {count}
                 </span>
@@ -696,11 +709,11 @@ export function GoalsPage() {
       )}
 
       {/* Empty state — no goals at all */}
-      {!isLoading && goals.length === 0 && (
+      {!isLoading && visibleGoals.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl bg-card border border-border"
+          className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl bg-card border border-border/20"
           data-ocid="goals.empty_state"
         >
           <div
@@ -736,9 +749,9 @@ export function GoalsPage() {
       )}
 
       {/* Filtered empty state */}
-      {!isLoading && goals.length > 0 && filtered.length === 0 && (
+      {!isLoading && visibleGoals.length > 0 && filtered.length === 0 && (
         <div
-          className="text-center py-10 rounded-2xl bg-card border border-border text-muted-foreground text-sm"
+          className="text-center py-10 rounded-2xl bg-card border border-border/20 text-muted-foreground text-sm"
           data-ocid="goals.filter_empty_state"
         >
           No{" "}
@@ -773,6 +786,10 @@ export function GoalsPage() {
             }
             onUpdateGoal={handleUpdateGoal}
             isUpdating={updateGoalMutation.isPending}
+            onDeleteGoal={handleDeleteGoal}
+            isDeleting={
+              deletingGoalId === selectedGoal.id && deleteGoalMutation.isPending
+            }
           />
         )}
       </AnimatePresence>
@@ -793,7 +810,7 @@ export function GoalsPage() {
                 className={`w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${
                   isSelected
                     ? "border-primary/40 bg-primary/5"
-                    : "border-border bg-card hover:border-primary/20"
+                    : "border-border/20 bg-card hover:border-primary/20"
                 }`}
                 data-ocid={`goals.goal_item.${index + 1}`}
               >
@@ -808,9 +825,6 @@ export function GoalsPage() {
                         {goal.state === GoalState.paused && <Pause size={8} />}
                         {goal.state === GoalState.completed && (
                           <CheckCircle2 size={8} />
-                        )}
-                        {goal.state === GoalState.abandoned && (
-                          <Archive size={8} />
                         )}
                         {stateLabel(goal.state)}
                       </span>
@@ -831,7 +845,9 @@ export function GoalsPage() {
                   <div className="shrink-0 flex items-center gap-1.5 text-muted-foreground">
                     <Edit3
                       size={14}
-                      className={`transition-smooth ${isSelected ? "text-primary" : ""}`}
+                      className={`transition-smooth ${
+                        isSelected ? "text-primary" : ""
+                      }`}
                     />
                   </div>
                 </div>

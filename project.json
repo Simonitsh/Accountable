@@ -1,25 +1,26 @@
 {
-  "overview": "Cumulative is a behavioral-science-driven social accountability PWA that uses the WOOP framework to help users build lasting habits through goal setting, daily check-ins, and accountability partner support.",
+  "overview": "Cumulative is a behavioral-science-driven social accountability PWA with a premium Neumorphic design, dual-swipe habit check-ins, a Done tab with undo, 7-day color ball week calendars per habit, and midnight finalization following user local timezone.",
   "features": [
-    "WOOP Goal Builder — multi-step wizard (Wish, Outcome, Obstacle, If-Then Plan)",
-    "Daily check-in dashboard with one-tap success and swipe-to-skip gestures",
-    "Accountability partner connections with mutual consent flow",
-    "Partner Feed with High-Five social interactions",
-    "Analytics with 30-day trend chart and streak tracking",
-    "Tier-based goal limits (Free: 3, Plus: 10, Power: 25) with Admin override",
-    "Fully installable PWA with Web App Manifest and Service Worker",
-    "Neumorphic dark UI with glowing accent colors and tactile components"
+    "Dual-swipe habit check-ins (right=success, left=skip)",
+    "Done tab with undo popup and satisfying slide-back animation",
+    "7-day color ball week calendar on each habit card",
+    "Swipe hint only visible when un-swiped habits remain",
+    "Midnight finalization in user's local timezone",
+    "WOOP goal builder wizard",
+    "Partner feed with High-Five reactions",
+    "Analytics with 30-day trend chart",
+    "True Neumorphic design (light and dark themes)",
+    "Internet Identity authentication"
   ],
   "category": "productivity",
   "tags": [
-    "habit-tracking",
+    "habits",
     "accountability",
-    "woop",
-    "goals",
-    "social",
-    "pwa",
+    "productivity",
     "neumorphic",
-    "freemium"
+    "pwa",
+    "behavioral-science",
+    "goal-tracking"
   ],
-  "last_updated": "2026-04-30T09:35:13.453Z"
+  "last_updated": "2026-05-02T09:30:56.882Z"
 }

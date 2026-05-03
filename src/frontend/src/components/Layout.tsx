@@ -25,7 +25,7 @@ export function Layout() {
       <main
         className="flex-1 overflow-y-auto"
         style={{
-          paddingTop: "56px",
+          paddingTop: "calc(56px + env(safe-area-inset-top))",
           paddingBottom: "calc(64px + env(safe-area-inset-bottom))",
         }}
       >

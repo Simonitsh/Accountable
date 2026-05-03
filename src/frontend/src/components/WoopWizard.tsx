@@ -1,15 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { Check, ChevronLeft, Plus, X, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ObstacleTemplate as BackendObstacleTemplate } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import { useUserProfile } from "../hooks/useUserProfile";
-import { OBSTACLE_TEMPLATES } from "../types";
+import { OBSTACLE_TEMPLATES } from "../types/index";
+import { GOAL_ICONS } from "../utils/goalIcons";
 import TierLimitModal from "./TierLimitModal";
 
 interface WoopWizardProps {
@@ -18,65 +18,61 @@ interface WoopWizardProps {
   onGoalCreated?: () => void;
 }
 
-// Discriminated union so we always know whether the selected obstacle
-// has a valid backend bigint ID (user-created) or is frontend-only (built-in).
-type SelectedObstacle =
-  | { kind: "builtin"; id: string; label: string }
-  | { kind: "user"; id: bigint; label: string }
-  | null;
-
-interface FormData {
-  wish: string;
-  wishDescription: string;
-  outcome: string;
-  /** Tracks the currently selected obstacle — null means nothing selected yet. */
-  selectedObstacle: SelectedObstacle;
-  newObstacleTitle: string;
-  newObstacleDescription: string;
-  ifThenPlan: string;
+interface SelectedObstacle {
+  id: string;
+  label: string;
+  kind: "builtin" | "user" | "custom";
+  backendId?: bigint;
 }
 
-type FormErrors = Partial<
-  Record<
-    "wish" | "wishDescription" | "outcome" | "selectedObstacle" | "ifThenPlan",
-    string
-  >
->;
+interface FormState {
+  // Step 1 — Wish + Keystone Habit
+  goalAction: string;
+  goalReason: string;
+  habitAction: string;
+  habitMinutes: string;
+  // Step 2 — Obstacles
+  selectedObstacles: SelectedObstacle[];
+  customInput: string;
+  customChips: SelectedObstacle[];
+  // Step 3 — If-Then Plan
+  ifThenPlan: string;
+  // Step 4 — Icon + Color
+  iconName: string;
+  themeColor: string;
+}
+
+type StepError = Partial<Record<string, string>>;
+
+const THEME_COLORS = [
+  { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
+  { id: "sapphire", label: "Sapphire", value: "#2563EB" },
+  { id: "emerald", label: "Emerald", value: "#059669" },
+  { id: "amber", label: "Amber", value: "#D97706" },
+  { id: "rose", label: "Rose", value: "#E11D48" },
+  { id: "slate", label: "Slate", value: "#475569" },
+  { id: "copper", label: "Copper", value: "#C2410C" },
+  { id: "teal", label: "Teal", value: "#0D9488" },
+];
 
 const STEPS = [
   { id: 1, label: "Wish" },
-  { id: 2, label: "Outcome" },
-  { id: 3, label: "Obstacle" },
-  { id: 4, label: "Plan" },
+  { id: 2, label: "Obstacle" },
+  { id: 3, label: "Plan" },
+  { id: 4, label: "Review" },
 ];
 
-const BEHAVIORAL_TIPS: Record<number, { title: string; tip: string }> = {
-  1: {
-    title: "Your Wish",
-    tip: "A specific, challenging but achievable wish is the foundation of behavior change. Be bold — what do you truly want?",
-  },
-  2: {
-    title: "Best Outcome",
-    tip: "Vividly imagining your best outcome energizes motivation. Close your eyes and picture what success feels like.",
-  },
-  3: {
-    title: "Inner Obstacle",
-    tip: "Unlike wishful thinking, WOOP asks you to identify what *inside you* might get in the way — not external barriers.",
-  },
-  4: {
-    title: "If-Then Plan",
-    tip: "Implementation intentions turn goals into habits. When you encounter your obstacle, this plan is your autopilot.",
-  },
-};
-
-const EMPTY_FORM: FormData = {
-  wish: "",
-  wishDescription: "",
-  outcome: "",
-  selectedObstacle: null,
-  newObstacleTitle: "",
-  newObstacleDescription: "",
+const EMPTY: FormState = {
+  goalAction: "",
+  goalReason: "",
+  habitAction: "",
+  habitMinutes: "",
+  selectedObstacles: [],
+  customInput: "",
+  customChips: [],
   ifThenPlan: "",
+  iconName: "target",
+  themeColor: "#2563EB",
 };
 
 export default function WoopWizard({
@@ -85,18 +81,51 @@ export default function WoopWizard({
   onGoalCreated,
 }: WoopWizardProps) {
   const [step, setStep] = useState(1);
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const [animating, setAnimating] = useState(false);
+  const [animDir, setAnimDir] = useState<"fwd" | "bwd">("fwd");
+  const [mounted, setMounted] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
-  const [showNewObstacle, setShowNewObstacle] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<StepError>({});
+  const [form, setForm] = useState<FormState>(EMPTY);
+
   const { actor, isFetching } = useBackend();
   const { data: userProfile } = useUserProfile();
   const queryClient = useQueryClient();
 
-  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  // Slide-up entrance animation
+  useEffect(() => {
+    if (!open) {
+      setMounted(false);
+      return;
+    }
+    // Tiny delay lets the browser paint the initial off-screen position first
+    const t = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(t);
+  }, [open]);
 
-  // Fetch user-created obstacle templates from the backend.
+  // Lock body scroll while open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [open]);
+
+  const assembledWish =
+    form.goalAction.trim() && form.goalReason.trim()
+      ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}`
+      : "";
+  const assembledHabit =
+    form.habitAction.trim() && form.habitMinutes.trim()
+      ? `Every day, I will ${form.habitAction.trim()} for ${form.habitMinutes.trim()} minutes`
+      : "";
+  const assembledObstacles = form.selectedObstacles
+    .map((o) => o.label)
+    .join(", ");
+  const primaryObstacle = form.selectedObstacles[0]?.label ?? "";
+
   const { data: userObstacles = [] } = useQuery<BackendObstacleTemplate[]>({
     queryKey: ["obstacleTemplates"],
     queryFn: async () => {
@@ -110,89 +139,64 @@ export default function WoopWizard({
     enabled: !!actor && !isFetching,
   });
 
-  // Pre-fill the If-Then plan when advancing to step 4.
-  const selectedLabel = form.selectedObstacle?.label ?? "";
-  useEffect(() => {
-    if (step !== 4) return;
-    setForm((prev) => {
-      if (prev.ifThenPlan) return prev;
-      return {
-        ...prev,
-        ifThenPlan: selectedLabel
-          ? `If ${selectedLabel.toLowerCase()}, then I will `
-          : "",
-      };
-    });
-  }, [step, selectedLabel]);
-
-  const createObstacleMutation = useMutation({
-    mutationFn: async (data: { title: string; description: string }) => {
-      if (!actor || !("createObstacleTemplate" in actor))
-        throw new Error("Actor not available");
-      return await actor.createObstacleTemplate({
-        title: data.title,
-        description: data.description,
-      });
-    },
-    onSuccess: (newTemplate) => {
-      queryClient.invalidateQueries({ queryKey: ["obstacleTemplates"] });
-      setForm((f) => ({
-        ...f,
-        selectedObstacle: {
-          kind: "user",
-          id: newTemplate.id,
-          label: newTemplate.title,
-        },
-        newObstacleTitle: "",
-        newObstacleDescription: "",
-      }));
-      setShowNewObstacle(false);
-    },
-    onError: (err: Error) => {
-      console.error("[WoopWizard] createObstacleMutation error:", err);
-    },
-  });
-
   const createGoalMutation = useMutation({
     mutationFn: async () => {
-      // actor must be present — it IS the authenticated actor
       if (!actor) throw new Error("Actor not ready — please wait and retry.");
 
-      const { selectedObstacle } = form;
+      // Persist any non-user obstacles to the backend first (await each one so
+      // we have a valid backendId before goal creation begins).
+      let obstacleTemplateId: bigint | undefined;
+      for (const obs of form.selectedObstacles) {
+        if (obs.kind === "user" && obs.backendId !== undefined) {
+          // Already persisted — use its ID for the goal link
+          if (obstacleTemplateId === undefined)
+            obstacleTemplateId = obs.backendId;
+        } else {
+          // builtin or custom — create it now and capture the returned ID
+          try {
+            const created = await actor.createObstacleTemplate({
+              title: obs.label,
+              description: "",
+            });
+            if (obstacleTemplateId === undefined)
+              obstacleTemplateId = created.id;
+          } catch {
+            // Non-fatal — obstacle template creation failure shouldn't block goal creation
+            console.error("Failed to persist obstacle template:", obs.label);
+          }
+        }
+      }
 
-      // Only pass obstacleTemplateId when the user selected a backend-persisted
-      // obstacle (kind === "user") that has a valid bigint ID.
-      // The backend.ts wrapper converts undefined → [] and bigint → [bigint].
-      const obstacleTemplateId: bigint | undefined =
-        selectedObstacle?.kind === "user" ? selectedObstacle.id : undefined;
-
-      const request = {
-        wish: form.wish.trim(),
-        wishDescription: form.wishDescription.trim(),
-        outcome: form.outcome.trim(),
+      return await actor.createGoal({
+        wish: assembledWish,
+        wishDescription: assembledHabit,
+        outcome: assembledObstacles,
         obstacleTemplateId,
         ifThenPlan: form.ifThenPlan.trim(),
-      };
-
-      console.log("[WoopWizard] createGoal request:", request);
-      return await actor.createGoal(request);
+        iconName: form.iconName || undefined,
+        themeColor: form.themeColor || undefined,
+      });
     },
-    onSuccess: (result) => {
-      console.log("[WoopWizard] createGoal success:", result);
-      queryClient.invalidateQueries({ queryKey: ["myGoals"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["myGoals"],
+        refetchType: "all",
+      });
+      await queryClient.refetchQueries({ queryKey: ["myGoals"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      toast.success("Goal created! 🎯 Your WOOP habit is ready.", {
-        description: `"${form.wish.trim()}" added to your dashboard.`,
+      toast.success("Commitment made! Your habit is on the dashboard.", {
+        description: assembledHabit,
         duration: 5000,
       });
       onGoalCreated?.();
       handleClose();
     },
     onError: (error: Error) => {
-      console.error("[WoopWizard] createGoal error:", error);
+      const msg = error.message?.toLowerCase() ?? "";
       if (
-        error.message?.includes("limitReached") ||
-        error.message?.includes("limit")
+        msg.includes("limitreached") ||
+        msg.includes("limit reached") ||
+        msg.includes("goal limit")
       ) {
         setShowLimitModal(true);
       } else {
@@ -205,122 +209,165 @@ export default function WoopWizard({
 
   const handleClose = useCallback(() => {
     setStep(1);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY);
     setErrors({});
-    setShowNewObstacle(false);
     onClose();
   }, [onClose]);
 
-  const validateStep = (s: number): boolean => {
-    const newErrors: FormErrors = {};
+  const validate = (s: number): boolean => {
+    const e: StepError = {};
     if (s === 1) {
-      if (!form.wish.trim()) newErrors.wish = "Please name your wish.";
-      if (!form.wishDescription.trim())
-        newErrors.wishDescription = "Please describe your wish.";
+      if (!form.goalAction.trim())
+        e.goalAction = "Tell us what you want to achieve.";
+      if (!form.goalReason.trim()) e.goalReason = "What's your deeper reason?";
+      if (!form.habitAction.trim()) e.habitAction = "Name the daily action.";
+      if (!form.habitMinutes.trim()) e.habitMinutes = "How many minutes?";
     }
-    if (s === 2 && !form.outcome.trim()) {
-      newErrors.outcome = "Please describe your best outcome.";
+    if (s === 2 && form.selectedObstacles.length === 0) {
+      e.obstacles = "Select at least one obstacle you might face.";
     }
-    if (s === 3 && !form.selectedObstacle && !showNewObstacle) {
-      newErrors.selectedObstacle = "Please select or create an obstacle.";
+    if (s === 3 && !form.ifThenPlan.trim()) {
+      e.ifThenPlan = "Write your backup plan.";
     }
-    if (s === 4 && !form.ifThenPlan.trim()) {
-      newErrors.ifThenPlan = "Please write your if-then plan.";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const navigate = (dir: "fwd" | "bwd") => {
+    setAnimDir(dir);
+    setAnimating(true);
+    setTimeout(() => {
+      setStep((s) => (dir === "fwd" ? s + 1 : s - 1));
+      setAnimating(false);
+    }, 180);
   };
 
   const goNext = () => {
-    if (!validateStep(step)) return;
     if (step === 4) {
       createGoalMutation.mutate();
       return;
     }
-    setDirection("forward");
-    setAnimating(true);
-    setTimeout(() => {
-      setStep((s) => s + 1);
-      setAnimating(false);
-    }, 220);
+    if (!validate(step)) return;
+    navigate("fwd");
   };
 
   const goBack = () => {
     if (step === 1) return;
-    setDirection("backward");
-    setAnimating(true);
-    setTimeout(() => {
-      setStep((s) => s - 1);
-      setAnimating(false);
-    }, 220);
+    setErrors({});
+    navigate("bwd");
   };
 
-  const handleSaveNewObstacle = () => {
-    if (!form.newObstacleTitle.trim()) return;
+  const toggleObstacle = (obs: SelectedObstacle) => {
+    setForm((f) => {
+      const exists = f.selectedObstacles.find((o) => o.id === obs.id);
+      const updated = exists
+        ? f.selectedObstacles.filter((o) => o.id !== obs.id)
+        : [...f.selectedObstacles, obs];
+      return { ...f, selectedObstacles: updated };
+    });
+    setErrors((e) => ({ ...e, obstacles: undefined }));
+  };
 
-    if (!actor || !("createObstacleTemplate" in actor)) {
-      // No backend connection — store as local entry so user can proceed
-      setForm((f) => ({
-        ...f,
-        selectedObstacle: {
-          kind: "builtin",
-          id: `local_${Date.now()}`,
-          label: f.newObstacleTitle.trim(),
-        },
-        newObstacleTitle: "",
-        newObstacleDescription: "",
+  const addCustomChip = () => {
+    const label = form.customInput.trim();
+    if (!label) return;
+    const normalised = label.toLowerCase();
+    const alreadyExists =
+      form.customChips.some((c) => c.label.toLowerCase() === normalised) ||
+      OBSTACLE_TEMPLATES.some((t) => t.label.toLowerCase() === normalised);
+    if (alreadyExists) {
+      setErrors((e) => ({
+        ...e,
+        customInput: "That obstacle is already listed.",
       }));
-      setShowNewObstacle(false);
       return;
     }
-    createObstacleMutation.mutate({
-      title: form.newObstacleTitle,
-      description: form.newObstacleDescription,
-    });
+    const chip: SelectedObstacle = {
+      id: `custom_${Date.now()}`,
+      label,
+      kind: "custom",
+    };
+    setForm((f) => ({
+      ...f,
+      customInput: "",
+      customChips: [...f.customChips, chip],
+      selectedObstacles: [...f.selectedObstacles, chip],
+    }));
+    setErrors((e) => ({ ...e, obstacles: undefined, customInput: undefined }));
   };
 
   if (!open) return null;
 
-  const tip = BEHAVIORAL_TIPS[step];
   const slideClass = animating
-    ? direction === "forward"
-      ? "opacity-0 translate-x-4"
-      : "opacity-0 -translate-x-4"
+    ? animDir === "fwd"
+      ? "opacity-0 translate-x-8"
+      : "opacity-0 -translate-x-8"
     : "opacity-100 translate-x-0";
 
-  // Determine selected obstacle key for comparison in the UI
-  const selectedKey =
-    form.selectedObstacle?.kind === "builtin"
-      ? form.selectedObstacle.id
-      : form.selectedObstacle?.kind === "user"
-        ? String(form.selectedObstacle.id)
-        : null;
+  const presetIds = new Set(OBSTACLE_TEMPLATES.map((t) => t.id));
+
+  const uniqueUserObstacles = userObstacles
+    .filter(
+      (o) =>
+        !presetIds.has(String(o.id)) &&
+        !OBSTACLE_TEMPLATES.some(
+          (t) => t.label.toLowerCase() === o.title.toLowerCase(),
+        ),
+    )
+    .map((o) => ({
+      id: `user_${String(o.id)}`,
+      label: o.title,
+      kind: "user" as const,
+      backendId: o.id,
+    }));
+
+  const allObstacleChips: SelectedObstacle[] = [
+    ...OBSTACLE_TEMPLATES.map((o) => ({
+      id: o.id,
+      label: o.label,
+      kind: "builtin" as const,
+    })),
+    ...uniqueUserObstacles,
+    ...form.customChips,
+  ];
+
+  const isSelected = (id: string) =>
+    form.selectedObstacles.some((o) => o.id === id);
+
+  const stepTitles = [
+    "Plant your wish",
+    "Name your obstacle",
+    "Write your plan",
+    "Your commitment",
+  ];
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
-        aria-hidden="true"
-      />
-
-      {/* Dialog */}
+      {/* Full-screen takeover — slides up from the bottom */}
       <dialog
+        open
         aria-modal="true"
         aria-label="WOOP Goal Builder"
         data-ocid="woop_wizard.dialog"
-        open
-        className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg w-full mx-auto max-h-[90dvh] flex flex-col rounded-2xl bg-card border border-border shadow-neumorphic-emboss-dark overflow-hidden p-0 m-auto"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") handleClose();
+        }}
+        style={{
+          transform: mounted ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)",
+        }}
+        className="fixed inset-0 z-[300] flex flex-col bg-card overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border shrink-0">
+        {/* ── Top Bar ── */}
+        <div className="shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border">
           <div>
-            <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase">
+            <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1">
               WOOP Goal Builder
             </p>
-            <h2 className="text-lg font-display font-semibold text-foreground leading-tight mt-0.5">
-              {tip.title}
-            </h2>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight">
+              {stepTitles[step - 1]}
+            </h1>
           </div>
           <Button
             type="button"
@@ -328,474 +375,687 @@ export default function WoopWizard({
             size="icon"
             onClick={handleClose}
             data-ocid="woop_wizard.close_button"
-            aria-label="Close"
-            className="text-muted-foreground hover:text-foreground"
+            aria-label="Close goal builder"
+            className="text-muted-foreground hover:text-foreground shrink-0 w-11 h-11"
           >
-            <X size={18} />
+            <X size={22} />
           </Button>
         </div>
 
-        {/* Step progress — compact horizontal stepper */}
+        {/* ── Step Indicator ── */}
         <div
-          className="flex items-center w-full px-5 py-2.5 shrink-0"
-          aria-label={`Step ${step} of ${STEPS.length}`}
+          className="shrink-0 px-6 pt-5 pb-4"
+          aria-label={`Step ${step} of 4`}
         >
-          {STEPS.map((s, i) => (
-            <div key={s.id} className="flex items-center flex-1 last:flex-none">
-              {/* Step dot + label stacked */}
-              <div className="flex flex-col items-center gap-0.5 shrink-0 w-10">
+          <div className="relative flex items-center max-w-2xl mx-auto">
+            {/* Background track */}
+            <div
+              className="absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full"
+              style={{ background: "oklch(var(--color-accent-missed) / 0.18)" }}
+              aria-hidden="true"
+            />
+            {/* Progress track */}
+            <div
+              className="absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out"
+              style={{
+                background: "oklch(var(--color-accent-success))",
+                right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
+                boxShadow:
+                  "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)",
+              }}
+              aria-hidden="true"
+            />
+            {STEPS.map((s) => {
+              const isActive = step === s.id;
+              const isComplete = step > s.id;
+              return (
                 <div
-                  className={`flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold transition-all duration-200 border ${
-                    step > s.id
-                      ? "border-transparent text-primary-foreground"
-                      : step === s.id
-                        ? "border-primary text-primary-foreground"
-                        : "bg-muted/60 border-border text-muted-foreground"
-                  }`}
-                  style={
-                    step > s.id
-                      ? {
-                          backgroundColor: "oklch(var(--color-accent-success))",
-                          boxShadow:
-                            "0 0 8px oklch(var(--color-accent-success) / 0.4)",
-                        }
-                      : step === s.id
+                  key={s.id}
+                  data-ocid={`woop_wizard.step_indicator.${s.id}`}
+                  className="relative z-10 flex-1 flex flex-col items-center gap-2"
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold text-sm"
+                    style={
+                      isComplete
                         ? {
                             backgroundColor:
                               "oklch(var(--color-accent-success))",
-                            borderColor: "oklch(var(--color-accent-success))",
+                            color: "oklch(0.12 0 0)",
+                            boxShadow:
+                              "0 0 16px 3px oklch(var(--color-accent-success) / 0.55)",
                           }
-                        : undefined
-                  }
-                  data-ocid={`woop_wizard.step_indicator.${s.id}`}
-                >
-                  {step > s.id ? <Check size={8} /> : s.id}
+                        : isActive
+                          ? {
+                              backgroundColor:
+                                "oklch(var(--color-accent-success) / 0.15)",
+                              border:
+                                "2.5px solid oklch(var(--color-accent-success))",
+                              color: "oklch(var(--color-accent-success))",
+                              boxShadow:
+                                "0 0 20px 4px oklch(var(--color-accent-success) / 0.3)",
+                            }
+                          : {
+                              backgroundColor: "oklch(var(--muted))",
+                              border:
+                                "2px solid oklch(var(--color-accent-missed) / 0.3)",
+                              color: "oklch(var(--muted-foreground))",
+                            }
+                    }
+                  >
+                    {isComplete ? (
+                      <svg
+                        viewBox="0 0 12 12"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <polyline points="2,6 5,9 10,3" />
+                      </svg>
+                    ) : (
+                      s.id
+                    )}
+                  </div>
+                  <span
+                    className="text-xs font-mono tracking-wider uppercase transition-colors duration-200"
+                    style={
+                      isComplete
+                        ? { color: "oklch(var(--color-accent-success) / 0.7)" }
+                        : isActive
+                          ? {
+                              color: "oklch(var(--color-accent-success))",
+                              fontWeight: 700,
+                            }
+                          : { color: "oklch(var(--muted-foreground) / 0.5)" }
+                    }
+                  >
+                    {s.label}
+                  </span>
                 </div>
-                <span
-                  className={`text-[8px] font-medium leading-none transition-colors duration-200 text-center ${
-                    step === s.id
-                      ? "text-foreground"
-                      : "text-muted-foreground/50"
-                  }`}
-                >
-                  {s.label}
-                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Scrollable Step Content ── */}
+        <div className="flex-1 overflow-y-auto">
+          <div
+            className={`max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`}
+          >
+            {/* STEP 1 — Wish + Keystone Habit */}
+            {step === 1 && (
+              <div className="space-y-10">
+                <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
+                  Your keystone habit is the daily action. Your goal is the
+                  destination. Focus on the action.
+                </p>
+
+                <div className="space-y-4">
+                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
+                    Macro Goal
+                  </p>
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset">
+                    <div className="flex flex-wrap items-center gap-3 text-xl">
+                      <span className="text-muted-foreground shrink-0">
+                        I want to
+                      </span>
+                      <input
+                        data-ocid="woop_wizard.goal_action_input"
+                        value={form.goalAction}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            goalAction: e.target.value,
+                          }));
+                          setErrors((er) => ({ ...er, goalAction: undefined }));
+                        }}
+                        placeholder="run a marathon"
+                        className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
+                        aria-label="What do you want to achieve"
+                      />
+                      <span className="text-muted-foreground shrink-0">
+                        so that I can
+                      </span>
+                      <input
+                        data-ocid="woop_wizard.goal_reason_input"
+                        value={form.goalReason}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            goalReason: e.target.value,
+                          }));
+                          setErrors((er) => ({ ...er, goalReason: undefined }));
+                        }}
+                        placeholder="feel unstoppable"
+                        className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
+                        aria-label="Your deeper reason"
+                      />
+                    </div>
+                    {(errors.goalAction || errors.goalReason) && (
+                      <p
+                        className="text-base text-destructive"
+                        data-ocid="woop_wizard.goal.field_error"
+                      >
+                        {errors.goalAction || errors.goalReason}
+                      </p>
+                    )}
+                    {assembledWish && (
+                      <p className="text-base text-accent-success font-medium leading-relaxed">
+                        {assembledWish}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-2">
+                    <Zap size={13} className="text-accent-success" />
+                    Keystone Habit — shown on your dashboard
+                  </p>
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset">
+                    <div className="flex flex-wrap items-center gap-3 text-xl">
+                      <span className="text-muted-foreground shrink-0">
+                        Every day, I will
+                      </span>
+                      <input
+                        data-ocid="woop_wizard.habit_action_input"
+                        value={form.habitAction}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            habitAction: e.target.value,
+                          }));
+                          setErrors((er) => ({
+                            ...er,
+                            habitAction: undefined,
+                          }));
+                        }}
+                        placeholder="run"
+                        className="input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium"
+                        aria-label="Daily habit action"
+                      />
+                      <span className="text-muted-foreground shrink-0">
+                        for
+                      </span>
+                      <input
+                        data-ocid="woop_wizard.habit_minutes_input"
+                        value={form.habitMinutes}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            habitMinutes: e.target.value,
+                          }));
+                          setErrors((er) => ({
+                            ...er,
+                            habitMinutes: undefined,
+                          }));
+                        }}
+                        placeholder="15"
+                        inputMode="numeric"
+                        className="input-neumorphic w-20 text-foreground text-xl font-medium text-center"
+                        aria-label="Minutes per day"
+                      />
+                      <span className="text-muted-foreground shrink-0">
+                        minutes
+                      </span>
+                    </div>
+                    {(errors.habitAction || errors.habitMinutes) && (
+                      <p
+                        className="text-base text-destructive"
+                        data-ocid="woop_wizard.habit.field_error"
+                      >
+                        {errors.habitAction || errors.habitMinutes}
+                      </p>
+                    )}
+                    {assembledHabit && (
+                      <p className="text-base text-accent-success font-medium leading-relaxed">
+                        {assembledHabit}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-              {/* Connector line */}
-              {i < STEPS.length - 1 && (
+            )}
+
+            {/* STEP 2 — Obstacles */}
+            {step === 2 && (
+              <div className="space-y-8">
+                <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
+                  Unlike wishful thinking, WOOP asks you to name what stands
+                  between you and your habit.
+                </p>
+
+                <p className="text-xl font-medium text-foreground">
+                  What stands between me and my habit?
+                </p>
+
                 <div
-                  className={`flex-1 h-px mx-0.5 transition-all duration-300 ${
-                    step > s.id ? "bg-primary/70" : "bg-border"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Step content */}
-        <div
-          className={`flex-1 overflow-y-auto px-5 py-4 transition-all duration-200 ${slideClass}`}
-        >
-          {/* Behavioral tip */}
-          <p className="text-sm text-muted-foreground mb-5 leading-relaxed border-l-2 border-primary/40 pl-3 italic">
-            {tip.tip}
-          </p>
-
-          {/* Step 1: Wish */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="wish" className="text-foreground font-medium">
-                  Goal Name
-                </Label>
-                <Input
-                  id="wish"
-                  data-ocid="woop_wizard.wish_input"
-                  placeholder="e.g. Daily 30-minute deep work session"
-                  value={form.wish}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, wish: e.target.value }))
-                  }
-                  className="bg-muted/60 border-border focus:border-primary"
-                />
-                {errors.wish && (
-                  <p
-                    className="text-xs text-destructive"
-                    data-ocid="woop_wizard.wish.field_error"
-                  >
-                    {errors.wish}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Keep it short, specific, and motivating.
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="wishDescription"
-                  className="text-foreground font-medium"
+                  className="flex flex-wrap gap-3"
+                  data-ocid="woop_wizard.obstacle_list"
                 >
-                  Describe Your Wish
-                </Label>
-                <Textarea
-                  id="wishDescription"
-                  data-ocid="woop_wizard.wish_description_input"
-                  placeholder="What does this habit look like in practice? How often? When?"
-                  value={form.wishDescription}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, wishDescription: e.target.value }))
-                  }
-                  rows={3}
-                  className="bg-muted/60 border-border focus:border-primary resize-none"
-                />
-                {errors.wishDescription && (
-                  <p
-                    className="text-xs text-destructive"
-                    data-ocid="woop_wizard.wish_description.field_error"
-                  >
-                    {errors.wishDescription}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Be as vivid and specific as possible to increase commitment.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Outcome */}
-          {step === 2 && (
-            <div className="space-y-1.5">
-              <Label htmlFor="outcome" className="text-foreground font-medium">
-                Best Outcome
-              </Label>
-              <Textarea
-                id="outcome"
-                data-ocid="woop_wizard.outcome_input"
-                placeholder="What is the best possible outcome? How would you feel? What would change in your life?"
-                value={form.outcome}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, outcome: e.target.value }))
-                }
-                rows={5}
-                className="bg-muted/60 border-border focus:border-primary resize-none"
-              />
-              {errors.outcome && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="woop_wizard.outcome.field_error"
-                >
-                  {errors.outcome}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Picture the most positive outcome you can imagine. Write it as
-                if it&apos;s already happened.
-              </p>
-            </div>
-          )}
-
-          {/* Step 3: Obstacle */}
-          {step === 3 && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground mb-1">
-                What might get in the way?
-              </p>
-              <div
-                className="grid grid-cols-2 gap-2"
-                data-ocid="woop_wizard.obstacle_list"
-              >
-                {/* Built-in obstacle templates */}
-                {OBSTACLE_TEMPLATES.map((o) => (
-                  <button
-                    type="button"
-                    key={o.id}
-                    data-ocid={`woop_wizard.obstacle.${o.id}`}
-                    onClick={() => {
-                      setForm((f) => ({
-                        ...f,
-                        selectedObstacle: {
-                          kind: "builtin",
-                          id: o.id,
-                          label: o.label,
-                        },
-                      }));
-                      setShowNewObstacle(false);
-                      setErrors((e) => ({ ...e, selectedObstacle: undefined }));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setForm((f) => ({
-                          ...f,
-                          selectedObstacle: {
-                            kind: "builtin",
-                            id: o.id,
-                            label: o.label,
-                          },
-                        }));
-                        setShowNewObstacle(false);
-                        setErrors((errs) => ({
-                          ...errs,
-                          selectedObstacle: undefined,
-                        }));
-                      }
-                    }}
-                    className={`text-left p-3 rounded-xl border transition-smooth text-sm ${
-                      selectedKey === o.id
-                        ? "border-primary bg-primary/10 shadow-glow-success"
-                        : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"
-                    }`}
-                  >
-                    <span className="block font-medium text-foreground leading-tight">
-                      {o.label}
-                    </span>
-                    <span className="block text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {o.description}
-                    </span>
-                  </button>
-                ))}
-
-                {/* User-created obstacle templates from the backend */}
-                {userObstacles.map((o) => (
-                  <button
-                    type="button"
-                    key={String(o.id)}
-                    data-ocid={`woop_wizard.obstacle.user_${String(o.id)}`}
-                    onClick={() => {
-                      setForm((f) => ({
-                        ...f,
-                        selectedObstacle: {
-                          kind: "user",
-                          id: o.id,
-                          label: o.title,
-                        },
-                      }));
-                      setShowNewObstacle(false);
-                      setErrors((e) => ({ ...e, selectedObstacle: undefined }));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setForm((f) => ({
-                          ...f,
-                          selectedObstacle: {
-                            kind: "user",
-                            id: o.id,
-                            label: o.title,
-                          },
-                        }));
-                        setShowNewObstacle(false);
-                        setErrors((errs) => ({
-                          ...errs,
-                          selectedObstacle: undefined,
-                        }));
-                      }
-                    }}
-                    className={`text-left p-3 rounded-xl border transition-smooth text-sm ${
-                      selectedKey === String(o.id)
-                        ? "border-primary bg-primary/10 shadow-glow-success"
-                        : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"
-                    }`}
-                  >
-                    <span className="block font-medium text-foreground leading-tight">
-                      {o.title}
-                    </span>
-                    <span className="block text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {o.description}
-                    </span>
-                  </button>
-                ))}
-
-                {/* Add new obstacle tile */}
-                <button
-                  type="button"
-                  data-ocid="woop_wizard.add_obstacle_button"
-                  onClick={() => {
-                    setShowNewObstacle((v) => !v);
-                    setForm((f) => ({ ...f, selectedObstacle: null }));
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setShowNewObstacle((v) => !v);
-                      setForm((f) => ({ ...f, selectedObstacle: null }));
-                    }
-                  }}
-                  className={`text-left p-3 rounded-xl border border-dashed transition-smooth text-sm ${
-                    showNewObstacle
-                      ? "border-primary bg-primary/10"
-                      : "border-border/60 bg-muted/20 hover:border-primary/50"
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-                    <Plus size={13} /> Define your own
-                  </span>
-                  <span className="block text-xs text-muted-foreground/70 mt-0.5">
-                    Name your personal obstacle
-                  </span>
-                </button>
-              </div>
-
-              {/* Inline new obstacle form */}
-              {showNewObstacle && (
-                <div className="rounded-xl border border-primary/30 bg-muted/40 p-3 space-y-2">
-                  <Input
-                    data-ocid="woop_wizard.new_obstacle_title_input"
-                    placeholder="Obstacle name (e.g. Perfectionism)"
-                    value={form.newObstacleTitle}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        newObstacleTitle: e.target.value,
-                      }))
-                    }
-                    className="bg-background border-border text-sm"
-                  />
-                  <Textarea
-                    data-ocid="woop_wizard.new_obstacle_description_input"
-                    placeholder="Describe when this obstacle shows up..."
-                    value={form.newObstacleDescription}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        newObstacleDescription: e.target.value,
-                      }))
-                    }
-                    rows={2}
-                    className="bg-background border-border text-sm resize-none"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    data-ocid="woop_wizard.save_obstacle_button"
-                    onClick={handleSaveNewObstacle}
-                    disabled={
-                      !form.newObstacleTitle.trim() ||
-                      createObstacleMutation.isPending
-                    }
-                    className="button-primary-neon w-full"
-                  >
-                    {createObstacleMutation.isPending
-                      ? "Saving..."
-                      : "Save Obstacle"}
-                  </Button>
+                  {allObstacleChips.map((obs, idx) => {
+                    const selected = isSelected(obs.id);
+                    return (
+                      <button
+                        key={obs.id}
+                        type="button"
+                        data-ocid={`woop_wizard.obstacle.${idx + 1}`}
+                        onClick={() => toggleObstacle(obs)}
+                        aria-pressed={selected}
+                        className={`chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`}
+                        style={
+                          selected
+                            ? {
+                                backgroundColor:
+                                  "oklch(var(--color-accent-social) / 0.2)",
+                                borderColor:
+                                  "oklch(var(--color-accent-social))",
+                                boxShadow:
+                                  "0 0 14px oklch(var(--color-accent-social) / 0.4)",
+                                color: "oklch(var(--color-accent-social))",
+                              }
+                            : undefined
+                        }
+                      >
+                        {selected && (
+                          <Check size={13} className="inline mr-1.5" />
+                        )}
+                        {obs.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
 
-              {errors.selectedObstacle && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="woop_wizard.obstacle.field_error"
-                >
-                  {errors.selectedObstacle}
-                </p>
-              )}
-            </div>
-          )}
+                <div className="space-y-3">
+                  <p className="text-base text-muted-foreground font-medium">
+                    Add a custom obstacle
+                  </p>
+                  <div className="flex gap-3">
+                    <Input
+                      data-ocid="woop_wizard.custom_obstacle_input"
+                      value={form.customInput}
+                      onChange={(e) => {
+                        setForm((f) => ({ ...f, customInput: e.target.value }));
+                        setErrors((er) => ({ ...er, customInput: undefined }));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCustomChip();
+                        }
+                      }}
+                      placeholder="My specific blocker…"
+                      className="input-neumorphic flex-1 text-lg bg-transparent border-0"
+                    />
+                    <Button
+                      type="button"
+                      size="default"
+                      data-ocid="woop_wizard.add_custom_obstacle_button"
+                      onClick={addCustomChip}
+                      disabled={!form.customInput.trim()}
+                      className="button-primary-neon gap-1.5 shrink-0 text-base"
+                    >
+                      <Plus size={15} /> Add
+                    </Button>
+                  </div>
+                </div>
 
-          {/* Step 4: Plan */}
-          {step === 4 && (
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="ifThenPlan"
-                className="text-foreground font-medium"
-              >
-                Your If-Then Plan
-              </Label>
-              <Textarea
-                id="ifThenPlan"
-                data-ocid="woop_wizard.if_then_plan_input"
-                placeholder="If [obstacle], then I will..."
-                value={form.ifThenPlan}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, ifThenPlan: e.target.value }))
-                }
-                rows={5}
-                className="bg-muted/60 border-border focus:border-primary resize-none font-mono text-sm"
-              />
-              {errors.ifThenPlan && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="woop_wizard.if_then_plan.field_error"
-                >
-                  {errors.ifThenPlan}
-                </p>
-              )}
-              {createGoalMutation.isError &&
-                !createGoalMutation.error?.message?.includes("limit") && (
+                {errors.customInput && (
                   <p
-                    className="text-xs text-destructive mt-1"
-                    data-ocid="woop_wizard.create_goal.error_state"
+                    className="text-base text-destructive"
+                    data-ocid="woop_wizard.custom_obstacle.field_error"
                   >
-                    Something went wrong. Please try again.
+                    {errors.customInput}
                   </p>
                 )}
-              {!actor && (
-                <p
-                  className="text-xs text-muted-foreground mt-1"
-                  data-ocid="woop_wizard.actor_loading_state"
-                >
-                  Connecting to backend…
+                {errors.obstacles && (
+                  <p
+                    className="text-base text-destructive"
+                    data-ocid="woop_wizard.obstacle.field_error"
+                  >
+                    {errors.obstacles}
+                  </p>
+                )}
+                {form.selectedObstacles.length > 0 && (
+                  <p className="text-base text-accent-success">
+                    Selected:{" "}
+                    {form.selectedObstacles.map((o) => o.label).join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* STEP 3 — If-Then Plan */}
+            {step === 3 && (
+              <div className="space-y-8">
+                <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
+                  Implementation intentions double follow-through. When you
+                  encounter your obstacle, this plan becomes your autopilot.
                 </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                The more specific your plan, the more automatic your response
-                becomes. Research shows this doubles follow-through.
-              </p>
-            </div>
-          )}
+
+                <div className="space-y-4">
+                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
+                    If this happens…
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {form.selectedObstacles.map((obs) => (
+                      <span
+                        key={obs.id}
+                        className="px-3 py-1.5 rounded-xl text-base font-medium"
+                        style={{
+                          backgroundColor:
+                            "oklch(var(--color-accent-social) / 0.15)",
+                          color: "oklch(var(--color-accent-social))",
+                          border:
+                            "1px solid oklch(var(--color-accent-social) / 0.4)",
+                        }}
+                      >
+                        {obs.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
+                    Then I will…
+                  </p>
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3">
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                      IF "{primaryObstacle ? primaryObstacle : "[obstacle]"}",
+                    </p>
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg text-muted-foreground shrink-0 mt-2">
+                        THEN I will
+                      </span>
+                      <Textarea
+                        data-ocid="woop_wizard.if_then_plan_input"
+                        value={form.ifThenPlan}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            ifThenPlan: e.target.value,
+                          }));
+                          setErrors((er) => ({ ...er, ifThenPlan: undefined }));
+                        }}
+                        placeholder="do a 15-min home workout instead"
+                        rows={4}
+                        className="flex-1 bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none"
+                        aria-label="Your if-then backup plan"
+                      />
+                    </div>
+                  </div>
+                  {errors.ifThenPlan && (
+                    <p
+                      className="text-base text-destructive"
+                      data-ocid="woop_wizard.if_then_plan.field_error"
+                    >
+                      {errors.ifThenPlan}
+                    </p>
+                  )}
+                </div>
+
+                {createGoalMutation.isError &&
+                  !createGoalMutation.error?.message?.includes("limit") && (
+                    <p
+                      className="text-base text-destructive"
+                      data-ocid="woop_wizard.create_goal.error_state"
+                    >
+                      Something went wrong. Please try again.
+                    </p>
+                  )}
+                {!actor && (
+                  <p
+                    className="text-base text-muted-foreground"
+                    data-ocid="woop_wizard.actor_loading_state"
+                  >
+                    Connecting to backend…
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* STEP 4 — Review + Icon + Color */}
+            {step === 4 && (
+              <div className="space-y-8">
+                <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
+                  Review your commitment and personalize your goal. This is the
+                  contract with yourself — make it real.
+                </p>
+
+                {/* Summaries */}
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5">
+                    <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase">
+                      Macro Goal
+                    </p>
+                    <p className="text-lg text-foreground font-medium leading-relaxed">
+                      {assembledWish}
+                    </p>
+                  </div>
+
+                  <div
+                    className="rounded-2xl p-5 space-y-1.5"
+                    style={{
+                      background: "oklch(var(--color-accent-success) / 0.08)",
+                      border:
+                        "1px solid oklch(var(--color-accent-success) / 0.3)",
+                      boxShadow:
+                        "0 0 14px oklch(var(--color-accent-success) / 0.12)",
+                    }}
+                  >
+                    <p
+                      className="text-xs font-mono tracking-widest uppercase"
+                      style={{ color: "oklch(var(--color-accent-success))" }}
+                    >
+                      Daily Habit — what you'll see on your dashboard
+                    </p>
+                    <p
+                      className="text-lg font-semibold leading-relaxed"
+                      style={{ color: "oklch(var(--color-accent-success))" }}
+                    >
+                      {assembledHabit}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-2">
+                    <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase">
+                      Obstacle(s)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {form.selectedObstacles.map((obs) => (
+                        <span
+                          key={obs.id}
+                          className="px-3 py-1 rounded-lg text-base font-medium"
+                          style={{
+                            backgroundColor:
+                              "oklch(var(--color-accent-social) / 0.15)",
+                            color: "oklch(var(--color-accent-social))",
+                          }}
+                        >
+                          {obs.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5">
+                    <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase">
+                      Your Plan
+                    </p>
+                    <p className="text-base text-foreground leading-relaxed">
+                      IF "{primaryObstacle}", THEN I will {form.ifThenPlan}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Goal Icon Selector */}
+                <div className="space-y-4">
+                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
+                    Choose an Icon
+                  </p>
+                  <div
+                    className="grid grid-cols-7 gap-3"
+                    data-ocid="woop_wizard.icon_selector"
+                  >
+                    {GOAL_ICONS.map((icon) => {
+                      const isIconSelected = form.iconName === icon.id;
+                      return (
+                        <button
+                          key={icon.id}
+                          type="button"
+                          onClick={() =>
+                            setForm((f) => ({ ...f, iconName: icon.id }))
+                          }
+                          aria-label={`Select ${icon.label} icon`}
+                          aria-pressed={isIconSelected}
+                          data-ocid={`woop_wizard.icon.${icon.id}`}
+                          className="relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5"
+                          style={
+                            isIconSelected
+                              ? {
+                                  backgroundColor:
+                                    "oklch(var(--color-accent-success) / 0.15)",
+                                  border:
+                                    "2.5px solid oklch(var(--color-accent-success))",
+                                  color: "oklch(var(--color-accent-success))",
+                                  boxShadow:
+                                    "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)",
+                                }
+                              : {
+                                  backgroundColor: "oklch(var(--card))",
+                                  border: "1.5px solid oklch(var(--border))",
+                                  color: "oklch(var(--muted-foreground))",
+                                  boxShadow:
+                                    "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)",
+                                }
+                          }
+                        >
+                          <span className="w-6 h-6 block">{icon.svg}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Theme Color Picker */}
+                <div className="space-y-4">
+                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
+                    Theme Color
+                  </p>
+                  <div
+                    className="flex flex-wrap gap-4"
+                    data-ocid="woop_wizard.color_selector"
+                  >
+                    {THEME_COLORS.map((color) => {
+                      const isColorSelected = form.themeColor === color.value;
+                      return (
+                        <div
+                          key={color.id}
+                          className="flex flex-col items-center gap-2"
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm((f) => ({
+                                ...f,
+                                themeColor: color.value,
+                              }))
+                            }
+                            aria-label={color.label}
+                            aria-pressed={isColorSelected}
+                            data-ocid={`woop_wizard.color.${color.id}`}
+                            className="w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            style={{
+                              backgroundColor: color.value,
+                              boxShadow: isColorSelected
+                                ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color.value}, 0 0 14px 3px ${color.value}66`
+                                : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                              transform: isColorSelected
+                                ? "scale(1.2)"
+                                : "scale(1)",
+                            }}
+                          />
+                          <span className="text-sm text-muted-foreground font-mono">
+                            {color.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {createGoalMutation.isError &&
+                  !createGoalMutation.error?.message?.includes("limit") && (
+                    <p
+                      className="text-base text-destructive"
+                      data-ocid="woop_wizard.create_goal.error_state"
+                    >
+                      Something went wrong. Please try again.
+                    </p>
+                  )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Footer nav */}
-        <div className="flex items-center justify-between px-5 py-4 border-t border-border shrink-0 bg-card">
+        {/* ── Fixed Footer ── */}
+        <div className="shrink-0 flex items-center justify-between px-6 py-5 border-t border-border bg-card">
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="lg"
             data-ocid="woop_wizard.back_button"
-            onClick={goBack}
+            onClick={
+              step === 4
+                ? () => {
+                    setErrors({});
+                    setStep(3);
+                  }
+                : goBack
+            }
             disabled={step === 1}
-            className="gap-1.5"
+            className="gap-2 text-base min-w-[100px]"
           >
-            <ChevronLeft size={15} />
-            Back
+            <ChevronLeft size={16} />
+            {step === 4 ? "Edit" : "Back"}
           </Button>
 
-          <span className="text-xs font-mono text-muted-foreground">
-            {step} / {STEPS.length}
+          <span className="text-sm font-mono text-muted-foreground">
+            {step} / 4
           </span>
 
           <Button
             type="button"
-            size="sm"
+            size="lg"
             data-ocid={
               step === 4
-                ? "woop_wizard.create_goal_button"
+                ? "woop_wizard.commit_button"
                 : "woop_wizard.next_button"
             }
             onClick={goNext}
             disabled={createGoalMutation.isPending || (step === 4 && !actor)}
-            className="gap-1.5 button-primary-neon"
+            className="gap-2 button-primary-neon text-base min-w-[130px]"
           >
             {step === 4 ? (
               createGoalMutation.isPending ? (
                 <>
-                  <span className="w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" />
-                  Creating…
+                  <span className="w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" />
+                  Committing…
                 </>
               ) : (
                 <>
-                  <Check size={14} />
-                  Create Goal
+                  <Check size={16} />
+                  Commit →
                 </>
               )
             ) : (
-              <>
-                Next
-                <ChevronRight size={15} />
-              </>
+              "Next →"
             )}
           </Button>
         </div>

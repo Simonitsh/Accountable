@@ -5,16 +5,21 @@ type UserRole =
  };
 type UserProfilePublic = 
  record {
+   avatarEmoji: text;
+   displayName: text;
    goalLimit: nat;
    id: UserId;
    role: UserRole;
    tier: SubscriptionTier;
+   timezone: text;
    username: text;
  };
 type UserId = principal;
 type UpdateGoalRequest = 
  record {
+   iconName: opt text;
    ifThenPlan: opt text;
+   themeColor: opt text;
    wish: opt text;
    wishDescription: opt text;
  };
@@ -59,12 +64,14 @@ type GoalState =
 type GoalPublic = 
  record {
    createdAt: Timestamp;
+   iconName: opt text;
    id: GoalId;
    ifThenPlan: text;
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
    owner: UserId;
    state: GoalState;
+   themeColor: opt text;
    updatedAt: Timestamp;
    wish: text;
    wishDescription: text;
@@ -95,9 +102,11 @@ type CreateObstacleRequest =
  };
 type CreateGoalRequest = 
  record {
+   iconName: opt text;
    ifThenPlan: text;
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
+   themeColor: opt text;
    wish: text;
    wishDescription: text;
  };
@@ -147,14 +156,26 @@ service : {
   createGoal: (request: CreateGoalRequest) -> (GoalPublic);
   createObstacleTemplate: (request: CreateObstacleRequest) ->
    (ObstacleTemplate);
+  deleteCheckIn: (checkInId: CheckInId) ->
+   (variant {
+      err: variant {
+             notFound;
+             unauthorized;
+           };
+      ok;
+    });
+  devReset: () -> ();
   getAdminAuditLog: () -> (vec AdminAuditEntry) query;
   getAnalytics: () -> (AnalyticsSummary) query;
   getCheckInsForGoal: (goalId: GoalId) -> (vec CheckIn) query;
+  getCheckInsForPeriod: (goalId: GoalId, fromTimestamp: int, toTimestamp:
+   int) -> (vec CheckIn) query;
   getGoal: (goalId: GoalId) -> (opt GoalPublic) query;
   getInteractionCount: (checkInId: CheckInId) -> (nat) query;
   getMyProfile: () -> (UserProfilePublic) query;
   getPartnerFeed: () -> (vec FeedItem) query;
   getUserProfile: (target: UserId) -> (opt UserProfilePublic) query;
+  isUsernameAvailable: (username: text) -> (bool) query;
   listAllUsers: () -> (vec UserProfilePublic) query;
   listConnections: () -> (vec ConnectionPublic) query;
   listMyCheckIns: () -> (vec CheckIn) query;
@@ -167,6 +188,7 @@ service : {
   register: (username: text) -> (UserProfilePublic);
   respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
+  setTimezone: (tz: text) -> ();
   setUserGoalLimit: (target: UserId, limit: nat) -> ();
   updateGoal: (goalId: GoalId, request: UpdateGoalRequest) ->
    (variant {
@@ -174,4 +196,6 @@ service : {
       ok: GoalPublic;
     });
   updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
+  updateMyProfile: (displayName: opt text, avatarEmoji: opt text) ->
+   (UserProfilePublic);
 }

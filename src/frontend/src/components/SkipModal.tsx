@@ -2,14 +2,18 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import type { Goal, ObstacleTemplate } from "../types";
+import type { GoalPublic } from "../backend.d.ts";
+import type { ObstacleTemplate } from "../types";
 import { OBSTACLE_TEMPLATES } from "../types";
 
+// Ocean Blue — skip accent
+const SKIP_COLOR = "#0369A1";
+
 interface SkipModalProps {
-  goal: Goal;
+  goal: GoalPublic;
   open: boolean;
   onClose: () => void;
-  onConfirm: (obstacleId: string) => void;
+  onConfirm: (obstacleTemplateId?: bigint) => void;
   isLoading?: boolean;
 }
 
@@ -20,15 +24,16 @@ export function SkipModal({
   onConfirm,
   isLoading = false,
 }: SkipModalProps) {
-  const [selectedObstacleId, setSelectedObstacleId] = useState<string>(
-    goal.obstacleTemplateId ?? OBSTACLE_TEMPLATES[0].id,
-  );
+  // Store the numeric INDEX (0-based) so BigInt(index) is always safe
+  const [selectedObstacleIndex, setSelectedObstacleIndex] = useState<number>(0);
 
   const selectedObstacle: ObstacleTemplate | undefined =
-    OBSTACLE_TEMPLATES.find((o) => o.id === selectedObstacleId);
+    OBSTACLE_TEMPLATES[selectedObstacleIndex];
 
   function handleConfirm() {
-    onConfirm(selectedObstacleId);
+    // Pass the numeric index as BigInt — backend accepts any non-null Nat
+    onConfirm(BigInt(selectedObstacleIndex));
+    onClose();
   }
 
   return (
@@ -49,7 +54,7 @@ export function SkipModal({
           {/* Bottom Sheet */}
           <motion.div
             key="sheet"
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-card border border-border shadow-neumorphic-emboss-dark"
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-card border border-border"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -57,6 +62,12 @@ export function SkipModal({
             data-ocid="skip_modal.dialog"
             style={{
               paddingBottom: "calc(16px + env(safe-area-inset-bottom))",
+              boxShadow:
+                "-5px 0 20px rgba(0,0,0,0.7), 0 -5px 20px rgba(0,0,0,0.6)",
+              borderTop: "1px solid rgba(255,255,255,0.13)",
+              borderLeft: "1px solid rgba(255,255,255,0.07)",
+              borderRight: "none",
+              borderBottom: "none",
             }}
           >
             {/* Handle */}
@@ -68,20 +79,20 @@ export function SkipModal({
             <div className="flex items-start justify-between px-5 pt-3 pb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-4 h-4 text-accent-skip" />
+                  <AlertCircle
+                    className="w-4 h-4"
+                    style={{ color: SKIP_COLOR }}
+                  />
                   <span
                     className="text-xs font-mono uppercase tracking-widest"
-                    style={{ color: "oklch(var(--color-accent-skip))" }}
+                    style={{ color: SKIP_COLOR }}
                   >
                     Justifiable Skip
                   </span>
                 </div>
                 <h2 className="font-display text-lg text-foreground leading-tight">
-                  {goal.wish}
+                  {goal.wishDescription || goal.wish}
                 </h2>
-                <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
-                  {goal.wishDescription}
-                </p>
               </div>
               <button
                 type="button"
@@ -101,13 +112,13 @@ export function SkipModal({
 
               {/* Obstacle grid */}
               <div className="grid grid-cols-2 gap-2 mb-4">
-                {OBSTACLE_TEMPLATES.map((obstacle) => {
-                  const isSelected = obstacle.id === selectedObstacleId;
+                {OBSTACLE_TEMPLATES.map((obstacle, idx) => {
+                  const isSelected = idx === selectedObstacleIndex;
                   return (
                     <button
                       type="button"
                       key={obstacle.id}
-                      onClick={() => setSelectedObstacleId(obstacle.id)}
+                      onClick={() => setSelectedObstacleIndex(idx)}
                       className={[
                         "rounded-xl p-3 text-left transition-smooth border",
                         isSelected
@@ -117,12 +128,10 @@ export function SkipModal({
                       style={
                         isSelected
                           ? {
-                              backgroundColor:
-                                "oklch(var(--color-accent-skip) / 0.12)",
-                              borderColor:
-                                "oklch(var(--color-accent-skip) / 0.4)",
+                              backgroundColor: "rgba(3,105,161,0.12)",
+                              borderColor: "rgba(3,105,161,0.4)",
                               boxShadow:
-                                "0 0 12px 1px oklch(var(--color-accent-skip) / 0.2)",
+                                "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.05)",
                             }
                           : undefined
                       }
@@ -130,11 +139,7 @@ export function SkipModal({
                     >
                       <p
                         className="text-sm font-display font-medium leading-tight"
-                        style={
-                          isSelected
-                            ? { color: "oklch(var(--color-accent-skip))" }
-                            : undefined
-                        }
+                        style={isSelected ? { color: SKIP_COLOR } : undefined}
                       >
                         {obstacle.label}
                       </p>
@@ -161,7 +166,7 @@ export function SkipModal({
               {/* Obstacle description summary */}
               {selectedObstacle && (
                 <p className="text-xs text-muted-foreground italic mb-4 px-1">
-                  "{selectedObstacle.description}"
+                  &quot;{selectedObstacle.description}&quot;
                 </p>
               )}
 
@@ -177,13 +182,14 @@ export function SkipModal({
                   Cancel
                 </Button>
                 <Button
+                  type="button"
                   className="flex-1 font-display transition-smooth"
                   disabled={isLoading}
                   onClick={handleConfirm}
                   style={{
-                    backgroundColor: "oklch(var(--color-accent-skip) / 0.15)",
-                    color: "oklch(var(--color-accent-skip))",
-                    borderColor: "oklch(var(--color-accent-skip) / 0.35)",
+                    backgroundColor: "rgba(3,105,161,0.15)",
+                    color: SKIP_COLOR,
+                    borderColor: "rgba(3,105,161,0.35)",
                     border: "1px solid",
                   }}
                   data-ocid="skip_modal.confirm_button"

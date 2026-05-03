@@ -44,7 +44,9 @@ export type ConnectionStatus = { 'pending' : null } |
   { 'accepted' : null };
 export interface CreateGoalRequest {
   'wish' : string,
+  'themeColor' : [] | [string],
   'wishDescription' : string,
+  'iconName' : [] | [string],
   'ifThenPlan' : string,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'outcome' : string,
@@ -75,7 +77,9 @@ export interface GoalPublic {
   'owner' : UserId,
   'createdAt' : Timestamp,
   'wish' : string,
+  'themeColor' : [] | [string],
   'wishDescription' : string,
+  'iconName' : [] | [string],
   'ifThenPlan' : string,
   'updatedAt' : Timestamp,
   'state' : GoalState,
@@ -113,16 +117,21 @@ export type SubscriptionTier = { 'tier1' : null } |
 export type Timestamp = bigint;
 export interface UpdateGoalRequest {
   'wish' : [] | [string],
+  'themeColor' : [] | [string],
   'wishDescription' : [] | [string],
+  'iconName' : [] | [string],
   'ifThenPlan' : [] | [string],
 }
 export type UserId = Principal;
 export interface UserProfilePublic {
   'id' : UserId,
+  'timezone' : string,
   'username' : string,
+  'displayName' : string,
   'role' : UserRole,
   'tier' : SubscriptionTier,
   'goalLimit' : bigint,
+  'avatarEmoji' : string,
 }
 export type UserRole = { 'admin' : null } |
   { 'user' : null };
@@ -132,14 +141,25 @@ export interface _SERVICE {
     [CreateObstacleRequest],
     ObstacleTemplate
   >,
+  'deleteCheckIn' : ActorMethod<
+    [CheckInId],
+    { 'ok' : null } |
+      { 'err' : { 'notFound' : null } | { 'unauthorized' : null } }
+  >,
+  'devReset' : ActorMethod<[], undefined>,
   'getAdminAuditLog' : ActorMethod<[], Array<AdminAuditEntry>>,
   'getAnalytics' : ActorMethod<[], AnalyticsSummary>,
   'getCheckInsForGoal' : ActorMethod<[GoalId], Array<CheckIn>>,
+  'getCheckInsForPeriod' : ActorMethod<
+    [GoalId, bigint, bigint],
+    Array<CheckIn>
+  >,
   'getGoal' : ActorMethod<[GoalId], [] | [GoalPublic]>,
   'getInteractionCount' : ActorMethod<[CheckInId], bigint>,
   'getMyProfile' : ActorMethod<[], UserProfilePublic>,
   'getPartnerFeed' : ActorMethod<[], Array<FeedItem>>,
   'getUserProfile' : ActorMethod<[UserId], [] | [UserProfilePublic]>,
+  'isUsernameAvailable' : ActorMethod<[string], boolean>,
   'listAllUsers' : ActorMethod<[], Array<UserProfilePublic>>,
   'listConnections' : ActorMethod<[], Array<ConnectionPublic>>,
   'listMyCheckIns' : ActorMethod<[], Array<CheckIn>>,
@@ -151,6 +171,7 @@ export interface _SERVICE {
   'register' : ActorMethod<[string], UserProfilePublic>,
   'respondToConnection' : ActorMethod<[ConnectionId, boolean], boolean>,
   'sendConnectionRequest' : ActorMethod<[UserId], ConnectionPublic>,
+  'setTimezone' : ActorMethod<[string], undefined>,
   'setUserGoalLimit' : ActorMethod<[UserId, bigint], undefined>,
   'updateGoal' : ActorMethod<
     [GoalId, UpdateGoalRequest],
@@ -158,6 +179,10 @@ export interface _SERVICE {
       { 'err' : string }
   >,
   'updateGoalState' : ActorMethod<[GoalId, GoalState], boolean>,
+  'updateMyProfile' : ActorMethod<
+    [[] | [string], [] | [string]],
+    UserProfilePublic
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

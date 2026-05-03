@@ -69,7 +69,9 @@ function StatCard({ label, value, icon, glowClass }: StatCardProps) {
       className={`bg-card rounded-xl p-4 flex flex-col gap-2 flex-1 min-w-0 ${glowClass ?? ""}`}
       style={{
         boxShadow:
-          "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)",
+          "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+        borderTop: "1px solid rgba(255,255,255,0.12)",
+        borderLeft: "1px solid rgba(255,255,255,0.06)",
       }}
     >
       <div className="flex items-center gap-2 text-muted-foreground text-xs font-body uppercase tracking-wider">
@@ -103,7 +105,9 @@ function GoalAnalyticsCard({
       className="bg-card rounded-xl overflow-hidden transition-smooth"
       style={{
         boxShadow:
-          "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)",
+          "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+        borderTop: "1px solid rgba(255,255,255,0.12)",
+        borderLeft: "1px solid rgba(255,255,255,0.06)",
       }}
       data-ocid={`analytics.goal_card.${index + 1}`}
     >
@@ -231,7 +235,8 @@ function CustomTooltip({
       className="bg-popover border border-border/40 rounded-lg px-3 py-2 text-xs"
       style={{
         boxShadow:
-          "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)",
+          "-3px -3px 8px rgba(65,65,75,0.4), 5px 5px 14px rgba(0,0,0,0.8)",
+        borderTop: "1px solid rgba(255,255,255,0.1)",
       }}
     >
       <p className="text-muted-foreground">Day {label}</p>
@@ -331,7 +336,9 @@ export function AnalyticsPage() {
           className="bg-card rounded-xl p-4"
           style={{
             boxShadow:
-              "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)",
+              "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+            borderTop: "1px solid rgba(255,255,255,0.12)",
+            borderLeft: "1px solid rgba(255,255,255,0.06)",
           }}
         >
           <div className="flex items-center gap-2 mb-4">
@@ -369,7 +376,7 @@ export function AnalyticsPage() {
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
+                  stroke="rgba(128,128,128,0.15)"
                   vertical={false}
                 />
                 <XAxis
@@ -433,7 +440,9 @@ export function AnalyticsPage() {
             className="bg-card rounded-xl flex flex-col items-center justify-center gap-3 py-12 px-6 text-center"
             style={{
               boxShadow:
-                "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)",
+                "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+              borderTop: "1px solid rgba(255,255,255,0.12)",
+              borderLeft: "1px solid rgba(255,255,255,0.06)",
             }}
             data-ocid="analytics.empty_state"
           >

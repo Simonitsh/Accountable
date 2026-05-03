@@ -19,6 +19,8 @@ module {
     var state : Common.GoalState;
     createdAt : Common.Timestamp;
     var updatedAt : Common.Timestamp;
+    var iconName : ?Text;
+    var themeColor : ?Text;
   };
 
   public type GoalPublic = {
@@ -32,6 +34,8 @@ module {
     state : Common.GoalState;
     createdAt : Common.Timestamp;
     updatedAt : Common.Timestamp;
+    iconName : ?Text;
+    themeColor : ?Text;
   };
 
   public type CreateGoalRequest = {
@@ -40,6 +44,8 @@ module {
     outcome : Text;
     obstacleTemplateId : ?Common.ObstacleTemplateId;
     ifThenPlan : Text;
+    iconName : ?Text;
+    themeColor : ?Text;
   };
 
   public type CreateObstacleRequest = {
@@ -51,6 +57,8 @@ module {
     wish : ?Text;
     wishDescription : ?Text;
     ifThenPlan : ?Text;
+    iconName : ?Text;
+    themeColor : ?Text;
   };
 
   /// Typed error variants for goal operations.

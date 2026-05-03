@@ -11,7 +11,9 @@ import { IDL } from '@icp-sdk/core/candid';
 export const ObstacleTemplateId = IDL.Nat;
 export const CreateGoalRequest = IDL.Record({
   'wish' : IDL.Text,
+  'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Text,
+  'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Text,
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'outcome' : IDL.Text,
@@ -30,7 +32,9 @@ export const GoalPublic = IDL.Record({
   'owner' : UserId,
   'createdAt' : Timestamp,
   'wish' : IDL.Text,
+  'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Text,
+  'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Text,
   'updatedAt' : Timestamp,
   'state' : GoalState,
@@ -47,6 +51,7 @@ export const ObstacleTemplate = IDL.Record({
   'owner' : UserId,
   'description' : IDL.Text,
 });
+export const CheckInId = IDL.Nat;
 export const AdminAuditEntry = IDL.Record({
   'limit' : IDL.Nat,
   'targetPrincipal' : UserId,
@@ -67,7 +72,6 @@ export const AnalyticsSummary = IDL.Record({
   'goals' : IDL.Vec(GoalAnalytics),
   'dailySuccessRate30Days' : IDL.Vec(IDL.Float64),
 });
-export const CheckInId = IDL.Nat;
 export const CheckInType = IDL.Variant({
   'skip' : IDL.Null,
   'success' : IDL.Null,
@@ -88,10 +92,13 @@ export const SubscriptionTier = IDL.Variant({
 });
 export const UserProfilePublic = IDL.Record({
   'id' : UserId,
+  'timezone' : IDL.Text,
   'username' : IDL.Text,
+  'displayName' : IDL.Text,
   'role' : UserRole,
   'tier' : SubscriptionTier,
   'goalLimit' : IDL.Nat,
+  'avatarEmoji' : IDL.Text,
 });
 export const FeedItem = IDL.Record({
   'checkIn' : CheckIn,
@@ -128,7 +135,9 @@ export const Interaction = IDL.Record({
 });
 export const UpdateGoalRequest = IDL.Record({
   'wish' : IDL.Opt(IDL.Text),
+  'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Opt(IDL.Text),
+  'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Opt(IDL.Text),
 });
 
@@ -139,9 +148,28 @@ export const idlService = IDL.Service({
       [ObstacleTemplate],
       [],
     ),
+  'deleteCheckIn' : IDL.Func(
+      [CheckInId],
+      [
+        IDL.Variant({
+          'ok' : IDL.Null,
+          'err' : IDL.Variant({
+            'notFound' : IDL.Null,
+            'unauthorized' : IDL.Null,
+          }),
+        }),
+      ],
+      [],
+    ),
+  'devReset' : IDL.Func([], [], []),
   'getAdminAuditLog' : IDL.Func([], [IDL.Vec(AdminAuditEntry)], ['query']),
   'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
   'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
+  'getCheckInsForPeriod' : IDL.Func(
+      [GoalId, IDL.Int, IDL.Int],
+      [IDL.Vec(CheckIn)],
+      ['query'],
+    ),
   'getGoal' : IDL.Func([GoalId], [IDL.Opt(GoalPublic)], ['query']),
   'getInteractionCount' : IDL.Func([CheckInId], [IDL.Nat], ['query']),
   'getMyProfile' : IDL.Func([], [UserProfilePublic], ['query']),
@@ -151,6 +179,7 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfilePublic)],
       ['query'],
     ),
+  'isUsernameAvailable' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   'listAllUsers' : IDL.Func([], [IDL.Vec(UserProfilePublic)], ['query']),
   'listConnections' : IDL.Func([], [IDL.Vec(ConnectionPublic)], ['query']),
   'listMyCheckIns' : IDL.Func([], [IDL.Vec(CheckIn)], ['query']),
@@ -170,6 +199,7 @@ export const idlService = IDL.Service({
   'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
   'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
   'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
+  'setTimezone' : IDL.Func([IDL.Text], [], []),
   'setUserGoalLimit' : IDL.Func([UserId, IDL.Nat], [], []),
   'updateGoal' : IDL.Func(
       [GoalId, UpdateGoalRequest],
@@ -177,6 +207,11 @@ export const idlService = IDL.Service({
       [],
     ),
   'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
+  'updateMyProfile' : IDL.Func(
+      [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+      [UserProfilePublic],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -185,7 +220,9 @@ export const idlFactory = ({ IDL }) => {
   const ObstacleTemplateId = IDL.Nat;
   const CreateGoalRequest = IDL.Record({
     'wish' : IDL.Text,
+    'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Text,
+    'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Text,
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'outcome' : IDL.Text,
@@ -204,7 +241,9 @@ export const idlFactory = ({ IDL }) => {
     'owner' : UserId,
     'createdAt' : Timestamp,
     'wish' : IDL.Text,
+    'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Text,
+    'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Text,
     'updatedAt' : Timestamp,
     'state' : GoalState,
@@ -221,6 +260,7 @@ export const idlFactory = ({ IDL }) => {
     'owner' : UserId,
     'description' : IDL.Text,
   });
+  const CheckInId = IDL.Nat;
   const AdminAuditEntry = IDL.Record({
     'limit' : IDL.Nat,
     'targetPrincipal' : UserId,
@@ -241,7 +281,6 @@ export const idlFactory = ({ IDL }) => {
     'goals' : IDL.Vec(GoalAnalytics),
     'dailySuccessRate30Days' : IDL.Vec(IDL.Float64),
   });
-  const CheckInId = IDL.Nat;
   const CheckInType = IDL.Variant({ 'skip' : IDL.Null, 'success' : IDL.Null });
   const CheckIn = IDL.Record({
     'id' : CheckInId,
@@ -259,10 +298,13 @@ export const idlFactory = ({ IDL }) => {
   });
   const UserProfilePublic = IDL.Record({
     'id' : UserId,
+    'timezone' : IDL.Text,
     'username' : IDL.Text,
+    'displayName' : IDL.Text,
     'role' : UserRole,
     'tier' : SubscriptionTier,
     'goalLimit' : IDL.Nat,
+    'avatarEmoji' : IDL.Text,
   });
   const FeedItem = IDL.Record({
     'checkIn' : CheckIn,
@@ -299,7 +341,9 @@ export const idlFactory = ({ IDL }) => {
   });
   const UpdateGoalRequest = IDL.Record({
     'wish' : IDL.Opt(IDL.Text),
+    'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Opt(IDL.Text),
+    'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Opt(IDL.Text),
   });
   
@@ -310,9 +354,28 @@ export const idlFactory = ({ IDL }) => {
         [ObstacleTemplate],
         [],
       ),
+    'deleteCheckIn' : IDL.Func(
+        [CheckInId],
+        [
+          IDL.Variant({
+            'ok' : IDL.Null,
+            'err' : IDL.Variant({
+              'notFound' : IDL.Null,
+              'unauthorized' : IDL.Null,
+            }),
+          }),
+        ],
+        [],
+      ),
+    'devReset' : IDL.Func([], [], []),
     'getAdminAuditLog' : IDL.Func([], [IDL.Vec(AdminAuditEntry)], ['query']),
     'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
     'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
+    'getCheckInsForPeriod' : IDL.Func(
+        [GoalId, IDL.Int, IDL.Int],
+        [IDL.Vec(CheckIn)],
+        ['query'],
+      ),
     'getGoal' : IDL.Func([GoalId], [IDL.Opt(GoalPublic)], ['query']),
     'getInteractionCount' : IDL.Func([CheckInId], [IDL.Nat], ['query']),
     'getMyProfile' : IDL.Func([], [UserProfilePublic], ['query']),
@@ -322,6 +385,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfilePublic)],
         ['query'],
       ),
+    'isUsernameAvailable' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
     'listAllUsers' : IDL.Func([], [IDL.Vec(UserProfilePublic)], ['query']),
     'listConnections' : IDL.Func([], [IDL.Vec(ConnectionPublic)], ['query']),
     'listMyCheckIns' : IDL.Func([], [IDL.Vec(CheckIn)], ['query']),
@@ -345,6 +409,7 @@ export const idlFactory = ({ IDL }) => {
     'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
     'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
     'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
+    'setTimezone' : IDL.Func([IDL.Text], [], []),
     'setUserGoalLimit' : IDL.Func([UserId, IDL.Nat], [], []),
     'updateGoal' : IDL.Func(
         [GoalId, UpdateGoalRequest],
@@ -352,6 +417,11 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
+    'updateMyProfile' : IDL.Func(
+        [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+        [UserProfilePublic],
+        [],
+      ),
   });
 };
 

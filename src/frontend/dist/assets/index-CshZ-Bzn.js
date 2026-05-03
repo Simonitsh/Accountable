@@ -74,6 +74,70 @@ function _mergeNamespaces(n2, m2) {
     fetch(link.href, fetchOpts);
   }
 })();
+const scriptRel = "modulepreload";
+const assetsURL = function(dep) {
+  return "/" + dep;
+};
+const seen = {};
+const __vitePreload = function preload(baseModule, deps, importerUrl) {
+  let promise = Promise.resolve();
+  if (deps && deps.length > 0) {
+    document.getElementsByTagName("link");
+    const cspNonceMeta = document.querySelector(
+      "meta[property=csp-nonce]"
+    );
+    const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
+    promise = Promise.allSettled(
+      deps.map((dep) => {
+        dep = assetsURL(dep);
+        if (dep in seen) return;
+        seen[dep] = true;
+        const isCss = dep.endsWith(".css");
+        const cssSelector = isCss ? '[rel="stylesheet"]' : "";
+        if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
+          return;
+        }
+        const link = document.createElement("link");
+        link.rel = isCss ? "stylesheet" : scriptRel;
+        if (!isCss) {
+          link.as = "script";
+        }
+        link.crossOrigin = "";
+        link.href = dep;
+        if (cspNonce) {
+          link.setAttribute("nonce", cspNonce);
+        }
+        document.head.appendChild(link);
+        if (isCss) {
+          return new Promise((res, rej) => {
+            link.addEventListener("load", res);
+            link.addEventListener(
+              "error",
+              () => rej(new Error(`Unable to preload CSS for ${dep}`))
+            );
+          });
+        }
+      })
+    );
+  }
+  function handlePreloadError(err) {
+    const e3 = new Event("vite:preloadError", {
+      cancelable: true
+    });
+    e3.payload = err;
+    window.dispatchEvent(e3);
+    if (!e3.defaultPrevented) {
+      throw err;
+    }
+  }
+  return promise.then((res) => {
+    for (const item of res || []) {
+      if (item.status !== "rejected") continue;
+      handlePreloadError(item.reason);
+    }
+    return baseModule().catch(handlePreloadError);
+  });
+};
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x3) {
   return x3 && x3.__esModule && Object.prototype.hasOwnProperty.call(x3, "default") ? x3["default"] : x3;
@@ -115,7 +179,7 @@ reactJsxRuntime_production.jsxs = jsxProd;
   jsxRuntime.exports = reactJsxRuntime_production;
 }
 var jsxRuntimeExports = jsxRuntime.exports;
-class ExternalBlob {
+let ExternalBlob$1 = class ExternalBlob {
   constructor(directURL, blob) {
     __publicField(this, "_blob");
     __publicField(this, "directURL");
@@ -150,7 +214,7 @@ class ExternalBlob {
     this.onProgress = onProgress;
     return this;
   }
-}
+};
 var ReplicaRejectCode;
 (function(ReplicaRejectCode2) {
   ReplicaRejectCode2[ReplicaRejectCode2["SysFatal"] = 1] = "SysFatal";
@@ -10763,7 +10827,7 @@ function _createActorMethod(actor, methodName, func, blsVerify2) {
   return handler;
 }
 const MAXIMUM_CONCURRENT_UPLOADS = 10;
-const MAX_RETRIES = 3;
+const MAX_RETRIES$1 = 3;
 const BASE_DELAY_MS = 1e3;
 const MAX_DELAY_MS = 3e4;
 const GATEWAY_VERSION = "v1";
@@ -10774,20 +10838,20 @@ const DOMAIN_SEPARATOR_FOR_METADATA = new TextEncoder().encode("icfs-metadata/")
 const DOMAIN_SEPARATOR_FOR_NODES = new TextEncoder().encode("ynode/");
 async function withRetry(operation) {
   let lastError;
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= MAX_RETRIES$1; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       const shouldRetry = isRetriableError(error);
-      if (attempt === MAX_RETRIES || !shouldRetry) {
-        if (!shouldRetry && attempt < MAX_RETRIES) {
+      if (attempt === MAX_RETRIES$1 || !shouldRetry) {
+        if (!shouldRetry && attempt < MAX_RETRIES$1) {
           console.warn(`Non-retriable error encountered: ${lastError.message}. Not retrying.`);
         }
         throw error;
       }
       const delay2 = Math.min(BASE_DELAY_MS * 2 ** attempt + Math.random() * 1e3, MAX_DELAY_MS);
-      console.warn(`Request failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}): ${lastError.message}. Retrying in ${Math.round(delay2)}ms...`);
+      console.warn(`Request failed (attempt ${attempt + 1}/${MAX_RETRIES$1 + 1}): ${lastError.message}. Retrying in ${Math.round(delay2)}ms...`);
       await new Promise((resolve) => setTimeout(resolve, delay2));
     }
   }
@@ -11235,7 +11299,7 @@ async function createActorWithConfig(createActor2, options) {
     const hashWithPrefix = new TextDecoder().decode(new Uint8Array(bytes));
     const hash = hashWithPrefix.substring(MOTOKO_DEDUPLICATION_SENTINEL.length);
     const url = await storageClient.getDirectURL(hash);
-    return ExternalBlob.fromURL(url);
+    return ExternalBlob$1.fromURL(url);
   };
   return createActor2(config2.backend_canister_id, uploadFile, downloadFile, actorOptions);
 }
@@ -14203,28 +14267,28 @@ react_production.useDebugValue = function() {
 react_production.useDeferredValue = function(value, initialValue) {
   return ReactSharedInternals$2.H.useDeferredValue(value, initialValue);
 };
-react_production.useEffect = function(create, createDeps, update) {
+react_production.useEffect = function(create2, createDeps, update) {
   var dispatcher = ReactSharedInternals$2.H;
   if ("function" === typeof update)
     throw Error(
       "useEffect CRUD overload is not enabled in this build of React."
     );
-  return dispatcher.useEffect(create, createDeps);
+  return dispatcher.useEffect(create2, createDeps);
 };
 react_production.useId = function() {
   return ReactSharedInternals$2.H.useId();
 };
-react_production.useImperativeHandle = function(ref, create, deps) {
-  return ReactSharedInternals$2.H.useImperativeHandle(ref, create, deps);
+react_production.useImperativeHandle = function(ref, create2, deps) {
+  return ReactSharedInternals$2.H.useImperativeHandle(ref, create2, deps);
 };
-react_production.useInsertionEffect = function(create, deps) {
-  return ReactSharedInternals$2.H.useInsertionEffect(create, deps);
+react_production.useInsertionEffect = function(create2, deps) {
+  return ReactSharedInternals$2.H.useInsertionEffect(create2, deps);
 };
-react_production.useLayoutEffect = function(create, deps) {
-  return ReactSharedInternals$2.H.useLayoutEffect(create, deps);
+react_production.useLayoutEffect = function(create2, deps) {
+  return ReactSharedInternals$2.H.useLayoutEffect(create2, deps);
 };
-react_production.useMemo = function(create, deps) {
-  return ReactSharedInternals$2.H.useMemo(create, deps);
+react_production.useMemo = function(create2, deps) {
+  return ReactSharedInternals$2.H.useMemo(create2, deps);
 };
 react_production.useOptimistic = function(passthrough, reducer) {
   return ReactSharedInternals$2.H.useOptimistic(passthrough, reducer);
@@ -19147,8 +19211,8 @@ function updateSyncExternalStore(subscribe2, getSnapshot, getServerSnapshot) {
   );
   snapshotChanged && (hook.memoizedState = getServerSnapshot, didReceiveUpdate = true);
   hook = hook.queue;
-  var create = subscribeToStore.bind(null, fiber, hook, subscribe2);
-  updateEffectImpl(2048, 8, create, [subscribe2]);
+  var create2 = subscribeToStore.bind(null, fiber, hook, subscribe2);
+  updateEffectImpl(2048, 8, create2, [subscribe2]);
   if (hook.getSnapshot !== getSnapshot || snapshotChanged || null !== workInProgressHook && workInProgressHook.memoizedState.tag & 1) {
     fiber.flags |= 2048;
     pushSimpleEffect(
@@ -19436,12 +19500,12 @@ function rerenderActionState(action) {
   currentStateHook.memoizedState = action;
   return [stateHook, dispatch, false];
 }
-function pushSimpleEffect(tag, inst, create, createDeps) {
-  tag = { tag, create, deps: createDeps, inst, next: null };
+function pushSimpleEffect(tag, inst, create2, createDeps) {
+  tag = { tag, create: create2, deps: createDeps, inst, next: null };
   inst = currentlyRenderingFiber.updateQueue;
   null === inst && (inst = createFunctionComponentUpdateQueue(), currentlyRenderingFiber.updateQueue = inst);
-  create = inst.lastEffect;
-  null === create ? inst.lastEffect = tag.next = tag : (createDeps = create.next, create.next = tag, tag.next = createDeps, inst.lastEffect = tag);
+  create2 = inst.lastEffect;
+  null === create2 ? inst.lastEffect = tag.next = tag : (createDeps = create2.next, create2.next = tag, tag.next = createDeps, inst.lastEffect = tag);
   return tag;
 }
 function createEffectInstance() {
@@ -19450,56 +19514,56 @@ function createEffectInstance() {
 function updateRef() {
   return updateWorkInProgressHook().memoizedState;
 }
-function mountEffectImpl(fiberFlags, hookFlags, create, createDeps) {
+function mountEffectImpl(fiberFlags, hookFlags, create2, createDeps) {
   var hook = mountWorkInProgressHook();
   createDeps = void 0 === createDeps ? null : createDeps;
   currentlyRenderingFiber.flags |= fiberFlags;
   hook.memoizedState = pushSimpleEffect(
     1 | hookFlags,
     createEffectInstance(),
-    create,
+    create2,
     createDeps
   );
 }
-function updateEffectImpl(fiberFlags, hookFlags, create, deps) {
+function updateEffectImpl(fiberFlags, hookFlags, create2, deps) {
   var hook = updateWorkInProgressHook();
   deps = void 0 === deps ? null : deps;
   var inst = hook.memoizedState.inst;
-  null !== currentHook && null !== deps && areHookInputsEqual(deps, currentHook.memoizedState.deps) ? hook.memoizedState = pushSimpleEffect(hookFlags, inst, create, deps) : (currentlyRenderingFiber.flags |= fiberFlags, hook.memoizedState = pushSimpleEffect(
+  null !== currentHook && null !== deps && areHookInputsEqual(deps, currentHook.memoizedState.deps) ? hook.memoizedState = pushSimpleEffect(hookFlags, inst, create2, deps) : (currentlyRenderingFiber.flags |= fiberFlags, hook.memoizedState = pushSimpleEffect(
     1 | hookFlags,
     inst,
-    create,
+    create2,
     deps
   ));
 }
-function mountEffect(create, createDeps) {
-  mountEffectImpl(8390656, 8, create, createDeps);
+function mountEffect(create2, createDeps) {
+  mountEffectImpl(8390656, 8, create2, createDeps);
 }
-function updateEffect(create, createDeps) {
-  updateEffectImpl(2048, 8, create, createDeps);
+function updateEffect(create2, createDeps) {
+  updateEffectImpl(2048, 8, create2, createDeps);
 }
-function updateInsertionEffect(create, deps) {
-  return updateEffectImpl(4, 2, create, deps);
+function updateInsertionEffect(create2, deps) {
+  return updateEffectImpl(4, 2, create2, deps);
 }
-function updateLayoutEffect(create, deps) {
-  return updateEffectImpl(4, 4, create, deps);
+function updateLayoutEffect(create2, deps) {
+  return updateEffectImpl(4, 4, create2, deps);
 }
-function imperativeHandleEffect(create, ref) {
+function imperativeHandleEffect(create2, ref) {
   if ("function" === typeof ref) {
-    create = create();
-    var refCleanup = ref(create);
+    create2 = create2();
+    var refCleanup = ref(create2);
     return function() {
       "function" === typeof refCleanup ? refCleanup() : ref(null);
     };
   }
   if (null !== ref && void 0 !== ref)
-    return create = create(), ref.current = create, function() {
+    return create2 = create2(), ref.current = create2, function() {
       ref.current = null;
     };
 }
-function updateImperativeHandle(ref, create, deps) {
+function updateImperativeHandle(ref, create2, deps) {
   deps = null !== deps && void 0 !== deps ? deps.concat([ref]) : null;
-  updateEffectImpl(4, 4, imperativeHandleEffect.bind(null, create, ref), deps);
+  updateEffectImpl(4, 4, imperativeHandleEffect.bind(null, create2, ref), deps);
 }
 function mountDebugValue() {
 }
@@ -19787,20 +19851,20 @@ var ContextOnlyDispatcher = {
   },
   useContext: readContext,
   useEffect: mountEffect,
-  useImperativeHandle: function(ref, create, deps) {
+  useImperativeHandle: function(ref, create2, deps) {
     deps = null !== deps && void 0 !== deps ? deps.concat([ref]) : null;
     mountEffectImpl(
       4194308,
       4,
-      imperativeHandleEffect.bind(null, create, ref),
+      imperativeHandleEffect.bind(null, create2, ref),
       deps
     );
   },
-  useLayoutEffect: function(create, deps) {
-    return mountEffectImpl(4194308, 4, create, deps);
+  useLayoutEffect: function(create2, deps) {
+    return mountEffectImpl(4194308, 4, create2, deps);
   },
-  useInsertionEffect: function(create, deps) {
-    mountEffectImpl(4, 2, create, deps);
+  useInsertionEffect: function(create2, deps) {
+    mountEffectImpl(4, 2, create2, deps);
   },
   useMemo: function(nextCreate, deps) {
     var hook = mountWorkInProgressHook();
@@ -22213,8 +22277,8 @@ function commitHookEffectListMount(flags, finishedWork) {
       do {
         if ((updateQueue.tag & flags) === flags) {
           lastEffect = void 0;
-          var create = updateQueue.create, inst = updateQueue.inst;
-          lastEffect = create();
+          var create2 = updateQueue.create, inst = updateQueue.inst;
+          lastEffect = create2();
           inst.destroy = lastEffect;
         }
         updateQueue = updateQueue.next;
@@ -26291,7 +26355,7 @@ ReactDOMSharedInternals.d = {
   r: requestFormReset,
   D: prefetchDNS,
   C: preconnect,
-  L: preload,
+  L: preload2,
   m: preloadModule,
   X: preinitScript,
   S: preinitStyle,
@@ -26323,7 +26387,7 @@ function preconnect(href, crossOrigin) {
   previousDispatcher.C(href, crossOrigin);
   preconnectAs("preconnect", href, crossOrigin);
 }
-function preload(href, as, options) {
+function preload2(href, as, options) {
   previousDispatcher.L(href, as, options);
   var ownerDocument = globalDocument;
   if (ownerDocument && href && as) {
@@ -29547,12 +29611,12 @@ const executeBeforeLoad = (inner, matchId, index2, route) => {
   }
   match._nonReactive.beforeLoadPromise = createControlledPromise();
   const { search, params, cause } = match;
-  const preload2 = resolvePreload(inner, matchId);
+  const preload3 = resolvePreload(inner, matchId);
   const beforeLoadFnContext = {
     search,
     abortController,
     params,
-    preload: preload2,
+    preload: preload3,
     context,
     location: inner.location,
     navigate: (opts) => inner.router.navigate({
@@ -29560,7 +29624,7 @@ const executeBeforeLoad = (inner, matchId, index2, route) => {
       _fromLocation: inner.location
     }),
     buildLocation: inner.router.buildLocation,
-    cause: preload2 ? "preload" : cause,
+    cause: preload3 ? "preload" : cause,
     matches: inner.matches
   };
   const updateContext = (beforeLoadContext2) => {
@@ -29659,11 +29723,11 @@ const executeHead = (inner, matchId, route) => {
 const getLoaderContext = (inner, matchId, index2, route) => {
   const parentMatchPromise = inner.matchPromises[index2 - 1];
   const { params, loaderDeps, abortController, context, cause } = inner.router.getMatch(matchId);
-  const preload2 = resolvePreload(inner, matchId);
+  const preload3 = resolvePreload(inner, matchId);
   return {
     params,
     deps: loaderDeps,
-    preload: !!preload2,
+    preload: !!preload3,
     parentMatchPromise,
     abortController,
     context,
@@ -29672,7 +29736,7 @@ const getLoaderContext = (inner, matchId, index2, route) => {
       ...opts,
       _fromLocation: inner.location
     }),
-    cause: preload2 ? "preload" : cause,
+    cause: preload3 ? "preload" : cause,
     route
   };
 };
@@ -29796,11 +29860,11 @@ const loadRouteMatch = async (inner, index2) => {
       }
     } else {
       const age = Date.now() - prevMatch.updatedAt;
-      const preload2 = resolvePreload(inner, matchId);
-      const staleAge = preload2 ? route.options.preloadStaleTime ?? inner.router.options.defaultPreloadStaleTime ?? 3e4 : route.options.staleTime ?? inner.router.options.defaultStaleTime ?? 0;
+      const preload3 = resolvePreload(inner, matchId);
+      const staleAge = preload3 ? route.options.preloadStaleTime ?? inner.router.options.defaultPreloadStaleTime ?? 3e4 : route.options.staleTime ?? inner.router.options.defaultStaleTime ?? 0;
       const shouldReloadOption = route.options.shouldReload;
       const shouldReload = typeof shouldReloadOption === "function" ? shouldReloadOption(getLoaderContext(inner, matchId, index2, route)) : shouldReloadOption;
-      const nextPreload = !!preload2 && !inner.router.state.matches.some((d2) => d2.id === matchId);
+      const nextPreload = !!preload3 && !inner.router.state.matches.some((d2) => d2.id === matchId);
       const match2 = inner.router.getMatch(matchId);
       match2._nonReactive.loaderPromise = createControlledPromise();
       if (nextPreload !== match2.preload) {
@@ -29811,7 +29875,7 @@ const loadRouteMatch = async (inner, index2) => {
       }
       const { status, invalid } = match2;
       loaderShouldRunAsync = status === "success" && (invalid || (shouldReload ?? age > staleAge));
-      if (preload2 && route.options.preload === false) ;
+      if (preload3 && route.options.preload === false) ;
       else if (loaderShouldRunAsync && !inner.sync) {
         loaderIsRunningAsync = true;
         (async () => {
@@ -29912,8 +29976,8 @@ async function loadRouteChunk(route) {
       var _a3;
       const preloads = [];
       for (const type of componentTypes) {
-        const preload2 = (_a3 = route.options[type]) == null ? void 0 : _a3.preload;
-        if (preload2) preloads.push(preload2());
+        const preload3 = (_a3 = route.options[type]) == null ? void 0 : _a3.preload;
+        if (preload3) preloads.push(preload3());
       }
       if (preloads.length)
         return Promise.all(preloads).then(() => {
@@ -31509,7 +31573,7 @@ withSelector_production.useSyncExternalStoreWithSelector = function(subscribe2, 
   withSelector.exports = withSelector_production;
 }
 var withSelectorExports = withSelector.exports;
-function useStore(store, selector = (d2) => d2) {
+function useStore$1(store, selector = (d2) => d2) {
   const slice = withSelectorExports.useSyncExternalStoreWithSelector(
     store.subscribe,
     () => store.state,
@@ -31584,7 +31648,7 @@ function useRouterState(opts) {
   });
   const router2 = (opts == null ? void 0 : opts.router) || contextRouter;
   const previousResult = reactExports.useRef(void 0);
-  return useStore(router2.__store, (state) => {
+  return useStore$1(router2.__store, (state) => {
     if (opts == null ? void 0 : opts.select) {
       if (opts.structuralSharing ?? router2.options.defaultStructuralSharing) {
         const newSlice = replaceEqualDeep(
@@ -31804,7 +31868,7 @@ function useLinkProps(options, forwardedRef) {
     [router2, _options2]
   );
   const isExternal = type === "external";
-  const preload2 = options.reloadDocument || isExternal ? false : userPreload ?? router2.options.defaultPreload;
+  const preload3 = options.reloadDocument || isExternal ? false : userPreload ?? router2.options.defaultPreload;
   const preloadDelay = userPreloadDelay ?? router2.options.defaultPreloadDelay ?? 0;
   const isActive = useRouterState({
     select: (s2) => {
@@ -31865,17 +31929,17 @@ function useLinkProps(options, forwardedRef) {
     innerRef,
     preloadViewportIoCallback,
     intersectionObserverOptions,
-    { disabled: !!disabled || !(preload2 === "viewport") }
+    { disabled: !!disabled || !(preload3 === "viewport") }
   );
   reactExports.useEffect(() => {
     if (hasRenderFetched.current) {
       return;
     }
-    if (!disabled && preload2 === "render") {
+    if (!disabled && preload3 === "render") {
       doPreload();
       hasRenderFetched.current = true;
     }
-  }, [disabled, doPreload, preload2]);
+  }, [disabled, doPreload, preload3]);
   const handleClick = (e3) => {
     const elementTarget = e3.currentTarget.target;
     const effectiveTarget = target !== void 0 ? target : elementTarget;
@@ -31919,13 +31983,13 @@ function useLinkProps(options, forwardedRef) {
   }
   const handleFocus = (_2) => {
     if (disabled) return;
-    if (preload2) {
+    if (preload3) {
       doPreload();
     }
   };
   const handleTouchStart = handleFocus;
   const handleEnter = (e3) => {
-    if (disabled || !preload2) return;
+    if (disabled || !preload3) return;
     if (!preloadDelay) {
       doPreload();
     } else {
@@ -31941,7 +32005,7 @@ function useLinkProps(options, forwardedRef) {
     }
   };
   const handleLeave = (e3) => {
-    if (disabled || !preload2 || !preloadDelay) return;
+    if (disabled || !preload3 || !preloadDelay) return;
     const eventTarget = e3.target;
     const id2 = timeoutMap.get(eventTarget);
     if (id2) {
@@ -32677,21 +32741,22 @@ function RouterProvider({ router: router2, ...rest }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(RouterContextProvider, { router: router2, ...rest, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Matches, {}) });
 }
 function useAuth() {
-  const {
-    identity: identity3,
-    loginStatus,
-    login,
-    clear,
-    isAuthenticated,
-    isInitializing,
-    isLoggingIn
-  } = useInternetIdentity();
+  const { identity: identity3, loginStatus, login, clear, isAuthenticated, isLoggingIn } = useInternetIdentity();
+  const hasSettledRef = reactExports.useRef(false);
+  const [hasSettled, setHasSettled] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    if (!hasSettledRef.current && loginStatus !== "initializing") {
+      hasSettledRef.current = true;
+      setHasSettled(true);
+    }
+  }, [loginStatus]);
   const principalText = (identity3 == null ? void 0 : identity3.getPrincipal().toText()) ?? null;
   const isAnonymous = !isAuthenticated || principalText === "2vxsx-fae";
+  const isLoading = !hasSettled;
   return {
     identity: identity3,
     isAuthenticated: isAuthenticated && !isAnonymous,
-    isLoading: isInitializing,
+    isLoading,
     isLoggingIn,
     loginStatus,
     principalText: isAnonymous ? null : principalText,
@@ -32702,7 +32767,9 @@ function useAuth() {
 const ObstacleTemplateId = Nat;
 const CreateGoalRequest = Record({
   "wish": Text$1,
+  "themeColor": Opt(Text$1),
   "wishDescription": Text$1,
+  "iconName": Opt(Text$1),
   "ifThenPlan": Text$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
   "outcome": Text$1
@@ -32721,7 +32788,9 @@ const GoalPublic = Record({
   "owner": UserId,
   "createdAt": Timestamp,
   "wish": Text$1,
+  "themeColor": Opt(Text$1),
   "wishDescription": Text$1,
+  "iconName": Opt(Text$1),
   "ifThenPlan": Text$1,
   "updatedAt": Timestamp,
   "state": GoalState$1,
@@ -32738,6 +32807,7 @@ const ObstacleTemplate = Record({
   "owner": UserId,
   "description": Text$1
 });
+const CheckInId = Nat;
 const AdminAuditEntry = Record({
   "limit": Nat,
   "targetPrincipal": UserId,
@@ -32758,8 +32828,7 @@ const AnalyticsSummary = Record({
   "goals": Vec(GoalAnalytics),
   "dailySuccessRate30Days": Vec(Float64)
 });
-const CheckInId = Nat;
-const CheckInType = Variant({
+const CheckInType$1 = Variant({
   "skip": Null,
   "success": Null
 });
@@ -32767,22 +32836,25 @@ const CheckIn = Record({
   "id": CheckInId,
   "owner": UserId,
   "goalId": GoalId,
-  "checkInType": CheckInType,
+  "checkInType": CheckInType$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
   "timestamp": Timestamp
 });
-const UserRole = Variant({ "admin": Null, "user": Null });
-const SubscriptionTier = Variant({
+const UserRole$1 = Variant({ "admin": Null, "user": Null });
+const SubscriptionTier$1 = Variant({
   "tier1": Null,
   "tier2": Null,
   "tier3": Null
 });
 const UserProfilePublic = Record({
   "id": UserId,
+  "timezone": Text$1,
   "username": Text$1,
-  "role": UserRole,
-  "tier": SubscriptionTier,
-  "goalLimit": Nat
+  "displayName": Text$1,
+  "role": UserRole$1,
+  "tier": SubscriptionTier$1,
+  "goalLimit": Nat,
+  "avatarEmoji": Text$1
 });
 const FeedItem$1 = Record({
   "checkIn": CheckIn,
@@ -32791,35 +32863,37 @@ const FeedItem$1 = Record({
   "highFiveCount": Nat
 });
 const ConnectionId = Nat;
-const ConnectionStatus = Variant({
+const ConnectionStatus$1 = Variant({
   "pending": Null,
   "rejected": Null,
   "accepted": Null
 });
 const ConnectionPublic = Record({
   "id": ConnectionId,
-  "status": ConnectionStatus,
+  "status": ConnectionStatus$1,
   "createdAt": Timestamp,
   "toPrincipal": UserId,
   "fromPrincipal": UserId
 });
 const RecordCheckInRequest = Record({
   "goalId": GoalId,
-  "checkInType": CheckInType,
+  "checkInType": CheckInType$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId)
 });
-const InteractionType = Variant({ "highFive": Null });
+const InteractionType$1 = Variant({ "highFive": Null });
 const InteractionId = Nat;
 const Interaction = Record({
   "id": InteractionId,
-  "interactionType": InteractionType,
+  "interactionType": InteractionType$1,
   "fromPrincipal": UserId,
   "checkInId": CheckInId,
   "timestamp": Timestamp
 });
 const UpdateGoalRequest = Record({
   "wish": Opt(Text$1),
+  "themeColor": Opt(Text$1),
   "wishDescription": Opt(Text$1),
+  "iconName": Opt(Text$1),
   "ifThenPlan": Opt(Text$1)
 });
 Service({
@@ -32829,9 +32903,28 @@ Service({
     [ObstacleTemplate],
     []
   ),
+  "deleteCheckIn": Func(
+    [CheckInId],
+    [
+      Variant({
+        "ok": Null,
+        "err": Variant({
+          "notFound": Null,
+          "unauthorized": Null
+        })
+      })
+    ],
+    []
+  ),
+  "devReset": Func([], [], []),
   "getAdminAuditLog": Func([], [Vec(AdminAuditEntry)], ["query"]),
   "getAnalytics": Func([], [AnalyticsSummary], ["query"]),
   "getCheckInsForGoal": Func([GoalId], [Vec(CheckIn)], ["query"]),
+  "getCheckInsForPeriod": Func(
+    [GoalId, Int, Int],
+    [Vec(CheckIn)],
+    ["query"]
+  ),
   "getGoal": Func([GoalId], [Opt(GoalPublic)], ["query"]),
   "getInteractionCount": Func([CheckInId], [Nat], ["query"]),
   "getMyProfile": Func([], [UserProfilePublic], ["query"]),
@@ -32841,6 +32934,7 @@ Service({
     [Opt(UserProfilePublic)],
     ["query"]
   ),
+  "isUsernameAvailable": Func([Text$1], [Bool], ["query"]),
   "listAllUsers": Func([], [Vec(UserProfilePublic)], ["query"]),
   "listConnections": Func([], [Vec(ConnectionPublic)], ["query"]),
   "listMyCheckIns": Func([], [Vec(CheckIn)], ["query"]),
@@ -32853,26 +32947,34 @@ Service({
   "listPendingRequests": Func([], [Vec(ConnectionPublic)], ["query"]),
   "recordCheckIn": Func([RecordCheckInRequest], [CheckIn], []),
   "recordInteraction": Func(
-    [CheckInId, InteractionType],
+    [CheckInId, InteractionType$1],
     [Interaction],
     []
   ),
   "register": Func([Text$1], [UserProfilePublic], []),
   "respondToConnection": Func([ConnectionId, Bool], [Bool], []),
   "sendConnectionRequest": Func([UserId], [ConnectionPublic], []),
+  "setTimezone": Func([Text$1], [], []),
   "setUserGoalLimit": Func([UserId, Nat], [], []),
   "updateGoal": Func(
     [GoalId, UpdateGoalRequest],
     [Variant({ "ok": GoalPublic, "err": Text$1 })],
     []
   ),
-  "updateGoalState": Func([GoalId, GoalState$1], [Bool], [])
+  "updateGoalState": Func([GoalId, GoalState$1], [Bool], []),
+  "updateMyProfile": Func(
+    [Opt(Text$1), Opt(Text$1)],
+    [UserProfilePublic],
+    []
+  )
 });
 const idlFactory = ({ IDL: IDL2 }) => {
   const ObstacleTemplateId2 = IDL2.Nat;
   const CreateGoalRequest2 = IDL2.Record({
     "wish": IDL2.Text,
+    "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Text,
+    "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Text,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
     "outcome": IDL2.Text
@@ -32891,7 +32993,9 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "owner": UserId2,
     "createdAt": Timestamp2,
     "wish": IDL2.Text,
+    "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Text,
+    "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Text,
     "updatedAt": Timestamp2,
     "state": GoalState2,
@@ -32908,6 +33012,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "owner": UserId2,
     "description": IDL2.Text
   });
+  const CheckInId2 = IDL2.Nat;
   const AdminAuditEntry2 = IDL2.Record({
     "limit": IDL2.Nat,
     "targetPrincipal": UserId2,
@@ -32928,7 +33033,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "goals": IDL2.Vec(GoalAnalytics2),
     "dailySuccessRate30Days": IDL2.Vec(IDL2.Float64)
   });
-  const CheckInId2 = IDL2.Nat;
   const CheckInType2 = IDL2.Variant({ "skip": IDL2.Null, "success": IDL2.Null });
   const CheckIn2 = IDL2.Record({
     "id": CheckInId2,
@@ -32946,10 +33050,13 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const UserProfilePublic2 = IDL2.Record({
     "id": UserId2,
+    "timezone": IDL2.Text,
     "username": IDL2.Text,
+    "displayName": IDL2.Text,
     "role": UserRole2,
     "tier": SubscriptionTier2,
-    "goalLimit": IDL2.Nat
+    "goalLimit": IDL2.Nat,
+    "avatarEmoji": IDL2.Text
   });
   const FeedItem2 = IDL2.Record({
     "checkIn": CheckIn2,
@@ -32986,7 +33093,9 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const UpdateGoalRequest2 = IDL2.Record({
     "wish": IDL2.Opt(IDL2.Text),
+    "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Opt(IDL2.Text),
+    "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Opt(IDL2.Text)
   });
   return IDL2.Service({
@@ -32996,9 +33105,28 @@ const idlFactory = ({ IDL: IDL2 }) => {
       [ObstacleTemplate2],
       []
     ),
+    "deleteCheckIn": IDL2.Func(
+      [CheckInId2],
+      [
+        IDL2.Variant({
+          "ok": IDL2.Null,
+          "err": IDL2.Variant({
+            "notFound": IDL2.Null,
+            "unauthorized": IDL2.Null
+          })
+        })
+      ],
+      []
+    ),
+    "devReset": IDL2.Func([], [], []),
     "getAdminAuditLog": IDL2.Func([], [IDL2.Vec(AdminAuditEntry2)], ["query"]),
     "getAnalytics": IDL2.Func([], [AnalyticsSummary2], ["query"]),
     "getCheckInsForGoal": IDL2.Func([GoalId2], [IDL2.Vec(CheckIn2)], ["query"]),
+    "getCheckInsForPeriod": IDL2.Func(
+      [GoalId2, IDL2.Int, IDL2.Int],
+      [IDL2.Vec(CheckIn2)],
+      ["query"]
+    ),
     "getGoal": IDL2.Func([GoalId2], [IDL2.Opt(GoalPublic2)], ["query"]),
     "getInteractionCount": IDL2.Func([CheckInId2], [IDL2.Nat], ["query"]),
     "getMyProfile": IDL2.Func([], [UserProfilePublic2], ["query"]),
@@ -33008,6 +33136,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
       [IDL2.Opt(UserProfilePublic2)],
       ["query"]
     ),
+    "isUsernameAvailable": IDL2.Func([IDL2.Text], [IDL2.Bool], ["query"]),
     "listAllUsers": IDL2.Func([], [IDL2.Vec(UserProfilePublic2)], ["query"]),
     "listConnections": IDL2.Func([], [IDL2.Vec(ConnectionPublic2)], ["query"]),
     "listMyCheckIns": IDL2.Func([], [IDL2.Vec(CheckIn2)], ["query"]),
@@ -33031,13 +33160,19 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "register": IDL2.Func([IDL2.Text], [UserProfilePublic2], []),
     "respondToConnection": IDL2.Func([ConnectionId2, IDL2.Bool], [IDL2.Bool], []),
     "sendConnectionRequest": IDL2.Func([UserId2], [ConnectionPublic2], []),
+    "setTimezone": IDL2.Func([IDL2.Text], [], []),
     "setUserGoalLimit": IDL2.Func([UserId2, IDL2.Nat], [], []),
     "updateGoal": IDL2.Func(
       [GoalId2, UpdateGoalRequest2],
       [IDL2.Variant({ "ok": GoalPublic2, "err": IDL2.Text })],
       []
     ),
-    "updateGoalState": IDL2.Func([GoalId2, GoalState2], [IDL2.Bool], [])
+    "updateGoalState": IDL2.Func([GoalId2, GoalState2], [IDL2.Bool], []),
+    "updateMyProfile": IDL2.Func(
+      [IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text)],
+      [UserProfilePublic2],
+      []
+    )
   });
 };
 function candid_some(value) {
@@ -33051,6 +33186,55 @@ function candid_none() {
 function record_opt_to_undefined(arg) {
   return arg == null ? void 0 : arg;
 }
+class ExternalBlob2 {
+  constructor(directURL, blob) {
+    __publicField(this, "_blob");
+    __publicField(this, "directURL");
+    __publicField(this, "onProgress");
+    if (blob) {
+      this._blob = blob;
+    }
+    this.directURL = directURL;
+  }
+  static fromURL(url) {
+    return new ExternalBlob2(url, null);
+  }
+  static fromBytes(blob) {
+    const url = URL.createObjectURL(new Blob([
+      new Uint8Array(blob)
+    ], {
+      type: "application/octet-stream"
+    }));
+    return new ExternalBlob2(url, blob);
+  }
+  async getBytes() {
+    if (this._blob) {
+      return this._blob;
+    }
+    const response = await fetch(this.directURL);
+    const blob = await response.blob();
+    this._blob = new Uint8Array(await blob.arrayBuffer());
+    return this._blob;
+  }
+  getDirectURL() {
+    return this.directURL;
+  }
+  withUploadProgress(onProgress) {
+    this.onProgress = onProgress;
+    return this;
+  }
+}
+var CheckInType = /* @__PURE__ */ ((CheckInType2) => {
+  CheckInType2["skip"] = "skip";
+  CheckInType2["success"] = "success";
+  return CheckInType2;
+})(CheckInType || {});
+var ConnectionStatus = /* @__PURE__ */ ((ConnectionStatus2) => {
+  ConnectionStatus2["pending"] = "pending";
+  ConnectionStatus2["rejected"] = "rejected";
+  ConnectionStatus2["accepted"] = "accepted";
+  return ConnectionStatus2;
+})(ConnectionStatus || {});
 var GoalState = /* @__PURE__ */ ((GoalState2) => {
   GoalState2["active"] = "active";
   GoalState2["completed"] = "completed";
@@ -33058,6 +33242,26 @@ var GoalState = /* @__PURE__ */ ((GoalState2) => {
   GoalState2["paused"] = "paused";
   return GoalState2;
 })(GoalState || {});
+var InteractionType = /* @__PURE__ */ ((InteractionType2) => {
+  InteractionType2["highFive"] = "highFive";
+  return InteractionType2;
+})(InteractionType || {});
+var SubscriptionTier = /* @__PURE__ */ ((SubscriptionTier2) => {
+  SubscriptionTier2["tier1"] = "tier1";
+  SubscriptionTier2["tier2"] = "tier2";
+  SubscriptionTier2["tier3"] = "tier3";
+  return SubscriptionTier2;
+})(SubscriptionTier || {});
+var UserRole = /* @__PURE__ */ ((UserRole2) => {
+  UserRole2["admin"] = "admin";
+  UserRole2["user"] = "user";
+  return UserRole2;
+})(UserRole || {});
+var Variant_notFound_unauthorized = /* @__PURE__ */ ((Variant_notFound_unauthorized2) => {
+  Variant_notFound_unauthorized2["notFound"] = "notFound";
+  Variant_notFound_unauthorized2["unauthorized"] = "unauthorized";
+  return Variant_notFound_unauthorized2;
+})(Variant_notFound_unauthorized || {});
 class Backend {
   constructor(actor, _uploadFile, _downloadFile, processError2) {
     this.actor = actor;
@@ -33093,6 +33297,34 @@ class Backend {
       return result;
     }
   }
+  async deleteCheckIn(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.deleteCheckIn(arg0);
+        return from_candid_variant_n9(this._uploadFile, this._downloadFile, result);
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.deleteCheckIn(arg0);
+      return from_candid_variant_n9(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async devReset() {
+    if (this.processError) {
+      try {
+        const result = await this.actor.devReset();
+        return result;
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.devReset();
+      return result;
+    }
+  }
   async getAdminAuditLog() {
     if (this.processError) {
       try {
@@ -33125,28 +33357,42 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoal(arg0);
-        return from_candid_vec_n8(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoal(arg0);
-      return from_candid_vec_n8(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async getCheckInsForPeriod(arg0, arg1, arg2) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
+        return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
+      return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
     }
   }
   async getGoal(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getGoal(arg0);
-        return from_candid_opt_n13(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getGoal(arg0);
-      return from_candid_opt_n13(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
     }
   }
   async getInteractionCount(arg0) {
@@ -33167,98 +33413,112 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getMyProfile();
-        return from_candid_UserProfilePublic_n14(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyProfile();
-      return from_candid_UserProfilePublic_n14(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerFeed() {
     if (this.processError) {
       try {
         const result = await this.actor.getPartnerFeed();
-        return from_candid_vec_n20(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getPartnerFeed();
-      return from_candid_vec_n20(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
     }
   }
   async getUserProfile(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getUserProfile(arg0);
-        return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getUserProfile(arg0);
-      return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async isUsernameAvailable(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.isUsernameAvailable(arg0);
+        return result;
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.isUsernameAvailable(arg0);
+      return result;
     }
   }
   async listAllUsers() {
     if (this.processError) {
       try {
         const result = await this.actor.listAllUsers();
-        return from_candid_vec_n24(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n27(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listAllUsers();
-      return from_candid_vec_n24(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n27(this._uploadFile, this._downloadFile, result);
     }
   }
   async listConnections() {
     if (this.processError) {
       try {
         const result = await this.actor.listConnections();
-        return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listConnections();
-      return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyCheckIns() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyCheckIns();
-        return from_candid_vec_n8(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyCheckIns();
-      return from_candid_vec_n8(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyGoals() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyGoals();
-        return from_candid_vec_n30(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyGoals();
-      return from_candid_vec_n30(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyObstacleTemplates() {
@@ -33279,56 +33539,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listPendingRequests();
-        return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listPendingRequests();
-      return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordCheckIn(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n31(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_CheckIn_n9(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n34(this._uploadFile, this._downloadFile, arg0));
+        return from_candid_CheckIn_n12(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n31(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_CheckIn_n9(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n34(this._uploadFile, this._downloadFile, arg0));
+      return from_candid_CheckIn_n12(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordInteraction(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n35(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_Interaction_n37(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n38(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_Interaction_n40(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n35(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_Interaction_n37(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n38(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_Interaction_n40(this._uploadFile, this._downloadFile, result);
     }
   }
   async register(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.register(arg0);
-        return from_candid_UserProfilePublic_n14(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.register(arg0);
-      return from_candid_UserProfilePublic_n14(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
     }
   }
   async respondToConnection(arg0, arg1) {
@@ -33349,14 +33609,28 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.sendConnectionRequest(arg0);
-        return from_candid_ConnectionPublic_n26(this._uploadFile, this._downloadFile, result);
+        return from_candid_ConnectionPublic_n29(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.sendConnectionRequest(arg0);
-      return from_candid_ConnectionPublic_n26(this._uploadFile, this._downloadFile, result);
+      return from_candid_ConnectionPublic_n29(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async setTimezone(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.setTimezone(arg0);
+        return result;
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.setTimezone(arg0);
+      return result;
     }
   }
   async setUserGoalLimit(arg0, arg1) {
@@ -33376,120 +33650,131 @@ class Backend {
   async updateGoal(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n41(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_variant_n43(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n44(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_variant_n46(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n41(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_variant_n43(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n44(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_variant_n46(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n44(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n44(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
+  async updateMyProfile(arg0, arg1) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+    }
+  }
 }
-function from_candid_CheckInType_n11(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n12(_uploadFile, _downloadFile, value);
+function from_candid_CheckInType_n14(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n15(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckIn_n9(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n10(_uploadFile, _downloadFile, value);
+function from_candid_CheckIn_n12(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n13(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionPublic_n26(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n27(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionPublic_n29(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n30(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionStatus_n28(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n29(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionStatus_n31(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n32(_uploadFile, _downloadFile, value);
 }
-function from_candid_FeedItem_n21(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n22(_uploadFile, _downloadFile, value);
+function from_candid_FeedItem_n24(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n25(_uploadFile, _downloadFile, value);
 }
 function from_candid_GoalPublic_n3(_uploadFile, _downloadFile, value) {
   return from_candid_record_n4(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalState_n5(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n6(_uploadFile, _downloadFile, value);
+function from_candid_GoalState_n6(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n7(_uploadFile, _downloadFile, value);
 }
-function from_candid_InteractionType_n39(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n40(_uploadFile, _downloadFile, value);
+function from_candid_InteractionType_n42(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n43(_uploadFile, _downloadFile, value);
 }
-function from_candid_Interaction_n37(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n38(_uploadFile, _downloadFile, value);
+function from_candid_Interaction_n40(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n41(_uploadFile, _downloadFile, value);
 }
-function from_candid_SubscriptionTier_n18(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n19(_uploadFile, _downloadFile, value);
+function from_candid_SubscriptionTier_n21(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n22(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfilePublic_n14(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n15(_uploadFile, _downloadFile, value);
+function from_candid_UserProfilePublic_n17(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n18(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n16(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n17(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n19(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n20(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n13(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n16(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : from_candid_GoalPublic_n3(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n23(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_UserProfilePublic_n14(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n26(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_UserProfilePublic_n17(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n7(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n5(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n10(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n8(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n13(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
     goalId: value.goalId,
-    checkInType: from_candid_CheckInType_n11(_uploadFile, _downloadFile, value.checkInType),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    checkInType: from_candid_CheckInType_n14(_uploadFile, _downloadFile, value.checkInType),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     timestamp: value.timestamp
   };
 }
-function from_candid_record_n15(_uploadFile, _downloadFile, value) {
+function from_candid_record_n18(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
+    timezone: value.timezone,
     username: value.username,
-    role: from_candid_UserRole_n16(_uploadFile, _downloadFile, value.role),
-    tier: from_candid_SubscriptionTier_n18(_uploadFile, _downloadFile, value.tier),
-    goalLimit: value.goalLimit
+    displayName: value.displayName,
+    role: from_candid_UserRole_n19(_uploadFile, _downloadFile, value.role),
+    tier: from_candid_SubscriptionTier_n21(_uploadFile, _downloadFile, value.tier),
+    goalLimit: value.goalLimit,
+    avatarEmoji: value.avatarEmoji
   };
 }
-function from_candid_record_n22(_uploadFile, _downloadFile, value) {
+function from_candid_record_n25(_uploadFile, _downloadFile, value) {
   return {
-    checkIn: from_candid_CheckIn_n9(_uploadFile, _downloadFile, value.checkIn),
+    checkIn: from_candid_CheckIn_n12(_uploadFile, _downloadFile, value.checkIn),
     goalName: value.goalName,
     partnerDisplayName: value.partnerDisplayName,
     highFiveCount: value.highFiveCount
   };
 }
-function from_candid_record_n27(_uploadFile, _downloadFile, value) {
+function from_candid_record_n30(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_ConnectionStatus_n28(_uploadFile, _downloadFile, value.status),
+    status: from_candid_ConnectionStatus_n31(_uploadFile, _downloadFile, value.status),
     createdAt: value.createdAt,
     toPrincipal: value.toPrincipal,
     fromPrincipal: value.fromPrincipal
-  };
-}
-function from_candid_record_n38(_uploadFile, _downloadFile, value) {
-  return {
-    id: value.id,
-    interactionType: from_candid_InteractionType_n39(_uploadFile, _downloadFile, value.interactionType),
-    fromPrincipal: value.fromPrincipal,
-    checkInId: value.checkInId,
-    timestamp: value.timestamp
   };
 }
 function from_candid_record_n4(_uploadFile, _downloadFile, value) {
@@ -33498,30 +33783,44 @@ function from_candid_record_n4(_uploadFile, _downloadFile, value) {
     owner: value.owner,
     createdAt: value.createdAt,
     wish: value.wish,
+    themeColor: record_opt_to_undefined(from_candid_opt_n5(_uploadFile, _downloadFile, value.themeColor)),
     wishDescription: value.wishDescription,
+    iconName: record_opt_to_undefined(from_candid_opt_n5(_uploadFile, _downloadFile, value.iconName)),
     ifThenPlan: value.ifThenPlan,
     updatedAt: value.updatedAt,
-    state: from_candid_GoalState_n5(_uploadFile, _downloadFile, value.state),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    state: from_candid_GoalState_n6(_uploadFile, _downloadFile, value.state),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     outcome: value.outcome
   };
 }
-function from_candid_variant_n12(_uploadFile, _downloadFile, value) {
+function from_candid_record_n41(_uploadFile, _downloadFile, value) {
+  return {
+    id: value.id,
+    interactionType: from_candid_InteractionType_n42(_uploadFile, _downloadFile, value.interactionType),
+    fromPrincipal: value.fromPrincipal,
+    checkInId: value.checkInId,
+    timestamp: value.timestamp
+  };
+}
+function from_candid_variant_n10(_uploadFile, _downloadFile, value) {
+  return "notFound" in value ? "notFound" : "unauthorized" in value ? "unauthorized" : value;
+}
+function from_candid_variant_n15(_uploadFile, _downloadFile, value) {
   return "skip" in value ? "skip" : "success" in value ? "success" : value;
 }
-function from_candid_variant_n17(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n20(_uploadFile, _downloadFile, value) {
   return "admin" in value ? "admin" : "user" in value ? "user" : value;
 }
-function from_candid_variant_n19(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
   return "tier1" in value ? "tier1" : "tier2" in value ? "tier2" : "tier3" in value ? "tier3" : value;
 }
-function from_candid_variant_n29(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
   return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
 }
-function from_candid_variant_n40(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n43(_uploadFile, _downloadFile, value) {
   return "highFive" in value ? "highFive" : value;
 }
-function from_candid_variant_n43(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n46(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: from_candid_GoalPublic_n3(_uploadFile, _downloadFile, value.ok)
@@ -33530,78 +33829,94 @@ function from_candid_variant_n43(_uploadFile, _downloadFile, value) {
     err: value.err
   } : value;
 }
-function from_candid_variant_n6(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n7(_uploadFile, _downloadFile, value) {
   return "active" in value ? "active" : "completed" in value ? "completed" : "abandoned" in value ? "abandoned" : "paused" in value ? "paused" : value;
 }
-function from_candid_vec_n20(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_FeedItem_n21(_uploadFile, _downloadFile, x3));
+function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: value.ok
+  } : "err" in value ? {
+    __kind__: "err",
+    err: from_candid_variant_n10(_uploadFile, _downloadFile, value.err)
+  } : value;
 }
-function from_candid_vec_n24(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_UserProfilePublic_n14(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n11(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_CheckIn_n12(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n25(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_ConnectionPublic_n26(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n23(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_FeedItem_n24(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n30(_uploadFile, _downloadFile, value) {
+function from_candid_vec_n27(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_UserProfilePublic_n17(_uploadFile, _downloadFile, x3));
+}
+function from_candid_vec_n28(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_ConnectionPublic_n29(_uploadFile, _downloadFile, x3));
+}
+function from_candid_vec_n33(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_GoalPublic_n3(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n8(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_CheckIn_n9(_uploadFile, _downloadFile, x3));
-}
-function to_candid_CheckInType_n33(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n34(_uploadFile, _downloadFile, value);
+function to_candid_CheckInType_n36(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n37(_uploadFile, _downloadFile, value);
 }
 function to_candid_CreateGoalRequest_n1(_uploadFile, _downloadFile, value) {
   return to_candid_record_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_GoalState_n44(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n45(_uploadFile, _downloadFile, value);
+function to_candid_GoalState_n47(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n48(_uploadFile, _downloadFile, value);
 }
-function to_candid_InteractionType_n35(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n36(_uploadFile, _downloadFile, value);
+function to_candid_InteractionType_n38(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n39(_uploadFile, _downloadFile, value);
 }
-function to_candid_RecordCheckInRequest_n31(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n32(_uploadFile, _downloadFile, value);
+function to_candid_RecordCheckInRequest_n34(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n35(_uploadFile, _downloadFile, value);
 }
-function to_candid_UpdateGoalRequest_n41(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n42(_uploadFile, _downloadFile, value);
+function to_candid_UpdateGoalRequest_n44(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n45(_uploadFile, _downloadFile, value);
+}
+function to_candid_opt_n49(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_record_n2(_uploadFile, _downloadFile, value) {
   return {
     wish: value.wish,
+    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     wishDescription: value.wishDescription,
+    iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     ifThenPlan: value.ifThenPlan,
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     outcome: value.outcome
   };
 }
-function to_candid_record_n32(_uploadFile, _downloadFile, value) {
+function to_candid_record_n35(_uploadFile, _downloadFile, value) {
   return {
     goalId: value.goalId,
-    checkInType: to_candid_CheckInType_n33(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: to_candid_CheckInType_n36(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none()
   };
 }
-function to_candid_record_n42(_uploadFile, _downloadFile, value) {
+function to_candid_record_n45(_uploadFile, _downloadFile, value) {
   return {
     wish: value.wish ? candid_some(value.wish) : candid_none(),
+    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     wishDescription: value.wishDescription ? candid_some(value.wishDescription) : candid_none(),
+    iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none()
   };
 }
-function to_candid_variant_n34(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n37(_uploadFile, _downloadFile, value) {
   return value == "skip" ? {
     skip: null
   } : value == "success" ? {
     success: null
   } : value;
 }
-function to_candid_variant_n36(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n39(_uploadFile, _downloadFile, value) {
   return value == "highFive" ? {
     highFive: null
   } : value;
 }
-function to_candid_variant_n45(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n48(_uploadFile, _downloadFile, value) {
   return value == "active" ? {
     active: null
   } : value == "completed" ? {
@@ -33626,38 +33941,85 @@ function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
   });
   return new Backend(actor, _uploadFile, _downloadFile, options.processError);
 }
+const backend = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  Backend,
+  CheckInType,
+  ConnectionStatus,
+  ExternalBlob: ExternalBlob2,
+  GoalState,
+  InteractionType,
+  SubscriptionTier,
+  UserRole,
+  Variant_notFound_unauthorized,
+  createActor
+}, Symbol.toStringTag, { value: "Module" }));
 function useBackend() {
   const { actor, isFetching } = useActor(createActor);
-  return { actor, isFetching };
+  const actorReady = !!actor && !isFetching;
+  return { actor, isFetching, actorReady };
 }
-function mockProfile(principalText) {
-  return {
-    id: principalText,
-    username: `${principalText.slice(0, 8)}...`,
-    role: "user",
-    tier: 1,
-    goalLimit: 3
-  };
-}
+const MAX_RETRIES = 10;
 function useUserProfile() {
-  const { actor, isFetching } = useBackend();
-  const { isAuthenticated, principalText } = useAuth();
-  return useQuery({
-    queryKey: ["userProfile", principalText],
+  const { actor, actorReady } = useBackend();
+  const { isAuthenticated } = useAuth();
+  const retryCount = reactExports.useRef(0);
+  const queryClient2 = useQueryClient();
+  const timezoneSyncedRef = reactExports.useRef(false);
+  const query = useQuery({
+    queryKey: ["userProfile"],
     queryFn: async () => {
-      if (!principalText) return null;
-      if (actor && "getUserProfile" in actor) {
-        try {
-          const result = await actor.getUserProfile();
-          if (result) return result;
-        } catch {
-        }
+      if (!actor) throw new Error("actor not ready");
+      try {
+        return await actor.getMyProfile();
+      } catch {
+        return null;
       }
-      return mockProfile(principalText);
     },
-    enabled: isAuthenticated && !isFetching && !!principalText,
-    staleTime: 5 * 60 * 1e3
+    // Only fire when BOTH auth has settled AND the canister actor is ready.
+    // This is the critical fix: prevents premature firing that caused the loop.
+    enabled: isAuthenticated && actorReady,
+    staleTime: 0,
+    refetchOnMount: true,
+    // Safety net: if the first fetch returned null (new user, not yet registered),
+    // retry every 500ms — but stop after MAX_RETRIES to prevent infinite polling.
+    refetchInterval: (query2) => {
+      if (query2.state.data) {
+        retryCount.current = 0;
+        return false;
+      }
+      if (retryCount.current >= MAX_RETRIES) return false;
+      retryCount.current += 1;
+      return 500;
+    },
+    retry: 2,
+    retryDelay: 300
   });
+  const timezoneMutation = useMutation({
+    mutationFn: async (tz) => {
+      if (!actor) throw new Error("actor not ready");
+      return actor.setTimezone(tz);
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
+    }
+  });
+  const timezoneMutateRef = reactExports.useRef(
+    timezoneMutation.mutate
+  );
+  timezoneMutateRef.current = timezoneMutation.mutate;
+  reactExports.useEffect(() => {
+    if (!query.data || timezoneSyncedRef.current) return;
+    if (query.data.timezone && query.data.timezone.trim() !== "") {
+      timezoneSyncedRef.current = true;
+      return;
+    }
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!detected) return;
+    timezoneSyncedRef.current = true;
+    timezoneMutateRef.current(detected);
+  }, [query.data]);
+  return query;
 }
 function r(e3) {
   var t2, f2, n2 = "";
@@ -36239,76 +36601,53 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$J = [
-  ["rect", { width: "20", height: "5", x: "2", y: "3", rx: "1", key: "1wp1u1" }],
-  ["path", { d: "M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8", key: "1s80jp" }],
-  ["path", { d: "M10 12h4", key: "a56b0p" }]
-];
-const Archive = createLucideIcon("archive", __iconNode$J);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$I = [
+const __iconNode$H = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$I);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$H);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$H = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$H);
+const __iconNode$G = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$G);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$G = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$G);
+const __iconNode$F = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$F);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$F = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$F);
+const __iconNode$E = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$E);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$E = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-const ChevronRight = createLucideIcon("chevron-right", __iconNode$E);
+const __iconNode$D = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$D = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
-const ChevronUp = createLucideIcon("chevron-up", __iconNode$D);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$C = [
-  ["path", { d: "m11 17-5-5 5-5", key: "13zhaf" }],
-  ["path", { d: "m18 17-5-5 5-5", key: "h8a8et" }]
-];
-const ChevronsLeft = createLucideIcon("chevrons-left", __iconNode$C);
+const __iconNode$C = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+const ChevronUp = createLucideIcon("chevron-up", __iconNode$C);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36530,19 +36869,25 @@ const PenLine = createLucideIcon("pen-line", __iconNode$l);
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$k = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
-const Play = createLucideIcon("play", __iconNode$k);
+const __iconNode$k = [
+  [
+    "path",
+    {
+      d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+      key: "1a8usu"
+    }
+  ],
+  ["path", { d: "m15 5 4 4", key: "1mk7zo" }]
+];
+const Pencil = createLucideIcon("pencil", __iconNode$k);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$j = [
-  ["path", { d: "M5 12h14", key: "1ays0h" }],
-  ["path", { d: "M12 5v14", key: "s699le" }]
-];
-const Plus = createLucideIcon("plus", __iconNode$j);
+const __iconNode$j = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
+const Play = createLucideIcon("play", __iconNode$j);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36550,12 +36895,10 @@ const Plus = createLucideIcon("plus", __iconNode$j);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$i = [
-  ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
-  ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
-  ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
-  ["path", { d: "M8 16H3v5", key: "1cv678" }]
+  ["path", { d: "M5 12h14", key: "1ays0h" }],
+  ["path", { d: "M12 5v14", key: "s699le" }]
 ];
-const RefreshCw = createLucideIcon("refresh-cw", __iconNode$i);
+const Plus = createLucideIcon("plus", __iconNode$i);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36563,6 +36906,19 @@ const RefreshCw = createLucideIcon("refresh-cw", __iconNode$i);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$h = [
+  ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
+  ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
+  ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
+  ["path", { d: "M8 16H3v5", key: "1cv678" }]
+];
+const RefreshCw = createLucideIcon("refresh-cw", __iconNode$h);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$g = [
   [
     "path",
     {
@@ -36573,18 +36929,7 @@ const __iconNode$h = [
   ["path", { d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7", key: "1ydtos" }],
   ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
 ];
-const Save = createLucideIcon("save", __iconNode$h);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$g = [
-  ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
-  ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
-];
-const Search = createLucideIcon("search", __iconNode$g);
+const Save = createLucideIcon("save", __iconNode$g);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36592,16 +36937,10 @@ const Search = createLucideIcon("search", __iconNode$g);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$f = [
-  [
-    "path",
-    {
-      d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
-      key: "1qme2f"
-    }
-  ],
-  ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
+  ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
+  ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
 ];
-const Settings = createLucideIcon("settings", __iconNode$f);
+const Search = createLucideIcon("search", __iconNode$f);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36612,13 +36951,13 @@ const __iconNode$e = [
   [
     "path",
     {
-      d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
-      key: "oel41y"
+      d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
+      key: "1qme2f"
     }
   ],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
 ];
-const ShieldCheck = createLucideIcon("shield-check", __iconNode$e);
+const Settings = createLucideIcon("settings", __iconNode$e);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36632,9 +36971,10 @@ const __iconNode$d = [
       d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
       key: "oel41y"
     }
-  ]
+  ],
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const Shield = createLucideIcon("shield", __iconNode$d);
+const ShieldCheck = createLucideIcon("shield-check", __iconNode$d);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36642,10 +36982,15 @@ const Shield = createLucideIcon("shield", __iconNode$d);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$c = [
-  ["polygon", { points: "5 4 15 12 5 20 5 4", key: "16p6eg" }],
-  ["line", { x1: "19", x2: "19", y1: "5", y2: "19", key: "futhcm" }]
+  [
+    "path",
+    {
+      d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+      key: "oel41y"
+    }
+  ]
 ];
-const SkipForward = createLucideIcon("skip-forward", __iconNode$c);
+const Shield = createLucideIcon("shield", __iconNode$c);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36821,22 +37166,22 @@ const TABS = [
   {
     to: "/",
     icon: House,
-    label: "Today's Dashboard",
-    accentClass: "text-[oklch(var(--color-accent-success))]",
-    glowClass: "shadow-glow-success"
+    label: "Dashboard",
+    accentClass: "text-[#10B981]",
+    glowClass: ""
   },
   {
     to: "/feed",
     icon: Users,
-    label: "Partner Feed",
-    accentClass: "text-[oklch(var(--color-accent-social))]",
-    glowClass: "shadow-glow-social"
+    label: "Partners",
+    accentClass: "text-[#EAB308]",
+    glowClass: ""
   },
   {
     to: "/analytics",
     icon: ChartColumn,
     label: "Analytics",
-    accentClass: "text-muted-foreground",
+    accentClass: "text-white",
     glowClass: ""
   }
 ];
@@ -36846,10 +37191,11 @@ function BottomTabBar() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "nav",
     {
-      className: "fixed bottom-0 left-0 right-0 z-40 border-t border-border",
+      className: "fixed bottom-0 left-0 right-0 z-40",
       style: {
         background: "oklch(var(--card))",
-        paddingBottom: "env(safe-area-inset-bottom)"
+        paddingBottom: "env(safe-area-inset-bottom)",
+        boxShadow: "0 -4px 16px rgba(0,0,0,0.35), 0 -1px 4px rgba(0,0,0,0.2)"
       },
       children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-around h-16", children: TABS.map((tab) => {
         const isActive = tab.to === "/" ? currentPath === "/" : currentPath.startsWith(tab.to);
@@ -36861,8 +37207,7 @@ function BottomTabBar() {
             "data-ocid": `nav.${tab.label.toLowerCase().replace(/[^a-z0-9]+/g, "_")}.tab`,
             className: cn(
               "flex flex-col items-center gap-1 min-w-[72px] py-2 px-3 rounded-xl transition-smooth",
-              "hover:bg-muted/30",
-              isActive ? "opacity-100" : "opacity-50"
+              "hover:bg-muted/30"
             ),
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -36870,8 +37215,7 @@ function BottomTabBar() {
                 {
                   className: cn(
                     "flex items-center justify-center w-10 h-10 rounded-full transition-smooth",
-                    isActive && "shadow-neumorphic-emboss-dark",
-                    isActive ? `bg-muted/50 ${tab.glowClass}` : "bg-transparent"
+                    isActive && "bg-muted/30"
                   ),
                   children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                     Icon2,
@@ -36879,8 +37223,9 @@ function BottomTabBar() {
                       size: 20,
                       className: cn(
                         "transition-smooth",
-                        isActive ? tab.accentClass : "text-muted-foreground"
-                      )
+                        isActive ? tab.accentClass : ""
+                      ),
+                      style: isActive ? void 0 : { color: "rgba(255,255,255,0.5)" }
                     }
                   )
                 }
@@ -36888,10 +37233,10 @@ function BottomTabBar() {
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "span",
                 {
-                  className: cn(
-                    "text-[10px] font-body font-medium leading-none transition-smooth",
-                    isActive ? tab.accentClass : "text-muted-foreground"
-                  ),
+                  className: "text-[10px] font-body font-medium leading-none transition-smooth",
+                  style: {
+                    color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.65)"
+                  },
                   children: tab.label
                 }
               )
@@ -36945,6 +37290,11 @@ const TIER_LABELS = {
   2: "Plus",
   3: "Power"
 };
+function toNumericTier$4(tier) {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
+}
 const NAV_ITEMS = [
   { to: "/goals", icon: Target, label: "My Goals" },
   { to: "/profile", icon: User, label: "Profile" },
@@ -36953,6 +37303,7 @@ const NAV_ITEMS = [
   { to: "/admin", icon: ShieldCheck, label: "Admin Controls", adminOnly: true }
 ];
 function Drawer({ isOpen, onClose, profile, onLogout }) {
+  var _a3, _b3, _c2, _d2;
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const prevPathRef = reactExports.useRef(currentPath);
@@ -36973,6 +37324,7 @@ function Drawer({ isOpen, onClose, profile, onLogout }) {
   const visibleItems = NAV_ITEMS.filter(
     (item) => !item.adminOnly || (profile == null ? void 0 : profile.role) === "admin"
   );
+  const displayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim() : null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     isOpen && /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
@@ -37005,21 +37357,47 @@ function Drawer({ isOpen, onClose, profile, onLogout }) {
               className: "flex items-center justify-between px-5 py-4 border-b border-border",
               style: { paddingTop: "calc(env(safe-area-inset-top) + 16px)" },
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center w-10 h-10 rounded-full bg-muted/40 shadow-neumorphic-emboss-dark", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Target,
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 min-w-0", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
                     {
-                      size: 18,
-                      className: "text-[oklch(var(--color-accent-success))]"
+                      className: "flex items-center justify-center w-10 h-10 rounded-full select-none flex-shrink-0",
+                      style: {
+                        background: "oklch(0.22 0.01 260)",
+                        boxShadow: "inset 2px 2px 4px oklch(0.15 0.01 260), inset -2px -2px 4px oklch(0.28 0.01 260)"
+                      },
+                      "aria-hidden": "true",
+                      children: ((_a3 = profile == null ? void 0 : profile.displayName) == null ? void 0 : _a3.trim()) || ((_b3 = profile == null ? void 0 : profile.username) == null ? void 0 : _b3.trim()) ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "font-display font-bold text-base",
+                          style: { color: "oklch(var(--color-accent-success))" },
+                          children: (((_c2 = profile.displayName) == null ? void 0 : _c2.trim()) || ((_d2 = profile.username) == null ? void 0 : _d2.trim()) || "").charAt(0).toUpperCase()
+                        }
+                      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        User,
+                        {
+                          size: 18,
+                          style: { color: "oklch(var(--color-accent-success) / 0.7)" }
+                        }
+                      )
                     }
-                  ) }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display font-semibold text-foreground text-sm truncate", children: (profile == null ? void 0 : profile.username) ?? "Loading..." }),
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-w-0", children: displayName ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display font-semibold text-foreground text-sm truncate", children: displayName }),
                     profile && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] font-mono text-muted-foreground", children: [
-                      TIER_LABELS[profile.tier],
+                      TIER_LABELS[toNumericTier$4(profile.tier)],
                       " tier"
                     ] })
-                  ] })
+                  ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Link,
+                    {
+                      to: "/profile",
+                      className: "text-sm font-body text-muted-foreground hover:text-foreground transition-smooth underline-offset-2 hover:underline",
+                      "data-ocid": "nav.drawer.setup_profile_link",
+                      children: "Set up your profile"
+                    }
+                  ) })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
@@ -37029,7 +37407,7 @@ function Drawer({ isOpen, onClose, profile, onLogout }) {
                     "data-ocid": "nav.drawer.close_button",
                     "aria-label": "Close menu",
                     className: cn(
-                      "flex items-center justify-center w-8 h-8 rounded-lg transition-smooth",
+                      "flex items-center justify-center w-8 h-8 rounded-lg transition-smooth flex-shrink-0",
                       "text-muted-foreground hover:text-foreground hover:bg-muted/30",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     ),
@@ -37097,8 +37475,99 @@ function Drawer({ isOpen, onClose, profile, onLogout }) {
     )
   ] });
 }
+const createStoreImpl = (createState2) => {
+  let state;
+  const listeners = /* @__PURE__ */ new Set();
+  const setState = (partial, replace) => {
+    const nextState = typeof partial === "function" ? partial(state) : partial;
+    if (!Object.is(nextState, state)) {
+      const previousState = state;
+      state = (replace != null ? replace : typeof nextState !== "object" || nextState === null) ? nextState : Object.assign({}, state, nextState);
+      listeners.forEach((listener) => listener(state, previousState));
+    }
+  };
+  const getState2 = () => state;
+  const getInitialState = () => initialState;
+  const subscribe2 = (listener) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+  const api = { setState, getState: getState2, getInitialState, subscribe: subscribe2 };
+  const initialState = state = createState2(setState, getState2, api);
+  return api;
+};
+const createStore = (createState2) => createState2 ? createStoreImpl(createState2) : createStoreImpl;
+const identity$c = (arg) => arg;
+function useStore(api, selector = identity$c) {
+  const slice = o.useSyncExternalStore(
+    api.subscribe,
+    o.useCallback(() => selector(api.getState()), [api, selector]),
+    o.useCallback(() => selector(api.getInitialState()), [api, selector])
+  );
+  o.useDebugValue(slice);
+  return slice;
+}
+const createImpl = (createState2) => {
+  const api = createStore(createState2);
+  const useBoundStore = (selector) => useStore(api, selector);
+  Object.assign(useBoundStore, api);
+  return useBoundStore;
+};
+const create = (createState2) => createState2 ? createImpl(createState2) : createImpl;
+const useDashboardHeaderStore = create((set) => ({
+  data: null,
+  setData: (data) => set({ data })
+}));
+function useDashboardHeader() {
+  return useDashboardHeaderStore((s2) => s2.data);
+}
+function useDashboardHeaderWriter(data) {
+  const setData = useDashboardHeaderStore((s2) => s2.setData);
+  reactExports.useEffect(() => {
+    setData(data);
+  }, [data, setData]);
+  reactExports.useEffect(() => {
+    return () => {
+      setData(null);
+    };
+  }, [setData]);
+}
+const STORAGE_KEY = "cumulative-theme";
+function applyTheme(theme) {
+  const root2 = document.documentElement;
+  if (theme === "dark") {
+    root2.classList.add("dark");
+    root2.classList.remove("light");
+  } else {
+    root2.classList.add("light");
+    root2.classList.remove("dark");
+  }
+}
+function useTheme() {
+  const [theme, setTheme] = reactExports.useState(() => {
+    if (typeof window === "undefined") return "dark";
+    return localStorage.getItem(STORAGE_KEY) ?? "dark";
+  });
+  reactExports.useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+  const toggleTheme = reactExports.useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      localStorage.setItem(STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+  return { theme, toggleTheme };
+}
+function toNumericTier$3(tier) {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
+}
 function TierBadge$1({ tier }) {
-  const label = TIER_LABELS[tier];
+  const numericTier = toNumericTier$3(tier);
+  const label = TIER_LABELS[numericTier];
   const colorMap = {
     1: "text-muted-foreground border-muted-foreground/40",
     2: "text-[oklch(var(--color-accent-skip))] border-[oklch(var(--color-accent-skip)/0.4)]",
@@ -37109,23 +37578,151 @@ function TierBadge$1({ tier }) {
     {
       className: cn(
         "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border",
-        colorMap[tier]
+        colorMap[numericTier]
       ),
       children: label
     }
   );
 }
+function SunIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: "18",
+      height: "18",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "5" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", y1: "1", x2: "12", y2: "3" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", y1: "21", x2: "12", y2: "23" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "4.22", y1: "4.22", x2: "5.64", y2: "5.64" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "18.36", y1: "18.36", x2: "19.78", y2: "19.78" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "1", y1: "12", x2: "3", y2: "12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "21", y1: "12", x2: "23", y2: "12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "4.22", y1: "19.78", x2: "5.64", y2: "18.36" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "18.36", y1: "5.64", x2: "19.78", y2: "4.22" })
+      ]
+    }
+  );
+}
+function MoonIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "svg",
+    {
+      width: "18",
+      height: "18",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      "aria-hidden": "true",
+      children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" })
+    }
+  );
+}
+function HeaderProgressRing({
+  completed,
+  total,
+  isComplete
+}) {
+  const size = 44;
+  const strokeWidth = 4;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress2 = total > 0 ? completed / total : 0;
+  const dashOffset = circumference * (1 - progress2);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: "relative flex items-center justify-center flex-shrink-0",
+      style: { width: size, height: size },
+      "data-ocid": "dashboard.progress_ring",
+      "aria-label": `${completed} of ${total} habits done today`,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "svg",
+          {
+            width: size,
+            height: size,
+            style: { transform: "rotate(-90deg)" },
+            "aria-hidden": "true",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "circle",
+                {
+                  cx: size / 2,
+                  cy: size / 2,
+                  r: radius,
+                  fill: "none",
+                  stroke: "oklch(var(--muted))",
+                  strokeWidth,
+                  opacity: 0.45
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "circle",
+                {
+                  cx: size / 2,
+                  cy: size / 2,
+                  r: radius,
+                  fill: "none",
+                  stroke: "oklch(var(--color-accent-success))",
+                  strokeWidth,
+                  strokeLinecap: "round",
+                  strokeDasharray: circumference,
+                  strokeDashoffset: dashOffset,
+                  style: {
+                    transition: "stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)",
+                    filter: isComplete ? "drop-shadow(0 0 6px oklch(var(--color-accent-success) / 0.75))" : "drop-shadow(0 0 3px oklch(var(--color-accent-success) / 0.4))"
+                  }
+                }
+              )
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "span",
+          {
+            className: "font-mono font-bold leading-none",
+            style: {
+              fontSize: "0.6rem",
+              color: isComplete ? "oklch(var(--color-accent-success))" : "oklch(var(--muted-foreground))"
+            },
+            children: [
+              completed,
+              "/",
+              total
+            ]
+          }
+        ) })
+      ]
+    }
+  );
+}
 function Header({ profile, onMenuClick }) {
+  const { theme, toggleTheme } = useTheme();
+  const dashboardData = useDashboardHeader();
+  const isDashboard = dashboardData !== null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "header",
     {
-      className: "fixed top-0 left-0 right-0 z-40 h-14 flex items-center px-4 border-b border-border shadow-neumorphic-emboss-dark",
+      className: "fixed top-0 left-0 right-0 z-40 flex items-center px-4",
       style: {
         background: "oklch(var(--card))",
-        paddingTop: "env(safe-area-inset-top)"
+        paddingTop: "env(safe-area-inset-top)",
+        height: "calc(56px + env(safe-area-inset-top))",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.35)"
       },
       children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
             type: "button",
@@ -37139,26 +37736,56 @@ function Header({ profile, onMenuClick }) {
             ),
             children: /* @__PURE__ */ jsxRuntimeExports.jsx(Menu, { size: 20 })
           }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 flex items-center justify-center gap-2", children: [
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center min-w-0 px-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-lg font-bold text-foreground tracking-tight", children: "Cumulative" }),
           profile && /* @__PURE__ */ jsxRuntimeExports.jsx(TierBadge$1, { tier: profile.tier })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Link,
-          {
-            to: "/profile",
-            "data-ocid": "header.profile_link",
-            "aria-label": "Go to profile",
-            className: cn(
-              "flex items-center justify-center w-10 h-10 rounded-full transition-smooth",
-              "bg-muted/30 shadow-neumorphic-emboss-dark",
-              "text-muted-foreground hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            ),
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { size: 18 })
-          }
-        )
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 flex-shrink-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: toggleTheme,
+              "data-ocid": "header.theme_toggle",
+              "aria-label": theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
+              className: cn(
+                "flex items-center justify-center w-9 h-9 rounded-full transition-smooth",
+                "shadow-neumorphic-emboss-dark",
+                "text-muted-foreground hover:text-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "active:scale-95"
+              ),
+              style: { background: "oklch(var(--card))" },
+              children: theme === "dark" ? /* @__PURE__ */ jsxRuntimeExports.jsx(SunIcon, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(MoonIcon, {})
+            }
+          ),
+          isDashboard ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            HeaderProgressRing,
+            {
+              completed: dashboardData.progressCompleted,
+              total: dashboardData.progressTotal,
+              isComplete: dashboardData.isComplete
+            }
+          ) : (
+            /* Other pages: profile link */
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Link,
+              {
+                to: "/profile",
+                "data-ocid": "header.profile_link",
+                "aria-label": "Go to profile",
+                className: cn(
+                  "flex items-center justify-center w-10 h-10 rounded-full transition-smooth",
+                  "bg-muted/30 shadow-neumorphic-emboss-dark",
+                  "text-muted-foreground hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                ),
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { size: 18 })
+              }
+            )
+          )
+        ] })
       ]
     }
   );
@@ -37183,7 +37810,7 @@ function Layout() {
       {
         className: "flex-1 overflow-y-auto",
         style: {
-          paddingTop: "56px",
+          paddingTop: "calc(56px + env(safe-area-inset-top))",
           paddingBottom: "calc(64px + env(safe-area-inset-bottom))"
         },
         children: /* @__PURE__ */ jsxRuntimeExports.jsx(Outlet, {})
@@ -40624,7 +41251,7 @@ function equalArrays$2(array2, other, bitmask, customizer, equalFunc, stack) {
   if (arrStacked && othStacked) {
     return arrStacked == other && othStacked == array2;
   }
-  var index2 = -1, result = true, seen = bitmask & COMPARE_UNORDERED_FLAG$3 ? new SetCache$1() : void 0;
+  var index2 = -1, result = true, seen2 = bitmask & COMPARE_UNORDERED_FLAG$3 ? new SetCache$1() : void 0;
   stack.set(array2, other);
   stack.set(other, array2);
   while (++index2 < arrLength) {
@@ -40639,10 +41266,10 @@ function equalArrays$2(array2, other, bitmask, customizer, equalFunc, stack) {
       result = false;
       break;
     }
-    if (seen) {
+    if (seen2) {
       if (!arraySome$1(other, function(othValue2, othIndex) {
-        if (!cacheHas$1(seen, othIndex) && (arrValue === othValue2 || equalFunc(arrValue, othValue2, bitmask, customizer, stack))) {
-          return seen.push(othIndex);
+        if (!cacheHas$1(seen2, othIndex) && (arrValue === othValue2 || equalFunc(arrValue, othValue2, bitmask, customizer, stack))) {
+          return seen2.push(othIndex);
         }
       })) {
         result = false;
@@ -41264,7 +41891,7 @@ var _createSet = createSet$1;
 var SetCache = _SetCache, arrayIncludes = _arrayIncludes, arrayIncludesWith = _arrayIncludesWith, cacheHas = _cacheHas, createSet = _createSet, setToArray = _setToArray;
 var LARGE_ARRAY_SIZE = 200;
 function baseUniq$1(array2, iteratee, comparator) {
-  var index2 = -1, includes = arrayIncludes, length = array2.length, isCommon = true, result = [], seen = result;
+  var index2 = -1, includes = arrayIncludes, length = array2.length, isCommon = true, result = [], seen2 = result;
   if (comparator) {
     isCommon = false;
     includes = arrayIncludesWith;
@@ -41275,28 +41902,28 @@ function baseUniq$1(array2, iteratee, comparator) {
     }
     isCommon = false;
     includes = cacheHas;
-    seen = new SetCache();
+    seen2 = new SetCache();
   } else {
-    seen = iteratee ? [] : result;
+    seen2 = iteratee ? [] : result;
   }
   outer:
     while (++index2 < length) {
       var value = array2[index2], computed = iteratee ? iteratee(value) : value;
       value = comparator || value !== 0 ? value : 0;
       if (isCommon && computed === computed) {
-        var seenIndex = seen.length;
+        var seenIndex = seen2.length;
         while (seenIndex--) {
-          if (seen[seenIndex] === computed) {
+          if (seen2[seenIndex] === computed) {
             continue outer;
           }
         }
         if (iteratee) {
-          seen.push(computed);
+          seen2.push(computed);
         }
         result.push(value);
-      } else if (!includes(seen, computed, comparator)) {
-        if (seen !== result) {
-          seen.push(computed);
+      } else if (!includes(seen2, computed, comparator)) {
+        if (seen2 !== result) {
+          seen2.push(computed);
         }
         result.push(value);
       }
@@ -54146,7 +54773,7 @@ var ScaleHelper = /* @__PURE__ */ function() {
     }
   }], [{
     key: "create",
-    value: function create(obj) {
+    value: function create2(obj) {
       return new ScaleHelper2(obj);
     }
   }]);
@@ -59417,7 +60044,9 @@ function StatCard$1({ label, value, icon, glowClass }) {
     {
       className: `bg-card rounded-xl p-4 flex flex-col gap-2 flex-1 min-w-0 ${glowClass ?? ""}`,
       style: {
-        boxShadow: "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
+        boxShadow: "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+        borderTop: "1px solid rgba(255,255,255,0.12)",
+        borderLeft: "1px solid rgba(255,255,255,0.06)"
       },
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-muted-foreground text-xs font-body uppercase tracking-wider", children: [
@@ -59442,7 +60071,9 @@ function GoalAnalyticsCard({
     {
       className: "bg-card rounded-xl overflow-hidden transition-smooth",
       style: {
-        boxShadow: "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
+        boxShadow: "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+        borderTop: "1px solid rgba(255,255,255,0.12)",
+        borderLeft: "1px solid rgba(255,255,255,0.06)"
       },
       "data-ocid": `analytics.goal_card.${index2 + 1}`,
       children: [
@@ -59553,7 +60184,8 @@ function CustomTooltip({
     {
       className: "bg-popover border border-border/40 rounded-lg px-3 py-2 text-xs",
       style: {
-        boxShadow: "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
+        boxShadow: "-3px -3px 8px rgba(65,65,75,0.4), 5px 5px 14px rgba(0,0,0,0.8)",
+        borderTop: "1px solid rgba(255,255,255,0.1)"
       },
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-muted-foreground", children: [
@@ -59634,7 +60266,9 @@ function AnalyticsPage$1() {
           {
             className: "bg-card rounded-xl p-4",
             style: {
-              boxShadow: "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
+              boxShadow: "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+              borderTop: "1px solid rgba(255,255,255,0.12)",
+              borderLeft: "1px solid rgba(255,255,255,0.06)"
             },
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
@@ -59669,7 +60303,7 @@ function AnalyticsPage$1() {
                       CartesianGrid,
                       {
                         strokeDasharray: "3 3",
-                        stroke: "rgba(255,255,255,0.05)",
+                        stroke: "rgba(128,128,128,0.15)",
                         vertical: false
                       }
                     ),
@@ -59742,7 +60376,9 @@ function AnalyticsPage$1() {
                 {
                   className: "bg-card rounded-xl flex flex-col items-center justify-center gap-3 py-12 px-6 text-center",
                   style: {
-                    boxShadow: "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
+                    boxShadow: "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+                    borderTop: "1px solid rgba(255,255,255,0.12)",
+                    borderLeft: "1px solid rgba(255,255,255,0.06)"
                   },
                   "data-ocid": "analytics.empty_state",
                   children: [
@@ -68416,6 +69052,287 @@ reactExports.forwardRef(function(e3, t2) {
     })) : null;
   }));
 });
+const GOAL_ICONS = [
+  {
+    id: "target",
+    label: "Target",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "6" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "2" })
+        ]
+      }
+    )
+  },
+  {
+    id: "flame",
+    label: "Flame",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8.5 14.5A2.5 2.5 0 0 0 11 17c2 0 3-1.5 3-3s-1-3-3-5c0 0 0 2.5-1.5 3.5S8.5 14.5 8.5 14.5Z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22c-4.418 0-8-3.582-8-8 0-3.5 2-6.5 5-8 0 1 .5 2 1.5 2.5C11 7 12 4 12 2c3 2 5 5 5 8 0 4.418-3.582 8-8 8Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "bolt",
+    label: "Lightning",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M13 2L3 14h9l-1 8 10-12h-9l1-8z" })
+      }
+    )
+  },
+  {
+    id: "star",
+    label: "Star",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" })
+      }
+    )
+  },
+  {
+    id: "trophy",
+    label: "Trophy",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 22h16" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 2H6v7a6 6 0 0 0 12 0V2Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "mountain",
+    label: "Mountain",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "m8 3 4 8 5-5 5 15H2L8 3z" })
+      }
+    )
+  },
+  {
+    id: "run",
+    label: "Running",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "13", cy: "4", r: "1" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M7 17l2-5.5 2 2.5 2-3 2 1" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9 11.5l-2 2.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M15 10l2 2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22v-4" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 20l-2-2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20l2-2" })
+        ]
+      }
+    )
+  },
+  {
+    id: "book",
+    label: "Book",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "heart",
+    label: "Heart",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" })
+      }
+    )
+  },
+  {
+    id: "brain",
+    label: "Mind",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.16Z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.16Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "clock",
+    label: "Clock",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "12 6 12 12 16 14" })
+        ]
+      }
+    )
+  },
+  {
+    id: "chart",
+    label: "Growth",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "22 7 13.5 15.5 8.5 10.5 2 17" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "16 7 22 7 22 13" })
+        ]
+      }
+    )
+  },
+  {
+    id: "compass",
+    label: "Compass",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" })
+        ]
+      }
+    )
+  },
+  {
+    id: "shield",
+    label: "Shield",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" })
+      }
+    )
+  }
+];
+function getGoalIcon(iconId) {
+  return GOAL_ICONS.find((i) => i.id === iconId) ?? GOAL_ICONS[0];
+}
+const SKIP_COLOR$2 = "#0369A1";
 function SkipModal({
   goal,
   open,
@@ -68423,12 +69340,11 @@ function SkipModal({
   onConfirm,
   isLoading = false
 }) {
-  const [selectedObstacleId, setSelectedObstacleId] = reactExports.useState(
-    goal.obstacleTemplateId ?? OBSTACLE_TEMPLATES[0].id
-  );
-  const selectedObstacle = OBSTACLE_TEMPLATES.find((o2) => o2.id === selectedObstacleId);
+  const [selectedObstacleIndex, setSelectedObstacleIndex] = reactExports.useState(0);
+  const selectedObstacle = OBSTACLE_TEMPLATES[selectedObstacleIndex];
   function handleConfirm() {
-    onConfirm(selectedObstacleId);
+    onConfirm(BigInt(selectedObstacleIndex));
+    onClose();
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -68446,32 +69362,42 @@ function SkipModal({
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       motion.div,
       {
-        className: "fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-card border border-border shadow-neumorphic-emboss-dark",
+        className: "fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-card border border-border",
         initial: { y: "100%" },
         animate: { y: 0 },
         exit: { y: "100%" },
         transition: { type: "spring", damping: 28, stiffness: 320 },
         "data-ocid": "skip_modal.dialog",
         style: {
-          paddingBottom: "calc(16px + env(safe-area-inset-bottom))"
+          paddingBottom: "calc(16px + env(safe-area-inset-bottom))",
+          boxShadow: "-5px 0 20px rgba(0,0,0,0.7), 0 -5px 20px rgba(0,0,0,0.6)",
+          borderTop: "1px solid rgba(255,255,255,0.13)",
+          borderLeft: "1px solid rgba(255,255,255,0.07)",
+          borderRight: "none",
+          borderBottom: "none"
         },
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center pt-3 pb-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-1 rounded-full bg-muted-foreground/30" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between px-5 pt-3 pb-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: "w-4 h-4 text-accent-skip" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  CircleAlert,
+                  {
+                    className: "w-4 h-4",
+                    style: { color: SKIP_COLOR$2 }
+                  }
+                ),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "span",
                   {
                     className: "text-xs font-mono uppercase tracking-widest",
-                    style: { color: "oklch(var(--color-accent-skip))" },
+                    style: { color: SKIP_COLOR$2 },
                     children: "Justifiable Skip"
                   }
                 )
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-lg text-foreground leading-tight", children: goal.wish }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-0.5 line-clamp-1", children: goal.wishDescription })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-lg text-foreground leading-tight", children: goal.wishDescription || goal.wish })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
@@ -68487,21 +69413,21 @@ function SkipModal({
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 pb-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mb-3 uppercase tracking-wider font-mono", children: "What got in the way?" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-2 mb-4", children: OBSTACLE_TEMPLATES.map((obstacle) => {
-              const isSelected = obstacle.id === selectedObstacleId;
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-2 mb-4", children: OBSTACLE_TEMPLATES.map((obstacle, idx) => {
+              const isSelected = idx === selectedObstacleIndex;
               return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "button",
                 {
                   type: "button",
-                  onClick: () => setSelectedObstacleId(obstacle.id),
+                  onClick: () => setSelectedObstacleIndex(idx),
                   className: [
                     "rounded-xl p-3 text-left transition-smooth border",
                     isSelected ? "border-transparent" : "bg-muted/40 border-border text-muted-foreground hover:bg-muted"
                   ].join(" "),
                   style: isSelected ? {
-                    backgroundColor: "oklch(var(--color-accent-skip) / 0.12)",
-                    borderColor: "oklch(var(--color-accent-skip) / 0.4)",
-                    boxShadow: "0 0 12px 1px oklch(var(--color-accent-skip) / 0.2)"
+                    backgroundColor: "rgba(3,105,161,0.12)",
+                    borderColor: "rgba(3,105,161,0.4)",
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.05)"
                   } : void 0,
                   "data-ocid": `skip_modal.obstacle.${obstacle.id}`,
                   children: [
@@ -68509,7 +69435,7 @@ function SkipModal({
                       "p",
                       {
                         className: "text-sm font-display font-medium leading-tight",
-                        style: isSelected ? { color: "oklch(var(--color-accent-skip))" } : void 0,
+                        style: isSelected ? { color: SKIP_COLOR$2 } : void 0,
                         children: obstacle.label
                       }
                     ),
@@ -68543,13 +69469,14 @@ function SkipModal({
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Button,
                 {
+                  type: "button",
                   className: "flex-1 font-display transition-smooth",
                   disabled: isLoading,
                   onClick: handleConfirm,
                   style: {
-                    backgroundColor: "oklch(var(--color-accent-skip) / 0.15)",
-                    color: "oklch(var(--color-accent-skip))",
-                    borderColor: "oklch(var(--color-accent-skip) / 0.35)",
+                    backgroundColor: "rgba(3,105,161,0.15)",
+                    color: SKIP_COLOR$2,
+                    borderColor: "rgba(3,105,161,0.35)",
                     border: "1px solid"
                   },
                   "data-ocid": "skip_modal.confirm_button",
@@ -68564,286 +69491,443 @@ function SkipModal({
     )
   ] }) });
 }
+const SUCCESS_COLOR$1 = "#10B981";
+const SKIP_COLOR$1 = "#0369A1";
+const GREY_COLOR = "#4B5563";
 const SWIPE_THRESHOLD = 60;
 function GoalCard({
   goal,
   checkInToday,
-  analytics,
+  analytics: _analytics,
   index: index2,
+  weekHistory,
+  weekHistoryLoading = false,
+  mode,
   onCheckIn,
-  onSkip,
+  onDoneCardTap,
+  onExitComplete,
+  isDarkMode,
   isCheckingIn = false,
-  isSkipping = false
+  isSkipping = false,
+  animateIn = false,
+  exitDirection = null,
+  isExiting = false,
+  entryFrom = null
 }) {
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
-  const [swipeX, setSwipeX] = reactExports.useState(0);
-  const [isSwiping, setIsSwiping] = reactExports.useState(false);
-  const [isPressed, setIsPressed] = reactExports.useState(false);
-  const touchStartX = reactExports.useRef(0);
-  const touchStartY = reactExports.useRef(0);
-  const dragStartX = reactExports.useRef(0);
-  const isDragging2 = reactExports.useRef(false);
-  const isCheckedIn = !!checkInToday;
+  const [dragX, setDragX] = reactExports.useState(0);
+  const [isDragging2, setIsDragging] = reactExports.useState(false);
+  const dragDirection = dragX > 0 ? "right" : dragX < 0 ? "left" : null;
+  const dragProgress = Math.min(Math.abs(dragX) / SWIPE_THRESHOLD, 1);
+  const cardRef = reactExports.useRef(null);
+  const pointerStartX = reactExports.useRef(0);
+  const pointerStartY = reactExports.useRef(0);
+  const isPointerDown = reactExports.useRef(false);
+  const isHorizontalSwipe = reactExports.useRef(false);
+  const dragXRef = reactExports.useRef(0);
   const isSuccess = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success";
   const isSkipped = (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
-  const consistencyDays = (analytics == null ? void 0 : analytics.currentStreak) ?? 0;
-  const successCount = (analytics == null ? void 0 : analytics.successCount) ?? 0;
-  const totalDays = ((analytics == null ? void 0 : analytics.successCount) ?? 0) + ((analytics == null ? void 0 : analytics.skipCount) ?? 0) + ((analytics == null ? void 0 : analytics.missedCount) ?? 0);
-  const completionRate = totalDays > 0 ? Math.round(successCount / totalDays * 100) : 0;
-  function handleSkipConfirm(obstacleId) {
-    onSkip(goal.id, obstacleId);
+  const goalIcon = getGoalIcon(goal.iconName);
+  const themeColor = goal.themeColor;
+  const keystoneText = goal.wishDescription || goal.wish;
+  const cardBgIdle = themeColor ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))` : "oklch(var(--card))";
+  function getCardStyle() {
+    const embossed = isDarkMode ? "-5px -5px 14px rgba(70,70,80,0.55), 8px 8px 20px rgba(0,0,0,0.9)" : "-5px -5px 14px rgba(90,90,100,0.6), 8px 8px 20px rgba(0,0,0,0.75)";
+    const litBorderOpacity = isDarkMode ? 0.12 : 0.18;
+    const litBorder = `1px solid rgba(255,255,255,${litBorderOpacity})`;
+    if (mode === "done" && isSuccess) {
+      return {
+        background: cardBgIdle,
+        boxShadow: embossed,
+        border: `2px solid ${SUCCESS_COLOR$1}`,
+        cursor: "pointer"
+      };
+    }
+    if (mode === "done" && isSkipped) {
+      return {
+        background: cardBgIdle,
+        boxShadow: embossed,
+        border: `2px solid ${SKIP_COLOR$1}`,
+        cursor: "pointer"
+      };
+    }
+    let bgStyle = cardBgIdle;
+    if (isDragging2 && dragProgress > 0) {
+      const overlayColor = dragDirection === "right" ? `rgba(16, 185, 129, ${0.18 * dragProgress})` : dragDirection === "left" ? `rgba(3, 105, 161, ${0.18 * dragProgress})` : "transparent";
+      bgStyle = `color-mix(in srgb, ${overlayColor} 100%, ${cardBgIdle})`;
+    }
+    return {
+      background: bgStyle,
+      boxShadow: embossed,
+      borderLeft: "4px solid transparent",
+      borderTop: litBorder,
+      borderRight: "none",
+      borderBottom: "none"
+    };
+  }
+  function onPointerDown(e3) {
+    if (mode !== "active" || isExiting) return;
+    e3.currentTarget.setPointerCapture(e3.pointerId);
+    isPointerDown.current = true;
+    isHorizontalSwipe.current = false;
+    pointerStartX.current = e3.clientX;
+    pointerStartY.current = e3.clientY;
+    dragXRef.current = 0;
+    setDragX(0);
+    setIsDragging(false);
+  }
+  function onPointerMove(e3) {
+    if (!isPointerDown.current || mode !== "active" || isExiting) return;
+    e3.preventDefault();
+    const dx = e3.clientX - pointerStartX.current;
+    const dy = e3.clientY - pointerStartY.current;
+    if (!isHorizontalSwipe.current && Math.abs(dx) > 6) {
+      if (Math.abs(dy) > Math.abs(dx)) {
+        isPointerDown.current = false;
+        return;
+      }
+      isHorizontalSwipe.current = true;
+      setIsDragging(true);
+    }
+    if (isHorizontalSwipe.current) {
+      const clamped = Math.max(
+        -90,
+        Math.min(SWIPE_THRESHOLD * 1.5, dx)
+      );
+      dragXRef.current = clamped;
+      setDragX(clamped);
+    }
+  }
+  function onPointerUp() {
+    if (mode === "done") {
+      isPointerDown.current = false;
+      dragXRef.current = 0;
+      setDragX(0);
+      setIsDragging(false);
+      isHorizontalSwipe.current = false;
+      return;
+    }
+    if (!isPointerDown.current || isExiting) return;
+    isPointerDown.current = false;
+    const finalDragX = dragXRef.current;
+    dragXRef.current = 0;
+    setDragX(0);
+    setIsDragging(false);
+    isHorizontalSwipe.current = false;
+    if (finalDragX >= SWIPE_THRESHOLD) {
+      if (navigator.vibrate) navigator.vibrate([15]);
+      onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
+    } else if (finalDragX <= -SWIPE_THRESHOLD) {
+      if (navigator.vibrate) navigator.vibrate([15]);
+      setShowSkipModal(true);
+    }
+  }
+  function onPointerCancel() {
+    if (mode !== "active") return;
+    isPointerDown.current = false;
+    dragXRef.current = 0;
+    setDragX(0);
+    setIsDragging(false);
+    isHorizontalSwipe.current = false;
+  }
+  reactExports.useEffect(() => {
+    return () => {
+    };
+  }, []);
+  function handleSkipConfirm(obstacleTemplateId) {
+    onCheckIn == null ? void 0 : onCheckIn(goal.id, "skip", obstacleTemplateId);
     setShowSkipModal(false);
   }
-  function onTouchStart(e3) {
-    if (isCheckedIn) return;
-    touchStartX.current = e3.touches[0].clientX;
-    touchStartY.current = e3.touches[0].clientY;
-    setIsSwiping(false);
-    setSwipeX(0);
+  const iconColor = mode === "done" && isSuccess ? SUCCESS_COLOR$1 : mode === "done" && isSkipped ? SKIP_COLOR$1 : themeColor ?? "oklch(var(--muted-foreground))";
+  const swipeIconOpacity = Math.max(0, (dragProgress - 0.3) / 0.7);
+  const today = /* @__PURE__ */ new Date();
+  const WEEK_SLOTS = ["w0", "w1", "w2", "w3", "w4", "w5", "w6"];
+  const weekSlotData = WEEK_SLOTS.map((id2, i) => {
+    const d2 = new Date(today);
+    d2.setDate(today.getDate() - (6 - i));
+    const label = d2.toLocaleDateString("en-US", { weekday: "short" }).charAt(0);
+    const status = (weekHistory == null ? void 0 : weekHistory[i]) ?? "none";
+    return { id: id2, label, status };
+  });
+  function getBallColor(status) {
+    if (status === "success") return SUCCESS_COLOR$1;
+    if (status === "skip") return SKIP_COLOR$1;
+    return GREY_COLOR;
   }
-  function onTouchMove(e3) {
-    if (isCheckedIn) return;
-    const dx = e3.touches[0].clientX - touchStartX.current;
-    const dy = e3.touches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) > Math.abs(dy) && dx < 0) {
-      setIsSwiping(true);
-      setSwipeX(Math.max(dx, -SWIPE_THRESHOLD * 1.5));
+  const EXIT_DURATION_MS = 320;
+  const EXIT_DURATION = 0.28;
+  const exitTransition = {
+    duration: EXIT_DURATION,
+    ease: [0.4, 0, 0.2, 1]
+  };
+  const exitXTarget = exitDirection === "right" ? "110%" : exitDirection === "left" ? "-110%" : 0;
+  const entryFromX = entryFrom === "right" ? 60 : entryFrom === "left" ? -60 : 0;
+  const exitFiredRef = reactExports.useRef(false);
+  const exitTimerRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    if (isExiting) {
+      exitFiredRef.current = false;
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = setTimeout(() => {
+        if (!exitFiredRef.current) {
+          exitFiredRef.current = true;
+          onExitComplete == null ? void 0 : onExitComplete(goal.id);
+        }
+      }, EXIT_DURATION_MS);
+    } else {
+      if (exitTimerRef.current) {
+        clearTimeout(exitTimerRef.current);
+        exitTimerRef.current = null;
+      }
+      exitFiredRef.current = false;
     }
-  }
-  function onTouchEnd() {
-    if (isCheckedIn) return;
-    if (swipeX < -SWIPE_THRESHOLD) {
-      setShowSkipModal(true);
+    return () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
+  }, [isExiting, goal.id, onExitComplete]);
+  const motionProps = (() => {
+    if (mode === "done") {
+      return {
+        initial: { opacity: 0, x: entryFromX },
+        animate: { opacity: 1, x: 0 },
+        exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
+        transition: {
+          duration: 0.3,
+          ease: [0.4, 0, 0.2, 1]
+        }
+      };
     }
-    setSwipeX(0);
-    setIsSwiping(false);
-  }
-  function onMouseDown(e3) {
-    if (isCheckedIn) return;
-    dragStartX.current = e3.clientX;
-    isDragging2.current = true;
-    setIsSwiping(false);
-    setSwipeX(0);
-  }
-  function onMouseMove(e3) {
-    if (!isDragging2.current || isCheckedIn) return;
-    const dx = e3.clientX - dragStartX.current;
-    if (dx < 0) {
-      setIsSwiping(true);
-      setSwipeX(Math.max(dx, -SWIPE_THRESHOLD * 1.5));
+    if (isExiting) {
+      return {
+        initial: false,
+        animate: {
+          opacity: 0,
+          x: exitXTarget,
+          scale: 0.92,
+          transition: exitTransition
+        },
+        exit: {
+          opacity: 0,
+          x: exitXTarget,
+          scale: 0.92,
+          transition: exitTransition
+        }
+      };
     }
-  }
-  function onMouseUp() {
-    if (!isDragging2.current) return;
-    isDragging2.current = false;
-    if (swipeX < -SWIPE_THRESHOLD) {
-      setShowSkipModal(true);
+    if (animateIn) {
+      return {
+        initial: { opacity: 0, x: -40, scale: 0.94 },
+        animate: { opacity: 1, x: 0, scale: 1 },
+        exit: {
+          opacity: 0,
+          x: exitXTarget,
+          scale: 0.92,
+          transition: exitTransition
+        },
+        transition: {
+          duration: 0.4,
+          ease: [0.34, 1.56, 0.64, 1]
+        }
+      };
     }
-    setSwipeX(0);
-    setIsSwiping(false);
-  }
-  function handleCardClick() {
-    if (isCheckedIn || isCheckingIn || isSkipping || isSwiping) return;
-    onCheckIn(goal.id);
-  }
-  const swipeProgress = Math.min(Math.abs(swipeX) / SWIPE_THRESHOLD, 1);
+    return {
+      initial: { opacity: 0, y: 18 },
+      animate: { opacity: 1, y: 0 },
+      exit: {
+        opacity: 0,
+        x: exitXTarget,
+        scale: 0.92,
+        transition: exitTransition
+      },
+      transition: { delay: index2 * 0.08, duration: 0.35 }
+    };
+  })();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       motion.div,
       {
-        initial: { opacity: 0, y: 18 },
-        animate: { opacity: 1, y: 0 },
-        transition: { delay: index2 * 0.08, duration: 0.35 },
-        className: "relative overflow-hidden rounded-2xl",
+        ...motionProps,
+        layout: true,
+        className: "relative",
         "data-ocid": `goal.card.${index2 + 1}`,
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
+          mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
             {
-              className: "absolute left-0 top-0 bottom-0 flex items-center justify-center z-10 rounded-l-2xl pointer-events-none",
+              className: "absolute inset-0 rounded-2xl flex items-center pointer-events-none overflow-hidden",
+              "aria-hidden": "true",
               style: {
-                width: 36,
-                opacity: swipeProgress,
-                backgroundColor: `oklch(var(--color-accent-skip) / ${0.15 * swipeProgress})`,
-                transition: isSwiping ? "none" : "opacity 0.3s ease"
+                background: dragDirection === "right" ? `rgba(16, 185, 129, ${0.22 * dragProgress})` : dragDirection === "left" ? `rgba(3, 105, 161, ${0.22 * dragProgress})` : "transparent"
               },
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                ChevronsLeft,
-                {
-                  className: "w-5 h-5",
-                  style: { color: "oklch(var(--color-accent-skip))" }
-                }
-              )
+              children: [
+                dragDirection === "right" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "absolute left-4 flex items-center justify-center w-9 h-9 rounded-full",
+                    style: {
+                      opacity: swipeIconOpacity,
+                      backgroundColor: "rgba(16, 185, 129, 0.25)",
+                      transform: `scale(${0.7 + 0.3 * dragProgress})`
+                    },
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Check,
+                      {
+                        size: 18,
+                        style: { color: SUCCESS_COLOR$1 },
+                        strokeWidth: 3
+                      }
+                    )
+                  }
+                ),
+                dragDirection === "left" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "absolute right-4 flex items-center justify-center w-9 h-9 rounded-full",
+                    style: {
+                      opacity: swipeIconOpacity,
+                      backgroundColor: "rgba(3, 105, 161, 0.25)",
+                      transform: `scale(${0.7 + 0.3 * dragProgress})`
+                    },
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Pause,
+                      {
+                        size: 18,
+                        style: { color: SKIP_COLOR$1 },
+                        strokeWidth: 2.5
+                      }
+                    )
+                  }
+                )
+              ]
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "button",
             {
+              ref: cardRef,
               type: "button",
-              tabIndex: isCheckedIn ? -1 : 0,
-              "aria-label": isCheckedIn ? goal.wish : `Log check-in for ${goal.wish}`,
-              onClick: handleCardClick,
-              onTouchStart,
-              onTouchMove,
-              onTouchEnd,
-              onMouseDown,
-              onMouseMove,
-              onMouseUp,
-              onMouseLeave: onMouseUp,
-              onMouseEnter: () => setIsPressed(false),
-              className: "relative select-none w-full text-left bg-transparent border-0 p-0",
-              style: {
-                cursor: isCheckedIn ? "default" : "pointer",
-                transform: `translateX(${swipeX}px)`,
-                transition: isSwiping ? "none" : "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
-                borderRadius: "1rem",
-                padding: "1.25rem",
-                // True neumorphic shadow logic
-                ...isSuccess ? {
-                  backgroundColor: "oklch(var(--color-accent-success) / 0.08)",
-                  boxShadow: `
-                    0 0 18px 4px oklch(var(--color-accent-success) / 0.28),
-                    6px 6px 12px rgba(0,0,0,0.5),
-                    -4px -4px 10px rgba(255,255,255,0.04)
-                  `
-                } : isSkipped ? {
-                  backgroundColor: "oklch(var(--color-accent-skip) / 0.07)",
-                  boxShadow: `
-                      0 0 14px 3px oklch(var(--color-accent-skip) / 0.25),
-                      6px 6px 12px rgba(0,0,0,0.5),
-                      -4px -4px 10px rgba(255,255,255,0.04)
-                    `
-                } : isPressed ? {
-                  backgroundColor: "oklch(var(--card))",
-                  boxShadow: `
-                        inset 2px 2px 5px rgba(0,0,0,0.5),
-                        inset -2px -2px 5px rgba(255,255,255,0.04)
-                      `
-                } : {
-                  backgroundColor: "oklch(var(--card))",
-                  boxShadow: `
-                        6px 6px 12px rgba(0,0,0,0.5),
-                        -4px -4px 10px rgba(255,255,255,0.04)
-                      `
-                }
+              tabIndex: 0,
+              "aria-label": mode === "done" ? `${keystoneText} — ${isSuccess ? "completed" : "skipped"}. Tap to undo.` : `${keystoneText} — swipe right to complete, left to skip`,
+              onPointerDown,
+              onPointerMove,
+              onPointerUp,
+              onPointerCancel,
+              onKeyDown: (e3) => {
+                if (mode === "active" && e3.key === "Enter")
+                  onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
+                if (mode === "done" && e3.key === "Enter") onDoneCardTap == null ? void 0 : onDoneCardTap(goal.id);
               },
-              onPointerDown: () => !isCheckedIn && setIsPressed(true),
-              onPointerUp: () => setIsPressed(false),
+              className: "relative select-none overflow-hidden rounded-2xl w-full text-left bg-transparent border-0",
+              style: {
+                cursor: mode === "done" ? "pointer" : "grab",
+                transform: mode === "active" ? `translateX(${dragX}px)` : void 0,
+                transition: mode === "active" && isDragging2 ? "none" : "transform 0.35s cubic-bezier(0.4,0,0.2,1)",
+                padding: "1.25rem 1.25rem 1rem",
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                touchAction: mode === "active" ? "none" : "auto",
+                ...getCardStyle()
+              },
               children: [
-                isCheckedIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                mode === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "div",
                   {
-                    className: "absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-mono uppercase tracking-wider",
-                    style: isSuccess ? {
-                      backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                      color: "oklch(var(--color-accent-success))"
-                    } : {
-                      backgroundColor: "oklch(var(--color-accent-skip) / 0.12)",
-                      color: "oklch(var(--color-accent-skip))"
-                    },
-                    children: isSuccess ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3" }),
-                      "Done"
-                    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(SkipForward, { className: "w-3 h-3" }),
-                      "Skipped"
-                    ] })
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pr-20 mb-4", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Keystone Habit" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-xl font-semibold text-foreground leading-tight line-clamp-2", children: goal.wish }),
-                  goal.wishDescription && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1.5 leading-relaxed line-clamp-2", children: goal.wishDescription })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4 mb-4", children: [
-                  consistencyDays > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Zap,
-                      {
-                        className: "w-4 h-4",
-                        style: { color: "oklch(var(--color-accent-success))" }
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-sm font-semibold text-foreground", children: consistencyDays }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground", children: "days consistent" })
-                  ] }),
-                  totalDays > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-4 h-4 text-muted-foreground" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-display text-sm font-semibold text-foreground", children: [
-                      completionRate,
-                      "%"
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground", children: "completion" })
-                  ] }),
-                  consistencyDays === 0 && totalDays === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground italic", children: "Day 1 of cumulative consistency." })
-                ] }),
-                !isCheckedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
-                  {
-                    className: "flex items-center justify-between rounded-xl px-3 py-2.5",
+                    className: "absolute top-3.5 right-3.5 w-2 h-2 rounded-full",
                     style: {
-                      backgroundColor: "rgba(255,255,255,0.03)",
-                      boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.03)"
+                      backgroundColor: isSuccess ? SUCCESS_COLOR$1 : SKIP_COLOR$1,
+                      opacity: 0.85
                     },
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                        isCheckingIn ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "span",
-                          {
-                            className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin",
-                            style: { color: "oklch(var(--color-accent-success))" }
-                          }
-                        ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          Zap,
-                          {
-                            className: "w-3.5 h-3.5",
-                            style: { color: "oklch(var(--color-accent-success))" }
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-mono text-muted-foreground", children: isCheckingIn ? "Logging…" : "Tap to log success" })
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          ChevronsLeft,
-                          {
-                            className: "w-3.5 h-3.5",
-                            style: { color: "oklch(var(--color-accent-skip) / 0.6)" }
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "span",
-                          {
-                            className: "text-xs font-mono",
-                            style: { color: "oklch(var(--color-accent-skip) / 0.6)" },
-                            children: "Swipe to skip"
-                          }
-                        )
-                      ] })
-                    ]
+                    "aria-hidden": "true"
                   }
                 ),
-                isCheckedIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                (isCheckingIn || isSkipping) && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "div",
                   {
-                    className: "rounded-xl py-2.5 px-4 text-center text-xs font-mono",
-                    style: isSuccess ? {
-                      backgroundColor: "oklch(var(--color-accent-success) / 0.08)",
-                      color: "oklch(var(--color-accent-success) / 0.7)"
-                    } : {
-                      backgroundColor: "oklch(var(--color-accent-missed) / 0.08)",
-                      color: "oklch(var(--color-accent-missed))"
+                    className: "absolute top-4 right-4 w-4 h-4 border-2 rounded-full animate-spin",
+                    style: {
+                      borderColor: "rgba(16,185,129,0.3)",
+                      borderTopColor: SUCCESS_COLOR$1
                     },
-                    "data-ocid": `goal.checked_in_state.${index2 + 1}`,
-                    children: isSuccess ? "✓ Checked in — building cumulative consistency." : "Skipped for today — come back tomorrow."
+                    "aria-hidden": "true"
                   }
-                )
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center mt-0.5",
+                      style: {
+                        background: themeColor ? `color-mix(in srgb, ${themeColor} 18%, oklch(var(--card)))` : "oklch(var(--muted) / 0.5)",
+                        boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.55), inset -1px -1px 2px rgba(80,80,85,0.2)"
+                      },
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 shrink-0", style: { color: iconColor }, children: goalIcon.svg })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-lg font-semibold text-foreground leading-snug line-clamp-2", children: keystoneText }) })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 flex flex-col items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: weekHistoryLoading ? WEEK_SLOTS.map((id2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "w-2.5 h-2.5 rounded-full animate-pulse",
+                      style: { backgroundColor: GREY_COLOR }
+                    },
+                    id2
+                  )) : weekSlotData.map(({ id: id2, status }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "w-2.5 h-2.5 rounded-full",
+                      style: {
+                        backgroundColor: getBallColor(status),
+                        opacity: status === "none" ? 0.35 : 0.9
+                      },
+                      "aria-hidden": "true"
+                    },
+                    id2
+                  )) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: weekSlotData.map(({ id: id2, label }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "w-2.5 text-center",
+                      style: {
+                        fontSize: "9px",
+                        color: "oklch(var(--muted-foreground) / 0.55)",
+                        lineHeight: 1
+                      },
+                      children: label
+                    },
+                    id2
+                  )) })
+                ] }),
+                mode === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: (e3) => {
+                      e3.stopPropagation();
+                      onDoneCardTap == null ? void 0 : onDoneCardTap(goal.id);
+                    },
+                    onPointerDown: (e3) => e3.stopPropagation(),
+                    onPointerUp: (e3) => e3.stopPropagation(),
+                    onPointerMove: (e3) => e3.stopPropagation(),
+                    className: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-smooth select-none",
+                    style: {
+                      backgroundColor: "#EAB308",
+                      color: "#000",
+                      boxShadow: "-2px -2px 5px rgba(60,60,60,0.3), 3px 3px 7px rgba(0,0,0,0.55)"
+                    },
+                    "aria-label": "Undo this check-in",
+                    "data-ocid": `goal.done_undo_button.${index2 + 1}`,
+                    children: "Undo"
+                  }
+                ) })
               ]
             }
           )
         ]
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
+    mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
       SkipModal,
       {
         goal,
@@ -68855,926 +69939,157 @@ function GoalCard({
     )
   ] });
 }
-var NODES$1 = [
-  "a",
-  "button",
-  "div",
-  "form",
-  "h2",
-  "h3",
-  "img",
-  "input",
-  "label",
-  "li",
-  "nav",
-  "ol",
-  "p",
-  "select",
-  "span",
-  "svg",
-  "ul"
-];
-var Primitive$1 = NODES$1.reduce((primitive, node) => {
-  const Slot2 = /* @__PURE__ */ createSlot$1(`Primitive.${node}`);
-  const Node2 = reactExports.forwardRef((props, forwardedRef) => {
-    const { asChild, ...primitiveProps } = props;
-    const Comp = asChild ? Slot2 : node;
-    if (typeof window !== "undefined") {
-      window[Symbol.for("radix-ui")] = true;
-    }
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(Comp, { ...primitiveProps, ref: forwardedRef });
-  });
-  Node2.displayName = `Primitive.${node}`;
-  return { ...primitive, [node]: Node2 };
-}, {});
-var NAME$1 = "Label";
-var Label$1 = reactExports.forwardRef((props, forwardedRef) => {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Primitive$1.label,
-    {
-      ...props,
-      ref: forwardedRef,
-      onMouseDown: (event) => {
-        var _a3;
-        const target = event.target;
-        if (target.closest("button, input, select, textarea")) return;
-        (_a3 = props.onMouseDown) == null ? void 0 : _a3.call(props, event);
-        if (!event.defaultPrevented && event.detail > 1) event.preventDefault();
-      }
-    }
-  );
-});
-Label$1.displayName = NAME$1;
-var Root$2 = Label$1;
-function Label({
-  className,
-  ...props
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Root$2,
-    {
-      "data-slot": "label",
-      className: cn(
-        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function Textarea({ className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "textarea",
-    {
-      "data-slot": "textarea",
-      className: cn(
-        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function getNextTier(current) {
-  if (current === 1) return 2;
-  if (current === 2) return 3;
-  return null;
-}
-const TIER_ACCENT = {
-  1: "text-muted-foreground",
-  2: "text-accent-skip",
-  3: "text-accent-success"
-};
-const TIER_UPGRADE_COPY = {
-  1: {
-    headline: "Ready to build more habits?",
-    body: "Upgrade to Plus and manage up to 10 goals simultaneously. Research shows multi-habit tracking accelerates overall progress."
-  },
-  2: {
-    headline: "Unlock your full potential.",
-    body: "Power tier gives you 25 concurrent goals — ideal for high-performers who want to stack habits systematically."
-  },
-  3: {
-    headline: "You've reached the maximum.",
-    body: "Power tier supports up to 25 active goals. Archive completed or paused goals to free up slots."
-  }
-};
-function TierLimitModal({
+const SUCCESS_COLOR = "#10B981";
+const SKIP_COLOR = "#0369A1";
+function UndoPopup({
   open,
-  onClose,
-  userProfile
+  goal,
+  checkInType,
+  isLoading = false,
+  onUndo,
+  onKeep
 }) {
-  const navigate = useNavigate();
-  if (!open) return null;
-  const currentTier = (userProfile == null ? void 0 : userProfile.tier) ?? 1;
-  const nextTier = getNextTier(currentTier);
-  const currentLimit = TIER_GOAL_LIMITS[currentTier];
-  const nextLimit = nextTier ? TIER_GOAL_LIMITS[nextTier] : null;
-  const copy2 = TIER_UPGRADE_COPY[currentTier];
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+  if (!goal || !checkInType) return null;
+  const goalIcon = getGoalIcon(goal.iconName);
+  const themeColor = goal.themeColor;
+  const keystoneText = goal.wishDescription || goal.wish;
+  const isSuccess = checkInType === "success";
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
+      motion.div,
       {
-        className: "fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm",
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.2 },
+        className: "fixed inset-0 z-40",
+        style: {
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(4px)"
+        },
+        onClick: onKeep,
         "aria-hidden": "true"
-      }
+      },
+      "undo-backdrop"
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "dialog",
+      motion.div,
       {
-        open: true,
+        initial: { opacity: 0, scale: 0.92, y: 20 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.92, y: 20 },
+        transition: { duration: 0.25, ease: "easeOut" },
+        className: "fixed inset-x-4 z-50 rounded-2xl p-5",
+        style: {
+          top: "50%",
+          transform: "translateY(-50%)",
+          backgroundColor: "oklch(var(--card))",
+          boxShadow: "-6px -6px 14px rgba(80,80,85,0.35), 8px 8px 20px rgba(0,0,0,0.85)",
+          maxWidth: "420px",
+          marginLeft: "auto",
+          marginRight: "auto"
+        },
+        role: "dialog",
         "aria-modal": "true",
-        "aria-label": "Goal Limit Reached",
-        "data-ocid": "tier_limit.dialog",
-        className: "fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] max-w-sm w-full mx-auto rounded-2xl bg-card border border-border shadow-neumorphic-emboss-dark overflow-hidden p-0 m-auto",
+        "aria-label": "Undo check-in",
+        "data-ocid": "undo_popup.dialog",
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative px-5 pt-5 pb-4 border-b border-border", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-accent-social/10 border border-accent-social/20 shrink-0 mt-0.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 18, className: "text-accent-social" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1 pr-6", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-base font-display font-semibold text-foreground leading-tight", children: "Goal Limit Reached" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5", children: [
-                  TIER_LABELS[currentTier],
-                  " plan · ",
-                  currentLimit,
-                  " active goal",
-                  currentLimit !== 1 ? "s" : "",
-                  " max"
-                ] })
-              ] })
-            ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onKeep,
+              "aria-label": "Keep check-in",
+              className: "absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full transition-smooth text-muted-foreground hover:text-foreground",
+              style: {
+                background: "oklch(var(--muted) / 0.6)"
+              },
+              "data-ocid": "undo_popup.close_button",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "ghost",
-                size: "icon",
-                onClick: onClose,
-                "data-ocid": "tier_limit.close_button",
-                "aria-label": "Close",
-                className: "absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground w-7 h-7",
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 15 })
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-5 space-y-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wide", children: "Current Plan" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "p",
-                  {
-                    className: `text-lg font-display font-bold ${TIER_ACCENT[currentTier]}`,
-                    children: [
-                      "Tier ",
-                      currentTier,
-                      " — ",
-                      TIER_LABELS[currentTier]
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Active goal limit" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-foreground", children: currentLimit })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-relaxed", children: copy2.body }),
-            nextTier && nextLimit && /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "div",
               {
-                "data-ocid": "tier_limit.upgrade_card",
-                className: "p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-primary font-medium uppercase tracking-wide", children: "Upgrade to" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base font-display font-bold text-foreground", children: [
-                        "Tier ",
-                        nextTier,
-                        " — ",
-                        TIER_LABELS[nextTier]
-                      ] })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Goal limit" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-accent-success", children: nextLimit })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: copy2.headline })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2 px-5 pb-5", children: [
-            nextTier ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                type: "button",
-                "data-ocid": "tier_limit.upgrade_button",
-                className: "w-full gap-2 button-primary-neon",
-                onClick: () => {
-                  onClose();
-                  void navigate({ to: "/settings" });
+                className: "shrink-0 w-11 h-11 rounded-xl flex items-center justify-center",
+                style: {
+                  background: themeColor ? `color-mix(in srgb, ${themeColor} 20%, oklch(var(--card)))` : "oklch(var(--muted) / 0.5)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.55), inset -1px -1px 2px rgba(80,80,85,0.2)"
                 },
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleArrowUp, { size: 16 }),
-                  "Upgrade to ",
-                  TIER_LABELS[nextTier]
-                ]
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "span",
+                  {
+                    className: "w-5 h-5 shrink-0",
+                    style: {
+                      color: themeColor ?? "oklch(var(--muted-foreground))"
+                    },
+                    children: goalIcon.svg
+                  }
+                )
               }
-            ) : null,
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "outline",
-                "data-ocid": "tier_limit.cancel_button",
-                className: "w-full",
-                onClick: onClose,
-                children: nextTier ? "Not now" : "Got it"
-              }
-            )
-          ] })
-        ]
-      }
-    )
-  ] });
-}
-const STEPS = [
-  { id: 1, label: "Wish" },
-  { id: 2, label: "Outcome" },
-  { id: 3, label: "Obstacle" },
-  { id: 4, label: "Plan" }
-];
-const BEHAVIORAL_TIPS = {
-  1: {
-    title: "Your Wish",
-    tip: "A specific, challenging but achievable wish is the foundation of behavior change. Be bold — what do you truly want?"
-  },
-  2: {
-    title: "Best Outcome",
-    tip: "Vividly imagining your best outcome energizes motivation. Close your eyes and picture what success feels like."
-  },
-  3: {
-    title: "Inner Obstacle",
-    tip: "Unlike wishful thinking, WOOP asks you to identify what *inside you* might get in the way — not external barriers."
-  },
-  4: {
-    title: "If-Then Plan",
-    tip: "Implementation intentions turn goals into habits. When you encounter your obstacle, this plan is your autopilot."
-  }
-};
-const EMPTY_FORM = {
-  wish: "",
-  wishDescription: "",
-  outcome: "",
-  selectedObstacle: null,
-  newObstacleTitle: "",
-  newObstacleDescription: "",
-  ifThenPlan: ""
-};
-function WoopWizard({
-  open,
-  onClose,
-  onGoalCreated
-}) {
-  var _a3, _b3, _c2, _d2, _e2;
-  const [step, setStep] = reactExports.useState(1);
-  const [direction, setDirection] = reactExports.useState("forward");
-  const [animating, setAnimating] = reactExports.useState(false);
-  const [showLimitModal, setShowLimitModal] = reactExports.useState(false);
-  const [showNewObstacle, setShowNewObstacle] = reactExports.useState(false);
-  const [errors, setErrors] = reactExports.useState({});
-  const { actor, isFetching } = useBackend();
-  const { data: userProfile } = useUserProfile();
-  const queryClient2 = useQueryClient();
-  const [form, setForm] = reactExports.useState(EMPTY_FORM);
-  const { data: userObstacles = [] } = useQuery({
-    queryKey: ["obstacleTemplates"],
-    queryFn: async () => {
-      if (!actor || !("listMyObstacleTemplates" in actor)) return [];
-      try {
-        return await actor.listMyObstacleTemplates();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor && !isFetching
-  });
-  const selectedLabel = ((_a3 = form.selectedObstacle) == null ? void 0 : _a3.label) ?? "";
-  reactExports.useEffect(() => {
-    if (step !== 4) return;
-    setForm((prev) => {
-      if (prev.ifThenPlan) return prev;
-      return {
-        ...prev,
-        ifThenPlan: selectedLabel ? `If ${selectedLabel.toLowerCase()}, then I will ` : ""
-      };
-    });
-  }, [step, selectedLabel]);
-  const createObstacleMutation = useMutation({
-    mutationFn: async (data) => {
-      if (!actor || !("createObstacleTemplate" in actor))
-        throw new Error("Actor not available");
-      return await actor.createObstacleTemplate({
-        title: data.title,
-        description: data.description
-      });
-    },
-    onSuccess: (newTemplate) => {
-      queryClient2.invalidateQueries({ queryKey: ["obstacleTemplates"] });
-      setForm((f2) => ({
-        ...f2,
-        selectedObstacle: {
-          kind: "user",
-          id: newTemplate.id,
-          label: newTemplate.title
-        },
-        newObstacleTitle: "",
-        newObstacleDescription: ""
-      }));
-      setShowNewObstacle(false);
-    },
-    onError: (err) => {
-      console.error("[WoopWizard] createObstacleMutation error:", err);
-    }
-  });
-  const createGoalMutation = useMutation({
-    mutationFn: async () => {
-      if (!actor) throw new Error("Actor not ready — please wait and retry.");
-      const { selectedObstacle } = form;
-      const obstacleTemplateId = (selectedObstacle == null ? void 0 : selectedObstacle.kind) === "user" ? selectedObstacle.id : void 0;
-      const request2 = {
-        wish: form.wish.trim(),
-        wishDescription: form.wishDescription.trim(),
-        outcome: form.outcome.trim(),
-        obstacleTemplateId,
-        ifThenPlan: form.ifThenPlan.trim()
-      };
-      console.log("[WoopWizard] createGoal request:", request2);
-      return await actor.createGoal(request2);
-    },
-    onSuccess: (result) => {
-      console.log("[WoopWizard] createGoal success:", result);
-      queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
-      queryClient2.invalidateQueries({ queryKey: ["analytics"] });
-      ue.success("Goal created! 🎯 Your WOOP habit is ready.", {
-        description: `"${form.wish.trim()}" added to your dashboard.`,
-        duration: 5e3
-      });
-      onGoalCreated == null ? void 0 : onGoalCreated();
-      handleClose();
-    },
-    onError: (error) => {
-      var _a4, _b4;
-      console.error("[WoopWizard] createGoal error:", error);
-      if (((_a4 = error.message) == null ? void 0 : _a4.includes("limitReached")) || ((_b4 = error.message) == null ? void 0 : _b4.includes("limit"))) {
-        setShowLimitModal(true);
-      } else {
-        ue.error("Failed to create goal. Please try again.", {
-          description: error.message
-        });
-      }
-    }
-  });
-  const handleClose = reactExports.useCallback(() => {
-    setStep(1);
-    setForm(EMPTY_FORM);
-    setErrors({});
-    setShowNewObstacle(false);
-    onClose();
-  }, [onClose]);
-  const validateStep = (s2) => {
-    const newErrors = {};
-    if (s2 === 1) {
-      if (!form.wish.trim()) newErrors.wish = "Please name your wish.";
-      if (!form.wishDescription.trim())
-        newErrors.wishDescription = "Please describe your wish.";
-    }
-    if (s2 === 2 && !form.outcome.trim()) {
-      newErrors.outcome = "Please describe your best outcome.";
-    }
-    if (s2 === 3 && !form.selectedObstacle && !showNewObstacle) {
-      newErrors.selectedObstacle = "Please select or create an obstacle.";
-    }
-    if (s2 === 4 && !form.ifThenPlan.trim()) {
-      newErrors.ifThenPlan = "Please write your if-then plan.";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  const goNext = () => {
-    if (!validateStep(step)) return;
-    if (step === 4) {
-      createGoalMutation.mutate();
-      return;
-    }
-    setDirection("forward");
-    setAnimating(true);
-    setTimeout(() => {
-      setStep((s2) => s2 + 1);
-      setAnimating(false);
-    }, 220);
-  };
-  const goBack = () => {
-    if (step === 1) return;
-    setDirection("backward");
-    setAnimating(true);
-    setTimeout(() => {
-      setStep((s2) => s2 - 1);
-      setAnimating(false);
-    }, 220);
-  };
-  const handleSaveNewObstacle = () => {
-    if (!form.newObstacleTitle.trim()) return;
-    if (!actor || !("createObstacleTemplate" in actor)) {
-      setForm((f2) => ({
-        ...f2,
-        selectedObstacle: {
-          kind: "builtin",
-          id: `local_${Date.now()}`,
-          label: f2.newObstacleTitle.trim()
-        },
-        newObstacleTitle: "",
-        newObstacleDescription: ""
-      }));
-      setShowNewObstacle(false);
-      return;
-    }
-    createObstacleMutation.mutate({
-      title: form.newObstacleTitle,
-      description: form.newObstacleDescription
-    });
-  };
-  if (!open) return null;
-  const tip = BEHAVIORAL_TIPS[step];
-  const slideClass = animating ? direction === "forward" ? "opacity-0 translate-x-4" : "opacity-0 -translate-x-4" : "opacity-100 translate-x-0";
-  const selectedKey = ((_b3 = form.selectedObstacle) == null ? void 0 : _b3.kind) === "builtin" ? form.selectedObstacle.id : ((_c2 = form.selectedObstacle) == null ? void 0 : _c2.kind) === "user" ? String(form.selectedObstacle.id) : null;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: "fixed inset-0 z-50 bg-background/80 backdrop-blur-sm",
-        "aria-hidden": "true"
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "dialog",
-      {
-        "aria-modal": "true",
-        "aria-label": "WOOP Goal Builder",
-        "data-ocid": "woop_wizard.dialog",
-        open: true,
-        className: "fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg w-full mx-auto max-h-[90dvh] flex flex-col rounded-2xl bg-card border border-border shadow-neumorphic-emboss-dark overflow-hidden p-0 m-auto",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-5 pt-5 pb-3 border-b border-border shrink-0", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "WOOP Goal Builder" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-display font-semibold text-foreground leading-tight mt-0.5", children: tip.title })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "ghost",
-                size: "icon",
-                onClick: handleClose,
-                "data-ocid": "woop_wizard.close_button",
-                "aria-label": "Close",
-                className: "text-muted-foreground hover:text-foreground",
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 18 })
-              }
-            )
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wider mb-0.5", children: "Undo check-in?" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display font-semibold text-foreground leading-snug line-clamp-2 text-sm", children: keystoneText })
+            ] })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              className: "flex items-center w-full px-5 py-2.5 shrink-0",
-              "aria-label": `Step ${step} of ${STEPS.length}`,
-              children: STEPS.map((s2, i) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center flex-1 last:flex-none", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-0.5 shrink-0 w-10", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "div",
-                    {
-                      className: `flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold transition-all duration-200 border ${step > s2.id ? "border-transparent text-primary-foreground" : step === s2.id ? "border-primary text-primary-foreground" : "bg-muted/60 border-border text-muted-foreground"}`,
-                      style: step > s2.id ? {
-                        backgroundColor: "oklch(var(--color-accent-success))",
-                        boxShadow: "0 0 8px oklch(var(--color-accent-success) / 0.4)"
-                      } : step === s2.id ? {
-                        backgroundColor: "oklch(var(--color-accent-success))",
-                        borderColor: "oklch(var(--color-accent-success))"
-                      } : void 0,
-                      "data-ocid": `woop_wizard.step_indicator.${s2.id}`,
-                      children: step > s2.id ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 8 }) : s2.id
-                    }
-                  ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mb-5 leading-relaxed", children: isSuccess ? "This habit was marked as completed. Undo to move it back to your active list." : "This habit was skipped. Undo to move it back to your active list." }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: onKeep,
+                disabled: isLoading,
+                className: "flex-1 py-2.5 rounded-xl text-sm font-semibold font-display transition-smooth text-muted-foreground",
+                style: {
+                  background: "oklch(var(--muted) / 0.6)",
+                  boxShadow: "-2px -2px 5px rgba(60,60,65,0.3), 3px 3px 8px rgba(0,0,0,0.6)"
+                },
+                "data-ocid": "undo_popup.cancel_button",
+                children: "Keep"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: onUndo,
+                disabled: isLoading,
+                className: "flex-1 py-2.5 rounded-xl text-sm font-semibold font-display transition-smooth text-foreground",
+                style: {
+                  background: isSuccess ? `${SUCCESS_COLOR}22` : `${SKIP_COLOR}22`,
+                  border: `1.5px solid ${isSuccess ? SUCCESS_COLOR : SKIP_COLOR}50`,
+                  boxShadow: "-2px -2px 5px rgba(60,60,65,0.3), 3px 3px 8px rgba(0,0,0,0.6)"
+                },
+                "data-ocid": "undo_popup.confirm_button",
+                children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center justify-center gap-2", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "span",
                     {
-                      className: `text-[8px] font-medium leading-none transition-colors duration-200 text-center ${step === s2.id ? "text-foreground" : "text-muted-foreground/50"}`,
-                      children: s2.label
-                    }
-                  )
-                ] }),
-                i < STEPS.length - 1 && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: `flex-1 h-px mx-0.5 transition-all duration-300 ${step > s2.id ? "bg-primary/70" : "bg-border"}`
-                  }
-                )
-              ] }, s2.id))
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              className: `flex-1 overflow-y-auto px-5 py-4 transition-all duration-200 ${slideClass}`,
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mb-5 leading-relaxed border-l-2 border-primary/40 pl-3 italic", children: tip.tip }),
-                step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "wish", className: "text-foreground font-medium", children: "Goal Name" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Input,
-                      {
-                        id: "wish",
-                        "data-ocid": "woop_wizard.wish_input",
-                        placeholder: "e.g. Daily 30-minute deep work session",
-                        value: form.wish,
-                        onChange: (e3) => setForm((f2) => ({ ...f2, wish: e3.target.value })),
-                        className: "bg-muted/60 border-border focus:border-primary"
+                      className: "w-3.5 h-3.5 border-2 rounded-full animate-spin",
+                      style: {
+                        borderColor: "rgba(255,255,255,0.25)",
+                        borderTopColor: isSuccess ? SUCCESS_COLOR : SKIP_COLOR
                       }
-                    ),
-                    errors.wish && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "p",
-                      {
-                        className: "text-xs text-destructive",
-                        "data-ocid": "woop_wizard.wish.field_error",
-                        children: errors.wish
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Keep it short, specific, and motivating." })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Label,
-                      {
-                        htmlFor: "wishDescription",
-                        className: "text-foreground font-medium",
-                        children: "Describe Your Wish"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Textarea,
-                      {
-                        id: "wishDescription",
-                        "data-ocid": "woop_wizard.wish_description_input",
-                        placeholder: "What does this habit look like in practice? How often? When?",
-                        value: form.wishDescription,
-                        onChange: (e3) => setForm((f2) => ({ ...f2, wishDescription: e3.target.value })),
-                        rows: 3,
-                        className: "bg-muted/60 border-border focus:border-primary resize-none"
-                      }
-                    ),
-                    errors.wishDescription && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "p",
-                      {
-                        className: "text-xs text-destructive",
-                        "data-ocid": "woop_wizard.wish_description.field_error",
-                        children: errors.wishDescription
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Be as vivid and specific as possible to increase commitment." })
-                  ] })
-                ] }),
-                step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "outcome", className: "text-foreground font-medium", children: "Best Outcome" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Textarea,
-                    {
-                      id: "outcome",
-                      "data-ocid": "woop_wizard.outcome_input",
-                      placeholder: "What is the best possible outcome? How would you feel? What would change in your life?",
-                      value: form.outcome,
-                      onChange: (e3) => setForm((f2) => ({ ...f2, outcome: e3.target.value })),
-                      rows: 5,
-                      className: "bg-muted/60 border-border focus:border-primary resize-none"
                     }
                   ),
-                  errors.outcome && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-xs text-destructive",
-                      "data-ocid": "woop_wizard.outcome.field_error",
-                      children: errors.outcome
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-1", children: "Picture the most positive outcome you can imagine. Write it as if it's already happened." })
-                ] }),
-                step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium text-foreground mb-1", children: "What might get in the way?" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "div",
-                    {
-                      className: "grid grid-cols-2 gap-2",
-                      "data-ocid": "woop_wizard.obstacle_list",
-                      children: [
-                        OBSTACLE_TEMPLATES.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          "button",
-                          {
-                            type: "button",
-                            "data-ocid": `woop_wizard.obstacle.${o2.id}`,
-                            onClick: () => {
-                              setForm((f2) => ({
-                                ...f2,
-                                selectedObstacle: {
-                                  kind: "builtin",
-                                  id: o2.id,
-                                  label: o2.label
-                                }
-                              }));
-                              setShowNewObstacle(false);
-                              setErrors((e3) => ({ ...e3, selectedObstacle: void 0 }));
-                            },
-                            onKeyDown: (e3) => {
-                              if (e3.key === "Enter" || e3.key === " ") {
-                                e3.preventDefault();
-                                setForm((f2) => ({
-                                  ...f2,
-                                  selectedObstacle: {
-                                    kind: "builtin",
-                                    id: o2.id,
-                                    label: o2.label
-                                  }
-                                }));
-                                setShowNewObstacle(false);
-                                setErrors((errs) => ({
-                                  ...errs,
-                                  selectedObstacle: void 0
-                                }));
-                              }
-                            },
-                            className: `text-left p-3 rounded-xl border transition-smooth text-sm ${selectedKey === o2.id ? "border-primary bg-primary/10 shadow-glow-success" : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"}`,
-                            children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block font-medium text-foreground leading-tight", children: o2.label }),
-                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-muted-foreground mt-0.5 line-clamp-2", children: o2.description })
-                            ]
-                          },
-                          o2.id
-                        )),
-                        userObstacles.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          "button",
-                          {
-                            type: "button",
-                            "data-ocid": `woop_wizard.obstacle.user_${String(o2.id)}`,
-                            onClick: () => {
-                              setForm((f2) => ({
-                                ...f2,
-                                selectedObstacle: {
-                                  kind: "user",
-                                  id: o2.id,
-                                  label: o2.title
-                                }
-                              }));
-                              setShowNewObstacle(false);
-                              setErrors((e3) => ({ ...e3, selectedObstacle: void 0 }));
-                            },
-                            onKeyDown: (e3) => {
-                              if (e3.key === "Enter" || e3.key === " ") {
-                                e3.preventDefault();
-                                setForm((f2) => ({
-                                  ...f2,
-                                  selectedObstacle: {
-                                    kind: "user",
-                                    id: o2.id,
-                                    label: o2.title
-                                  }
-                                }));
-                                setShowNewObstacle(false);
-                                setErrors((errs) => ({
-                                  ...errs,
-                                  selectedObstacle: void 0
-                                }));
-                              }
-                            },
-                            className: `text-left p-3 rounded-xl border transition-smooth text-sm ${selectedKey === String(o2.id) ? "border-primary bg-primary/10 shadow-glow-success" : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"}`,
-                            children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block font-medium text-foreground leading-tight", children: o2.title }),
-                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-muted-foreground mt-0.5 line-clamp-2", children: o2.description })
-                            ]
-                          },
-                          String(o2.id)
-                        )),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          "button",
-                          {
-                            type: "button",
-                            "data-ocid": "woop_wizard.add_obstacle_button",
-                            onClick: () => {
-                              setShowNewObstacle((v2) => !v2);
-                              setForm((f2) => ({ ...f2, selectedObstacle: null }));
-                            },
-                            onKeyDown: (e3) => {
-                              if (e3.key === "Enter" || e3.key === " ") {
-                                e3.preventDefault();
-                                setShowNewObstacle((v2) => !v2);
-                                setForm((f2) => ({ ...f2, selectedObstacle: null }));
-                              }
-                            },
-                            className: `text-left p-3 rounded-xl border border-dashed transition-smooth text-sm ${showNewObstacle ? "border-primary bg-primary/10" : "border-border/60 bg-muted/20 hover:border-primary/50"}`,
-                            children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5 font-medium text-muted-foreground", children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 13 }),
-                                " Define your own"
-                              ] }),
-                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-muted-foreground/70 mt-0.5", children: "Name your personal obstacle" })
-                            ]
-                          }
-                        )
-                      ]
-                    }
-                  ),
-                  showNewObstacle && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-xl border border-primary/30 bg-muted/40 p-3 space-y-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Input,
-                      {
-                        "data-ocid": "woop_wizard.new_obstacle_title_input",
-                        placeholder: "Obstacle name (e.g. Perfectionism)",
-                        value: form.newObstacleTitle,
-                        onChange: (e3) => setForm((f2) => ({
-                          ...f2,
-                          newObstacleTitle: e3.target.value
-                        })),
-                        className: "bg-background border-border text-sm"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Textarea,
-                      {
-                        "data-ocid": "woop_wizard.new_obstacle_description_input",
-                        placeholder: "Describe when this obstacle shows up...",
-                        value: form.newObstacleDescription,
-                        onChange: (e3) => setForm((f2) => ({
-                          ...f2,
-                          newObstacleDescription: e3.target.value
-                        })),
-                        rows: 2,
-                        className: "bg-background border-border text-sm resize-none"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Button,
-                      {
-                        type: "button",
-                        size: "sm",
-                        "data-ocid": "woop_wizard.save_obstacle_button",
-                        onClick: handleSaveNewObstacle,
-                        disabled: !form.newObstacleTitle.trim() || createObstacleMutation.isPending,
-                        className: "button-primary-neon w-full",
-                        children: createObstacleMutation.isPending ? "Saving..." : "Save Obstacle"
-                      }
-                    )
-                  ] }),
-                  errors.selectedObstacle && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-xs text-destructive",
-                      "data-ocid": "woop_wizard.obstacle.field_error",
-                      children: errors.selectedObstacle
-                    }
-                  )
-                ] }),
-                step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Label,
-                    {
-                      htmlFor: "ifThenPlan",
-                      className: "text-foreground font-medium",
-                      children: "Your If-Then Plan"
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Textarea,
-                    {
-                      id: "ifThenPlan",
-                      "data-ocid": "woop_wizard.if_then_plan_input",
-                      placeholder: "If [obstacle], then I will...",
-                      value: form.ifThenPlan,
-                      onChange: (e3) => setForm((f2) => ({ ...f2, ifThenPlan: e3.target.value })),
-                      rows: 5,
-                      className: "bg-muted/60 border-border focus:border-primary resize-none font-mono text-sm"
-                    }
-                  ),
-                  errors.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-xs text-destructive",
-                      "data-ocid": "woop_wizard.if_then_plan.field_error",
-                      children: errors.ifThenPlan
-                    }
-                  ),
-                  createGoalMutation.isError && !((_e2 = (_d2 = createGoalMutation.error) == null ? void 0 : _d2.message) == null ? void 0 : _e2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-xs text-destructive mt-1",
-                      "data-ocid": "woop_wizard.create_goal.error_state",
-                      children: "Something went wrong. Please try again."
-                    }
-                  ),
-                  !actor && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-xs text-muted-foreground mt-1",
-                      "data-ocid": "woop_wizard.actor_loading_state",
-                      children: "Connecting to backend…"
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-1", children: "The more specific your plan, the more automatic your response becomes. Research shows this doubles follow-through." })
-                ] })
-              ]
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-5 py-4 border-t border-border shrink-0 bg-card", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                type: "button",
-                variant: "outline",
-                size: "sm",
-                "data-ocid": "woop_wizard.back_button",
-                onClick: goBack,
-                disabled: step === 1,
-                className: "gap-1.5",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { size: 15 }),
-                  "Back"
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-mono text-muted-foreground", children: [
-              step,
-              " / ",
-              STEPS.length
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                size: "sm",
-                "data-ocid": step === 4 ? "woop_wizard.create_goal_button" : "woop_wizard.next_button",
-                onClick: goNext,
-                disabled: createGoalMutation.isPending || step === 4 && !actor,
-                className: "gap-1.5 button-primary-neon",
-                children: step === 4 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
-                  "Creating…"
-                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 14 }),
-                  "Create Goal"
-                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  "Next",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { size: 15 })
-                ] })
+                  "Undoing…"
+                ] }) : "Undo"
               }
             )
           ] })
         ]
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      TierLimitModal,
-      {
-        open: showLimitModal,
-        onClose: () => setShowLimitModal(false),
-        userProfile: userProfile ?? null
-      }
+      },
+      "undo-card"
     )
-  ] });
+  ] }) });
 }
-function normalizeGoal(g2) {
-  return {
-    id: g2.id,
-    owner: g2.owner,
-    wish: g2.wish,
-    wishDescription: g2.wishDescription,
-    outcome: g2.outcome,
-    obstacleTemplateId: g2.obstacleTemplateId[0] ?? void 0,
-    ifThenPlan: g2.ifThenPlan,
-    state: "active" in g2.state ? "active" : "completed" in g2.state ? "completed" : "archived",
-    createdAt: g2.createdAt,
-    updatedAt: g2.updatedAt
-  };
-}
-function normalizeCheckIn(c2) {
-  return {
-    id: c2.id,
-    goalId: c2.goalId,
-    owner: c2.owner,
-    checkInType: "success" in c2.checkInType ? "success" : "skip",
-    obstacleTemplateId: c2.obstacleTemplateId[0] ?? void 0,
-    timestamp: c2.timestamp
-  };
+const DONE_STATE_KEY = "cumulative-done-state";
+const LAST_DATE_KEY = "cumulative-last-date";
+function goalKey(id2) {
+  return String(id2);
 }
 function isTodayTimestamp(ts) {
   const ms = Number(ts / 1000000n);
@@ -69782,165 +70097,602 @@ function isTodayTimestamp(ts) {
   const now2 = /* @__PURE__ */ new Date();
   return d2.getFullYear() === now2.getFullYear() && d2.getMonth() === now2.getMonth() && d2.getDate() === now2.getDate();
 }
-const MOCK_GOALS = [
-  {
-    id: "mock-1",
-    owner: "mock",
-    wish: "30-Minute Deep Work Session",
-    wishDescription: "Uninterrupted focus to move my most important project forward.",
-    outcome: "Ship meaningful work daily, build a deep-work habit.",
-    obstacleTemplateId: "distraction",
-    ifThenPlan: "If I feel distracted, I will close all tabs and set a 30-min timer.",
-    state: "active",
-    createdAt: BigInt(Date.now()) * 1000000n,
-    updatedAt: BigInt(Date.now()) * 1000000n
-  },
-  {
-    id: "mock-2",
-    owner: "mock",
-    wish: "20-Minute Morning Run",
-    wishDescription: "Start the day with movement to energize body and mind.",
-    outcome: "Build cardiovascular fitness and mental resilience.",
-    obstacleTemplateId: "low_energy",
-    ifThenPlan: "If I feel too tired, I will do just 5 minutes — starting is the hardest part.",
-    state: "active",
-    createdAt: BigInt(Date.now()) * 1000000n,
-    updatedAt: BigInt(Date.now()) * 1000000n
-  }
-];
-function ProgressRing({ completed, total, isComplete }) {
-  const size = 100;
-  const strokeWidth = 8;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress2 = total > 0 ? completed / total : 0;
-  const dashOffset = circumference * (1 - progress2);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: "relative flex items-center justify-center",
-      style: { width: size, height: size },
-      "data-ocid": "dashboard.progress_ring",
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "svg",
-          {
-            width: size,
-            height: size,
-            style: { transform: "rotate(-90deg)" },
-            "aria-hidden": "true",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "circle",
-                {
-                  cx: size / 2,
-                  cy: size / 2,
-                  r: radius,
-                  fill: "none",
-                  stroke: "oklch(var(--muted))",
-                  strokeWidth,
-                  opacity: 0.5
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "circle",
-                {
-                  cx: size / 2,
-                  cy: size / 2,
-                  r: radius,
-                  fill: "none",
-                  stroke: "oklch(var(--color-accent-success))",
-                  strokeWidth,
-                  strokeLinecap: "round",
-                  strokeDasharray: circumference,
-                  strokeDashoffset: dashOffset,
-                  style: {
-                    transition: "stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)",
-                    filter: isComplete ? "drop-shadow(0 0 8px oklch(var(--color-accent-success) / 0.7))" : "drop-shadow(0 0 4px oklch(var(--color-accent-success) / 0.35))"
-                  }
-                }
-              )
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "absolute inset-0 flex flex-col items-center justify-center", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "span",
-            {
-              className: "font-display font-bold leading-none",
-              style: {
-                fontSize: "1.25rem",
-                color: isComplete ? "oklch(var(--color-accent-success))" : "oklch(var(--foreground))"
-              },
-              children: [
-                completed,
-                "/",
-                total
-              ]
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground mt-0.5 font-mono", children: "today" })
-        ] })
-      ]
+function getLocalDateStr(d2 = /* @__PURE__ */ new Date(), tz) {
+  var _a3, _b3, _c2;
+  if (tz) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(d2);
+      const y2 = ((_a3 = parts.find((p2) => p2.type === "year")) == null ? void 0 : _a3.value) ?? "";
+      const mo = ((_b3 = parts.find((p2) => p2.type === "month")) == null ? void 0 : _b3.value) ?? "";
+      const da = ((_c2 = parts.find((p2) => p2.type === "day")) == null ? void 0 : _c2.value) ?? "";
+      if (y2 && mo && da) return `${y2}-${mo}-${da}`;
+    } catch {
     }
+  }
+  return `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, "0")}-${String(d2.getDate()).padStart(2, "0")}`;
+}
+function msUntilMidnight(tz) {
+  var _a3, _b3, _c2, _d2;
+  const now2 = /* @__PURE__ */ new Date();
+  const todayStr = getLocalDateStr(now2, tz);
+  const [y2, mo, da] = todayStr.split("-").map(Number);
+  const tomorrowStr = `${y2}-${String(mo).padStart(2, "0")}-${String(da + 1).padStart(2, "0")}`;
+  if (tz) {
+    try {
+      const [ty, tm, td] = tomorrowStr.split("-").map(Number);
+      const fmt = new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false
+      });
+      for (let minsAhead = 60; minsAhead <= 28 * 60; minsAhead++) {
+        const candidate = new Date(now2.getTime() + minsAhead * 6e4);
+        const parts = fmt.formatToParts(candidate);
+        const cy = ((_a3 = parts.find((p2) => p2.type === "year")) == null ? void 0 : _a3.value) ?? "";
+        const cmo = ((_b3 = parts.find((p2) => p2.type === "month")) == null ? void 0 : _b3.value) ?? "";
+        const cda = ((_c2 = parts.find((p2) => p2.type === "day")) == null ? void 0 : _c2.value) ?? "";
+        const chr = ((_d2 = parts.find((p2) => p2.type === "hour")) == null ? void 0 : _d2.value) ?? "";
+        if (Number(cy) === ty && Number(cmo) === tm && Number(cda) === td && Number(chr) === 0) {
+          const midnightMs = Math.floor(candidate.getTime() / 6e4) * 6e4;
+          return Math.max(0, midnightMs - now2.getTime());
+        }
+      }
+    } catch {
+    }
+  }
+  const tomorrow = new Date(now2);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return Math.max(0, tomorrow.getTime() - now2.getTime());
+}
+function serializeDoneMap(map2) {
+  return JSON.stringify(
+    [...map2.entries()].map(([k2, v2]) => [
+      k2,
+      { checkInId: String(v2.checkInId), checkInType: v2.checkInType }
+    ])
   );
 }
-function DashboardPage$1() {
-  const [showWoop, setShowWoop] = reactExports.useState(false);
-  const { actor, isFetching } = useBackend();
-  const { data: profile } = useUserProfile();
+function deserializeDoneMap(raw) {
+  try {
+    const arr = JSON.parse(raw);
+    return new Map(
+      arr.map(([k2, v2]) => [
+        k2,
+        { checkInId: BigInt(v2.checkInId), checkInType: v2.checkInType }
+      ])
+    );
+  } catch {
+    return /* @__PURE__ */ new Map();
+  }
+}
+function loadDoneMap() {
+  try {
+    const raw = localStorage.getItem(DONE_STATE_KEY);
+    if (!raw) return /* @__PURE__ */ new Map();
+    return deserializeDoneMap(raw);
+  } catch {
+    return /* @__PURE__ */ new Map();
+  }
+}
+function saveDoneMap(map2) {
+  try {
+    localStorage.setItem(DONE_STATE_KEY, serializeDoneMap(map2));
+  } catch {
+  }
+}
+function isValidUsernameFormat$1(value) {
+  return /^[a-zA-Z0-9_]{3,20}$/.test(value);
+}
+function getUsernameFormatError$1(value) {
+  if (value.length < 3) return "At least 3 characters required.";
+  if (value.length > 20) return "Max 20 characters.";
+  if (!/^[a-zA-Z0-9_]+$/.test(value))
+    return "Letters, numbers, and underscores only.";
+  return "";
+}
+function ForcedUsernameModal({ onComplete }) {
+  const [username, setUsername] = reactExports.useState("");
+  const [usernameError, setUsernameError] = reactExports.useState("");
+  const [apiError, setApiError] = reactExports.useState("");
+  const [isSubmitting, setIsSubmitting] = reactExports.useState(false);
+  const [availability, setAvailability] = reactExports.useState("idle");
+  const { actor } = useBackend();
+  const { logout } = useAuth();
   const queryClient2 = useQueryClient();
-  const { data: rawGoals, isLoading: goalsLoading } = useQuery({
-    queryKey: ["myGoals"],
-    queryFn: async () => {
-      if (!actor || !("listMyGoals" in actor)) return MOCK_GOALS;
+  const debounceRef = reactExports.useRef(null);
+  const checkAvailability = reactExports.useCallback(
+    async (value) => {
+      if (!isValidUsernameFormat$1(value)) {
+        setAvailability("idle");
+        return;
+      }
+      setAvailability("checking");
       try {
-        const result = await actor.listMyGoals();
-        return result.map(normalizeGoal);
+        if (actor && "isUsernameAvailable" in actor) {
+          const available = await actor.isUsernameAvailable(value);
+          setAvailability(available ? "available" : "taken");
+        } else {
+          setAvailability("unknown");
+        }
       } catch {
-        return MOCK_GOALS;
+        setAvailability("unknown");
       }
     },
-    enabled: !isFetching,
-    staleTime: 3e4
-  });
-  const { data: rawCheckIns, isLoading: checkInsLoading } = useQuery(
-    {
-      queryKey: ["myCheckIns"],
-      queryFn: async () => {
-        if (!actor || !("listMyCheckIns" in actor)) return [];
-        try {
-          const result = await actor.listMyCheckIns();
-          return result.map(normalizeCheckIn);
-        } catch {
-          return [];
-        }
-      },
-      enabled: !isFetching,
-      staleTime: 3e4
-    }
+    [actor]
   );
-  const goals = rawGoals ?? [];
-  const checkIns = rawCheckIns ?? [];
+  reactExports.useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!username || username.length < 3 || !isValidUsernameFormat$1(username)) {
+      setAvailability("idle");
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      void checkAvailability(username);
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [username, checkAvailability]);
+  async function handleSubmit(e3) {
+    e3.preventDefault();
+    const uErr = username.trim() ? getUsernameFormatError$1(username.trim()) : "Username is required.";
+    setUsernameError(uErr);
+    if (uErr || availability === "taken") return;
+    setIsSubmitting(true);
+    setApiError("");
+    try {
+      if (!actor) throw new Error("Backend not available.");
+      await actor.register(
+        username.trim()
+      );
+      await queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
+      await queryClient2.refetchQueries({ queryKey: ["userProfile"] });
+      onComplete();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      if (msg.toLowerCase().includes("taken") || msg.toLowerCase().includes("username")) {
+        setAvailability("taken");
+        setUsernameError("That username is already taken.");
+      } else {
+        setApiError(msg);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+  const canSubmit = isValidUsernameFormat$1(username) && (availability === "available" || availability === "unknown") && !isSubmitting;
+  const inputBorderStyle = availability === "available" ? {
+    outline: "2px solid oklch(var(--color-accent-success) / 0.5)",
+    outlineOffset: "2px"
+  } : availability === "taken" ? {
+    outline: "2px solid oklch(var(--color-accent-social) / 0.5)",
+    outlineOffset: "2px"
+  } : {};
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 8px 1px oklch(var(--color-accent-success) / 0.3); }
+          50%       { box-shadow: 0 0 14px 3px oklch(var(--color-accent-success) / 0.55); }
+        }
+        @keyframes shakeLateral {
+          0%   { transform: translateY(-50%) translateX(0); }
+          20%  { transform: translateY(-50%) translateX(-4px); }
+          40%  { transform: translateY(-50%) translateX(4px); }
+          60%  { transform: translateY(-50%) translateX(-3px); }
+          80%  { transform: translateY(-50%) translateX(3px); }
+          100% { transform: translateY(-50%) translateX(0); }
+        }
+      ` }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "fixed inset-0 z-50 flex items-center justify-center px-4",
+        style: {
+          background: "oklch(var(--background) / 0.96)",
+          backdropFilter: "blur(8px)"
+        },
+        "data-ocid": "dashboard.username_required.dialog",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed top-4 right-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              type: "button",
+              onClick: () => logout(),
+              "data-ocid": "dashboard.username_required.logout_button",
+              "aria-label": "Sign out",
+              className: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body transition-smooth text-muted-foreground hover:text-foreground",
+              style: {
+                background: "oklch(var(--card))",
+                boxShadow: "3px 3px 7px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.04)"
+              },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(LogOut, { size: 13 }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Sign out" })
+              ]
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            motion.div,
+            {
+              initial: { opacity: 0, scale: 0.95, y: 16 },
+              animate: { opacity: 1, scale: 1, y: 0 },
+              transition: { duration: 0.35, ease: "easeOut" },
+              className: "onboarding-card w-full max-w-md",
+              "data-ocid": "dashboard.username_required.card",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-6 text-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs uppercase tracking-widest text-muted-foreground mb-2", children: "One more step" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-display font-semibold text-foreground leading-snug", children: "Choose your username" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-sm text-muted-foreground", children: "A unique handle is required before you can use Cumulative." })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, noValidate: true, className: "space-y-5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "label",
+                      {
+                        htmlFor: "dashboard-username",
+                        className: "flex items-center text-sm font-medium text-foreground",
+                        children: "Username"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground", children: [
+                      "My handle on Cumulative is",
+                      " ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "madlib-field font-semibold", children: username || "___" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          id: "dashboard-username",
+                          "data-ocid": "dashboard.username_required.input",
+                          type: "text",
+                          className: "input-neumorphic w-full text-base pr-10",
+                          placeholder: "e.g. sarah_runs",
+                          value: username,
+                          maxLength: 20,
+                          autoComplete: "username",
+                          spellCheck: false,
+                          style: inputBorderStyle,
+                          onChange: (e3) => {
+                            const val = e3.target.value.replace(/\s/g, "");
+                            setUsername(val);
+                            setUsernameError("");
+                            setApiError("");
+                          },
+                          onBlur: () => {
+                            if (username.trim())
+                              setUsernameError(getUsernameFormatError$1(username.trim()));
+                          }
+                        }
+                      ),
+                      availability === "checking" && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "w-4 h-4 rounded-full border-2 animate-spin",
+                          style: {
+                            borderColor: "oklch(var(--muted-foreground) / 0.3)",
+                            borderTopColor: "oklch(var(--muted-foreground))"
+                          }
+                        }
+                      ) }),
+                      availability === "available" && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
+                          style: {
+                            background: "oklch(var(--color-accent-success) / 0.15)",
+                            color: "oklch(var(--color-accent-success))",
+                            border: "1.5px solid oklch(var(--color-accent-success) / 0.6)",
+                            animation: "glowPulse 2s ease-in-out infinite"
+                          },
+                          children: "✓"
+                        }
+                      ) }),
+                      availability === "taken" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center",
+                          style: { animation: "shakeLateral 0.4s ease both" },
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
+                              style: {
+                                background: "oklch(var(--color-accent-social) / 0.15)",
+                                color: "oklch(var(--color-accent-social))",
+                                border: "1.5px solid oklch(var(--color-accent-social) / 0.5)"
+                              },
+                              children: "✕"
+                            }
+                          )
+                        }
+                      )
+                    ] }),
+                    availability === "available" && !usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-xs font-medium",
+                        "data-ocid": "dashboard.username_required.available.text",
+                        style: { color: "oklch(var(--color-accent-success))" },
+                        children: "✓ Username is available"
+                      }
+                    ),
+                    availability === "taken" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-xs font-medium",
+                        "data-ocid": "dashboard.username_required.taken.text",
+                        style: { color: "oklch(var(--color-accent-social))" },
+                        children: "Username taken — try another"
+                      }
+                    ),
+                    usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-xs mt-0.5",
+                        "data-ocid": "dashboard.username_required.field_error",
+                        style: { color: "oklch(var(--destructive))" },
+                        children: usernameError
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "3–20 characters · letters, numbers, and underscores only" })
+                  ] }),
+                  apiError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-sm text-center py-2 px-3 rounded-lg bg-muted",
+                      "data-ocid": "dashboard.username_required.error_state",
+                      style: { color: "oklch(var(--destructive))" },
+                      children: apiError
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      "data-ocid": "dashboard.username_required.submit_button",
+                      type: "submit",
+                      disabled: !canSubmit,
+                      className: "w-full py-3 rounded-lg font-display font-semibold text-base tracking-wide transition-smooth button-primary-neon disabled:opacity-40 disabled:cursor-not-allowed",
+                      children: isSubmitting ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "span",
+                        {
+                          className: "flex items-center justify-center gap-2",
+                          "data-ocid": "dashboard.username_required.loading_state",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" }),
+                            "Saving…"
+                          ]
+                        }
+                      ) : "Confirm Username →"
+                    }
+                  )
+                ] })
+              ]
+            }
+          )
+        ]
+      }
+    )
+  ] });
+}
+function TabPills({
+  activeTab,
+  doneCount,
+  badgeAnimKey,
+  onTabChange
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+        @keyframes badgePop {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(1.45); }
+          70%  { transform: scale(0.9); }
+          100% { transform: scale(1); }
+        }
+      ` }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", role: "tablist", "aria-label": "Dashboard tabs", children: ["active", "done"].map((tab) => {
+      const isActive = activeTab === tab;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          type: "button",
+          role: "tab",
+          "aria-selected": isActive,
+          onClick: () => onTabChange(tab),
+          "data-ocid": `dashboard.${tab}_tab`,
+          className: "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-display font-medium transition-smooth",
+          style: {
+            color: isActive ? "oklch(var(--foreground))" : "oklch(var(--muted-foreground))",
+            background: isActive ? "oklch(var(--card))" : "oklch(var(--muted) / 0.4)",
+            boxShadow: isActive ? "inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 3px rgba(80,80,85,0.2)" : "-2px -2px 5px rgba(60,60,65,0.3), 3px 3px 7px rgba(0,0,0,0.5)"
+          },
+          children: [
+            tab === "active" ? "Active" : "Done",
+            tab === "done" && doneCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "span",
+              {
+                className: "w-5 h-5 rounded-full flex items-center justify-center font-bold",
+                style: {
+                  background: "#10B981",
+                  color: "#fff",
+                  fontSize: "0.65rem",
+                  animation: badgeAnimKey > 0 ? "badgePop 0.38s cubic-bezier(0.34,1.56,0.64,1) both" : "none"
+                },
+                "data-ocid": "dashboard.done_tab.badge",
+                "aria-label": `${doneCount} habits done`,
+                children: doneCount
+              },
+              badgeAnimKey
+            )
+          ]
+        },
+        tab
+      );
+    }) })
+  ] });
+}
+function DashboardPage$1() {
+  var _a3;
+  const [usernameModalDismissed, setUsernameModalDismissed] = reactExports.useState(false);
+  const { actor, isFetching: actorFetching } = useBackend();
+  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const { principalText } = useAuth();
+  const queryClient2 = useQueryClient();
+  const { theme } = useTheme();
+  const isDarkMode = theme === "dark";
+  const [activeTab, setActiveTab] = reactExports.useState("active");
+  const [badgeAnimKey, setBadgeAnimKey] = reactExports.useState(0);
+  const [exitingMap, setExitingMap] = reactExports.useState(
+    /* @__PURE__ */ new Map()
+  );
+  const pendingDoneDataRef = reactExports.useRef(/* @__PURE__ */ new Map());
+  const [swipeDirectionMap, setSwipeDirectionMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const userTimezone = (profile == null ? void 0 : profile.timezone) && profile.timezone.trim() !== "" ? profile.timezone.trim() : void 0;
+  const [doneMap, setDoneMapRaw] = reactExports.useState(() => {
+    const storedDate = localStorage.getItem(LAST_DATE_KEY);
+    const today = getLocalDateStr();
+    if (storedDate && storedDate !== today) {
+      localStorage.removeItem(DONE_STATE_KEY);
+    }
+    localStorage.setItem(LAST_DATE_KEY, today);
+    return loadDoneMap();
+  });
+  function setDoneMap(updater) {
+    setDoneMapRaw((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      saveDoneMap(next);
+      return next;
+    });
+  }
+  const [undoTarget, setUndoTarget] = reactExports.useState(null);
+  const [isUndoing, setIsUndoing] = reactExports.useState(false);
+  const [recentlyUndone, setRecentlyUndone] = reactExports.useState(/* @__PURE__ */ new Set());
+  const [weekHistoryMap, setWeekHistoryMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const [weekHistoryLoading, setWeekHistoryLoading] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    let timer;
+    function scheduleReset() {
+      const ms = msUntilMidnight(userTimezone);
+      timer = setTimeout(() => {
+        const today = getLocalDateStr(/* @__PURE__ */ new Date(), userTimezone);
+        localStorage.removeItem(DONE_STATE_KEY);
+        localStorage.setItem(LAST_DATE_KEY, today);
+        setDoneMapRaw(/* @__PURE__ */ new Map());
+        queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
+        scheduleReset();
+      }, ms + 1e3);
+    }
+    scheduleReset();
+    return () => clearTimeout(timer);
+  }, [userTimezone]);
+  const needsUsername = !profileLoading && !usernameModalDismissed && profile !== void 0 && (!profile || !profile.username || profile.username.trim().length === 0 || principalText !== null && profile.username === principalText);
+  const { data: goals = [], isLoading: goalsLoading } = useQuery({
+    queryKey: ["myGoals"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.listMyGoals();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !actorFetching,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true
+  });
+  const { data: checkIns = [], isLoading: checkInsLoading } = useQuery({
+    queryKey: ["myCheckIns"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.listMyCheckIns();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !actorFetching,
+    staleTime: 0,
+    refetchOnMount: "always"
+  });
   const isLoading = goalsLoading || checkInsLoading;
-  const todayCheckInMap = reactExports.useMemo(() => {
+  const activeGoals = goals.filter((g2) => g2.state === GoalState.active);
+  reactExports.useMemo(() => {
     const map2 = /* @__PURE__ */ new Map();
     for (const c2 of checkIns) {
       if (isTodayTimestamp(c2.timestamp)) {
-        map2.set(c2.goalId, c2);
+        map2.set(goalKey(c2.goalId), c2);
       }
     }
     return map2;
   }, [checkIns]);
+  const fetchWeekHistory = reactExports.useCallback(async () => {
+    if (!actor || activeGoals.length === 0) return;
+    setWeekHistoryLoading(true);
+    try {
+      const today = /* @__PURE__ */ new Date();
+      today.setHours(0, 0, 0, 0);
+      const fromMs = today.getTime() - 6 * 864e5;
+      const toMs = today.getTime() + 864e5;
+      const fromNs = BigInt(fromMs) * 1000000n;
+      const toNs = BigInt(toMs) * 1000000n;
+      const newMap = /* @__PURE__ */ new Map();
+      await Promise.all(
+        activeGoals.map(async (goal) => {
+          try {
+            const checkInsForPeriod = await actor.getCheckInsForPeriod(
+              goal.id,
+              fromNs,
+              toNs
+            );
+            const statuses = Array(7).fill("none");
+            for (const c2 of checkInsForPeriod) {
+              const ms = Number(c2.timestamp / 1000000n);
+              const dayIndex = Math.floor((ms - fromMs) / 864e5);
+              if (dayIndex >= 0 && dayIndex < 7) {
+                if (c2.checkInType === CheckInType.success) {
+                  statuses[dayIndex] = "success";
+                } else if (statuses[dayIndex] !== "success") {
+                  statuses[dayIndex] = "skip";
+                }
+              }
+            }
+            newMap.set(goalKey(goal.id), statuses);
+          } catch {
+            newMap.set(goalKey(goal.id), Array(7).fill("none"));
+          }
+        })
+      );
+      setWeekHistoryMap(newMap);
+    } finally {
+      setWeekHistoryLoading(false);
+    }
+  }, [actor, activeGoals]);
+  reactExports.useEffect(() => {
+    if (!isLoading && actor) {
+      void fetchWeekHistory();
+    }
+  }, [isLoading, actor]);
   const analyticsMap = reactExports.useMemo(() => {
     const map2 = /* @__PURE__ */ new Map();
     for (const g2 of goals) {
-      const goalCheckIns = checkIns.filter((c2) => c2.goalId === g2.id);
+      const key = goalKey(g2.id);
+      const goalCheckIns = checkIns.filter((c2) => goalKey(c2.goalId) === key);
       const successCount = goalCheckIns.filter(
-        (c2) => c2.checkInType === "success"
+        (c2) => c2.checkInType === CheckInType.success
       ).length;
       const skipCount = goalCheckIns.filter(
-        (c2) => c2.checkInType === "skip"
+        (c2) => c2.checkInType === CheckInType.skip
       ).length;
       let consistencyRun = 0;
       const dayMs = 864e5;
@@ -69951,13 +70703,13 @@ function DashboardPage$1() {
         const dayEnd = dayStart + dayMs;
         const dayHit = goalCheckIns.some((c2) => {
           const ms = Number(c2.timestamp / 1000000n);
-          return ms >= dayStart && ms < dayEnd && c2.checkInType === "success";
+          return ms >= dayStart && ms < dayEnd && c2.checkInType === CheckInType.success;
         });
         if (dayHit) consistencyRun++;
         else if (d2 > 0) break;
       }
-      map2.set(g2.id, {
-        goalId: g2.id,
+      map2.set(key, {
+        goalId: key,
         goalName: g2.wish,
         successCount,
         skipCount,
@@ -69967,279 +70719,436 @@ function DashboardPage$1() {
     }
     return map2;
   }, [goals, checkIns]);
-  const [checkingInGoalId, setCheckingInGoalId] = reactExports.useState(null);
-  const [skippingGoalId, setSkippingGoalId] = reactExports.useState(null);
+  const [pendingGoalId, setPendingGoalId] = reactExports.useState(null);
   const checkInMutation = useMutation({
-    mutationFn: async (req) => {
-      if (!actor || !("recordCheckIn" in actor)) {
-        return { ok: true };
-      }
-      return actor.recordCheckIn(req);
+    mutationFn: async ({
+      goalId,
+      checkInType,
+      obstacleTemplateId
+    }) => {
+      if (!actor) return null;
+      return actor.recordCheckIn({ goalId, checkInType, obstacleTemplateId });
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
-      const type = "success" in variables.checkInType ? "success" : "skip";
-      if (type === "success") {
-        ue.success("Checked in! Keep building consistency.");
-      } else {
-        ue.info("Skip logged — every honest check-in counts.");
+      const key = goalKey(variables.goalId);
+      if (data) {
+        const checkInId = data.id;
+        const checkInType = variables.checkInType === CheckInType.success ? "success" : "skip";
+        if (pendingDoneDataRef.current.has(key)) {
+          pendingDoneDataRef.current.set(key, { checkInId, checkInType });
+        }
+        setDoneMapRaw((prev) => {
+          if (!prev.has(key)) return prev;
+          const next = new Map(prev);
+          next.set(key, { checkInId, checkInType });
+          saveDoneMap(next);
+          return next;
+        });
       }
+      void fetchWeekHistory();
     },
-    onError: () => {
-      ue.error("Check-in failed. Please try again.");
+    onError: (_err, variables) => {
+      const key = goalKey(variables.goalId);
+      setDoneMapRaw((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Map(prev);
+        next.set(key, { ...prev.get(key), checkInId: 0n });
+        saveDoneMap(next);
+        return next;
+      });
+      ue.error("Check-in failed. Tap the card in Done to undo if needed.");
     },
     onSettled: () => {
-      setCheckingInGoalId(null);
-      setSkippingGoalId(null);
+      setPendingGoalId(null);
     }
   });
-  function handleCheckIn(goalId) {
-    setCheckingInGoalId(goalId);
+  function handleCardExitComplete(goalId) {
+    const key = goalKey(goalId);
+    const entry = pendingDoneDataRef.current.get(key) ?? {
+      checkInId: 0n,
+      checkInType: swipeDirectionMap.get(key) === "right" ? "success" : "skip"
+    };
+    pendingDoneDataRef.current.delete(key);
+    setExitingMap((prev) => {
+      const next = new Map(prev);
+      next.delete(key);
+      return next;
+    });
+    setDoneMapRaw((prev) => {
+      const next = new Map(prev);
+      next.set(key, entry);
+      saveDoneMap(next);
+      return next;
+    });
+    setBadgeAnimKey((k2) => k2 + 1);
+    setActiveTab("done");
+  }
+  function handleGoalCardCheckIn(goalId, type, obstacleId) {
+    const key = goalKey(goalId);
+    const direction = type === "success" ? "right" : "left";
+    setSwipeDirectionMap((prev) => {
+      const next = new Map(prev);
+      next.set(key, direction);
+      return next;
+    });
+    setExitingMap((prev) => {
+      const next = new Map(prev);
+      next.set(key, direction);
+      return next;
+    });
+    setPendingGoalId(key);
+    pendingDoneDataRef.current.set(key, {
+      checkInId: 0n,
+      checkInType: type
+    });
     checkInMutation.mutate({
       goalId,
-      checkInType: { success: null },
-      obstacleTemplateId: []
+      checkInType: type === "success" ? CheckInType.success : CheckInType.skip,
+      obstacleTemplateId: obstacleId
     });
   }
-  function handleSkip(goalId, obstacleId) {
-    setSkippingGoalId(goalId);
-    checkInMutation.mutate({
-      goalId,
-      checkInType: { skip: null },
-      obstacleTemplateId: [obstacleId]
-    });
+  function handleDoneCardTap(goalId) {
+    const goal = goals.find((g2) => goalKey(g2.id) === goalKey(goalId));
+    if (!goal) return;
+    setUndoTarget({ goalId, goal });
   }
-  const tier = (profile == null ? void 0 : profile.tier) ?? 1;
-  const goalLimit = TIER_GOAL_LIMITS[tier];
-  const activeGoalCount = goals.filter((g2) => g2.state === "active").length;
-  const approachingLimit = activeGoalCount >= Math.floor(goalLimit * 0.8);
-  const todayCompleted = [...todayCheckInMap.values()].filter(
-    (c2) => c2.checkInType === "success"
+  async function handleUndoConfirm() {
+    if (!undoTarget) return;
+    const key = goalKey(undoTarget.goalId);
+    const entry = doneMap.get(key);
+    if (!entry) return;
+    if (entry.checkInId === 0n) {
+      ue.error("Still saving — please wait a moment, then try again.");
+      return;
+    }
+    setIsUndoing(true);
+    try {
+      if (actor) {
+        const result = await actor.deleteCheckIn(entry.checkInId);
+        if ("err" in result) {
+          throw new Error("Backend error");
+        }
+      }
+      setDoneMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setSwipeDirectionMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setExitingMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setRecentlyUndone((prev) => new Set(prev).add(key));
+      setTimeout(() => {
+        setRecentlyUndone((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }, 800);
+      void queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
+      void fetchWeekHistory();
+      setUndoTarget(null);
+      setActiveTab("active");
+    } catch {
+      ue.error("Could not undo — please try again.");
+    } finally {
+      setIsUndoing(false);
+    }
+  }
+  const unswiped = activeGoals.filter((g2) => !doneMap.has(goalKey(g2.id)));
+  const done = activeGoals.filter((g2) => doneMap.has(goalKey(g2.id)));
+  const trulyUnswiped = unswiped.filter((g2) => !exitingMap.has(goalKey(g2.id)));
+  const todayCompleted = done.filter(
+    (g2) => {
+      var _a4;
+      return ((_a4 = doneMap.get(goalKey(g2.id))) == null ? void 0 : _a4.checkInType) === "success";
+    }
   ).length;
-  const totalActive = goals.filter((g2) => g2.state === "active").length;
-  const hasSkipToday = [...todayCheckInMap.values()].some(
-    (c2) => c2.checkInType === "skip"
+  const totalActive = activeGoals.length;
+  const hasSkipToday = done.some(
+    (g2) => {
+      var _a4;
+      return ((_a4 = doneMap.get(goalKey(g2.id))) == null ? void 0 : _a4.checkInType) === "skip";
+    }
   );
-  const isAllComplete = totalActive > 0 && todayCompleted === totalActive;
-  const firstName = (profile == null ? void 0 : profile.username) ? (() => {
-    const word = profile.username.split(" ")[0];
-    return word.charAt(0).toUpperCase() + word.slice(1);
-  })() : null;
+  const isAllComplete = totalActive > 0 && done.length === totalActive;
+  const displayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim() : "friend";
   function getBehavioralMessage() {
-    if (isLoading) return null;
-    if (totalActive === 0) return null;
-    if (todayCompleted === totalActive) return "Day won. Disconnect and rest.";
-    if (hasSkipToday && todayCompleted < totalActive)
-      return `Smart pivot, ${firstName ?? "you"}. Valid obstacle.`;
-    if (todayCompleted > 0 && todayCompleted < totalActive)
-      return `${todayCompleted}/${totalActive} complete. Momentum is building.`;
-    return `Ready to execute, ${firstName ?? "you"}?`;
+    if (isLoading) return `Ready to execute, ${displayName}.`;
+    if (totalActive === 0) return `Ready to execute, ${displayName}.`;
+    if (isAllComplete) return `Day won, ${displayName}. Disconnect and rest.`;
+    if (hasSkipToday && unswiped.length === 0)
+      return `Rest with intention, ${displayName}.`;
+    if (done.length > 0 && unswiped.length > 0)
+      return `Momentum is building, ${displayName}.`;
+    return `Ready to execute, ${displayName}.`;
   }
   const behavioralMessage = getBehavioralMessage();
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-6 px-4 pb-6", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric"
-      }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-bold text-foreground mt-1", children: "Today's Dashboard" })
-    ] }),
-    approachingLimit && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      motion.div,
+  const headerData = reactExports.useMemo(
+    () => ({
+      behavioralHook: behavioralMessage,
+      progressCompleted: todayCompleted,
+      progressTotal: totalActive,
+      isComplete: isAllComplete
+    }),
+    [behavioralMessage, todayCompleted, totalActive, isAllComplete]
+  );
+  useDashboardHeaderWriter(headerData);
+  const showSwipeHint = activeTab === "active" && !isLoading && trulyUnswiped.length > 0;
+  const hasDisplayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    needsUsername && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      ForcedUsernameModal,
       {
-        initial: { opacity: 0, y: -8 },
-        animate: { opacity: 1, y: 0 },
-        className: "rounded-xl px-4 py-3 flex items-center justify-between border",
-        style: {
-          backgroundColor: "oklch(var(--color-accent-social) / 0.08)",
-          borderColor: "oklch(var(--color-accent-social) / 0.25)"
-        },
-        "data-ocid": "dashboard.tier_warning",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-display font-semibold text-foreground", children: [
-              activeGoalCount,
-              "/",
-              goalLimit,
-              " goals — ",
-              TIER_LABELS[tier],
-              " plan"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-0.5", children: "Upgrade to track more habits simultaneously" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            ChevronRight,
-            {
-              className: "w-4 h-4",
-              style: { color: "oklch(var(--color-accent-social))" }
-            }
-          )
-        ]
+        onComplete: () => setUsernameModalDismissed(true)
       }
     ),
-    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", "data-ocid": "dashboard.loading_state", children: [1, 2].map((n2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      UndoPopup,
+      {
+        open: !!undoTarget,
+        goal: (undoTarget == null ? void 0 : undoTarget.goal) ?? null,
+        checkInType: undoTarget ? ((_a3 = doneMap.get(goalKey(undoTarget.goalId))) == null ? void 0 : _a3.checkInType) ?? null : null,
+        isLoading: isUndoing,
+        onUndo: () => {
+          void handleUndoConfirm();
+        },
+        onKeep: () => setUndoTarget(null)
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
       {
-        className: "rounded-2xl p-5 animate-pulse",
-        style: {
-          backgroundColor: "oklch(var(--card))",
-          boxShadow: "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
-        },
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-3 w-24 rounded-full bg-muted mb-3" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-6 w-3/4 rounded-full bg-muted mb-2" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-4 w-1/2 rounded-full bg-muted mb-6" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-10 rounded-xl bg-muted" })
-        ]
-      },
-      n2
-    )) }),
-    !isLoading && goals.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      motion.div,
-      {
-        initial: { opacity: 0, y: 12 },
-        animate: { opacity: 1, y: 0 },
-        className: "flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl",
-        style: {
-          backgroundColor: "oklch(var(--card))",
-          boxShadow: "6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
-        },
-        "data-ocid": "dashboard.empty_state",
+        className: "flex flex-col px-4 pb-6 pt-3",
+        style: { gap: "1.25rem" },
+        "data-ocid": "dashboard.goal_list",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "div",
             {
-              className: "w-16 h-16 rounded-full flex items-center justify-center mb-4",
-              style: {
-                backgroundColor: "oklch(var(--color-accent-success) / 0.1)",
-                boxShadow: "0 0 32px 4px oklch(var(--color-accent-success) / 0.15)"
-              },
+              className: "px-1 pt-1",
+              "data-ocid": "dashboard.greeting",
+              "aria-live": "polite",
               children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Target,
+                "p",
                 {
-                  className: "w-8 h-8",
-                  style: { color: "oklch(var(--color-accent-success))" }
+                  className: "font-body leading-snug",
+                  style: {
+                    color: "oklch(var(--muted-foreground))",
+                    fontWeight: 400,
+                    fontSize: "1.05rem",
+                    letterSpacing: "0.01em"
+                  },
+                  children: (() => {
+                    const msg = behavioralMessage;
+                    if (!hasDisplayName) return msg;
+                    const nameIdx = msg.lastIndexOf(displayName);
+                    if (nameIdx === -1) return msg;
+                    const before = msg.slice(0, nameIdx);
+                    const after = msg.slice(nameIdx + displayName.length);
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                      before,
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          style: {
+                            color: "#10B981",
+                            fontWeight: 600
+                          },
+                          children: displayName
+                        }
+                      ),
+                      after
+                    ] });
+                  })()
                 }
               )
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-bold text-foreground mb-2", children: "No active goals yet" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mb-6 max-w-xs leading-relaxed", children: "Build your first keystone habit using the WOOP framework — backed by decades of behavioral science research." }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "button",
+          !isLoading && activeGoals.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            TabPills,
             {
-              type: "button",
-              onClick: () => setShowWoop(true),
-              className: "flex items-center gap-2 rounded-xl px-6 py-3 font-display font-semibold text-sm transition-smooth",
-              style: {
-                backgroundColor: "oklch(var(--color-accent-success) / 0.14)",
-                color: "oklch(var(--color-accent-success))",
-                boxShadow: "0 0 16px 2px oklch(var(--color-accent-success) / 0.2)"
-              },
-              "data-ocid": "dashboard.create_first_goal_button",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" }),
-                "Create Your First Goal"
-              ]
+              activeTab,
+              doneCount: done.length,
+              onTabChange: setActiveTab,
+              badgeAnimKey
             }
-          )
-        ]
-      }
-    ),
-    !isLoading && totalActive > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "div",
-      {
-        className: "rounded-2xl px-5 py-5 flex flex-col items-center gap-4",
-        style: {
-          background: "oklch(0.18 0.01 260)",
-          boxShadow: "inset 2px 2px 6px oklch(0.12 0.01 260), inset -2px -2px 6px oklch(0.24 0.01 260)"
-        },
-        "data-ocid": "dashboard.progress_section",
-        children: [
-          behavioralMessage && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: showSwipeHint && /* @__PURE__ */ jsxRuntimeExports.jsx(
             motion.p,
             {
-              initial: { opacity: 0, y: -4 },
-              animate: { opacity: 1, y: 0 },
-              transition: { duration: 0.35, ease: "easeOut" },
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+              className: "text-sm text-center font-body",
               style: {
-                color: "oklch(0.58 0.02 260)",
-                fontSize: "0.95rem",
-                fontWeight: 400,
-                lineHeight: 1.5,
-                letterSpacing: "0.01em",
-                textAlign: "center"
+                color: "rgba(255,255,255,0.45)",
+                fontWeight: 300,
+                letterSpacing: "0.015em",
+                marginTop: "-0.25rem"
               },
-              "data-ocid": "dashboard.behavioral_hook",
-              children: behavioralMessage
+              "data-ocid": "dashboard.swipe_hint",
+              "aria-live": "polite",
+              children: "Swipe Right to Complete • Left to Skip"
             },
-            behavioralMessage
+            "swipe-hint"
+          ) }),
+          isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "flex flex-col",
+              style: { gap: "1.5rem" },
+              "data-ocid": "dashboard.loading_state",
+              children: [1, 2].map((n2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  className: "rounded-2xl p-5 animate-pulse",
+                  style: {
+                    backgroundColor: "oklch(var(--card))",
+                    boxShadow: "-4px -4px 10px rgba(60,60,65,0.4), 6px 6px 14px rgba(0,0,0,0.8)"
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-3 w-24 rounded-full bg-muted mb-3" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-6 w-3/4 rounded-full bg-muted mb-2" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-4 w-1/2 rounded-full bg-muted" })
+                  ]
+                },
+                n2
+              ))
+            }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
+          !isLoading && activeGoals.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
             motion.div,
             {
-              initial: { scale: 0.85, opacity: 0 },
-              animate: { scale: 1, opacity: 1 },
-              transition: { duration: 0.45, ease: "easeOut" },
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                ProgressRing,
-                {
-                  completed: todayCompleted,
-                  total: totalActive,
-                  isComplete: isAllComplete
-                }
-              )
+              initial: { opacity: 0, y: 12 },
+              animate: { opacity: 1, y: 0 },
+              className: "flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl",
+              style: {
+                backgroundColor: "oklch(var(--card))",
+                boxShadow: "-4px -4px 10px rgba(60,60,65,0.4), 6px 6px 12px rgba(0,0,0,0.8)"
+              },
+              "data-ocid": "dashboard.empty_state",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "w-16 h-16 rounded-full flex items-center justify-center mb-4",
+                    style: {
+                      backgroundColor: "oklch(var(--color-accent-success) / 0.1)",
+                      boxShadow: "0 0 32px 4px oklch(var(--color-accent-success) / 0.15)"
+                    },
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Target,
+                      {
+                        className: "w-8 h-8",
+                        style: { color: "oklch(var(--color-accent-success))" }
+                      }
+                    )
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-bold text-foreground mb-2", children: "No active habits yet" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground max-w-xs leading-relaxed", children: [
+                  "Head to ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "My Goals" }),
+                  " to create your first keystone habit using the WOOP framework."
+                ] })
+              ]
             }
-          )
+          ),
+          !isLoading && activeTab === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { mode: "popLayout", children: unswiped.length === 0 && activeGoals.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            motion.div,
+            {
+              initial: { opacity: 0, y: 8 },
+              animate: { opacity: 1, y: 0 },
+              exit: { opacity: 0 },
+              className: "flex flex-col items-center justify-center text-center py-10 px-6 rounded-2xl",
+              style: {
+                backgroundColor: "oklch(var(--card))",
+                boxShadow: "-4px -4px 10px rgba(60,60,65,0.4), 6px 6px 12px rgba(0,0,0,0.8)"
+              },
+              "data-ocid": "dashboard.active_empty_state",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground", children: [
+                "All habits logged today. Check the ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Done" }),
+                " tab."
+              ] })
+            },
+            "all-done"
+          ) : unswiped.map((goal, index2) => {
+            const key = goalKey(goal.id);
+            const isExiting = exitingMap.has(key);
+            return /* @__PURE__ */ jsxRuntimeExports.jsx(
+              GoalCard,
+              {
+                goal,
+                checkInToday: void 0,
+                analytics: analyticsMap.get(key),
+                index: index2,
+                weekHistory: weekHistoryMap.get(key),
+                weekHistoryLoading,
+                mode: "active",
+                onCheckIn: handleGoalCardCheckIn,
+                onExitComplete: handleCardExitComplete,
+                isDarkMode,
+                isCheckingIn: pendingGoalId === key && checkInMutation.isPending,
+                isSkipping: pendingGoalId === key && checkInMutation.isPending,
+                animateIn: recentlyUndone.has(key),
+                exitDirection: isExiting ? exitingMap.get(key) ?? null : swipeDirectionMap.get(key) ?? null,
+                isExiting
+              },
+              key
+            );
+          }) }),
+          !isLoading && activeTab === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { mode: "popLayout", children: done.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            motion.div,
+            {
+              initial: { opacity: 0, y: 8 },
+              animate: { opacity: 1, y: 0 },
+              exit: { opacity: 0 },
+              className: "flex flex-col items-center justify-center text-center py-10 px-6 rounded-2xl",
+              style: {
+                backgroundColor: "oklch(var(--card))",
+                boxShadow: "-4px -4px 10px rgba(60,60,65,0.4), 6px 6px 12px rgba(0,0,0,0.8)"
+              },
+              "data-ocid": "dashboard.done_empty_state",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground", children: [
+                "No completed habits yet — swipe some habits on the",
+                " ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Active" }),
+                " tab."
+              ] })
+            },
+            "done-empty"
+          ) : done.map((goal, index2) => {
+            const key = goalKey(goal.id);
+            const entry = doneMap.get(key);
+            const swipeDir = swipeDirectionMap.get(key) ?? null;
+            return /* @__PURE__ */ jsxRuntimeExports.jsx(
+              GoalCard,
+              {
+                goal,
+                checkInToday: entry ? { checkInType: entry.checkInType } : void 0,
+                analytics: analyticsMap.get(key),
+                index: index2,
+                weekHistory: weekHistoryMap.get(key),
+                weekHistoryLoading,
+                mode: "done",
+                onDoneCardTap: handleDoneCardTap,
+                isDarkMode,
+                entryFrom: swipeDir
+              },
+              key
+            );
+          }) })
         ]
-      }
-    ),
-    !isLoading && goals.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", "data-ocid": "dashboard.goal_list", children: goals.filter((g2) => g2.state === "active").map((goal, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-      GoalCard,
-      {
-        goal,
-        checkInToday: todayCheckInMap.get(goal.id),
-        analytics: analyticsMap.get(goal.id),
-        index: index2,
-        onCheckIn: handleCheckIn,
-        onSkip: handleSkip,
-        isCheckingIn: checkingInGoalId === goal.id && checkInMutation.isPending,
-        isSkipping: skippingGoalId === goal.id && checkInMutation.isPending
-      },
-      goal.id
-    )) }),
-    !isLoading && goals.length > 0 && activeGoalCount < goalLimit && /* @__PURE__ */ jsxRuntimeExports.jsx(
-      motion.button,
-      {
-        type: "button",
-        initial: { scale: 0, opacity: 0 },
-        animate: { scale: 1, opacity: 1 },
-        transition: { delay: 0.4, type: "spring", damping: 20 },
-        whileTap: { scale: 0.92 },
-        onClick: () => setShowWoop(true),
-        className: "fixed bottom-24 right-5 z-30 w-14 h-14 rounded-full flex items-center justify-center transition-smooth",
-        style: {
-          backgroundColor: "oklch(var(--color-accent-success) / 0.18)",
-          boxShadow: "0 0 24px 4px oklch(var(--color-accent-success) / 0.25), 6px 6px 12px rgba(0,0,0,0.5), -4px -4px 10px rgba(255,255,255,0.04)"
-        },
-        "aria-label": "Create new goal",
-        "data-ocid": "dashboard.fab_button",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Plus,
-          {
-            className: "w-6 h-6",
-            style: { color: "oklch(var(--color-accent-success))" }
-          }
-        )
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      WoopWizard,
-      {
-        open: showWoop,
-        onClose: () => setShowWoop(false),
-        onGoalCreated: () => queryClient2.invalidateQueries({ queryKey: ["myGoals"] })
       }
     )
   ] });
@@ -70280,7 +71189,10 @@ function FeedItem({ item, index: index2 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "article",
     {
-      className: "card-neumorphic bg-card border border-border/50 rounded-xl p-4 flex flex-col gap-3",
+      className: "card-neumorphic bg-card rounded-xl p-4 flex flex-col gap-3",
+      style: {
+        borderLeft: "1px solid rgba(255,255,255,0.06)"
+      },
       "data-ocid": `feed.item.${index2}`,
       "aria-label": `${item.partnerDisplayName}'s check-in for ${item.goalName}`,
       children: [
@@ -70725,7 +71637,7 @@ function getElementRef$1(element) {
   }
   return element.props.ref || element.ref;
 }
-var NODES = [
+var NODES$1 = [
   "a",
   "button",
   "div",
@@ -70744,7 +71656,7 @@ var NODES = [
   "svg",
   "ul"
 ];
-var Primitive = NODES.reduce((primitive, node) => {
+var Primitive$1 = NODES$1.reduce((primitive, node) => {
   const Slot2 = /* @__PURE__ */ createSlot(`Primitive.${node}`);
   const Node2 = reactExports.forwardRef((props, forwardedRef) => {
     const { asChild, ...primitiveProps } = props;
@@ -70870,7 +71782,7 @@ var DismissableLayer = reactExports.forwardRef(
       return () => document.removeEventListener(CONTEXT_UPDATE, handleUpdate);
     }, []);
     return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Primitive.div,
+      Primitive$1.div,
       {
         ...layerProps,
         ref: composedRefs,
@@ -70903,7 +71815,7 @@ var DismissableLayerBranch = reactExports.forwardRef((props, forwardedRef) => {
       };
     }
   }, [context.branches]);
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive.div, { ...props, ref: composedRefs });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive$1.div, { ...props, ref: composedRefs });
 });
 DismissableLayerBranch.displayName = BRANCH_NAME;
 function usePointerDownOutside(onPointerDownOutside, ownerDocument = globalThis == null ? void 0 : globalThis.document) {
@@ -71100,7 +72012,7 @@ var FocusScope = reactExports.forwardRef((props, forwardedRef) => {
     },
     [loop, trapped, focusScope.paused]
   );
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive.div, { tabIndex: -1, ...scopeProps, ref: composedRefs, onKeyDown: handleKeyDown });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive$1.div, { tabIndex: -1, ...scopeProps, ref: composedRefs, onKeyDown: handleKeyDown });
 });
 FocusScope.displayName = FOCUS_SCOPE_NAME;
 function focusFirst(candidates, { select = false } = {}) {
@@ -71190,7 +72102,7 @@ var Portal$1 = reactExports.forwardRef((props, forwardedRef) => {
   const [mounted, setMounted] = reactExports.useState(false);
   useLayoutEffect2(() => setMounted(true), []);
   const container = containerProp || mounted && ((_a3 = globalThis == null ? void 0 : globalThis.document) == null ? void 0 : _a3.body);
-  return container ? ReactDOM$2.createPortal(/* @__PURE__ */ jsxRuntimeExports.jsx(Primitive.div, { ...portalProps, ref: forwardedRef }), container) : null;
+  return container ? ReactDOM$2.createPortal(/* @__PURE__ */ jsxRuntimeExports.jsx(Primitive$1.div, { ...portalProps, ref: forwardedRef }), container) : null;
 });
 Portal$1.displayName = PORTAL_NAME$2;
 function useStateMachine(initialState, machine) {
@@ -72165,7 +73077,7 @@ var DialogTrigger = reactExports.forwardRef(
     const context = useDialogContext(TRIGGER_NAME$1, __scopeDialog);
     const composedTriggerRef = useComposedRefs$1(forwardedRef, context.triggerRef);
     return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Primitive.button,
+      Primitive$1.button,
       {
         type: "button",
         "aria-haspopup": "dialog",
@@ -72209,7 +73121,7 @@ var DialogOverlayImpl = reactExports.forwardRef(
       // Make sure `Content` is scrollable even when it doesn't live inside `RemoveScroll`
       // ie. when `Overlay` and `Content` are siblings
       /* @__PURE__ */ jsxRuntimeExports.jsx(ReactRemoveScroll, { as: Slot, allowPinchZoom: true, shards: [context.contentRef], children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Primitive.div,
+        Primitive$1.div,
         {
           "data-state": getState(context.open),
           ...overlayProps,
@@ -72350,7 +73262,7 @@ var DialogTitle = reactExports.forwardRef(
   (props, forwardedRef) => {
     const { __scopeDialog, ...titleProps } = props;
     const context = useDialogContext(TITLE_NAME$1, __scopeDialog);
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive.h2, { id: context.titleId, ...titleProps, ref: forwardedRef });
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive$1.h2, { id: context.titleId, ...titleProps, ref: forwardedRef });
   }
 );
 DialogTitle.displayName = TITLE_NAME$1;
@@ -72359,7 +73271,7 @@ var DialogDescription = reactExports.forwardRef(
   (props, forwardedRef) => {
     const { __scopeDialog, ...descriptionProps } = props;
     const context = useDialogContext(DESCRIPTION_NAME$1, __scopeDialog);
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive.p, { id: context.descriptionId, ...descriptionProps, ref: forwardedRef });
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(Primitive$1.p, { id: context.descriptionId, ...descriptionProps, ref: forwardedRef });
   }
 );
 DialogDescription.displayName = DESCRIPTION_NAME$1;
@@ -72369,7 +73281,7 @@ var DialogClose = reactExports.forwardRef(
     const { __scopeDialog, ...closeProps } = props;
     const context = useDialogContext(CLOSE_NAME, __scopeDialog);
     return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Primitive.button,
+      Primitive$1.button,
       {
         type: "button",
         ...closeProps,
@@ -72418,7 +73330,7 @@ var DescriptionWarning$1 = ({ contentRef, descriptionId }) => {
   }, [MESSAGE, contentRef, descriptionId]);
   return null;
 };
-var Root$1 = Dialog;
+var Root$2 = Dialog;
 var Trigger = DialogTrigger;
 var Portal = DialogPortal;
 var Overlay = DialogOverlay;
@@ -72434,7 +73346,7 @@ var useDialogScope = createDialogScope();
 var AlertDialog$1 = (props) => {
   const { __scopeAlertDialog, ...alertDialogProps } = props;
   const dialogScope = useDialogScope(__scopeAlertDialog);
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root$1, { ...dialogScope, ...alertDialogProps, modal: true });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root$2, { ...dialogScope, ...alertDialogProps, modal: true });
 };
 AlertDialog$1.displayName = ROOT_NAME;
 var TRIGGER_NAME = "AlertDialogTrigger";
@@ -72688,6 +73600,1128 @@ function AlertDialogCancel({
     }
   );
 }
+var NODES = [
+  "a",
+  "button",
+  "div",
+  "form",
+  "h2",
+  "h3",
+  "img",
+  "input",
+  "label",
+  "li",
+  "nav",
+  "ol",
+  "p",
+  "select",
+  "span",
+  "svg",
+  "ul"
+];
+var Primitive = NODES.reduce((primitive, node) => {
+  const Slot2 = /* @__PURE__ */ createSlot$1(`Primitive.${node}`);
+  const Node2 = reactExports.forwardRef((props, forwardedRef) => {
+    const { asChild, ...primitiveProps } = props;
+    const Comp = asChild ? Slot2 : node;
+    if (typeof window !== "undefined") {
+      window[Symbol.for("radix-ui")] = true;
+    }
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(Comp, { ...primitiveProps, ref: forwardedRef });
+  });
+  Node2.displayName = `Primitive.${node}`;
+  return { ...primitive, [node]: Node2 };
+}, {});
+var NAME$1 = "Label";
+var Label$1 = reactExports.forwardRef((props, forwardedRef) => {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Primitive.label,
+    {
+      ...props,
+      ref: forwardedRef,
+      onMouseDown: (event) => {
+        var _a3;
+        const target = event.target;
+        if (target.closest("button, input, select, textarea")) return;
+        (_a3 = props.onMouseDown) == null ? void 0 : _a3.call(props, event);
+        if (!event.defaultPrevented && event.detail > 1) event.preventDefault();
+      }
+    }
+  );
+});
+Label$1.displayName = NAME$1;
+var Root$1 = Label$1;
+function Label({
+  className,
+  ...props
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Root$1,
+    {
+      "data-slot": "label",
+      className: cn(
+        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className
+      ),
+      ...props
+    }
+  );
+}
+function Textarea({ className, ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "textarea",
+    {
+      "data-slot": "textarea",
+      className: cn(
+        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        className
+      ),
+      ...props
+    }
+  );
+}
+function toNumericTier$2(tier) {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
+}
+function getNextTier(current) {
+  if (current === 1) return 2;
+  if (current === 2) return 3;
+  return null;
+}
+const TIER_ACCENT = {
+  1: "text-muted-foreground",
+  2: "text-accent-skip",
+  3: "text-accent-success"
+};
+const TIER_UPGRADE_COPY = {
+  1: {
+    headline: "Ready to build more habits?",
+    body: "Upgrade to Plus and manage up to 10 goals simultaneously. Research shows multi-habit tracking accelerates overall progress."
+  },
+  2: {
+    headline: "Unlock your full potential.",
+    body: "Power tier gives you 25 concurrent goals — ideal for high-performers who want to stack habits systematically."
+  },
+  3: {
+    headline: "You've reached the maximum.",
+    body: "Power tier supports up to 25 active goals. Archive completed or paused goals to free up slots."
+  }
+};
+function TierLimitModal({
+  open,
+  onClose,
+  userProfile
+}) {
+  const navigate = useNavigate();
+  if (!open) return null;
+  const currentTier = userProfile ? toNumericTier$2(userProfile.tier) : 1;
+  const nextTier = getNextTier(currentTier);
+  const currentLimit = TIER_GOAL_LIMITS[currentTier];
+  const nextLimit = nextTier ? TIER_GOAL_LIMITS[nextTier] : null;
+  const copy2 = TIER_UPGRADE_COPY[currentTier];
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm",
+        "aria-hidden": "true"
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "dialog",
+      {
+        open: true,
+        "aria-modal": "true",
+        "aria-label": "Goal Limit Reached",
+        "data-ocid": "tier_limit.dialog",
+        className: "fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] max-w-sm w-full mx-auto rounded-2xl bg-card border border-border/20 overflow-hidden p-0 m-auto",
+        style: {
+          boxShadow: "-5px -5px 16px rgba(65,65,75,0.5), 9px 9px 24px rgba(0,0,0,0.9)",
+          borderTop: "1px solid rgba(255,255,255,0.13)",
+          borderLeft: "1px solid rgba(255,255,255,0.07)"
+        },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative px-5 pt-5 pb-4 border-b border-border", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-accent-social/10 border border-accent-social/20 shrink-0 mt-0.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 18, className: "text-accent-social" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1 pr-6", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-base font-display font-semibold text-foreground leading-tight", children: "Goal Limit Reached" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5", children: [
+                  TIER_LABELS[currentTier],
+                  " plan · ",
+                  currentLimit,
+                  " active goal",
+                  currentLimit !== 1 ? "s" : "",
+                  " max"
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                variant: "ghost",
+                size: "icon",
+                onClick: onClose,
+                "data-ocid": "tier_limit.close_button",
+                "aria-label": "Close",
+                className: "absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground w-7 h-7",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 15 })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-5 space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/20", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wide", children: "Current Plan" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "p",
+                  {
+                    className: `text-lg font-display font-bold ${TIER_ACCENT[currentTier]}`,
+                    children: [
+                      "Tier ",
+                      currentTier,
+                      " — ",
+                      TIER_LABELS[currentTier]
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Active goal limit" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-foreground", children: currentLimit })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-relaxed", children: copy2.body }),
+            nextTier && nextLimit && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                "data-ocid": "tier_limit.upgrade_card",
+                className: "p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-primary font-medium uppercase tracking-wide", children: "Upgrade to" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base font-display font-bold text-foreground", children: [
+                        "Tier ",
+                        nextTier,
+                        " — ",
+                        TIER_LABELS[nextTier]
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Goal limit" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-accent-success", children: nextLimit })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: copy2.headline })
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2 px-5 pb-5", children: [
+            nextTier ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                type: "button",
+                "data-ocid": "tier_limit.upgrade_button",
+                className: "w-full gap-2 button-primary-neon",
+                onClick: () => {
+                  onClose();
+                  void navigate({ to: "/settings" });
+                },
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleArrowUp, { size: 16 }),
+                  "Upgrade to ",
+                  TIER_LABELS[nextTier]
+                ]
+              }
+            ) : null,
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                variant: "outline",
+                "data-ocid": "tier_limit.cancel_button",
+                className: "w-full",
+                onClick: onClose,
+                children: nextTier ? "Not now" : "Got it"
+              }
+            )
+          ] })
+        ]
+      }
+    )
+  ] });
+}
+const THEME_COLORS = [
+  { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
+  { id: "sapphire", label: "Sapphire", value: "#2563EB" },
+  { id: "emerald", label: "Emerald", value: "#059669" },
+  { id: "amber", label: "Amber", value: "#D97706" },
+  { id: "rose", label: "Rose", value: "#E11D48" },
+  { id: "slate", label: "Slate", value: "#475569" },
+  { id: "copper", label: "Copper", value: "#C2410C" },
+  { id: "teal", label: "Teal", value: "#0D9488" }
+];
+const STEPS = [
+  { id: 1, label: "Wish" },
+  { id: 2, label: "Obstacle" },
+  { id: 3, label: "Plan" },
+  { id: 4, label: "Review" }
+];
+const EMPTY = {
+  goalAction: "",
+  goalReason: "",
+  habitAction: "",
+  habitMinutes: "",
+  selectedObstacles: [],
+  customInput: "",
+  customChips: [],
+  ifThenPlan: "",
+  iconName: "target",
+  themeColor: "#2563EB"
+};
+function WoopWizard({
+  open,
+  onClose,
+  onGoalCreated
+}) {
+  var _a3, _b3, _c2, _d2, _e2;
+  const [step, setStep] = reactExports.useState(1);
+  const [animating, setAnimating] = reactExports.useState(false);
+  const [animDir, setAnimDir] = reactExports.useState("fwd");
+  const [mounted, setMounted] = reactExports.useState(false);
+  const [showLimitModal, setShowLimitModal] = reactExports.useState(false);
+  const [errors, setErrors] = reactExports.useState({});
+  const [form, setForm] = reactExports.useState(EMPTY);
+  const { actor, isFetching } = useBackend();
+  const { data: userProfile } = useUserProfile();
+  const queryClient2 = useQueryClient();
+  reactExports.useEffect(() => {
+    if (!open) {
+      setMounted(false);
+      return;
+    }
+    const t2 = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(t2);
+  }, [open]);
+  reactExports.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [open]);
+  const assembledWish = form.goalAction.trim() && form.goalReason.trim() ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}` : "";
+  const assembledHabit = form.habitAction.trim() && form.habitMinutes.trim() ? `Every day, I will ${form.habitAction.trim()} for ${form.habitMinutes.trim()} minutes` : "";
+  const assembledObstacles = form.selectedObstacles.map((o2) => o2.label).join(", ");
+  const primaryObstacle = ((_a3 = form.selectedObstacles[0]) == null ? void 0 : _a3.label) ?? "";
+  const { data: userObstacles = [] } = useQuery({
+    queryKey: ["obstacleTemplates"],
+    queryFn: async () => {
+      if (!actor || !("listMyObstacleTemplates" in actor)) return [];
+      try {
+        return await actor.listMyObstacleTemplates();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching
+  });
+  const createGoalMutation = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not ready — please wait and retry.");
+      let obstacleTemplateId;
+      for (const obs of form.selectedObstacles) {
+        if (obs.kind === "user" && obs.backendId !== void 0) {
+          if (obstacleTemplateId === void 0)
+            obstacleTemplateId = obs.backendId;
+        } else {
+          try {
+            const created = await actor.createObstacleTemplate({
+              title: obs.label,
+              description: ""
+            });
+            if (obstacleTemplateId === void 0)
+              obstacleTemplateId = created.id;
+          } catch {
+            console.error("Failed to persist obstacle template:", obs.label);
+          }
+        }
+      }
+      return await actor.createGoal({
+        wish: assembledWish,
+        wishDescription: assembledHabit,
+        outcome: assembledObstacles,
+        obstacleTemplateId,
+        ifThenPlan: form.ifThenPlan.trim(),
+        iconName: form.iconName || void 0,
+        themeColor: form.themeColor || void 0
+      });
+    },
+    onSuccess: async () => {
+      await queryClient2.invalidateQueries({
+        queryKey: ["myGoals"],
+        refetchType: "all"
+      });
+      await queryClient2.refetchQueries({ queryKey: ["myGoals"] });
+      queryClient2.invalidateQueries({ queryKey: ["analytics"] });
+      ue.success("Commitment made! Your habit is on the dashboard.", {
+        description: assembledHabit,
+        duration: 5e3
+      });
+      onGoalCreated == null ? void 0 : onGoalCreated();
+      handleClose();
+    },
+    onError: (error) => {
+      var _a4;
+      const msg = ((_a4 = error.message) == null ? void 0 : _a4.toLowerCase()) ?? "";
+      if (msg.includes("limitreached") || msg.includes("limit reached") || msg.includes("goal limit")) {
+        setShowLimitModal(true);
+      } else {
+        ue.error("Failed to create goal. Please try again.", {
+          description: error.message
+        });
+      }
+    }
+  });
+  const handleClose = reactExports.useCallback(() => {
+    setStep(1);
+    setForm(EMPTY);
+    setErrors({});
+    onClose();
+  }, [onClose]);
+  const validate = (s2) => {
+    const e3 = {};
+    if (s2 === 1) {
+      if (!form.goalAction.trim())
+        e3.goalAction = "Tell us what you want to achieve.";
+      if (!form.goalReason.trim()) e3.goalReason = "What's your deeper reason?";
+      if (!form.habitAction.trim()) e3.habitAction = "Name the daily action.";
+      if (!form.habitMinutes.trim()) e3.habitMinutes = "How many minutes?";
+    }
+    if (s2 === 2 && form.selectedObstacles.length === 0) {
+      e3.obstacles = "Select at least one obstacle you might face.";
+    }
+    if (s2 === 3 && !form.ifThenPlan.trim()) {
+      e3.ifThenPlan = "Write your backup plan.";
+    }
+    setErrors(e3);
+    return Object.keys(e3).length === 0;
+  };
+  const navigate = (dir) => {
+    setAnimDir(dir);
+    setAnimating(true);
+    setTimeout(() => {
+      setStep((s2) => dir === "fwd" ? s2 + 1 : s2 - 1);
+      setAnimating(false);
+    }, 180);
+  };
+  const goNext = () => {
+    if (step === 4) {
+      createGoalMutation.mutate();
+      return;
+    }
+    if (!validate(step)) return;
+    navigate("fwd");
+  };
+  const goBack = () => {
+    if (step === 1) return;
+    setErrors({});
+    navigate("bwd");
+  };
+  const toggleObstacle = (obs) => {
+    setForm((f2) => {
+      const exists = f2.selectedObstacles.find((o2) => o2.id === obs.id);
+      const updated = exists ? f2.selectedObstacles.filter((o2) => o2.id !== obs.id) : [...f2.selectedObstacles, obs];
+      return { ...f2, selectedObstacles: updated };
+    });
+    setErrors((e3) => ({ ...e3, obstacles: void 0 }));
+  };
+  const addCustomChip = () => {
+    const label = form.customInput.trim();
+    if (!label) return;
+    const normalised = label.toLowerCase();
+    const alreadyExists = form.customChips.some((c2) => c2.label.toLowerCase() === normalised) || OBSTACLE_TEMPLATES.some((t2) => t2.label.toLowerCase() === normalised);
+    if (alreadyExists) {
+      setErrors((e3) => ({
+        ...e3,
+        customInput: "That obstacle is already listed."
+      }));
+      return;
+    }
+    const chip = {
+      id: `custom_${Date.now()}`,
+      label,
+      kind: "custom"
+    };
+    setForm((f2) => ({
+      ...f2,
+      customInput: "",
+      customChips: [...f2.customChips, chip],
+      selectedObstacles: [...f2.selectedObstacles, chip]
+    }));
+    setErrors((e3) => ({ ...e3, obstacles: void 0, customInput: void 0 }));
+  };
+  if (!open) return null;
+  const slideClass = animating ? animDir === "fwd" ? "opacity-0 translate-x-8" : "opacity-0 -translate-x-8" : "opacity-100 translate-x-0";
+  const presetIds = new Set(OBSTACLE_TEMPLATES.map((t2) => t2.id));
+  const uniqueUserObstacles = userObstacles.filter(
+    (o2) => !presetIds.has(String(o2.id)) && !OBSTACLE_TEMPLATES.some(
+      (t2) => t2.label.toLowerCase() === o2.title.toLowerCase()
+    )
+  ).map((o2) => ({
+    id: `user_${String(o2.id)}`,
+    label: o2.title,
+    kind: "user",
+    backendId: o2.id
+  }));
+  const allObstacleChips = [
+    ...OBSTACLE_TEMPLATES.map((o2) => ({
+      id: o2.id,
+      label: o2.label,
+      kind: "builtin"
+    })),
+    ...uniqueUserObstacles,
+    ...form.customChips
+  ];
+  const isSelected = (id2) => form.selectedObstacles.some((o2) => o2.id === id2);
+  const stepTitles = [
+    "Plant your wish",
+    "Name your obstacle",
+    "Write your plan",
+    "Your commitment"
+  ];
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "dialog",
+      {
+        open: true,
+        "aria-modal": "true",
+        "aria-label": "WOOP Goal Builder",
+        "data-ocid": "woop_wizard.dialog",
+        onClick: (e3) => e3.stopPropagation(),
+        onKeyDown: (e3) => {
+          if (e3.key === "Escape") handleClose();
+        },
+        style: {
+          transform: mounted ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)"
+        },
+        className: "fixed inset-0 z-[300] flex flex-col bg-card overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1", children: "WOOP Goal Builder" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight", children: stepTitles[step - 1] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                variant: "ghost",
+                size: "icon",
+                onClick: handleClose,
+                "data-ocid": "woop_wizard.close_button",
+                "aria-label": "Close goal builder",
+                className: "text-muted-foreground hover:text-foreground shrink-0 w-11 h-11",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 22 })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "shrink-0 px-6 pt-5 pb-4",
+              "aria-label": `Step ${step} of 4`,
+              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-center max-w-2xl mx-auto", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full",
+                    style: { background: "oklch(var(--color-accent-missed) / 0.18)" },
+                    "aria-hidden": "true"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out",
+                    style: {
+                      background: "oklch(var(--color-accent-success))",
+                      right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
+                      boxShadow: "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)"
+                    },
+                    "aria-hidden": "true"
+                  }
+                ),
+                STEPS.map((s2) => {
+                  const isActive = step === s2.id;
+                  const isComplete = step > s2.id;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      "data-ocid": `woop_wizard.step_indicator.${s2.id}`,
+                      className: "relative z-10 flex-1 flex flex-col items-center gap-2",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "div",
+                          {
+                            className: "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold text-sm",
+                            style: isComplete ? {
+                              backgroundColor: "oklch(var(--color-accent-success))",
+                              color: "oklch(0.12 0 0)",
+                              boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.55)"
+                            } : isActive ? {
+                              backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                              border: "2.5px solid oklch(var(--color-accent-success))",
+                              color: "oklch(var(--color-accent-success))",
+                              boxShadow: "0 0 20px 4px oklch(var(--color-accent-success) / 0.3)"
+                            } : {
+                              backgroundColor: "oklch(var(--muted))",
+                              border: "2px solid oklch(var(--color-accent-missed) / 0.3)",
+                              color: "oklch(var(--muted-foreground))"
+                            },
+                            children: isComplete ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "svg",
+                              {
+                                viewBox: "0 0 12 12",
+                                width: "14",
+                                height: "14",
+                                fill: "none",
+                                stroke: "currentColor",
+                                strokeWidth: "2.5",
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round",
+                                "aria-hidden": "true",
+                                children: /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "2,6 5,9 10,3" })
+                              }
+                            ) : s2.id
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "span",
+                          {
+                            className: "text-xs font-mono tracking-wider uppercase transition-colors duration-200",
+                            style: isComplete ? { color: "oklch(var(--color-accent-success) / 0.7)" } : isActive ? {
+                              color: "oklch(var(--color-accent-success))",
+                              fontWeight: 700
+                            } : { color: "oklch(var(--muted-foreground) / 0.5)" },
+                            children: s2.label
+                          }
+                        )
+                      ]
+                    },
+                    s2.id
+                  );
+                })
+              ] })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: `max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`,
+              children: [
+                step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Your keystone habit is the daily action. Your goal is the destination. Focus on the action." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "I want to" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.goal_action_input",
+                            value: form.goalAction,
+                            onChange: (e3) => {
+                              setForm((f2) => ({
+                                ...f2,
+                                goalAction: e3.target.value
+                              }));
+                              setErrors((er) => ({ ...er, goalAction: void 0 }));
+                            },
+                            placeholder: "run a marathon",
+                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
+                            "aria-label": "What do you want to achieve"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "so that I can" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.goal_reason_input",
+                            value: form.goalReason,
+                            onChange: (e3) => {
+                              setForm((f2) => ({
+                                ...f2,
+                                goalReason: e3.target.value
+                              }));
+                              setErrors((er) => ({ ...er, goalReason: void 0 }));
+                            },
+                            placeholder: "feel unstoppable",
+                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
+                            "aria-label": "Your deeper reason"
+                          }
+                        )
+                      ] }),
+                      (errors.goalAction || errors.goalReason) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-base text-destructive",
+                          "data-ocid": "woop_wizard.goal.field_error",
+                          children: errors.goalAction || errors.goalReason
+                        }
+                      ),
+                      assembledWish && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledWish })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 13, className: "text-accent-success" }),
+                      "Keystone Habit — shown on your dashboard"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "Every day, I will" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.habit_action_input",
+                            value: form.habitAction,
+                            onChange: (e3) => {
+                              setForm((f2) => ({
+                                ...f2,
+                                habitAction: e3.target.value
+                              }));
+                              setErrors((er) => ({
+                                ...er,
+                                habitAction: void 0
+                              }));
+                            },
+                            placeholder: "run",
+                            className: "input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium",
+                            "aria-label": "Daily habit action"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "for" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.habit_minutes_input",
+                            value: form.habitMinutes,
+                            onChange: (e3) => {
+                              setForm((f2) => ({
+                                ...f2,
+                                habitMinutes: e3.target.value
+                              }));
+                              setErrors((er) => ({
+                                ...er,
+                                habitMinutes: void 0
+                              }));
+                            },
+                            placeholder: "15",
+                            inputMode: "numeric",
+                            className: "input-neumorphic w-20 text-foreground text-xl font-medium text-center",
+                            "aria-label": "Minutes per day"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "minutes" })
+                      ] }),
+                      (errors.habitAction || errors.habitMinutes) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-base text-destructive",
+                          "data-ocid": "woop_wizard.habit.field_error",
+                          children: errors.habitAction || errors.habitMinutes
+                        }
+                      ),
+                      assembledHabit && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledHabit })
+                    ] })
+                  ] })
+                ] }),
+                step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Unlike wishful thinking, WOOP asks you to name what stands between you and your habit." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xl font-medium text-foreground", children: "What stands between me and my habit?" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "flex flex-wrap gap-3",
+                      "data-ocid": "woop_wizard.obstacle_list",
+                      children: allObstacleChips.map((obs, idx) => {
+                        const selected = isSelected(obs.id);
+                        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                          "button",
+                          {
+                            type: "button",
+                            "data-ocid": `woop_wizard.obstacle.${idx + 1}`,
+                            onClick: () => toggleObstacle(obs),
+                            "aria-pressed": selected,
+                            className: `chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`,
+                            style: selected ? {
+                              backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
+                              borderColor: "oklch(var(--color-accent-social))",
+                              boxShadow: "0 0 14px oklch(var(--color-accent-social) / 0.4)",
+                              color: "oklch(var(--color-accent-social))"
+                            } : void 0,
+                            children: [
+                              selected && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 13, className: "inline mr-1.5" }),
+                              obs.label
+                            ]
+                          },
+                          obs.id
+                        );
+                      })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-muted-foreground font-medium", children: "Add a custom obstacle" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Input,
+                        {
+                          "data-ocid": "woop_wizard.custom_obstacle_input",
+                          value: form.customInput,
+                          onChange: (e3) => {
+                            setForm((f2) => ({ ...f2, customInput: e3.target.value }));
+                            setErrors((er) => ({ ...er, customInput: void 0 }));
+                          },
+                          onKeyDown: (e3) => {
+                            if (e3.key === "Enter") {
+                              e3.preventDefault();
+                              addCustomChip();
+                            }
+                          },
+                          placeholder: "My specific blocker…",
+                          className: "input-neumorphic flex-1 text-lg bg-transparent border-0"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        Button,
+                        {
+                          type: "button",
+                          size: "default",
+                          "data-ocid": "woop_wizard.add_custom_obstacle_button",
+                          onClick: addCustomChip,
+                          disabled: !form.customInput.trim(),
+                          className: "button-primary-neon gap-1.5 shrink-0 text-base",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 15 }),
+                            " Add"
+                          ]
+                        }
+                      )
+                    ] })
+                  ] }),
+                  errors.customInput && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.custom_obstacle.field_error",
+                      children: errors.customInput
+                    }
+                  ),
+                  errors.obstacles && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.obstacle.field_error",
+                      children: errors.obstacles
+                    }
+                  ),
+                  form.selectedObstacles.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-accent-success", children: [
+                    "Selected:",
+                    " ",
+                    form.selectedObstacles.map((o2) => o2.label).join(", ")
+                  ] })
+                ] }),
+                step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Implementation intentions double follow-through. When you encounter your obstacle, this plan becomes your autopilot." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "If this happens…" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: "px-3 py-1.5 rounded-xl text-base font-medium",
+                        style: {
+                          backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
+                          color: "oklch(var(--color-accent-social))",
+                          border: "1px solid oklch(var(--color-accent-social) / 0.4)"
+                        },
+                        children: obs.label
+                      },
+                      obs.id
+                    )) })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Then I will…" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-lg text-muted-foreground leading-relaxed", children: [
+                        'IF "',
+                        primaryObstacle ? primaryObstacle : "[obstacle]",
+                        '",'
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg text-muted-foreground shrink-0 mt-2", children: "THEN I will" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          Textarea,
+                          {
+                            "data-ocid": "woop_wizard.if_then_plan_input",
+                            value: form.ifThenPlan,
+                            onChange: (e3) => {
+                              setForm((f2) => ({
+                                ...f2,
+                                ifThenPlan: e3.target.value
+                              }));
+                              setErrors((er) => ({ ...er, ifThenPlan: void 0 }));
+                            },
+                            placeholder: "do a 15-min home workout instead",
+                            rows: 4,
+                            className: "flex-1 bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none",
+                            "aria-label": "Your if-then backup plan"
+                          }
+                        )
+                      ] })
+                    ] }),
+                    errors.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-base text-destructive",
+                        "data-ocid": "woop_wizard.if_then_plan.field_error",
+                        children: errors.ifThenPlan
+                      }
+                    )
+                  ] }),
+                  createGoalMutation.isError && !((_c2 = (_b3 = createGoalMutation.error) == null ? void 0 : _b3.message) == null ? void 0 : _c2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.create_goal.error_state",
+                      children: "Something went wrong. Please try again."
+                    }
+                  ),
+                  !actor && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-muted-foreground",
+                      "data-ocid": "woop_wizard.actor_loading_state",
+                      children: "Connecting to backend…"
+                    }
+                  )
+                ] }),
+                step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Review your commitment and personalize your goal. This is the contract with yourself — make it real." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-foreground font-medium leading-relaxed", children: assembledWish })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        className: "rounded-2xl p-5 space-y-1.5",
+                        style: {
+                          background: "oklch(var(--color-accent-success) / 0.08)",
+                          border: "1px solid oklch(var(--color-accent-success) / 0.3)",
+                          boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.12)"
+                        },
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "p",
+                            {
+                              className: "text-xs font-mono tracking-widest uppercase",
+                              style: { color: "oklch(var(--color-accent-success))" },
+                              children: "Daily Habit — what you'll see on your dashboard"
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "p",
+                            {
+                              className: "text-lg font-semibold leading-relaxed",
+                              style: { color: "oklch(var(--color-accent-success))" },
+                              children: assembledHabit
+                            }
+                          )
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Obstacle(s)" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "px-3 py-1 rounded-lg text-base font-medium",
+                          style: {
+                            backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
+                            color: "oklch(var(--color-accent-social))"
+                          },
+                          children: obs.label
+                        },
+                        obs.id
+                      )) })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Your Plan" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-foreground leading-relaxed", children: [
+                        'IF "',
+                        primaryObstacle,
+                        '", THEN I will ',
+                        form.ifThenPlan
+                      ] })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Choose an Icon" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: "grid grid-cols-7 gap-3",
+                        "data-ocid": "woop_wizard.icon_selector",
+                        children: GOAL_ICONS.map((icon) => {
+                          const isIconSelected = form.iconName === icon.id;
+                          return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "button",
+                            {
+                              type: "button",
+                              onClick: () => setForm((f2) => ({ ...f2, iconName: icon.id })),
+                              "aria-label": `Select ${icon.label} icon`,
+                              "aria-pressed": isIconSelected,
+                              "data-ocid": `woop_wizard.icon.${icon.id}`,
+                              className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5",
+                              style: isIconSelected ? {
+                                backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                                border: "2.5px solid oklch(var(--color-accent-success))",
+                                color: "oklch(var(--color-accent-success))",
+                                boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)"
+                              } : {
+                                backgroundColor: "oklch(var(--card))",
+                                border: "1.5px solid oklch(var(--border))",
+                                color: "oklch(var(--muted-foreground))",
+                                boxShadow: "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)"
+                              },
+                              children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 block", children: icon.svg })
+                            },
+                            icon.id
+                          );
+                        })
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Theme Color" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: "flex flex-wrap gap-4",
+                        "data-ocid": "woop_wizard.color_selector",
+                        children: THEME_COLORS.map((color2) => {
+                          const isColorSelected = form.themeColor === color2.value;
+                          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                            "div",
+                            {
+                              className: "flex flex-col items-center gap-2",
+                              children: [
+                                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "button",
+                                  {
+                                    type: "button",
+                                    onClick: () => setForm((f2) => ({
+                                      ...f2,
+                                      themeColor: color2.value
+                                    })),
+                                    "aria-label": color2.label,
+                                    "aria-pressed": isColorSelected,
+                                    "data-ocid": `woop_wizard.color.${color2.id}`,
+                                    className: "w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                    style: {
+                                      backgroundColor: color2.value,
+                                      boxShadow: isColorSelected ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color2.value}, 0 0 14px 3px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                                      transform: isColorSelected ? "scale(1.2)" : "scale(1)"
+                                    }
+                                  }
+                                ),
+                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground font-mono", children: color2.label })
+                              ]
+                            },
+                            color2.id
+                          );
+                        })
+                      }
+                    )
+                  ] }),
+                  createGoalMutation.isError && !((_e2 = (_d2 = createGoalMutation.error) == null ? void 0 : _d2.message) == null ? void 0 : _e2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.create_goal.error_state",
+                      children: "Something went wrong. Please try again."
+                    }
+                  )
+                ] })
+              ]
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 py-5 border-t border-border bg-card", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                type: "button",
+                variant: "outline",
+                size: "lg",
+                "data-ocid": "woop_wizard.back_button",
+                onClick: step === 4 ? () => {
+                  setErrors({});
+                  setStep(3);
+                } : goBack,
+                disabled: step === 1,
+                className: "gap-2 text-base min-w-[100px]",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { size: 16 }),
+                  step === 4 ? "Edit" : "Back"
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-mono text-muted-foreground", children: [
+              step,
+              " / 4"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                size: "lg",
+                "data-ocid": step === 4 ? "woop_wizard.commit_button" : "woop_wizard.next_button",
+                onClick: goNext,
+                disabled: createGoalMutation.isPending || step === 4 && !actor,
+                className: "gap-2 button-primary-neon text-base min-w-[130px]",
+                children: step === 4 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
+                  "Committing…"
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16 }),
+                  "Commit →"
+                ] }) : "Next →"
+              }
+            )
+          ] })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      TierLimitModal,
+      {
+        open: showLimitModal,
+        onClose: () => setShowLimitModal(false),
+        userProfile: userProfile ?? null
+      }
+    )
+  ] });
+}
 function stateLabel(state) {
   switch (state) {
     case GoalState.active:
@@ -72696,8 +74730,6 @@ function stateLabel(state) {
       return "Completed";
     case GoalState.paused:
       return "Paused";
-    case GoalState.abandoned:
-      return "Abandoned";
     default:
       return "Unknown";
   }
@@ -72722,12 +74754,6 @@ function stateBadgeStyle(state) {
         color: "oklch(var(--color-accent-missed))",
         border: "1px solid oklch(var(--color-accent-missed) / 0.25)"
       };
-    case GoalState.abandoned:
-      return {
-        backgroundColor: "oklch(var(--color-accent-social) / 0.1)",
-        color: "oklch(var(--color-accent-social) / 0.7)",
-        border: "1px solid oklch(var(--color-accent-social) / 0.2)"
-      };
     default:
       return {};
   }
@@ -72744,8 +74770,7 @@ const FILTER_TABS = [
   { key: "all", label: "All" },
   { key: GoalState.active, label: "Active" },
   { key: GoalState.paused, label: "Paused" },
-  { key: GoalState.completed, label: "Completed" },
-  { key: GoalState.abandoned, label: "Abandoned" }
+  { key: GoalState.completed, label: "Completed" }
 ];
 function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
   const [form, setForm] = reactExports.useState({
@@ -72880,14 +74905,15 @@ function GoalDetailPanel({
   onStateChange,
   isChangingState,
   onUpdateGoal,
-  isUpdating
+  isUpdating,
+  onDeleteGoal,
+  isDeleting
 }) {
   const [isEditing, setIsEditing] = reactExports.useState(false);
-  const [showAbandonConfirm, setShowAbandonConfirm] = reactExports.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = reactExports.useState(false);
   const isActive = goal.state === GoalState.active;
   const isPaused = goal.state === GoalState.paused;
   const isCompleted = goal.state === GoalState.completed;
-  const isAbandoned = goal.state === GoalState.abandoned;
   function handleSaveEdit(req) {
     onUpdateGoal(goal.id, req);
     setIsEditing(false);
@@ -72899,13 +74925,22 @@ function GoalDetailPanel({
         initial: { opacity: 0, y: 16 },
         animate: { opacity: 1, y: 0 },
         exit: { opacity: 0, y: 8 },
-        className: "rounded-2xl border border-border bg-card p-5 space-y-4",
+        className: "rounded-2xl border border-border/20 bg-card p-5 space-y-4",
+        style: {
+          boxShadow: "-5px -5px 14px rgba(65,65,75,0.5), 8px 8px 22px rgba(0,0,0,0.88)",
+          borderTop: "1px solid rgba(255,255,255,0.12)",
+          borderLeft: "1px solid rgba(255,255,255,0.06)"
+        },
         "data-ocid": "goals.detail_panel",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Keystone Habit" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-xl font-bold text-foreground leading-tight", children: goal.wish })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Macro Goal" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-xl font-bold text-foreground leading-tight", children: goal.wish }),
+              goal.wishDescription && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 block mb-0.5", children: "Keystone Habit" }),
+                goal.wishDescription
+              ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 shrink-0", children: [
               !isEditing && (isActive || isPaused) && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -72942,7 +74977,6 @@ function GoalDetailPanel({
                   goal.state === GoalState.active && /* @__PURE__ */ jsxRuntimeExports.jsx(Flame, { size: 10 }),
                   goal.state === GoalState.paused && /* @__PURE__ */ jsxRuntimeExports.jsx(Pause, { size: 10 }),
                   goal.state === GoalState.completed && /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { size: 10 }),
-                  goal.state === GoalState.abandoned && /* @__PURE__ */ jsxRuntimeExports.jsx(Archive, { size: 10 }),
                   stateLabel(goal.state)
                 ]
               }
@@ -72970,10 +75004,6 @@ function GoalDetailPanel({
               className: "space-y-3",
               "data-ocid": "goals.detail_view",
               children: [
-                goal.wishDescription && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Description" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-foreground leading-relaxed", children: goal.wishDescription })
-                ] }),
                 goal.outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Best Outcome" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-foreground leading-relaxed", children: goal.outcome })
@@ -72995,7 +75025,7 @@ function GoalDetailPanel({
                   size: "sm",
                   variant: "outline",
                   onClick: () => onStateChange(goal.id, GoalState.paused),
-                  disabled: isChangingState,
+                  disabled: isChangingState || isDeleting,
                   className: "gap-1.5 text-xs",
                   "data-ocid": "goals.pause_button",
                   children: [
@@ -73011,7 +75041,7 @@ function GoalDetailPanel({
                   size: "sm",
                   variant: "outline",
                   onClick: () => onStateChange(goal.id, GoalState.completed),
-                  disabled: isChangingState,
+                  disabled: isChangingState || isDeleting,
                   className: "gap-1.5 text-xs",
                   "data-ocid": "goals.complete_button",
                   children: [
@@ -73019,65 +75049,31 @@ function GoalDetailPanel({
                     "Mark Complete"
                   ]
                 }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                Button,
-                {
-                  type: "button",
-                  size: "sm",
-                  variant: "outline",
-                  onClick: () => setShowAbandonConfirm(true),
-                  disabled: isChangingState,
-                  className: "gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5",
-                  "data-ocid": "goals.abandon_button",
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { size: 12 }),
-                    "Abandon"
-                  ]
-                }
               )
             ] }),
-            isPaused && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                Button,
-                {
-                  type: "button",
-                  size: "sm",
-                  onClick: () => onStateChange(goal.id, GoalState.active),
-                  disabled: isChangingState,
-                  className: "gap-1.5 text-xs button-primary-neon",
-                  "data-ocid": "goals.reactivate_button",
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { size: 12 }),
-                    "Reactivate"
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                Button,
-                {
-                  type: "button",
-                  size: "sm",
-                  variant: "outline",
-                  onClick: () => setShowAbandonConfirm(true),
-                  disabled: isChangingState,
-                  className: "gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5",
-                  "data-ocid": "goals.abandon_from_pause_button",
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { size: 12 }),
-                    "Abandon"
-                  ]
-                }
-              )
-            ] }),
-            (isCompleted || isAbandoned) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            isPaused && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                type: "button",
+                size: "sm",
+                onClick: () => onStateChange(goal.id, GoalState.active),
+                disabled: isChangingState || isDeleting,
+                className: "gap-1.5 text-xs button-primary-neon",
+                "data-ocid": "goals.reactivate_button",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { size: 12 }),
+                  "Reactivate"
+                ]
+              }
+            ),
+            isCompleted && /* @__PURE__ */ jsxRuntimeExports.jsxs(
               Button,
               {
                 type: "button",
                 size: "sm",
                 variant: "outline",
                 onClick: () => onStateChange(goal.id, GoalState.active),
-                disabled: isChangingState,
+                disabled: isChangingState || isDeleting,
                 className: "gap-1.5 text-xs",
                 "data-ocid": "goals.restore_button",
                 children: [
@@ -73086,14 +75082,30 @@ function GoalDetailPanel({
                 ]
               }
             ),
-            isChangingState && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                type: "button",
+                size: "sm",
+                variant: "outline",
+                onClick: () => setShowDeleteConfirm(true),
+                disabled: isChangingState || isDeleting,
+                className: "gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5",
+                "data-ocid": "goals.delete_button",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { size: 12 }),
+                  "Delete Goal"
+                ]
+              }
+            ),
+            (isChangingState || isDeleting) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "span",
               {
                 className: "text-xs text-muted-foreground flex items-center gap-1.5",
                 "data-ocid": "goals.state_change_loading_state",
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
-                  "Updating…"
+                  isDeleting ? "Deleting…" : "Updating…"
                 ]
               }
             )
@@ -73101,38 +75113,31 @@ function GoalDetailPanel({
         ]
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      AlertDialog,
-      {
-        open: showAbandonConfirm,
-        onOpenChange: setShowAbandonConfirm,
-        children: /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogContent, { "data-ocid": "goals.abandon_dialog", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogHeader, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(AlertDialogTitle, { children: "Abandon this goal?" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogDescription, { children: [
-              '"',
-              goal.wish,
-              '" will be marked as abandoned. You can restore it later, but it will no longer appear in your active dashboard.'
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogFooter, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(AlertDialogCancel, { "data-ocid": "goals.abandon_cancel_button", children: "Keep it" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              AlertDialogAction,
-              {
-                onClick: () => {
-                  setShowAbandonConfirm(false);
-                  onStateChange(goal.id, GoalState.abandoned);
-                },
-                className: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-                "data-ocid": "goals.abandon_confirm_button",
-                children: "Yes, abandon"
-              }
-            )
-          ] })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(AlertDialog, { open: showDeleteConfirm, onOpenChange: setShowDeleteConfirm, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogContent, { "data-ocid": "goals.delete_dialog", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogHeader, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(AlertDialogTitle, { children: "Delete this goal?" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogDescription, { children: [
+          '"',
+          goal.wish,
+          '" will be permanently deleted. This cannot be undone.'
         ] })
-      }
-    )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(AlertDialogFooter, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(AlertDialogCancel, { "data-ocid": "goals.delete_cancel_button", children: "Cancel" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          AlertDialogAction,
+          {
+            onClick: () => {
+              setShowDeleteConfirm(false);
+              onDeleteGoal(goal.id);
+            },
+            className: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+            "data-ocid": "goals.delete_confirm_button",
+            children: "Delete"
+          }
+        )
+      ] })
+    ] }) })
   ] });
 }
 function GoalsPage$1() {
@@ -73140,6 +75145,7 @@ function GoalsPage$1() {
   const [activeFilter, setActiveFilter] = reactExports.useState(GoalState.active);
   const [selectedGoalId, setSelectedGoalId] = reactExports.useState(null);
   const [changingStateId, setChangingStateId] = reactExports.useState(null);
+  const [deletingGoalId, setDeletingGoalId] = reactExports.useState(null);
   const { actor, isFetching } = useBackend();
   const queryClient2 = useQueryClient();
   const { data: goals = [], isLoading } = useQuery({
@@ -73196,6 +75202,24 @@ function GoalsPage$1() {
       ue.error("Failed to update goal. Please try again.");
     }
   });
+  const deleteGoalMutation = useMutation({
+    mutationFn: async ({ goalId }) => {
+      if (!actor) throw new Error("Actor not ready");
+      return actor.updateGoalState(goalId, GoalState.abandoned);
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
+      ue.success("Goal deleted.");
+      setSelectedGoalId(null);
+    },
+    onError: (err) => {
+      console.error("[GoalsPage] deleteGoal error:", err);
+      ue.error("Failed to delete goal. Please try again.");
+    },
+    onSettled: () => {
+      setDeletingGoalId(null);
+    }
+  });
   function handleStateChange(goalId, newState) {
     setChangingStateId(goalId);
     updateStateMutation.mutate({ goalId, newState });
@@ -73204,11 +75228,18 @@ function GoalsPage$1() {
     if (Object.keys(req).length === 0) return;
     updateGoalMutation.mutate({ goalId, req });
   }
-  const filtered = goals.filter(
+  function handleDeleteGoal(goalId) {
+    setDeletingGoalId(goalId);
+    deleteGoalMutation.mutate({ goalId });
+  }
+  const visibleGoals = goals.filter((g2) => g2.state !== GoalState.abandoned);
+  const filtered = visibleGoals.filter(
     (g2) => activeFilter === "all" ? true : g2.state === activeFilter
   );
-  const activeCount = goals.filter((g2) => g2.state === GoalState.active).length;
-  const selectedGoal = goals.find((g2) => g2.id === selectedGoalId) ?? null;
+  const activeCount = visibleGoals.filter(
+    (g2) => g2.state === GoalState.active
+  ).length;
+  const selectedGoal = visibleGoals.find((g2) => g2.id === selectedGoalId) ?? null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-6 px-4 pb-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Habit Management" }),
@@ -73250,7 +75281,7 @@ function GoalsPage$1() {
         className: "flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none",
         "data-ocid": "goals.filter_tabs",
         children: FILTER_TABS.map((tab) => {
-          const count2 = tab.key === "all" ? goals.length : goals.filter((g2) => g2.state === tab.key).length;
+          const count2 = tab.key === "all" ? visibleGoals.length : visibleGoals.filter((g2) => g2.state === tab.key).length;
           const isActive = activeFilter === tab.key;
           return /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "button",
@@ -73291,12 +75322,12 @@ function GoalsPage$1() {
       },
       n2
     )) }),
-    !isLoading && goals.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    !isLoading && visibleGoals.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
       motion.div,
       {
         initial: { opacity: 0, y: 12 },
         animate: { opacity: 1, y: 0 },
-        className: "flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl bg-card border border-border",
+        className: "flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl bg-card border border-border/20",
         "data-ocid": "goals.empty_state",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -73334,10 +75365,10 @@ function GoalsPage$1() {
         ]
       }
     ),
-    !isLoading && goals.length > 0 && filtered.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    !isLoading && visibleGoals.length > 0 && filtered.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
       {
-        className: "text-center py-10 rounded-2xl bg-card border border-border text-muted-foreground text-sm",
+        className: "text-center py-10 rounded-2xl bg-card border border-border/20 text-muted-foreground text-sm",
         "data-ocid": "goals.filter_empty_state",
         children: [
           "No",
@@ -73367,7 +75398,9 @@ function GoalsPage$1() {
         onStateChange: handleStateChange,
         isChangingState: changingStateId === selectedGoal.id && updateStateMutation.isPending,
         onUpdateGoal: handleUpdateGoal,
-        isUpdating: updateGoalMutation.isPending
+        isUpdating: updateGoalMutation.isPending,
+        onDeleteGoal: handleDeleteGoal,
+        isDeleting: deletingGoalId === selectedGoal.id && deleteGoalMutation.isPending
       },
       String(selectedGoal.id)
     ) }),
@@ -73381,7 +75414,7 @@ function GoalsPage$1() {
           animate: { opacity: 1, y: 0 },
           transition: { delay: index2 * 0.06, duration: 0.3 },
           onClick: () => setSelectedGoalId(isSelected ? null : goal.id),
-          className: `w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${isSelected ? "border-primary/40 bg-primary/5" : "border-border bg-card hover:border-primary/20"}`,
+          className: `w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${isSelected ? "border-primary/40 bg-primary/5" : "border-border/20 bg-card hover:border-primary/20"}`,
           "data-ocid": `goals.goal_item.${index2 + 1}`,
           children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
@@ -73395,7 +75428,6 @@ function GoalsPage$1() {
                       goal.state === GoalState.active && /* @__PURE__ */ jsxRuntimeExports.jsx(Flame, { size: 8 }),
                       goal.state === GoalState.paused && /* @__PURE__ */ jsxRuntimeExports.jsx(Pause, { size: 8 }),
                       goal.state === GoalState.completed && /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { size: 8 }),
-                      goal.state === GoalState.abandoned && /* @__PURE__ */ jsxRuntimeExports.jsx(Archive, { size: 8 }),
                       stateLabel(goal.state)
                     ]
                   }
@@ -73465,8 +75497,13 @@ function LoginPage() {
         {
           className: cn(
             "flex items-center justify-center w-20 h-20 rounded-3xl mb-5",
-            "bg-card shadow-neumorphic-emboss-dark shadow-glow-success transition-smooth"
+            "bg-card transition-smooth"
           ),
+          style: {
+            boxShadow: "-5px -5px 14px rgba(65,65,75,0.5), 8px 8px 22px rgba(0,0,0,0.88)",
+            borderTop: "1px solid rgba(255,255,255,0.13)",
+            borderLeft: "1px solid rgba(255,255,255,0.07)"
+          },
           children: /* @__PURE__ */ jsxRuntimeExports.jsx(
             Target,
             {
@@ -73484,7 +75521,12 @@ function LoginPage() {
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "div",
         {
-          className: "flex items-center gap-3 px-4 py-3 rounded-xl bg-card shadow-neumorphic-emboss-dark",
+          className: "flex items-center gap-3 px-4 py-3 rounded-xl bg-card",
+          style: {
+            boxShadow: "-4px -4px 10px rgba(65,65,75,0.45), 6px 6px 16px rgba(0,0,0,0.82)",
+            borderTop: "1px solid rgba(255,255,255,0.12)",
+            borderLeft: "1px solid rgba(255,255,255,0.06)"
+          },
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Icon2,
@@ -73509,12 +75551,17 @@ function LoginPage() {
           "data-ocid": "login.primary_button",
           className: cn(
             "w-full py-4 px-6 rounded-2xl font-display font-semibold text-base transition-smooth",
-            "bg-card shadow-neumorphic-emboss-dark",
+            "bg-card",
             "text-[oklch(var(--color-accent-success))]",
-            "hover:shadow-glow-success active:scale-[0.98]",
+            "active:scale-[0.98]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           ),
+          style: {
+            boxShadow: "-4px -4px 10px rgba(65,65,75,0.45), 6px 6px 18px rgba(0,0,0,0.85)",
+            borderTop: "1px solid rgba(255,255,255,0.13)",
+            borderLeft: "1px solid rgba(255,255,255,0.07)"
+          },
           children: isLoggingIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center justify-center gap-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "span",
@@ -73545,6 +75592,377 @@ function LoginPage() {
         }
       )
     ] }) })
+  ] });
+}
+function isValidUsernameFormat(value) {
+  return /^[a-zA-Z0-9_]{3,20}$/.test(value);
+}
+function getUsernameFormatError(value) {
+  if (value.length < 3) return "At least 3 characters required.";
+  if (value.length > 20) return "Max 20 characters.";
+  if (!/^[a-zA-Z0-9_]+$/.test(value))
+    return "Letters, numbers, and underscores only.";
+  return "";
+}
+function AvailabilityIndicator({ status }) {
+  if (status === "idle") return null;
+  if (status === "checking") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "span",
+      {
+        className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center",
+        "data-ocid": "onboarding.username_checking",
+        "aria-label": "Checking availability…",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: "w-4 h-4 rounded-full border-2 animate-spin",
+            style: {
+              borderColor: "oklch(var(--muted-foreground) / 0.3)",
+              borderTopColor: "oklch(var(--muted-foreground))"
+            }
+          }
+        )
+      }
+    );
+  }
+  if (status === "available") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "span",
+      {
+        className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center",
+        "data-ocid": "onboarding.username_available",
+        "aria-label": "Username is available",
+        style: {
+          animation: "bounceIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both"
+        },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: "w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
+            style: {
+              background: "oklch(var(--color-accent-success) / 0.15)",
+              color: "oklch(var(--color-accent-success))",
+              boxShadow: "0 0 10px 2px oklch(var(--color-accent-success) / 0.35)",
+              border: "1.5px solid oklch(var(--color-accent-success) / 0.6)",
+              animation: "glowPulse 2s ease-in-out infinite"
+            },
+            children: "✓"
+          }
+        )
+      }
+    );
+  }
+  if (status === "taken") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "span",
+      {
+        className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center",
+        "data-ocid": "onboarding.username_taken",
+        "aria-label": "Username is taken",
+        style: { animation: "shakeLateral 0.4s ease both" },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: "w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
+            style: {
+              background: "oklch(var(--color-accent-social) / 0.15)",
+              color: "oklch(var(--color-accent-social))",
+              boxShadow: "0 0 8px 1px oklch(var(--color-accent-social) / 0.3)",
+              border: "1.5px solid oklch(var(--color-accent-social) / 0.5)"
+            },
+            children: "✕"
+          }
+        )
+      }
+    );
+  }
+  return null;
+}
+function OnboardingPage({ onComplete }) {
+  const [username, setUsername] = reactExports.useState("");
+  const [usernameError, setUsernameError] = reactExports.useState("");
+  const [apiError, setApiError] = reactExports.useState("");
+  const [isSubmitting, setIsSubmitting] = reactExports.useState(false);
+  const [availability, setAvailability] = reactExports.useState("idle");
+  const { actor } = useBackend();
+  const { logout } = useAuth();
+  const queryClient2 = useQueryClient();
+  const debounceRef = reactExports.useRef(null);
+  const checkAvailability = reactExports.useCallback(
+    async (value) => {
+      if (!isValidUsernameFormat(value)) {
+        setAvailability("idle");
+        return;
+      }
+      setAvailability("checking");
+      try {
+        if (actor && "isUsernameAvailable" in actor) {
+          const available = await actor.isUsernameAvailable(value);
+          setAvailability(available ? "available" : "taken");
+        } else {
+          setAvailability("unknown");
+        }
+      } catch {
+        setAvailability("unknown");
+      }
+    },
+    [actor]
+  );
+  reactExports.useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!username || username.length < 3) {
+      setAvailability("idle");
+      return;
+    }
+    if (!isValidUsernameFormat(username)) {
+      setAvailability("idle");
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      void checkAvailability(username);
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [username, checkAvailability]);
+  async function handleSubmit(e3) {
+    e3.preventDefault();
+    const uErr = username.trim() ? getUsernameFormatError(username.trim()) : "Username is required.";
+    setUsernameError(uErr);
+    if (uErr) return;
+    if (availability === "taken") return;
+    setIsSubmitting(true);
+    setApiError("");
+    try {
+      if (!actor) throw new Error("Backend not available.");
+      await actor.register(
+        username.trim()
+      );
+      await queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
+      await queryClient2.refetchQueries({ queryKey: ["userProfile"] });
+      onComplete();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      if (msg.toLowerCase().includes("taken") || msg.toLowerCase().includes("username")) {
+        setAvailability("taken");
+        setUsernameError("That username is already taken.");
+      } else {
+        setApiError(msg);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+  const canSubmit = isValidUsernameFormat(username) && (availability === "available" || availability === "unknown") && !isSubmitting;
+  const usernameInputStyle = availability === "available" ? {
+    outline: "2px solid oklch(var(--color-accent-success) / 0.5)",
+    outlineOffset: "2px"
+  } : availability === "taken" ? {
+    outline: "2px solid oklch(var(--color-accent-social) / 0.5)",
+    outlineOffset: "2px"
+  } : {};
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+        @keyframes bounceIn {
+          0%   { transform: translateY(-50%) scale(0); opacity: 0; }
+          60%  { transform: translateY(-50%) scale(1.2); opacity: 1; }
+          100% { transform: translateY(-50%) scale(1); opacity: 1; }
+        }
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 8px 1px oklch(var(--color-accent-success) / 0.3); }
+          50%       { box-shadow: 0 0 14px 3px oklch(var(--color-accent-success) / 0.55); }
+        }
+        @keyframes shakeLateral {
+          0%   { transform: translateY(-50%) translateX(0); }
+          20%  { transform: translateY(-50%) translateX(-4px); }
+          40%  { transform: translateY(-50%) translateX(4px); }
+          60%  { transform: translateY(-50%) translateX(-3px); }
+          80%  { transform: translateY(-50%) translateX(3px); }
+          100% { transform: translateY(-50%) translateX(0); }
+        }
+      ` }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12",
+        "data-ocid": "onboarding.page",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed top-4 right-4 z-10", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              type: "button",
+              onClick: () => logout(),
+              "data-ocid": "onboarding.logout_button",
+              "aria-label": "Sign out",
+              className: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body transition-smooth text-muted-foreground hover:text-foreground",
+              style: {
+                background: "oklch(var(--card))",
+                boxShadow: "3px 3px 7px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.04)"
+              },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(LogOut, { size: 13 }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Sign out" })
+              ]
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-8 text-center", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl font-display font-bold tracking-tight text-foreground", children: "Cumulative" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-1 text-sm text-muted-foreground tracking-widest uppercase", children: "Behavioral accountability" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "onboarding-card w-full max-w-md",
+              "data-ocid": "onboarding.card",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-8 text-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs uppercase tracking-widest text-muted-foreground mb-2", children: "Identity Setup" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-display font-semibold text-foreground leading-snug", children: "Welcome. Choose your handle." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-sm text-muted-foreground", children: "Your username is permanent and must be unique." })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, noValidate: true, className: "space-y-7", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "label",
+                      {
+                        htmlFor: "username",
+                        className: "flex items-center text-sm font-medium text-foreground",
+                        children: [
+                          "Username",
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold tracking-wide uppercase ml-2",
+                              style: {
+                                color: "oklch(var(--color-accent-success))",
+                                background: "oklch(var(--color-accent-success) / 0.12)",
+                                border: "1px solid oklch(var(--color-accent-success) / 0.35)",
+                                boxShadow: "0 0 6px 1px oklch(var(--color-accent-success) / 0.18)"
+                              },
+                              children: "Required"
+                            }
+                          )
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground", children: [
+                      "My handle on Cumulative is",
+                      " ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "madlib-field font-semibold", children: username || "___" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          id: "username",
+                          "data-ocid": "onboarding.username.input",
+                          type: "text",
+                          className: "input-neumorphic w-full text-base pr-10",
+                          placeholder: "e.g. sarah_runs",
+                          value: username,
+                          maxLength: 20,
+                          autoComplete: "username",
+                          spellCheck: false,
+                          style: usernameInputStyle,
+                          onChange: (e3) => {
+                            const val = e3.target.value.replace(/\s/g, "");
+                            setUsername(val);
+                            setUsernameError("");
+                            setApiError("");
+                          },
+                          onBlur: () => {
+                            if (username.trim()) {
+                              setUsernameError(getUsernameFormatError(username.trim()));
+                            }
+                          }
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(AvailabilityIndicator, { status: availability })
+                    ] }),
+                    availability === "available" && !usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-xs font-medium",
+                        "data-ocid": "onboarding.username_available.text",
+                        style: { color: "oklch(var(--color-accent-success))" },
+                        children: "✓ Username is available"
+                      }
+                    ),
+                    availability === "taken" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-xs font-medium",
+                        "data-ocid": "onboarding.username_taken.text",
+                        style: { color: "oklch(var(--color-accent-social))" },
+                        children: "Username taken — try another"
+                      }
+                    ),
+                    usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-xs mt-0.5",
+                        "data-ocid": "onboarding.username.field_error",
+                        style: { color: "oklch(var(--destructive))" },
+                        children: usernameError
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "3–20 characters · letters, numbers, and underscores only" })
+                  ] }),
+                  apiError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-sm text-center py-2 px-3 rounded-lg bg-muted",
+                      "data-ocid": "onboarding.error_state",
+                      style: { color: "oklch(var(--destructive))" },
+                      children: apiError
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      "data-ocid": "onboarding.submit_button",
+                      type: "submit",
+                      disabled: !canSubmit,
+                      className: "w-full py-3 rounded-lg font-display font-semibold text-base tracking-wide transition-smooth button-primary-neon disabled:opacity-40 disabled:cursor-not-allowed",
+                      children: isSubmitting ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "span",
+                        {
+                          className: "flex items-center justify-center gap-2",
+                          "data-ocid": "onboarding.loading_state",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" }),
+                            "Setting up…"
+                          ]
+                        }
+                      ) : "Begin →"
+                    }
+                  )
+                ] })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "mt-8 text-xs text-muted-foreground text-center", children: [
+            "© ",
+            (/* @__PURE__ */ new Date()).getFullYear(),
+            ".",
+            " ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "a",
+              {
+                href: `https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+                  typeof window !== "undefined" ? window.location.hostname : ""
+                )}`,
+                target: "_blank",
+                rel: "noreferrer",
+                className: "hover:text-foreground transition-colors duration-200",
+                children: "Built with love using caffeine.ai"
+              }
+            )
+          ] })
+        ]
+      }
+    )
   ] });
 }
 const TIER_COLOURS = {
@@ -73592,6 +76010,103 @@ function StatCard({
     sub && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: sub })
   ] });
 }
+function EditProfileSection({ initialDisplayName }) {
+  const { actor } = useBackend();
+  const queryClient2 = useQueryClient();
+  const [displayName, setDisplayName] = reactExports.useState(initialDisplayName);
+  const [saved, setSaved] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    setDisplayName(initialDisplayName);
+  }, [initialDisplayName]);
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      const nameArg = displayName.trim().length > 0 ? displayName.trim() : null;
+      return await actor.updateMyProfile(nameArg, null);
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
+      queryClient2.refetchQueries({ queryKey: ["userProfile"] });
+      setSaved(true);
+      ue.success("Profile updated.");
+      setTimeout(() => setSaved(false), 3e3);
+    },
+    onError: (err) => {
+      ue.error(err.message || "Failed to update profile.");
+    }
+  });
+  const isDirty = displayName.trim() !== initialDisplayName;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: "flex flex-col gap-4 p-5 rounded-2xl bg-card card-neumorphic border border-border/40",
+      "data-ocid": "profile.edit_section",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Pencil,
+            {
+              className: "w-4 h-4",
+              style: { color: "oklch(var(--color-accent-success))" }
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-display font-semibold text-foreground", children: "Edit Profile" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "label",
+              {
+                htmlFor: "profile-display-name",
+                className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
+                children: "Display Name"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-medium text-muted-foreground rounded border border-border/50 px-1.5 py-0.5", children: "Optional" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              id: "profile-display-name",
+              type: "text",
+              value: displayName,
+              onChange: (e3) => setDisplayName(e3.target.value),
+              maxLength: 40,
+              placeholder: "e.g. Sarah",
+              className: "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50",
+              "data-ocid": "profile.display_name_input"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "This is how the dashboard will greet you." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => updateMutation.mutate(),
+            disabled: !isDirty || updateMutation.isPending,
+            className: "flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-display font-semibold text-sm transition-smooth disabled:opacity-40 disabled:cursor-not-allowed",
+            style: {
+              backgroundColor: saved ? "oklch(var(--color-accent-success) / 0.16)" : "oklch(var(--color-accent-success) / 0.14)",
+              color: "oklch(var(--color-accent-success))",
+              boxShadow: isDirty ? "0 0 16px 2px oklch(var(--color-accent-success) / 0.18)" : "none"
+            },
+            "data-ocid": "profile.save_button",
+            children: updateMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "animate-pulse", children: "Saving…" }) : saved ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4" }),
+              "Saved"
+            ] }) : "Save changes"
+          }
+        )
+      ]
+    }
+  );
+}
+function toNumericTier$1(tier) {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
+}
 function ProfilePage$1() {
   const { data: profile, isLoading } = useUserProfile();
   const { principalText } = useAuth();
@@ -73602,7 +76117,7 @@ function ProfilePage$1() {
         className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
         "data-ocid": "profile.loading_state",
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-24 w-full rounded-2xl" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-40 w-full rounded-2xl" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 rounded-xl" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 rounded-xl" })
@@ -73612,34 +76127,62 @@ function ProfilePage$1() {
       }
     );
   }
-  const tier = (profile == null ? void 0 : profile.tier) ?? 1;
+  const tier = profile ? toNumericTier$1(profile.tier) : 1;
   const tierColour = TIER_COLOURS[tier];
   const defaultLimit = TIER_GOAL_LIMITS[tier];
-  const isOverridden = (profile == null ? void 0 : profile.goalLimit) !== defaultLimit;
+  const isOverridden = profile ? Number(profile.goalLimit) !== defaultLimit : false;
+  const avatarInitial = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim()[0].toUpperCase() : (profile == null ? void 0 : profile.username) && profile.username.trim() !== "" ? profile.username.trim()[0].toUpperCase() : null;
+  const displayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim() : "";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
       className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
       "data-ocid": "profile.page",
       children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex flex-col gap-3 p-5 rounded-2xl bg-card card-neumorphic border border-border/40 overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex flex-col gap-4 p-5 rounded-2xl bg-card card-neumorphic border border-border/20 overflow-hidden", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "div",
             {
               className: `absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl bg-primary ${tierColour.glow}`
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4 relative", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-2 relative pt-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "div",
               {
-                className: `w-14 h-14 rounded-full bg-muted flex items-center justify-center ${tierColour.glow} border-2 border-border/40`,
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-7 h-7 text-muted-foreground" })
+                className: "flex items-center justify-center w-20 h-20 rounded-full select-none",
+                style: {
+                  background: "oklch(0.22 0.01 260)",
+                  boxShadow: "inset 3px 3px 8px oklch(0.14 0.01 260), inset -3px -3px 8px oklch(0.30 0.01 260)"
+                },
+                "aria-label": "Your avatar",
+                "data-ocid": "profile.avatar",
+                children: avatarInitial ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "span",
+                  {
+                    className: "font-display font-bold text-3xl",
+                    style: { color: "oklch(var(--color-accent-success))" },
+                    children: avatarInitial
+                  }
+                ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  User,
+                  {
+                    className: "w-9 h-9",
+                    style: { color: "oklch(var(--color-accent-success) / 0.7)" }
+                  }
+                )
               }
             ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-lg font-bold text-foreground truncate", children: (profile == null ? void 0 : profile.username) ?? "Unknown" }),
-              (profile == null ? void 0 : profile.role) === "admin" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-primary/20 text-accent-success border-primary/30 text-xs mt-0.5", children: "Admin" })
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
+              displayName ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "p",
+                {
+                  className: "font-display text-xl font-bold text-foreground",
+                  "data-ocid": "profile.display_name",
+                  children: displayName
+                }
+              ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground italic", children: "No display name set" }),
+              (profile == null ? void 0 : profile.role) === "admin" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-primary/20 text-accent-success border-primary/30 text-xs mt-1", children: "Admin" })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Badge,
@@ -73650,11 +76193,21 @@ function ProfilePage$1() {
               }
             )
           ] }),
-          principalText && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide", children: "Principal ID" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(CopyPrincipal, { principal: principalText })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-3 border-t border-border/30 pt-3", children: [
+            (profile == null ? void 0 : profile.username) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide", children: "Username" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-foreground font-mono", children: [
+                "@",
+                profile.username
+              ] })
+            ] }),
+            principalText && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide", children: "Principal ID" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CopyPrincipal, { principal: principalText })
+            ] })
           ] })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(EditProfileSection, { initialDisplayName: displayName }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             StatCard,
@@ -73668,7 +76221,7 @@ function ProfilePage$1() {
             StatCard,
             {
               label: "Goal Limit",
-              value: (profile == null ? void 0 : profile.goalLimit) ?? defaultLimit,
+              value: profile ? Number(profile.goalLimit) : defaultLimit,
               sub: isOverridden ? "Admin override active" : `Tier ${tier} default`
             }
           )
@@ -73678,8 +76231,9 @@ function ProfilePage$1() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("ul", { className: "flex flex-col gap-1.5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-success flex-shrink-0" }),
-              "Up to ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: (profile == null ? void 0 : profile.goalLimit) ?? defaultLimit }),
+              "Up to",
+              " ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: profile ? Number(profile.goalLimit) : defaultLimit }),
               " ",
               "concurrent goals"
             ] }),
@@ -73693,7 +76247,7 @@ function ProfilePage$1() {
             ] }),
             tier >= 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-skip flex-shrink-0" }),
-              "Advanced analytics & streak charts"
+              "Advanced analytics & consistency charts"
             ] }),
             tier >= 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-success flex-shrink-0" }),
@@ -73714,7 +76268,7 @@ var Separator$1 = reactExports.forwardRef((props, forwardedRef) => {
   const ariaOrientation = orientation === "vertical" ? orientation : void 0;
   const semanticProps = decorative ? { role: "none" } : { "aria-orientation": ariaOrientation, role: "separator" };
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Primitive$1.div,
+    Primitive.div,
     {
       "data-orientation": orientation,
       ...semanticProps,
@@ -73747,6 +76301,11 @@ function Separator({
       ...props
     }
   );
+}
+function toNumericTier(tier) {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
 }
 const PLANS = [
   {
@@ -73849,9 +76408,9 @@ function SettingsPage$1() {
       }
     );
   }
-  const tier = (profile == null ? void 0 : profile.tier) ?? 1;
+  const tier = profile ? toNumericTier(profile.tier) : 1;
   const defaultLimit = TIER_GOAL_LIMITS[tier];
-  const isOverridden = !!profile && profile.goalLimit !== defaultLimit;
+  const isOverridden = !!profile && Number(profile.goalLimit) !== defaultLimit;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
@@ -73889,7 +76448,7 @@ function SettingsPage$1() {
             InfoRow,
             {
               label: "Goal limit",
-              value: (profile == null ? void 0 : profile.goalLimit) ?? defaultLimit,
+              value: profile ? Number(profile.goalLimit) : defaultLimit,
               mono: true
             }
           ),
@@ -73948,22 +76507,77 @@ function AdminPage() {
 function GoalsPage() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(GoalsPage$1, {});
 }
+function AppSpinner({ ocid, label }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: "min-h-screen flex flex-col items-center justify-center bg-background gap-4",
+      "data-ocid": ocid,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-8 h-8 border-2 border-primary/40 border-t-primary rounded-full animate-spin" }),
+        label && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground font-body", children: label })
+      ]
+    }
+  );
+}
+function OnboardingGate({ children }) {
+  const { actorReady } = useBackend();
+  const {
+    data: profile,
+    isLoading: profileIsLoading,
+    isFetching: profileIsFetching,
+    refetch
+  } = useUserProfile();
+  const latchedStateRef = reactExports.useRef(null);
+  const [gateState, setGateState] = reactExports.useState("LOADING");
+  reactExports.useEffect(() => {
+    var _a3;
+    const latched = latchedStateRef.current;
+    if (latched === "READY") return;
+    if (!actorReady) return;
+    if (profileIsLoading) return;
+    if (profileIsFetching && !profile) return;
+    const username = (profile == null ? void 0 : profile.username) ?? "";
+    const principalStr = ((_a3 = profile == null ? void 0 : profile.id) == null ? void 0 : _a3.toString()) ?? "";
+    const needsOnboarding = !profile || username.trim().length === 0 || principalStr.length > 0 && username === principalStr;
+    if (needsOnboarding) {
+      latchedStateRef.current = "NEEDS_ONBOARDING";
+      setGateState("NEEDS_ONBOARDING");
+    } else {
+      latchedStateRef.current = "READY";
+      setGateState("READY");
+    }
+  }, [actorReady, profileIsLoading, profileIsFetching, profile]);
+  if (gateState === "LOADING") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      AppSpinner,
+      {
+        ocid: "onboarding.loading_state",
+        label: "Setting up your session…"
+      }
+    );
+  }
+  if (gateState === "NEEDS_ONBOARDING") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      OnboardingPage,
+      {
+        onComplete: () => {
+          void refetch();
+        }
+      }
+    );
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children });
+}
 function AuthGate({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: "min-h-screen flex items-center justify-center bg-background",
-        "data-ocid": "app.loading_state",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-8 h-8 border-2 border-primary/40 border-t-primary rounded-full animate-spin" })
-      }
-    );
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(AppSpinner, { ocid: "app.loading_state" });
   }
   if (!isAuthenticated) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(LoginPage, {});
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(OnboardingGate, { children });
 }
 const rootRoute = createRootRoute({
   component: () => /* @__PURE__ */ jsxRuntimeExports.jsx(AuthGate, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Layout, {}) })
@@ -74028,10 +76642,39 @@ const router = createRouter({ routeTree });
 function App() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(RouterProvider, { router });
 }
+const __vite_import_meta_env__ = { "BASE_URL": "/", "DEV": false, "MODE": "production", "PROD": true, "SSR": false };
 BigInt.prototype.toJSON = function() {
   return this.toString();
 };
+const RESET_KEY = "cumulative_reset_v1";
+async function runDevResetIfNeeded() {
+  if (localStorage.getItem(RESET_KEY)) return;
+  try {
+    const canisterId = (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      __vite_import_meta_env__ == null ? void 0 : __vite_import_meta_env__.CANISTER_ID_BACKEND
+    );
+    if (!canisterId) return;
+    const noopUpload = async (_file) => new Uint8Array();
+    const noopDownload = async (_file) => {
+      const { ExternalBlob: ExternalBlob3 } = await __vitePreload(async () => {
+        const { ExternalBlob: ExternalBlob4 } = await Promise.resolve().then(() => backend);
+        return { ExternalBlob: ExternalBlob4 };
+      }, true ? void 0 : void 0);
+      return ExternalBlob3.fromBytes(new Uint8Array());
+    };
+    const actor = createActor(
+      canisterId,
+      noopUpload,
+      noopDownload
+    );
+    await actor.devReset();
+    localStorage.setItem(RESET_KEY, "1");
+  } catch {
+  }
+}
 const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(QueryClientProvider, { client: queryClient, children: /* @__PURE__ */ jsxRuntimeExports.jsx(InternetIdentityProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
+void runDevResetIfNeeded();
