@@ -16,17 +16,17 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   {
-    to: "/",
-    icon: Home,
-    label: "Dashboard",
-    accentClass: "text-[#10B981]",
-    glowClass: "",
-  },
-  {
     to: "/feed",
     icon: Users,
     label: "Partners",
     accentClass: "text-[#EAB308]",
+    glowClass: "",
+  },
+  {
+    to: "/",
+    icon: Home,
+    label: "Dashboard",
+    accentClass: "text-[#10B981]",
     glowClass: "",
   },
   {

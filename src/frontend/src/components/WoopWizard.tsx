@@ -15,7 +15,7 @@ import TierLimitModal from "./TierLimitModal";
 interface WoopWizardProps {
   open: boolean;
   onClose: () => void;
-  onGoalCreated?: () => void;
+  onGoalCreated?: (goalId?: string) => void;
 }
 
 interface SelectedObstacle {
@@ -92,12 +92,17 @@ export default function WoopWizard({
   const { data: userProfile } = useUserProfile();
   const queryClient = useQueryClient();
 
-  // Slide-up entrance animation
+  // Slide-up entrance animation + full reset on open
   useEffect(() => {
     if (!open) {
       setMounted(false);
       return;
     }
+    // Full reset every time the wizard opens so custom obstacles never leak
+    // between sessions. EMPTY already has customChips: [] and selectedObstacles: [].
+    setForm(EMPTY);
+    setStep(1);
+    setErrors({});
     // Tiny delay lets the browser paint the initial off-screen position first
     const t = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(t);
@@ -143,31 +148,17 @@ export default function WoopWizard({
     mutationFn: async () => {
       if (!actor) throw new Error("Actor not ready — please wait and retry.");
 
-      // Persist any non-user obstacles to the backend first (await each one so
-      // we have a valid backendId before goal creation begins).
-      let obstacleTemplateId: bigint | undefined;
-      for (const obs of form.selectedObstacles) {
-        if (obs.kind === "user" && obs.backendId !== undefined) {
-          // Already persisted — use its ID for the goal link
-          if (obstacleTemplateId === undefined)
-            obstacleTemplateId = obs.backendId;
-        } else {
-          // builtin or custom — create it now and capture the returned ID
-          try {
-            const created = await actor.createObstacleTemplate({
-              title: obs.label,
-              description: "",
-            });
-            if (obstacleTemplateId === undefined)
-              obstacleTemplateId = created.id;
-          } catch {
-            // Non-fatal — obstacle template creation failure shouldn't block goal creation
-            console.error("Failed to persist obstacle template:", obs.label);
-          }
-        }
-      }
+      // Only link an already-persisted user obstacle template (kind==='user').
+      // Do NOT create new obstacle templates for builtin or custom obstacles —
+      // they accumulate in listMyObstacleTemplates() and cannot be deleted,
+      // causing them to re-appear in the chip list on the next wizard open.
+      // The obstacle text is already stored in the goal's `outcome` field.
+      const primaryUserObs = form.selectedObstacles.find(
+        (o) => o.kind === "user" && o.backendId !== undefined,
+      );
+      const obstacleTemplateId = primaryUserObs?.backendId;
 
-      return await actor.createGoal({
+      const created = await actor.createGoal({
         wish: assembledWish,
         wishDescription: assembledHabit,
         outcome: assembledObstacles,
@@ -176,19 +167,21 @@ export default function WoopWizard({
         iconName: form.iconName || undefined,
         themeColor: form.themeColor || undefined,
       });
+      return created;
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await queryClient.invalidateQueries({
         queryKey: ["myGoals"],
         refetchType: "all",
       });
       await queryClient.refetchQueries({ queryKey: ["myGoals"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      toast.success("Commitment made! Your habit is on the dashboard.", {
+      toast.success("Habit created! Check it out on your dashboard.", {
         description: assembledHabit,
         duration: 5000,
       });
-      onGoalCreated?.();
+      const goalIdStr = data?.id !== undefined ? String(data.id) : undefined;
+      onGoalCreated?.(goalIdStr);
       handleClose();
     },
     onError: (error: Error) => {
@@ -200,7 +193,7 @@ export default function WoopWizard({
       ) {
         setShowLimitModal(true);
       } else {
-        toast.error("Failed to create goal. Please try again.", {
+        toast.error("Failed to create habit. Please try again.", {
           description: error.message,
         });
       }
@@ -306,13 +299,22 @@ export default function WoopWizard({
 
   const presetIds = new Set(OBSTACLE_TEMPLATES.map((t) => t.id));
 
+  // Strings that must never appear as obstacle options regardless of backend state
+  const BLOCKED_OBSTACLE_LABELS = new Set([
+    "my brain",
+    "drugs",
+    "drug",
+    "brain",
+  ]);
+
   const uniqueUserObstacles = userObstacles
     .filter(
       (o) =>
         !presetIds.has(String(o.id)) &&
         !OBSTACLE_TEMPLATES.some(
           (t) => t.label.toLowerCase() === o.title.toLowerCase(),
-        ),
+        ) &&
+        !BLOCKED_OBSTACLE_LABELS.has(o.title.toLowerCase().trim()),
     )
     .map((o) => ({
       id: `user_${String(o.id)}`,
@@ -363,7 +365,7 @@ export default function WoopWizard({
         <div className="shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border">
           <div>
             <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1">
-              WOOP Goal Builder
+              WOOP Habit Builder
             </p>
             <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight">
               {stepTitles[step - 1]}
@@ -508,13 +510,12 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.goal_action_input"
                         value={form.goalAction}
                         onChange={(e) => {
-                          setForm((f) => ({
-                            ...f,
-                            goalAction: e.target.value,
-                          }));
+                          const val = e.target.value.slice(0, 140);
+                          setForm((f) => ({ ...f, goalAction: val }));
                           setErrors((er) => ({ ...er, goalAction: undefined }));
                         }}
                         placeholder="run a marathon"
+                        maxLength={140}
                         className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
                         aria-label="What do you want to achieve"
                       />
@@ -525,16 +526,19 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.goal_reason_input"
                         value={form.goalReason}
                         onChange={(e) => {
-                          setForm((f) => ({
-                            ...f,
-                            goalReason: e.target.value,
-                          }));
+                          const val = e.target.value.slice(0, 140);
+                          setForm((f) => ({ ...f, goalReason: val }));
                           setErrors((er) => ({ ...er, goalReason: undefined }));
                         }}
                         placeholder="feel unstoppable"
+                        maxLength={140}
                         className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
                         aria-label="Your deeper reason"
                       />
+                    </div>
+                    <div className="flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono">
+                      <span>{form.goalAction.length}/140</span>
+                      <span>{form.goalReason.length}/140</span>
                     </div>
                     {(errors.goalAction || errors.goalReason) && (
                       <p
@@ -566,16 +570,15 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.habit_action_input"
                         value={form.habitAction}
                         onChange={(e) => {
-                          setForm((f) => ({
-                            ...f,
-                            habitAction: e.target.value,
-                          }));
+                          const val = e.target.value.slice(0, 140);
+                          setForm((f) => ({ ...f, habitAction: val }));
                           setErrors((er) => ({
                             ...er,
                             habitAction: undefined,
                           }));
                         }}
                         placeholder="run"
+                        maxLength={140}
                         className="input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium"
                         aria-label="Daily habit action"
                       />
@@ -586,10 +589,12 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.habit_minutes_input"
                         value={form.habitMinutes}
                         onChange={(e) => {
-                          setForm((f) => ({
-                            ...f,
-                            habitMinutes: e.target.value,
-                          }));
+                          const raw = e.target.value.replace(/[^0-9]/g, "");
+                          const num = Number.parseInt(raw, 10);
+                          const capped = Number.isNaN(num)
+                            ? ""
+                            : String(Math.min(num, 1440));
+                          setForm((f) => ({ ...f, habitMinutes: capped }));
                           setErrors((er) => ({
                             ...er,
                             habitMinutes: undefined,
@@ -603,6 +608,15 @@ export default function WoopWizard({
                       <span className="text-muted-foreground shrink-0">
                         minutes
                       </span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 text-xs text-muted-foreground/60 font-mono">
+                      <span>{form.habitAction.length}/140</span>
+                      {form.habitMinutes &&
+                        Number.parseInt(form.habitMinutes, 10) >= 1440 && (
+                          <span className="text-amber-400/80">
+                            Max 1440 min (24 h)
+                          </span>
+                        )}
                     </div>
                     {(errors.habitAction || errors.habitMinutes) && (
                       <p
@@ -640,33 +654,75 @@ export default function WoopWizard({
                 >
                   {allObstacleChips.map((obs, idx) => {
                     const selected = isSelected(obs.id);
+                    const isCustom = obs.kind === "custom";
                     return (
-                      <button
+                      <div
                         key={obs.id}
-                        type="button"
-                        data-ocid={`woop_wizard.obstacle.${idx + 1}`}
-                        onClick={() => toggleObstacle(obs)}
-                        aria-pressed={selected}
-                        className={`chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`}
-                        style={
-                          selected
-                            ? {
-                                backgroundColor:
-                                  "oklch(var(--color-accent-social) / 0.2)",
-                                borderColor:
-                                  "oklch(var(--color-accent-social))",
-                                boxShadow:
-                                  "0 0 14px oklch(var(--color-accent-social) / 0.4)",
-                                color: "oklch(var(--color-accent-social))",
-                              }
-                            : undefined
-                        }
+                        className="relative inline-flex items-center"
                       >
-                        {selected && (
-                          <Check size={13} className="inline mr-1.5" />
+                        <button
+                          type="button"
+                          data-ocid={`woop_wizard.obstacle.${idx + 1}`}
+                          onClick={() => toggleObstacle(obs)}
+                          aria-pressed={selected}
+                          className={`chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`}
+                          style={
+                            selected
+                              ? {
+                                  backgroundColor:
+                                    "oklch(var(--color-accent-social) / 0.2)",
+                                  borderColor:
+                                    "oklch(var(--color-accent-social))",
+                                  boxShadow:
+                                    "0 0 14px oklch(var(--color-accent-social) / 0.4)",
+                                  color: "oklch(var(--color-accent-social))",
+                                }
+                              : undefined
+                          }
+                        >
+                          {selected && (
+                            <Check size={13} className="inline mr-1.5" />
+                          )}
+                          {obs.label}
+                        </button>
+                        {isCustom && (
+                          <button
+                            type="button"
+                            aria-label={`Remove ${obs.label}`}
+                            data-ocid={`woop_wizard.remove_custom_obstacle.${idx + 1}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setForm((f) => ({
+                                ...f,
+                                customChips: f.customChips.filter(
+                                  (c) => c.id !== obs.id,
+                                ),
+                                selectedObstacles: f.selectedObstacles.filter(
+                                  (o) => o.id !== obs.id,
+                                ),
+                              }));
+                            }}
+                            style={{
+                              position: "absolute",
+                              top: "-8px",
+                              right: "-8px",
+                              width: "18px",
+                              height: "18px",
+                              borderRadius: "50%",
+                              background: "#2a2a3a",
+                              border: "1.5px solid rgba(255,255,255,0.18)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                              zIndex: 10,
+                            }}
+                          >
+                            <X size={9} color="#fff" />
+                          </button>
                         )}
-                        {obs.label}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -767,7 +823,7 @@ export default function WoopWizard({
                   </p>
                   <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3">
                     <p className="text-lg text-muted-foreground leading-relaxed">
-                      IF "{primaryObstacle ? primaryObstacle : "[obstacle]"}",
+                      IF "{primaryObstacle ? primaryObstacle : "[obstacle]"}":
                     </p>
                     <div className="flex items-start gap-3">
                       <span className="text-lg text-muted-foreground shrink-0 mt-2">
@@ -777,17 +833,21 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.if_then_plan_input"
                         value={form.ifThenPlan}
                         onChange={(e) => {
-                          setForm((f) => ({
-                            ...f,
-                            ifThenPlan: e.target.value,
-                          }));
+                          const val = e.target.value.slice(0, 140);
+                          setForm((f) => ({ ...f, ifThenPlan: val }));
                           setErrors((er) => ({ ...er, ifThenPlan: undefined }));
                         }}
                         placeholder="do a 15-min home workout instead"
+                        maxLength={140}
                         rows={4}
                         className="flex-1 bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none"
                         aria-label="Your if-then backup plan"
                       />
+                    </div>
+                    <div className="flex justify-end">
+                      <span className="text-xs text-muted-foreground/60 font-mono">
+                        {form.ifThenPlan.length}/140
+                      </span>
                     </div>
                   </div>
                   {errors.ifThenPlan && (

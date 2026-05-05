@@ -874,6 +874,9 @@ video {
 .mb-8 {
   margin-bottom: 2rem;
 }
+.ml-0\.5 {
+  margin-left: 0.125rem;
+}
 .ml-1 {
   margin-left: 0.25rem;
 }
@@ -2204,6 +2207,9 @@ video {
 .text-accent-success {
   --tw-text-opacity: 1;
   color: rgb(16 185 129 / var(--tw-text-opacity, 1));
+}
+.text-amber-400\/80 {
+  color: rgb(251 191 36 / 0.8);
 }
 .text-card-foreground {
   color: oklch(var(--card-foreground));

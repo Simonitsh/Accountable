@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import {
   CheckCircle2,
   Clock,
@@ -26,9 +27,10 @@ import {
   Target,
   Trash2,
   X,
+  Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { GoalState } from "../backend";
 import type {
@@ -96,11 +98,63 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: GoalState.completed, label: "Completed" },
 ];
 
+// ─── Edit Form Helpers ─────────────────────────────────────────────────────────
+const EDIT_THEME_COLORS = [
+  { id: "amethyst", value: "#7C3AED" },
+  { id: "sapphire", value: "#2563EB" },
+  { id: "emerald", value: "#059669" },
+  { id: "amber", value: "#D97706" },
+  { id: "rose", value: "#E11D48" },
+  { id: "slate", value: "#475569" },
+  { id: "copper", value: "#C2410C" },
+  { id: "teal", value: "#0D9488" },
+];
+
+const EDIT_OBSTACLE_PRESETS = [
+  "Low Energy",
+  "Time Crunch",
+  "Distraction",
+  "Social Pressure",
+  "Travel / Change of Routine",
+  "Poor Sleep",
+];
+
+const EDIT_ICONS = [
+  "target",
+  "flame",
+  "zap",
+  "star",
+  "heart",
+  "trophy",
+  "activity",
+  "book",
+  "music",
+  "coffee",
+  "moon",
+  "sun",
+  "running",
+  "bicycle",
+];
+
+function renderGoalIcon(name: string, size = 16) {
+  const iconMap: Record<string, React.ReactNode> = {
+    target: <Target size={size} />,
+    flame: <Flame size={size} />,
+    zap: <Zap size={size} />,
+  };
+  return iconMap[name] ?? <Target size={size} />;
+}
+
 // ─── Edit Form ────────────────────────────────────────────────────────────────
 interface EditFormData {
   wish: string;
   wishDescription: string;
   ifThenPlan: string;
+  iconName: string;
+  themeColor: string;
+  obstacles: string[];
+  customObstacleInput: string;
+  customObstacles: string[];
 }
 
 interface GoalEditFormProps {
@@ -111,11 +165,73 @@ interface GoalEditFormProps {
 }
 
 function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
+  // Parse existing obstacles from goal.outcome (stored as comma-separated labels)
+  const existingObstacles = goal.outcome
+    ? goal.outcome
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+
+  // Separate into preset vs custom
+  const existingPreset = existingObstacles.filter((o) =>
+    EDIT_OBSTACLE_PRESETS.map((p) => p.toLowerCase()).includes(o.toLowerCase()),
+  );
+  const existingCustom = existingObstacles.filter(
+    (o) =>
+      !EDIT_OBSTACLE_PRESETS.map((p) => p.toLowerCase()).includes(
+        o.toLowerCase(),
+      ),
+  );
+
   const [form, setForm] = useState<EditFormData>({
     wish: goal.wish,
     wishDescription: goal.wishDescription,
     ifThenPlan: goal.ifThenPlan,
+    iconName: goal.iconName ?? "target",
+    themeColor: goal.themeColor ?? "#2563EB",
+    obstacles: existingPreset,
+    customObstacleInput: "",
+    customObstacles: existingCustom,
   });
+
+  const customInputRef = useRef<HTMLInputElement>(null);
+
+  function allObstacles(): string[] {
+    return [...form.obstacles, ...form.customObstacles];
+  }
+
+  function togglePreset(label: string) {
+    setForm((f) => ({
+      ...f,
+      obstacles: f.obstacles.includes(label)
+        ? f.obstacles.filter((o) => o !== label)
+        : [...f.obstacles, label],
+    }));
+  }
+
+  function addCustomObstacle() {
+    const val = form.customObstacleInput.trim();
+    if (!val) return;
+    const lower = val.toLowerCase();
+    const alreadyExists =
+      form.customObstacles.some((o) => o.toLowerCase() === lower) ||
+      EDIT_OBSTACLE_PRESETS.some((p) => p.toLowerCase() === lower) ||
+      form.obstacles.some((o) => o.toLowerCase() === lower);
+    if (alreadyExists) return;
+    setForm((f) => ({
+      ...f,
+      customObstacleInput: "",
+      customObstacles: [...f.customObstacles, val],
+    }));
+  }
+
+  function removeCustomObstacle(label: string) {
+    setForm((f) => ({
+      ...f,
+      customObstacles: f.customObstacles.filter((o) => o !== label),
+    }));
+  }
 
   function handleSave() {
     const req: UpdateGoalRequest = {};
@@ -124,13 +240,20 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
       req.wishDescription = form.wishDescription.trim();
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
       req.ifThenPlan = form.ifThenPlan.trim();
+    if (form.iconName !== (goal.iconName ?? "target"))
+      req.iconName = form.iconName;
+    if (form.themeColor !== (goal.themeColor ?? "#2563EB"))
+      req.themeColor = form.themeColor;
     onSave(req);
   }
 
+  const all = allObstacles();
   const hasChanges =
     form.wish.trim() !== goal.wish ||
     form.wishDescription.trim() !== goal.wishDescription ||
-    form.ifThenPlan.trim() !== goal.ifThenPlan;
+    form.ifThenPlan.trim() !== goal.ifThenPlan ||
+    form.iconName !== (goal.iconName ?? "target") ||
+    form.themeColor !== (goal.themeColor ?? "#2563EB");
 
   return (
     <motion.div
@@ -140,41 +263,53 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
       className="space-y-4"
       data-ocid="goals.edit_form"
     >
-      <div className="space-y-1.5">
-        <Label
-          htmlFor="edit-wish"
-          className="text-xs font-mono uppercase tracking-widest text-muted-foreground"
-        >
-          Goal Name
-        </Label>
-        <Input
-          id="edit-wish"
-          data-ocid="goals.edit_wish_input"
-          value={form.wish}
-          onChange={(e) => setForm((f) => ({ ...f, wish: e.target.value }))}
-          className="bg-muted/60 border-border focus:border-primary text-sm"
-        />
-      </div>
-
+      {/* Keystone Habit — most prominent */}
       <div className="space-y-1.5">
         <Label
           htmlFor="edit-desc"
           className="text-xs font-mono uppercase tracking-widest text-muted-foreground"
         >
-          Description
+          Keystone Habit
         </Label>
         <Textarea
           id="edit-desc"
           data-ocid="goals.edit_description_input"
           value={form.wishDescription}
+          maxLength={140}
           onChange={(e) =>
             setForm((f) => ({ ...f, wishDescription: e.target.value }))
           }
-          rows={3}
+          rows={2}
+          placeholder="Every day, I will…"
           className="bg-muted/60 border-border focus:border-primary resize-none text-sm"
         />
+        <p className="text-[10px] text-muted-foreground/60 text-right">
+          {form.wishDescription.length}/140
+        </p>
       </div>
 
+      {/* Macro Goal */}
+      <div className="space-y-1.5">
+        <Label
+          htmlFor="edit-wish"
+          className="text-xs font-mono uppercase tracking-widest text-muted-foreground"
+        >
+          Macro Goal
+        </Label>
+        <Input
+          id="edit-wish"
+          data-ocid="goals.edit_wish_input"
+          value={form.wish}
+          maxLength={140}
+          onChange={(e) => setForm((f) => ({ ...f, wish: e.target.value }))}
+          className="bg-muted/60 border-border focus:border-primary text-sm"
+        />
+        <p className="text-[10px] text-muted-foreground/60 text-right">
+          {form.wish.length}/140
+        </p>
+      </div>
+
+      {/* If-Then Plan */}
       <div className="space-y-1.5">
         <Label
           htmlFor="edit-plan"
@@ -186,12 +321,185 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
           id="edit-plan"
           data-ocid="goals.edit_ifthen_input"
           value={form.ifThenPlan}
+          maxLength={140}
           onChange={(e) =>
             setForm((f) => ({ ...f, ifThenPlan: e.target.value }))
           }
-          rows={3}
+          rows={2}
+          placeholder="If [obstacle], then I will…"
           className="bg-muted/60 border-border focus:border-primary resize-none text-sm font-mono"
         />
+        <p className="text-[10px] text-muted-foreground/60 text-right">
+          {form.ifThenPlan.length}/140
+        </p>
+      </div>
+
+      {/* Obstacles (read-display) */}
+      <div className="space-y-2">
+        <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+          Obstacles
+        </Label>
+        {/* Preset chips */}
+        <div className="flex flex-wrap gap-1.5">
+          {EDIT_OBSTACLE_PRESETS.map((label) => {
+            const selected = form.obstacles.includes(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => togglePreset(label)}
+                data-ocid={`goals.edit_obstacle_${label.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`}
+                className="text-xs px-2.5 py-1 rounded-full border transition-smooth"
+                style={
+                  selected
+                    ? {
+                        background: "oklch(var(--color-accent-success) / 0.12)",
+                        borderColor: "oklch(var(--color-accent-success) / 0.4)",
+                        color: "oklch(var(--color-accent-success))",
+                      }
+                    : {
+                        background: "oklch(var(--muted) / 0.4)",
+                        borderColor: "oklch(var(--border))",
+                        color: "oklch(var(--muted-foreground))",
+                      }
+                }
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Custom obstacle chips */}
+        {form.customObstacles.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {form.customObstacles.map((label) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border"
+                style={{
+                  background: "oklch(var(--color-accent-skip) / 0.1)",
+                  borderColor: "oklch(var(--color-accent-skip) / 0.35)",
+                  color: "oklch(var(--color-accent-skip))",
+                }}
+              >
+                {label}
+                <button
+                  type="button"
+                  aria-label={`Remove ${label}`}
+                  onClick={() => removeCustomObstacle(label)}
+                  className="ml-0.5 opacity-70 hover:opacity-100 transition-smooth"
+                  data-ocid="goals.edit_remove_custom_obstacle"
+                >
+                  <X size={10} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        {/* Custom obstacle input */}
+        <div className="flex gap-2">
+          <Input
+            ref={customInputRef}
+            data-ocid="goals.edit_custom_obstacle_input"
+            value={form.customObstacleInput}
+            maxLength={60}
+            placeholder="Add custom obstacle…"
+            onChange={(e) =>
+              setForm((f) => ({ ...f, customObstacleInput: e.target.value }))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustomObstacle();
+              }
+            }}
+            className="bg-muted/60 border-border focus:border-primary text-xs h-8 flex-1"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={addCustomObstacle}
+            disabled={!form.customObstacleInput.trim()}
+            className="h-8 px-2.5 text-xs gap-1"
+            data-ocid="goals.edit_add_custom_obstacle_button"
+          >
+            <Plus size={11} />
+            Add
+          </Button>
+        </div>
+        {all.length > 0 && (
+          <p className="text-[10px] text-muted-foreground/60">
+            {all.length} obstacle{all.length !== 1 ? "s" : ""} selected
+          </p>
+        )}
+      </div>
+
+      {/* Icon picker */}
+      <div className="space-y-2">
+        <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+          Icon
+        </Label>
+        <div className="flex flex-wrap gap-2">
+          {EDIT_ICONS.map((icon) => {
+            const selected = form.iconName === icon;
+            return (
+              <button
+                key={icon}
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, iconName: icon }))}
+                data-ocid={`goals.edit_icon_${icon}`}
+                aria-label={icon}
+                className="w-9 h-9 rounded-xl flex items-center justify-center border transition-smooth"
+                style={
+                  selected
+                    ? {
+                        background: "oklch(var(--color-accent-success) / 0.15)",
+                        borderColor: "oklch(var(--color-accent-success) / 0.5)",
+                        color: "oklch(var(--color-accent-success))",
+                      }
+                    : {
+                        background: "oklch(var(--muted) / 0.4)",
+                        borderColor: "oklch(var(--border))",
+                        color: "oklch(var(--muted-foreground))",
+                      }
+                }
+              >
+                {renderGoalIcon(icon, 15)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Color picker */}
+      <div className="space-y-2">
+        <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+          Color
+        </Label>
+        <div className="flex flex-wrap gap-2">
+          {EDIT_THEME_COLORS.map((c) => {
+            const selected = form.themeColor === c.value;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, themeColor: c.value }))}
+                aria-label={c.id}
+                data-ocid={`goals.edit_color_${c.id}`}
+                className="w-7 h-7 rounded-full border-2 transition-smooth"
+                style={{
+                  background: c.value,
+                  borderColor: selected
+                    ? "oklch(var(--foreground))"
+                    : "transparent",
+                  boxShadow: selected ? `0 0 0 2px ${c.value}40` : "none",
+                  transform: selected ? "scale(1.15)" : "scale(1)",
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex gap-2 pt-1">
@@ -281,23 +589,25 @@ function GoalDetailPanel({
         }}
         data-ocid="goals.detail_panel"
       >
-        {/* Header */}
+        {/* Header — Keystone Habit first (prominent), Macro Goal below (secondary) */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">
+            {goal.wishDescription && (
+              <>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 mb-1">
+                  Keystone Habit
+                </p>
+                <h3 className="font-display text-xl font-bold text-foreground leading-tight mb-2">
+                  {goal.wishDescription}
+                </h3>
+              </>
+            )}
+            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-0.5">
               Macro Goal
             </p>
-            <h3 className="font-display text-xl font-bold text-foreground leading-tight">
+            <p className="text-sm text-muted-foreground leading-snug">
               {goal.wish}
-            </h3>
-            {goal.wishDescription && (
-              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 block mb-0.5">
-                  Keystone Habit
-                </span>
-                {goal.wishDescription}
-              </p>
-            )}
+            </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {!isEditing && (isActive || isPaused) && (
@@ -361,7 +671,7 @@ function GoalDetailPanel({
               {goal.outcome && (
                 <div>
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
-                    Best Outcome
+                    Obstacles
                   </p>
                   <p className="text-sm text-foreground leading-relaxed">
                     {goal.outcome}
@@ -505,6 +815,7 @@ export function GoalsPage() {
   const [deletingGoalId, setDeletingGoalId] = useState<bigint | null>(null);
   const { actor, isFetching } = useBackend();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: goals = [], isLoading } = useQuery<GoalPublic[]>({
     queryKey: ["myGoals"],
@@ -615,23 +926,29 @@ export function GoalsPage() {
     <div className="flex flex-col gap-6 px-4 pb-6">
       {/* Page header */}
       <div className="pt-2">
-        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-          Habit Management
-        </p>
-        <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-bold text-foreground">
-            My Goals
+            My Habits
           </h1>
-          <Button
+          <button
             type="button"
-            size="sm"
             onClick={() => setShowWoop(true)}
-            className="gap-1.5 button-primary-neon shrink-0"
             data-ocid="goals.add_goal_button"
+            aria-label="Create a new habit"
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth shrink-0"
+            style={{
+              background: "#10B981",
+              color: "#022c22",
+              fontWeight: 500,
+              fontFamily: "var(--font-body, inherit)",
+              boxShadow:
+                "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+              border: "none",
+            }}
           >
-            <Plus size={15} />
-            New Goal
-          </Button>
+            <Plus size={14} />
+            Create Habit
+          </button>
         </div>
         {activeCount > 0 && (
           <p className="text-sm text-muted-foreground mt-1">
@@ -730,7 +1047,7 @@ export function GoalsPage() {
             />
           </div>
           <h2 className="font-display text-xl font-bold text-foreground mb-2">
-            No goals yet
+            No habits yet
           </h2>
           <p className="text-sm text-muted-foreground mb-6 max-w-xs leading-relaxed">
             Create your first keystone habit using the WOOP framework and start
@@ -740,10 +1057,10 @@ export function GoalsPage() {
             type="button"
             onClick={() => setShowWoop(true)}
             className="gap-2 button-primary-neon"
-            data-ocid="goals.create_first_goal_button"
+            data-ocid="goals.create_first_habit_button"
           >
             <Plus className="w-4 h-4" />
-            Create Your First Goal
+            Create Your First Habit
           </Button>
         </motion.div>
       )}
@@ -758,7 +1075,7 @@ export function GoalsPage() {
           {activeFilter !== "all"
             ? stateLabel(activeFilter as GoalStateType).toLowerCase()
             : ""}{" "}
-          goals.{" "}
+          habits.{" "}
           {activeFilter === GoalState.active && (
             <button
               type="button"
@@ -861,10 +1178,21 @@ export function GoalsPage() {
       <WoopWizard
         open={showWoop}
         onClose={() => setShowWoop(false)}
-        onGoalCreated={() => {
+        onGoalCreated={(goalId) => {
           queryClient.invalidateQueries({ queryKey: ["myGoals"] });
           setActiveFilter(GoalState.active);
-          setShowWoop(false);
+          // NOTE: Do NOT call setShowWoop(false) here.
+          // WoopWizard.handleClose() already calls onClose() which sets showWoop=false.
+          // A second setShowWoop(false) here creates a double-close that prevents
+          // the wizard's useEffect(open) reset from running cleanly.
+          // Store new habit ID so dashboard can highlight it
+          if (goalId) {
+            try {
+              localStorage.setItem("cumulative-new-habit-id", goalId);
+            } catch {}
+          }
+          // Redirect to dashboard
+          void navigate({ to: "/" });
         }}
       />
     </div>

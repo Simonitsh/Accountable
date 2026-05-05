@@ -35,9 +35,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/goals", icon: Target, label: "My Goals" },
+  { to: "/goals", icon: Target, label: "My Habits" },
   { to: "/profile", icon: User, label: "Profile" },
-  { to: "/settings", icon: CreditCard, label: "Subscription Settings" },
+  { to: "/settings", icon: CreditCard, label: "Subscription" },
   { to: "/connections", icon: Users, label: "Connections" },
   { to: "/admin", icon: ShieldCheck, label: "Admin Controls", adminOnly: true },
 ];

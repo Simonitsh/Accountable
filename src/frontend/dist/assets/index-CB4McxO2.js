@@ -37164,17 +37164,17 @@ const __iconNode = [
 const Zap = createLucideIcon("zap", __iconNode);
 const TABS = [
   {
-    to: "/",
-    icon: House,
-    label: "Dashboard",
-    accentClass: "text-[#10B981]",
-    glowClass: ""
-  },
-  {
     to: "/feed",
     icon: Users,
     label: "Partners",
     accentClass: "text-[#EAB308]",
+    glowClass: ""
+  },
+  {
+    to: "/",
+    icon: House,
+    label: "Dashboard",
+    accentClass: "text-[#10B981]",
     glowClass: ""
   },
   {
@@ -37296,9 +37296,9 @@ function toNumericTier$4(tier) {
   return 1;
 }
 const NAV_ITEMS = [
-  { to: "/goals", icon: Target, label: "My Goals" },
+  { to: "/goals", icon: Target, label: "My Habits" },
   { to: "/profile", icon: User, label: "Profile" },
-  { to: "/settings", icon: CreditCard, label: "Subscription Settings" },
+  { to: "/settings", icon: CreditCard, label: "Subscription" },
   { to: "/connections", icon: Users, label: "Connections" },
   { to: "/admin", icon: ShieldCheck, label: "Admin Controls", adminOnly: true }
 ];
@@ -70086,8 +70086,1125 @@ function UndoPopup({
     )
   ] }) });
 }
+function Textarea({ className, ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "textarea",
+    {
+      "data-slot": "textarea",
+      className: cn(
+        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        className
+      ),
+      ...props
+    }
+  );
+}
+function toNumericTier$2(tier) {
+  if (tier === "tier3") return 3;
+  if (tier === "tier2") return 2;
+  return 1;
+}
+function getNextTier(current) {
+  if (current === 1) return 2;
+  if (current === 2) return 3;
+  return null;
+}
+const TIER_ACCENT = {
+  1: "text-muted-foreground",
+  2: "text-accent-skip",
+  3: "text-accent-success"
+};
+const TIER_UPGRADE_COPY = {
+  1: {
+    headline: "Ready to build more habits?",
+    body: "Upgrade to Plus and manage up to 10 goals simultaneously. Research shows multi-habit tracking accelerates overall progress."
+  },
+  2: {
+    headline: "Unlock your full potential.",
+    body: "Power tier gives you 25 concurrent goals — ideal for high-performers who want to stack habits systematically."
+  },
+  3: {
+    headline: "You've reached the maximum.",
+    body: "Power tier supports up to 25 active goals. Archive completed or paused goals to free up slots."
+  }
+};
+function TierLimitModal({
+  open,
+  onClose,
+  userProfile
+}) {
+  const navigate = useNavigate();
+  if (!open) return null;
+  const currentTier = userProfile ? toNumericTier$2(userProfile.tier) : 1;
+  const nextTier = getNextTier(currentTier);
+  const currentLimit = TIER_GOAL_LIMITS[currentTier];
+  const nextLimit = nextTier ? TIER_GOAL_LIMITS[nextTier] : null;
+  const copy2 = TIER_UPGRADE_COPY[currentTier];
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm",
+        "aria-hidden": "true"
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "dialog",
+      {
+        open: true,
+        "aria-modal": "true",
+        "aria-label": "Goal Limit Reached",
+        "data-ocid": "tier_limit.dialog",
+        className: "fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] max-w-sm w-full mx-auto rounded-2xl bg-card border border-border/20 overflow-hidden p-0 m-auto",
+        style: {
+          boxShadow: "-5px -5px 16px rgba(65,65,75,0.5), 9px 9px 24px rgba(0,0,0,0.9)",
+          borderTop: "1px solid rgba(255,255,255,0.13)",
+          borderLeft: "1px solid rgba(255,255,255,0.07)"
+        },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative px-5 pt-5 pb-4 border-b border-border", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-accent-social/10 border border-accent-social/20 shrink-0 mt-0.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 18, className: "text-accent-social" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1 pr-6", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-base font-display font-semibold text-foreground leading-tight", children: "Goal Limit Reached" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5", children: [
+                  TIER_LABELS[currentTier],
+                  " plan · ",
+                  currentLimit,
+                  " active goal",
+                  currentLimit !== 1 ? "s" : "",
+                  " max"
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                variant: "ghost",
+                size: "icon",
+                onClick: onClose,
+                "data-ocid": "tier_limit.close_button",
+                "aria-label": "Close",
+                className: "absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground w-7 h-7",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 15 })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-5 space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/20", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wide", children: "Current Plan" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "p",
+                  {
+                    className: `text-lg font-display font-bold ${TIER_ACCENT[currentTier]}`,
+                    children: [
+                      "Tier ",
+                      currentTier,
+                      " — ",
+                      TIER_LABELS[currentTier]
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Active goal limit" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-foreground", children: currentLimit })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-relaxed", children: copy2.body }),
+            nextTier && nextLimit && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                "data-ocid": "tier_limit.upgrade_card",
+                className: "p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-primary font-medium uppercase tracking-wide", children: "Upgrade to" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base font-display font-bold text-foreground", children: [
+                        "Tier ",
+                        nextTier,
+                        " — ",
+                        TIER_LABELS[nextTier]
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Goal limit" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-accent-success", children: nextLimit })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: copy2.headline })
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2 px-5 pb-5", children: [
+            nextTier ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                type: "button",
+                "data-ocid": "tier_limit.upgrade_button",
+                className: "w-full gap-2 button-primary-neon",
+                onClick: () => {
+                  onClose();
+                  void navigate({ to: "/settings" });
+                },
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleArrowUp, { size: 16 }),
+                  "Upgrade to ",
+                  TIER_LABELS[nextTier]
+                ]
+              }
+            ) : null,
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                variant: "outline",
+                "data-ocid": "tier_limit.cancel_button",
+                className: "w-full",
+                onClick: onClose,
+                children: nextTier ? "Not now" : "Got it"
+              }
+            )
+          ] })
+        ]
+      }
+    )
+  ] });
+}
+const THEME_COLORS = [
+  { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
+  { id: "sapphire", label: "Sapphire", value: "#2563EB" },
+  { id: "emerald", label: "Emerald", value: "#059669" },
+  { id: "amber", label: "Amber", value: "#D97706" },
+  { id: "rose", label: "Rose", value: "#E11D48" },
+  { id: "slate", label: "Slate", value: "#475569" },
+  { id: "copper", label: "Copper", value: "#C2410C" },
+  { id: "teal", label: "Teal", value: "#0D9488" }
+];
+const STEPS = [
+  { id: 1, label: "Wish" },
+  { id: 2, label: "Obstacle" },
+  { id: 3, label: "Plan" },
+  { id: 4, label: "Review" }
+];
+const EMPTY = {
+  goalAction: "",
+  goalReason: "",
+  habitAction: "",
+  habitMinutes: "",
+  selectedObstacles: [],
+  customInput: "",
+  customChips: [],
+  ifThenPlan: "",
+  iconName: "target",
+  themeColor: "#2563EB"
+};
+function WoopWizard({
+  open,
+  onClose,
+  onGoalCreated
+}) {
+  var _a3, _b3, _c2, _d2, _e2;
+  const [step, setStep] = reactExports.useState(1);
+  const [animating, setAnimating] = reactExports.useState(false);
+  const [animDir, setAnimDir] = reactExports.useState("fwd");
+  const [mounted, setMounted] = reactExports.useState(false);
+  const [showLimitModal, setShowLimitModal] = reactExports.useState(false);
+  const [errors, setErrors] = reactExports.useState({});
+  const [form, setForm] = reactExports.useState(EMPTY);
+  const { actor, isFetching } = useBackend();
+  const { data: userProfile } = useUserProfile();
+  const queryClient2 = useQueryClient();
+  reactExports.useEffect(() => {
+    if (!open) {
+      setMounted(false);
+      return;
+    }
+    setForm(EMPTY);
+    setStep(1);
+    setErrors({});
+    const t2 = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(t2);
+  }, [open]);
+  reactExports.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [open]);
+  const assembledWish = form.goalAction.trim() && form.goalReason.trim() ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}` : "";
+  const assembledHabit = form.habitAction.trim() && form.habitMinutes.trim() ? `Every day, I will ${form.habitAction.trim()} for ${form.habitMinutes.trim()} minutes` : "";
+  const assembledObstacles = form.selectedObstacles.map((o2) => o2.label).join(", ");
+  const primaryObstacle = ((_a3 = form.selectedObstacles[0]) == null ? void 0 : _a3.label) ?? "";
+  const { data: userObstacles = [] } = useQuery({
+    queryKey: ["obstacleTemplates"],
+    queryFn: async () => {
+      if (!actor || !("listMyObstacleTemplates" in actor)) return [];
+      try {
+        return await actor.listMyObstacleTemplates();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching
+  });
+  const createGoalMutation = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not ready — please wait and retry.");
+      const primaryUserObs = form.selectedObstacles.find(
+        (o2) => o2.kind === "user" && o2.backendId !== void 0
+      );
+      const obstacleTemplateId = primaryUserObs == null ? void 0 : primaryUserObs.backendId;
+      const created = await actor.createGoal({
+        wish: assembledWish,
+        wishDescription: assembledHabit,
+        outcome: assembledObstacles,
+        obstacleTemplateId,
+        ifThenPlan: form.ifThenPlan.trim(),
+        iconName: form.iconName || void 0,
+        themeColor: form.themeColor || void 0
+      });
+      return created;
+    },
+    onSuccess: async (data) => {
+      await queryClient2.invalidateQueries({
+        queryKey: ["myGoals"],
+        refetchType: "all"
+      });
+      await queryClient2.refetchQueries({ queryKey: ["myGoals"] });
+      queryClient2.invalidateQueries({ queryKey: ["analytics"] });
+      ue.success("Habit created! Check it out on your dashboard.", {
+        description: assembledHabit,
+        duration: 5e3
+      });
+      const goalIdStr = (data == null ? void 0 : data.id) !== void 0 ? String(data.id) : void 0;
+      onGoalCreated == null ? void 0 : onGoalCreated(goalIdStr);
+      handleClose();
+    },
+    onError: (error) => {
+      var _a4;
+      const msg = ((_a4 = error.message) == null ? void 0 : _a4.toLowerCase()) ?? "";
+      if (msg.includes("limitreached") || msg.includes("limit reached") || msg.includes("goal limit")) {
+        setShowLimitModal(true);
+      } else {
+        ue.error("Failed to create habit. Please try again.", {
+          description: error.message
+        });
+      }
+    }
+  });
+  const handleClose = reactExports.useCallback(() => {
+    setStep(1);
+    setForm(EMPTY);
+    setErrors({});
+    onClose();
+  }, [onClose]);
+  const validate = (s2) => {
+    const e3 = {};
+    if (s2 === 1) {
+      if (!form.goalAction.trim())
+        e3.goalAction = "Tell us what you want to achieve.";
+      if (!form.goalReason.trim()) e3.goalReason = "What's your deeper reason?";
+      if (!form.habitAction.trim()) e3.habitAction = "Name the daily action.";
+      if (!form.habitMinutes.trim()) e3.habitMinutes = "How many minutes?";
+    }
+    if (s2 === 2 && form.selectedObstacles.length === 0) {
+      e3.obstacles = "Select at least one obstacle you might face.";
+    }
+    if (s2 === 3 && !form.ifThenPlan.trim()) {
+      e3.ifThenPlan = "Write your backup plan.";
+    }
+    setErrors(e3);
+    return Object.keys(e3).length === 0;
+  };
+  const navigate = (dir) => {
+    setAnimDir(dir);
+    setAnimating(true);
+    setTimeout(() => {
+      setStep((s2) => dir === "fwd" ? s2 + 1 : s2 - 1);
+      setAnimating(false);
+    }, 180);
+  };
+  const goNext = () => {
+    if (step === 4) {
+      createGoalMutation.mutate();
+      return;
+    }
+    if (!validate(step)) return;
+    navigate("fwd");
+  };
+  const goBack = () => {
+    if (step === 1) return;
+    setErrors({});
+    navigate("bwd");
+  };
+  const toggleObstacle = (obs) => {
+    setForm((f2) => {
+      const exists = f2.selectedObstacles.find((o2) => o2.id === obs.id);
+      const updated = exists ? f2.selectedObstacles.filter((o2) => o2.id !== obs.id) : [...f2.selectedObstacles, obs];
+      return { ...f2, selectedObstacles: updated };
+    });
+    setErrors((e3) => ({ ...e3, obstacles: void 0 }));
+  };
+  const addCustomChip = () => {
+    const label = form.customInput.trim();
+    if (!label) return;
+    const normalised = label.toLowerCase();
+    const alreadyExists = form.customChips.some((c2) => c2.label.toLowerCase() === normalised) || OBSTACLE_TEMPLATES.some((t2) => t2.label.toLowerCase() === normalised);
+    if (alreadyExists) {
+      setErrors((e3) => ({
+        ...e3,
+        customInput: "That obstacle is already listed."
+      }));
+      return;
+    }
+    const chip = {
+      id: `custom_${Date.now()}`,
+      label,
+      kind: "custom"
+    };
+    setForm((f2) => ({
+      ...f2,
+      customInput: "",
+      customChips: [...f2.customChips, chip],
+      selectedObstacles: [...f2.selectedObstacles, chip]
+    }));
+    setErrors((e3) => ({ ...e3, obstacles: void 0, customInput: void 0 }));
+  };
+  if (!open) return null;
+  const slideClass = animating ? animDir === "fwd" ? "opacity-0 translate-x-8" : "opacity-0 -translate-x-8" : "opacity-100 translate-x-0";
+  const presetIds = new Set(OBSTACLE_TEMPLATES.map((t2) => t2.id));
+  const BLOCKED_OBSTACLE_LABELS = /* @__PURE__ */ new Set([
+    "my brain",
+    "drugs",
+    "drug",
+    "brain"
+  ]);
+  const uniqueUserObstacles = userObstacles.filter(
+    (o2) => !presetIds.has(String(o2.id)) && !OBSTACLE_TEMPLATES.some(
+      (t2) => t2.label.toLowerCase() === o2.title.toLowerCase()
+    ) && !BLOCKED_OBSTACLE_LABELS.has(o2.title.toLowerCase().trim())
+  ).map((o2) => ({
+    id: `user_${String(o2.id)}`,
+    label: o2.title,
+    kind: "user",
+    backendId: o2.id
+  }));
+  const allObstacleChips = [
+    ...OBSTACLE_TEMPLATES.map((o2) => ({
+      id: o2.id,
+      label: o2.label,
+      kind: "builtin"
+    })),
+    ...uniqueUserObstacles,
+    ...form.customChips
+  ];
+  const isSelected = (id2) => form.selectedObstacles.some((o2) => o2.id === id2);
+  const stepTitles = [
+    "Plant your wish",
+    "Name your obstacle",
+    "Write your plan",
+    "Your commitment"
+  ];
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "dialog",
+      {
+        open: true,
+        "aria-modal": "true",
+        "aria-label": "WOOP Goal Builder",
+        "data-ocid": "woop_wizard.dialog",
+        onClick: (e3) => e3.stopPropagation(),
+        onKeyDown: (e3) => {
+          if (e3.key === "Escape") handleClose();
+        },
+        style: {
+          transform: mounted ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)"
+        },
+        className: "fixed inset-0 z-[300] flex flex-col bg-card overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1", children: "WOOP Habit Builder" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight", children: stepTitles[step - 1] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                variant: "ghost",
+                size: "icon",
+                onClick: handleClose,
+                "data-ocid": "woop_wizard.close_button",
+                "aria-label": "Close goal builder",
+                className: "text-muted-foreground hover:text-foreground shrink-0 w-11 h-11",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 22 })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "shrink-0 px-6 pt-5 pb-4",
+              "aria-label": `Step ${step} of 4`,
+              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-center max-w-2xl mx-auto", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full",
+                    style: { background: "oklch(var(--color-accent-missed) / 0.18)" },
+                    "aria-hidden": "true"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out",
+                    style: {
+                      background: "oklch(var(--color-accent-success))",
+                      right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
+                      boxShadow: "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)"
+                    },
+                    "aria-hidden": "true"
+                  }
+                ),
+                STEPS.map((s2) => {
+                  const isActive = step === s2.id;
+                  const isComplete = step > s2.id;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      "data-ocid": `woop_wizard.step_indicator.${s2.id}`,
+                      className: "relative z-10 flex-1 flex flex-col items-center gap-2",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "div",
+                          {
+                            className: "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold text-sm",
+                            style: isComplete ? {
+                              backgroundColor: "oklch(var(--color-accent-success))",
+                              color: "oklch(0.12 0 0)",
+                              boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.55)"
+                            } : isActive ? {
+                              backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                              border: "2.5px solid oklch(var(--color-accent-success))",
+                              color: "oklch(var(--color-accent-success))",
+                              boxShadow: "0 0 20px 4px oklch(var(--color-accent-success) / 0.3)"
+                            } : {
+                              backgroundColor: "oklch(var(--muted))",
+                              border: "2px solid oklch(var(--color-accent-missed) / 0.3)",
+                              color: "oklch(var(--muted-foreground))"
+                            },
+                            children: isComplete ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "svg",
+                              {
+                                viewBox: "0 0 12 12",
+                                width: "14",
+                                height: "14",
+                                fill: "none",
+                                stroke: "currentColor",
+                                strokeWidth: "2.5",
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round",
+                                "aria-hidden": "true",
+                                children: /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "2,6 5,9 10,3" })
+                              }
+                            ) : s2.id
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "span",
+                          {
+                            className: "text-xs font-mono tracking-wider uppercase transition-colors duration-200",
+                            style: isComplete ? { color: "oklch(var(--color-accent-success) / 0.7)" } : isActive ? {
+                              color: "oklch(var(--color-accent-success))",
+                              fontWeight: 700
+                            } : { color: "oklch(var(--muted-foreground) / 0.5)" },
+                            children: s2.label
+                          }
+                        )
+                      ]
+                    },
+                    s2.id
+                  );
+                })
+              ] })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: `max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`,
+              children: [
+                step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Your keystone habit is the daily action. Your goal is the destination. Focus on the action." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "I want to" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.goal_action_input",
+                            value: form.goalAction,
+                            onChange: (e3) => {
+                              const val = e3.target.value.slice(0, 140);
+                              setForm((f2) => ({ ...f2, goalAction: val }));
+                              setErrors((er) => ({ ...er, goalAction: void 0 }));
+                            },
+                            placeholder: "run a marathon",
+                            maxLength: 140,
+                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
+                            "aria-label": "What do you want to achieve"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "so that I can" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.goal_reason_input",
+                            value: form.goalReason,
+                            onChange: (e3) => {
+                              const val = e3.target.value.slice(0, 140);
+                              setForm((f2) => ({ ...f2, goalReason: val }));
+                              setErrors((er) => ({ ...er, goalReason: void 0 }));
+                            },
+                            placeholder: "feel unstoppable",
+                            maxLength: 140,
+                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
+                            "aria-label": "Your deeper reason"
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                          form.goalAction.length,
+                          "/140"
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                          form.goalReason.length,
+                          "/140"
+                        ] })
+                      ] }),
+                      (errors.goalAction || errors.goalReason) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-base text-destructive",
+                          "data-ocid": "woop_wizard.goal.field_error",
+                          children: errors.goalAction || errors.goalReason
+                        }
+                      ),
+                      assembledWish && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledWish })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 13, className: "text-accent-success" }),
+                      "Keystone Habit — shown on your dashboard"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "Every day, I will" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.habit_action_input",
+                            value: form.habitAction,
+                            onChange: (e3) => {
+                              const val = e3.target.value.slice(0, 140);
+                              setForm((f2) => ({ ...f2, habitAction: val }));
+                              setErrors((er) => ({
+                                ...er,
+                                habitAction: void 0
+                              }));
+                            },
+                            placeholder: "run",
+                            maxLength: 140,
+                            className: "input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium",
+                            "aria-label": "Daily habit action"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "for" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            "data-ocid": "woop_wizard.habit_minutes_input",
+                            value: form.habitMinutes,
+                            onChange: (e3) => {
+                              const raw = e3.target.value.replace(/[^0-9]/g, "");
+                              const num = Number.parseInt(raw, 10);
+                              const capped = Number.isNaN(num) ? "" : String(Math.min(num, 1440));
+                              setForm((f2) => ({ ...f2, habitMinutes: capped }));
+                              setErrors((er) => ({
+                                ...er,
+                                habitMinutes: void 0
+                              }));
+                            },
+                            placeholder: "15",
+                            inputMode: "numeric",
+                            className: "input-neumorphic w-20 text-foreground text-xl font-medium text-center",
+                            "aria-label": "Minutes per day"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "minutes" })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between items-center gap-2 text-xs text-muted-foreground/60 font-mono", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                          form.habitAction.length,
+                          "/140"
+                        ] }),
+                        form.habitMinutes && Number.parseInt(form.habitMinutes, 10) >= 1440 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-amber-400/80", children: "Max 1440 min (24 h)" })
+                      ] }),
+                      (errors.habitAction || errors.habitMinutes) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-base text-destructive",
+                          "data-ocid": "woop_wizard.habit.field_error",
+                          children: errors.habitAction || errors.habitMinutes
+                        }
+                      ),
+                      assembledHabit && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledHabit })
+                    ] })
+                  ] })
+                ] }),
+                step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Unlike wishful thinking, WOOP asks you to name what stands between you and your habit." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xl font-medium text-foreground", children: "What stands between me and my habit?" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "flex flex-wrap gap-3",
+                      "data-ocid": "woop_wizard.obstacle_list",
+                      children: allObstacleChips.map((obs, idx) => {
+                        const selected = isSelected(obs.id);
+                        const isCustom = obs.kind === "custom";
+                        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                          "div",
+                          {
+                            className: "relative inline-flex items-center",
+                            children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                                "button",
+                                {
+                                  type: "button",
+                                  "data-ocid": `woop_wizard.obstacle.${idx + 1}`,
+                                  onClick: () => toggleObstacle(obs),
+                                  "aria-pressed": selected,
+                                  className: `chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`,
+                                  style: selected ? {
+                                    backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
+                                    borderColor: "oklch(var(--color-accent-social))",
+                                    boxShadow: "0 0 14px oklch(var(--color-accent-social) / 0.4)",
+                                    color: "oklch(var(--color-accent-social))"
+                                  } : void 0,
+                                  children: [
+                                    selected && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 13, className: "inline mr-1.5" }),
+                                    obs.label
+                                  ]
+                                }
+                              ),
+                              isCustom && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "button",
+                                {
+                                  type: "button",
+                                  "aria-label": `Remove ${obs.label}`,
+                                  "data-ocid": `woop_wizard.remove_custom_obstacle.${idx + 1}`,
+                                  onClick: (e3) => {
+                                    e3.stopPropagation();
+                                    setForm((f2) => ({
+                                      ...f2,
+                                      customChips: f2.customChips.filter(
+                                        (c2) => c2.id !== obs.id
+                                      ),
+                                      selectedObstacles: f2.selectedObstacles.filter(
+                                        (o2) => o2.id !== obs.id
+                                      )
+                                    }));
+                                  },
+                                  style: {
+                                    position: "absolute",
+                                    top: "-8px",
+                                    right: "-8px",
+                                    width: "18px",
+                                    height: "18px",
+                                    borderRadius: "50%",
+                                    background: "#2a2a3a",
+                                    border: "1.5px solid rgba(255,255,255,0.18)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    cursor: "pointer",
+                                    boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                                    zIndex: 10
+                                  },
+                                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 9, color: "#fff" })
+                                }
+                              )
+                            ]
+                          },
+                          obs.id
+                        );
+                      })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-muted-foreground font-medium", children: "Add a custom obstacle" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Input,
+                        {
+                          "data-ocid": "woop_wizard.custom_obstacle_input",
+                          value: form.customInput,
+                          onChange: (e3) => {
+                            setForm((f2) => ({ ...f2, customInput: e3.target.value }));
+                            setErrors((er) => ({ ...er, customInput: void 0 }));
+                          },
+                          onKeyDown: (e3) => {
+                            if (e3.key === "Enter") {
+                              e3.preventDefault();
+                              addCustomChip();
+                            }
+                          },
+                          placeholder: "My specific blocker…",
+                          className: "input-neumorphic flex-1 text-lg bg-transparent border-0"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        Button,
+                        {
+                          type: "button",
+                          size: "default",
+                          "data-ocid": "woop_wizard.add_custom_obstacle_button",
+                          onClick: addCustomChip,
+                          disabled: !form.customInput.trim(),
+                          className: "button-primary-neon gap-1.5 shrink-0 text-base",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 15 }),
+                            " Add"
+                          ]
+                        }
+                      )
+                    ] })
+                  ] }),
+                  errors.customInput && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.custom_obstacle.field_error",
+                      children: errors.customInput
+                    }
+                  ),
+                  errors.obstacles && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.obstacle.field_error",
+                      children: errors.obstacles
+                    }
+                  ),
+                  form.selectedObstacles.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-accent-success", children: [
+                    "Selected:",
+                    " ",
+                    form.selectedObstacles.map((o2) => o2.label).join(", ")
+                  ] })
+                ] }),
+                step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Implementation intentions double follow-through. When you encounter your obstacle, this plan becomes your autopilot." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "If this happens…" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: "px-3 py-1.5 rounded-xl text-base font-medium",
+                        style: {
+                          backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
+                          color: "oklch(var(--color-accent-social))",
+                          border: "1px solid oklch(var(--color-accent-social) / 0.4)"
+                        },
+                        children: obs.label
+                      },
+                      obs.id
+                    )) })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Then I will…" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-lg text-muted-foreground leading-relaxed", children: [
+                        'IF "',
+                        primaryObstacle ? primaryObstacle : "[obstacle]",
+                        '":'
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg text-muted-foreground shrink-0 mt-2", children: "THEN I will" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          Textarea,
+                          {
+                            "data-ocid": "woop_wizard.if_then_plan_input",
+                            value: form.ifThenPlan,
+                            onChange: (e3) => {
+                              const val = e3.target.value.slice(0, 140);
+                              setForm((f2) => ({ ...f2, ifThenPlan: val }));
+                              setErrors((er) => ({ ...er, ifThenPlan: void 0 }));
+                            },
+                            placeholder: "do a 15-min home workout instead",
+                            maxLength: 140,
+                            rows: 4,
+                            className: "flex-1 bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none",
+                            "aria-label": "Your if-then backup plan"
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-muted-foreground/60 font-mono", children: [
+                        form.ifThenPlan.length,
+                        "/140"
+                      ] }) })
+                    ] }),
+                    errors.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-base text-destructive",
+                        "data-ocid": "woop_wizard.if_then_plan.field_error",
+                        children: errors.ifThenPlan
+                      }
+                    )
+                  ] }),
+                  createGoalMutation.isError && !((_c2 = (_b3 = createGoalMutation.error) == null ? void 0 : _b3.message) == null ? void 0 : _c2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.create_goal.error_state",
+                      children: "Something went wrong. Please try again."
+                    }
+                  ),
+                  !actor && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-muted-foreground",
+                      "data-ocid": "woop_wizard.actor_loading_state",
+                      children: "Connecting to backend…"
+                    }
+                  )
+                ] }),
+                step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Review your commitment and personalize your goal. This is the contract with yourself — make it real." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-foreground font-medium leading-relaxed", children: assembledWish })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        className: "rounded-2xl p-5 space-y-1.5",
+                        style: {
+                          background: "oklch(var(--color-accent-success) / 0.08)",
+                          border: "1px solid oklch(var(--color-accent-success) / 0.3)",
+                          boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.12)"
+                        },
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "p",
+                            {
+                              className: "text-xs font-mono tracking-widest uppercase",
+                              style: { color: "oklch(var(--color-accent-success))" },
+                              children: "Daily Habit — what you'll see on your dashboard"
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "p",
+                            {
+                              className: "text-lg font-semibold leading-relaxed",
+                              style: { color: "oklch(var(--color-accent-success))" },
+                              children: assembledHabit
+                            }
+                          )
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Obstacle(s)" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "px-3 py-1 rounded-lg text-base font-medium",
+                          style: {
+                            backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
+                            color: "oklch(var(--color-accent-social))"
+                          },
+                          children: obs.label
+                        },
+                        obs.id
+                      )) })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Your Plan" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-foreground leading-relaxed", children: [
+                        'IF "',
+                        primaryObstacle,
+                        '", THEN I will ',
+                        form.ifThenPlan
+                      ] })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Choose an Icon" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: "grid grid-cols-7 gap-3",
+                        "data-ocid": "woop_wizard.icon_selector",
+                        children: GOAL_ICONS.map((icon) => {
+                          const isIconSelected = form.iconName === icon.id;
+                          return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "button",
+                            {
+                              type: "button",
+                              onClick: () => setForm((f2) => ({ ...f2, iconName: icon.id })),
+                              "aria-label": `Select ${icon.label} icon`,
+                              "aria-pressed": isIconSelected,
+                              "data-ocid": `woop_wizard.icon.${icon.id}`,
+                              className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5",
+                              style: isIconSelected ? {
+                                backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                                border: "2.5px solid oklch(var(--color-accent-success))",
+                                color: "oklch(var(--color-accent-success))",
+                                boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)"
+                              } : {
+                                backgroundColor: "oklch(var(--card))",
+                                border: "1.5px solid oklch(var(--border))",
+                                color: "oklch(var(--muted-foreground))",
+                                boxShadow: "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)"
+                              },
+                              children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 block", children: icon.svg })
+                            },
+                            icon.id
+                          );
+                        })
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Theme Color" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: "flex flex-wrap gap-4",
+                        "data-ocid": "woop_wizard.color_selector",
+                        children: THEME_COLORS.map((color2) => {
+                          const isColorSelected = form.themeColor === color2.value;
+                          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                            "div",
+                            {
+                              className: "flex flex-col items-center gap-2",
+                              children: [
+                                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "button",
+                                  {
+                                    type: "button",
+                                    onClick: () => setForm((f2) => ({
+                                      ...f2,
+                                      themeColor: color2.value
+                                    })),
+                                    "aria-label": color2.label,
+                                    "aria-pressed": isColorSelected,
+                                    "data-ocid": `woop_wizard.color.${color2.id}`,
+                                    className: "w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                    style: {
+                                      backgroundColor: color2.value,
+                                      boxShadow: isColorSelected ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color2.value}, 0 0 14px 3px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                                      transform: isColorSelected ? "scale(1.2)" : "scale(1)"
+                                    }
+                                  }
+                                ),
+                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground font-mono", children: color2.label })
+                              ]
+                            },
+                            color2.id
+                          );
+                        })
+                      }
+                    )
+                  ] }),
+                  createGoalMutation.isError && !((_e2 = (_d2 = createGoalMutation.error) == null ? void 0 : _d2.message) == null ? void 0 : _e2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.create_goal.error_state",
+                      children: "Something went wrong. Please try again."
+                    }
+                  )
+                ] })
+              ]
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 py-5 border-t border-border bg-card", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                type: "button",
+                variant: "outline",
+                size: "lg",
+                "data-ocid": "woop_wizard.back_button",
+                onClick: step === 4 ? () => {
+                  setErrors({});
+                  setStep(3);
+                } : goBack,
+                disabled: step === 1,
+                className: "gap-2 text-base min-w-[100px]",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { size: 16 }),
+                  step === 4 ? "Edit" : "Back"
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-mono text-muted-foreground", children: [
+              step,
+              " / 4"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                size: "lg",
+                "data-ocid": step === 4 ? "woop_wizard.commit_button" : "woop_wizard.next_button",
+                onClick: goNext,
+                disabled: createGoalMutation.isPending || step === 4 && !actor,
+                className: "gap-2 button-primary-neon text-base min-w-[130px]",
+                children: step === 4 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
+                  "Committing…"
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16 }),
+                  "Commit →"
+                ] }) : "Next →"
+              }
+            )
+          ] })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      TierLimitModal,
+      {
+        open: showLimitModal,
+        onClose: () => setShowLimitModal(false),
+        userProfile: userProfile ?? null
+      }
+    )
+  ] });
+}
 const DONE_STATE_KEY = "cumulative-done-state";
 const LAST_DATE_KEY = "cumulative-last-date";
+const NEW_HABIT_KEY = "cumulative-new-habit-id";
+const NEW_HABIT_DURATION_MS = 1e4;
 function goalKey(id2) {
   return String(id2);
 }
@@ -70524,7 +71641,7 @@ function TabPills({
                 className: "w-5 h-5 rounded-full flex items-center justify-center font-bold",
                 style: {
                   background: "#10B981",
-                  color: "#fff",
+                  color: "#022c22",
                   fontSize: "0.65rem",
                   animation: badgeAnimKey > 0 ? "badgePop 0.38s cubic-bezier(0.34,1.56,0.64,1) both" : "none"
                 },
@@ -70541,15 +71658,70 @@ function TabPills({
     }) })
   ] });
 }
+function NewHabitBadge() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+        @keyframes newHabitFadeIn {
+          0%   { opacity: 0; transform: scale(0.7) translateY(-4px); }
+          60%  { opacity: 1; transform: scale(1.08) translateY(0); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      ` }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        "data-ocid": "dashboard.new_habit_badge",
+        "aria-label": "New habit",
+        style: {
+          position: "absolute",
+          bottom: "10px",
+          right: "12px",
+          background: "#10B981",
+          color: "#022c22",
+          fontSize: "0.65rem",
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          padding: "3px 9px",
+          borderRadius: "20px",
+          pointerEvents: "none",
+          zIndex: 10,
+          boxShadow: "0 2px 8px rgba(16,185,129,0.45), 0 1px 3px rgba(0,0,0,0.4)",
+          animation: "newHabitFadeIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both"
+        },
+        children: "new habit"
+      }
+    )
+  ] });
+}
 function DashboardPage$1() {
   var _a3;
   const [usernameModalDismissed, setUsernameModalDismissed] = reactExports.useState(false);
+  const [showWoop, setShowWoop] = reactExports.useState(false);
   const { actor, isFetching: actorFetching } = useBackend();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { principalText } = useAuth();
   const queryClient2 = useQueryClient();
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
+  const [newHabitId, setNewHabitId] = reactExports.useState(() => {
+    try {
+      return localStorage.getItem(NEW_HABIT_KEY);
+    } catch {
+      return null;
+    }
+  });
+  reactExports.useEffect(() => {
+    if (!newHabitId) return;
+    try {
+      localStorage.removeItem(NEW_HABIT_KEY);
+    } catch {
+    }
+    const timer = setTimeout(() => {
+      setNewHabitId(null);
+    }, NEW_HABIT_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [newHabitId]);
   const [activeTab, setActiveTab] = reactExports.useState("active");
   const [badgeAnimKey, setBadgeAnimKey] = reactExports.useState(0);
   const [exitingMap, setExitingMap] = reactExports.useState(
@@ -70973,15 +72145,59 @@ function DashboardPage$1() {
               )
             }
           ),
-          !isLoading && activeGoals.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
-            TabPills,
+          !isLoading && activeGoals.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              TabPills,
+              {
+                activeTab,
+                doneCount: done.length,
+                onTabChange: setActiveTab,
+                badgeAnimKey
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setShowWoop(true),
+                "data-ocid": "dashboard.create_habit_button",
+                "aria-label": "Create a new habit",
+                className: "flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth ml-auto",
+                style: {
+                  background: "#10B981",
+                  color: "#022c22",
+                  fontFamily: "var(--font-body, inherit)",
+                  boxShadow: "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                  fontWeight: 500
+                },
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 14 }),
+                  "Create Habit"
+                ]
+              }
+            )
+          ] }),
+          !isLoading && activeGoals.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
             {
-              activeTab,
-              doneCount: done.length,
-              onTabChange: setActiveTab,
-              badgeAnimKey
+              type: "button",
+              onClick: () => setShowWoop(true),
+              "data-ocid": "dashboard.create_habit_button",
+              "aria-label": "Create a new habit",
+              className: "flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth",
+              style: {
+                background: "#10B981",
+                color: "#022c22",
+                fontFamily: "var(--font-body, inherit)",
+                boxShadow: "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                fontWeight: 500
+              },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 14 }),
+                "Create Habit"
+              ]
             }
-          ),
+          ) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: showSwipeHint && /* @__PURE__ */ jsxRuntimeExports.jsx(
             motion.p,
             {
@@ -71055,11 +72271,26 @@ function DashboardPage$1() {
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-bold text-foreground mb-2", children: "No active habits yet" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground max-w-xs leading-relaxed", children: [
-                  "Head to ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "My Goals" }),
-                  " to create your first keystone habit using the WOOP framework."
-                ] })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground max-w-xs leading-relaxed mb-4", children: "Create your first keystone habit using the WOOP framework." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setShowWoop(true),
+                    "data-ocid": "dashboard.empty_create_habit_button",
+                    className: "flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full transition-smooth",
+                    style: {
+                      background: "#10B981",
+                      color: "#022c22",
+                      fontWeight: 700,
+                      boxShadow: "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)"
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 12 }),
+                      "Create Habit"
+                    ]
+                  }
+                )
               ]
             }
           ),
@@ -71085,27 +72316,30 @@ function DashboardPage$1() {
           ) : unswiped.map((goal, index2) => {
             const key = goalKey(goal.id);
             const isExiting = exitingMap.has(key);
-            return /* @__PURE__ */ jsxRuntimeExports.jsx(
-              GoalCard,
-              {
-                goal,
-                checkInToday: void 0,
-                analytics: analyticsMap.get(key),
-                index: index2,
-                weekHistory: weekHistoryMap.get(key),
-                weekHistoryLoading,
-                mode: "active",
-                onCheckIn: handleGoalCardCheckIn,
-                onExitComplete: handleCardExitComplete,
-                isDarkMode,
-                isCheckingIn: pendingGoalId === key && checkInMutation.isPending,
-                isSkipping: pendingGoalId === key && checkInMutation.isPending,
-                animateIn: recentlyUndone.has(key),
-                exitDirection: isExiting ? exitingMap.get(key) ?? null : swipeDirectionMap.get(key) ?? null,
-                isExiting
-              },
-              key
-            );
+            const isNewHabit = newHabitId === key;
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                GoalCard,
+                {
+                  goal,
+                  checkInToday: void 0,
+                  analytics: analyticsMap.get(key),
+                  index: index2,
+                  weekHistory: weekHistoryMap.get(key),
+                  weekHistoryLoading,
+                  mode: "active",
+                  onCheckIn: handleGoalCardCheckIn,
+                  onExitComplete: handleCardExitComplete,
+                  isDarkMode,
+                  isCheckingIn: pendingGoalId === key && checkInMutation.isPending,
+                  isSkipping: pendingGoalId === key && checkInMutation.isPending,
+                  animateIn: recentlyUndone.has(key),
+                  exitDirection: isExiting ? exitingMap.get(key) ?? null : swipeDirectionMap.get(key) ?? null,
+                  isExiting
+                }
+              ),
+              isNewHabit && /* @__PURE__ */ jsxRuntimeExports.jsx(NewHabitBadge, {})
+            ] }, key);
           }) }),
           !isLoading && activeTab === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { mode: "popLayout", children: done.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
             motion.div,
@@ -71149,6 +72383,23 @@ function DashboardPage$1() {
             );
           }) })
         ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      WoopWizard,
+      {
+        open: showWoop,
+        onClose: () => setShowWoop(false),
+        onGoalCreated: (goalId) => {
+          queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
+          if (goalId) {
+            try {
+              localStorage.setItem(NEW_HABIT_KEY, goalId);
+            } catch {
+            }
+            setNewHabitId(goalId);
+          }
+        }
       }
     )
   ] });
@@ -73667,1061 +74918,6 @@ function Label({
     }
   );
 }
-function Textarea({ className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "textarea",
-    {
-      "data-slot": "textarea",
-      className: cn(
-        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function toNumericTier$2(tier) {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
-}
-function getNextTier(current) {
-  if (current === 1) return 2;
-  if (current === 2) return 3;
-  return null;
-}
-const TIER_ACCENT = {
-  1: "text-muted-foreground",
-  2: "text-accent-skip",
-  3: "text-accent-success"
-};
-const TIER_UPGRADE_COPY = {
-  1: {
-    headline: "Ready to build more habits?",
-    body: "Upgrade to Plus and manage up to 10 goals simultaneously. Research shows multi-habit tracking accelerates overall progress."
-  },
-  2: {
-    headline: "Unlock your full potential.",
-    body: "Power tier gives you 25 concurrent goals — ideal for high-performers who want to stack habits systematically."
-  },
-  3: {
-    headline: "You've reached the maximum.",
-    body: "Power tier supports up to 25 active goals. Archive completed or paused goals to free up slots."
-  }
-};
-function TierLimitModal({
-  open,
-  onClose,
-  userProfile
-}) {
-  const navigate = useNavigate();
-  if (!open) return null;
-  const currentTier = userProfile ? toNumericTier$2(userProfile.tier) : 1;
-  const nextTier = getNextTier(currentTier);
-  const currentLimit = TIER_GOAL_LIMITS[currentTier];
-  const nextLimit = nextTier ? TIER_GOAL_LIMITS[nextTier] : null;
-  const copy2 = TIER_UPGRADE_COPY[currentTier];
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: "fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm",
-        "aria-hidden": "true"
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "dialog",
-      {
-        open: true,
-        "aria-modal": "true",
-        "aria-label": "Goal Limit Reached",
-        "data-ocid": "tier_limit.dialog",
-        className: "fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] max-w-sm w-full mx-auto rounded-2xl bg-card border border-border/20 overflow-hidden p-0 m-auto",
-        style: {
-          boxShadow: "-5px -5px 16px rgba(65,65,75,0.5), 9px 9px 24px rgba(0,0,0,0.9)",
-          borderTop: "1px solid rgba(255,255,255,0.13)",
-          borderLeft: "1px solid rgba(255,255,255,0.07)"
-        },
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative px-5 pt-5 pb-4 border-b border-border", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-accent-social/10 border border-accent-social/20 shrink-0 mt-0.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 18, className: "text-accent-social" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1 pr-6", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-base font-display font-semibold text-foreground leading-tight", children: "Goal Limit Reached" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5", children: [
-                  TIER_LABELS[currentTier],
-                  " plan · ",
-                  currentLimit,
-                  " active goal",
-                  currentLimit !== 1 ? "s" : "",
-                  " max"
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "ghost",
-                size: "icon",
-                onClick: onClose,
-                "data-ocid": "tier_limit.close_button",
-                "aria-label": "Close",
-                className: "absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground w-7 h-7",
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 15 })
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-5 space-y-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/20", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wide", children: "Current Plan" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "p",
-                  {
-                    className: `text-lg font-display font-bold ${TIER_ACCENT[currentTier]}`,
-                    children: [
-                      "Tier ",
-                      currentTier,
-                      " — ",
-                      TIER_LABELS[currentTier]
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Active goal limit" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-foreground", children: currentLimit })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-relaxed", children: copy2.body }),
-            nextTier && nextLimit && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "div",
-              {
-                "data-ocid": "tier_limit.upgrade_card",
-                className: "p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-primary font-medium uppercase tracking-wide", children: "Upgrade to" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base font-display font-bold text-foreground", children: [
-                        "Tier ",
-                        nextTier,
-                        " — ",
-                        TIER_LABELS[nextTier]
-                      ] })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Goal limit" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-accent-success", children: nextLimit })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: copy2.headline })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2 px-5 pb-5", children: [
-            nextTier ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                type: "button",
-                "data-ocid": "tier_limit.upgrade_button",
-                className: "w-full gap-2 button-primary-neon",
-                onClick: () => {
-                  onClose();
-                  void navigate({ to: "/settings" });
-                },
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleArrowUp, { size: 16 }),
-                  "Upgrade to ",
-                  TIER_LABELS[nextTier]
-                ]
-              }
-            ) : null,
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "outline",
-                "data-ocid": "tier_limit.cancel_button",
-                className: "w-full",
-                onClick: onClose,
-                children: nextTier ? "Not now" : "Got it"
-              }
-            )
-          ] })
-        ]
-      }
-    )
-  ] });
-}
-const THEME_COLORS = [
-  { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
-  { id: "sapphire", label: "Sapphire", value: "#2563EB" },
-  { id: "emerald", label: "Emerald", value: "#059669" },
-  { id: "amber", label: "Amber", value: "#D97706" },
-  { id: "rose", label: "Rose", value: "#E11D48" },
-  { id: "slate", label: "Slate", value: "#475569" },
-  { id: "copper", label: "Copper", value: "#C2410C" },
-  { id: "teal", label: "Teal", value: "#0D9488" }
-];
-const STEPS = [
-  { id: 1, label: "Wish" },
-  { id: 2, label: "Obstacle" },
-  { id: 3, label: "Plan" },
-  { id: 4, label: "Review" }
-];
-const EMPTY = {
-  goalAction: "",
-  goalReason: "",
-  habitAction: "",
-  habitMinutes: "",
-  selectedObstacles: [],
-  customInput: "",
-  customChips: [],
-  ifThenPlan: "",
-  iconName: "target",
-  themeColor: "#2563EB"
-};
-function WoopWizard({
-  open,
-  onClose,
-  onGoalCreated
-}) {
-  var _a3, _b3, _c2, _d2, _e2;
-  const [step, setStep] = reactExports.useState(1);
-  const [animating, setAnimating] = reactExports.useState(false);
-  const [animDir, setAnimDir] = reactExports.useState("fwd");
-  const [mounted, setMounted] = reactExports.useState(false);
-  const [showLimitModal, setShowLimitModal] = reactExports.useState(false);
-  const [errors, setErrors] = reactExports.useState({});
-  const [form, setForm] = reactExports.useState(EMPTY);
-  const { actor, isFetching } = useBackend();
-  const { data: userProfile } = useUserProfile();
-  const queryClient2 = useQueryClient();
-  reactExports.useEffect(() => {
-    if (!open) {
-      setMounted(false);
-      return;
-    }
-    const t2 = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(t2);
-  }, [open]);
-  reactExports.useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "";
-      };
-    }
-  }, [open]);
-  const assembledWish = form.goalAction.trim() && form.goalReason.trim() ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}` : "";
-  const assembledHabit = form.habitAction.trim() && form.habitMinutes.trim() ? `Every day, I will ${form.habitAction.trim()} for ${form.habitMinutes.trim()} minutes` : "";
-  const assembledObstacles = form.selectedObstacles.map((o2) => o2.label).join(", ");
-  const primaryObstacle = ((_a3 = form.selectedObstacles[0]) == null ? void 0 : _a3.label) ?? "";
-  const { data: userObstacles = [] } = useQuery({
-    queryKey: ["obstacleTemplates"],
-    queryFn: async () => {
-      if (!actor || !("listMyObstacleTemplates" in actor)) return [];
-      try {
-        return await actor.listMyObstacleTemplates();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor && !isFetching
-  });
-  const createGoalMutation = useMutation({
-    mutationFn: async () => {
-      if (!actor) throw new Error("Actor not ready — please wait and retry.");
-      let obstacleTemplateId;
-      for (const obs of form.selectedObstacles) {
-        if (obs.kind === "user" && obs.backendId !== void 0) {
-          if (obstacleTemplateId === void 0)
-            obstacleTemplateId = obs.backendId;
-        } else {
-          try {
-            const created = await actor.createObstacleTemplate({
-              title: obs.label,
-              description: ""
-            });
-            if (obstacleTemplateId === void 0)
-              obstacleTemplateId = created.id;
-          } catch {
-            console.error("Failed to persist obstacle template:", obs.label);
-          }
-        }
-      }
-      return await actor.createGoal({
-        wish: assembledWish,
-        wishDescription: assembledHabit,
-        outcome: assembledObstacles,
-        obstacleTemplateId,
-        ifThenPlan: form.ifThenPlan.trim(),
-        iconName: form.iconName || void 0,
-        themeColor: form.themeColor || void 0
-      });
-    },
-    onSuccess: async () => {
-      await queryClient2.invalidateQueries({
-        queryKey: ["myGoals"],
-        refetchType: "all"
-      });
-      await queryClient2.refetchQueries({ queryKey: ["myGoals"] });
-      queryClient2.invalidateQueries({ queryKey: ["analytics"] });
-      ue.success("Commitment made! Your habit is on the dashboard.", {
-        description: assembledHabit,
-        duration: 5e3
-      });
-      onGoalCreated == null ? void 0 : onGoalCreated();
-      handleClose();
-    },
-    onError: (error) => {
-      var _a4;
-      const msg = ((_a4 = error.message) == null ? void 0 : _a4.toLowerCase()) ?? "";
-      if (msg.includes("limitreached") || msg.includes("limit reached") || msg.includes("goal limit")) {
-        setShowLimitModal(true);
-      } else {
-        ue.error("Failed to create goal. Please try again.", {
-          description: error.message
-        });
-      }
-    }
-  });
-  const handleClose = reactExports.useCallback(() => {
-    setStep(1);
-    setForm(EMPTY);
-    setErrors({});
-    onClose();
-  }, [onClose]);
-  const validate = (s2) => {
-    const e3 = {};
-    if (s2 === 1) {
-      if (!form.goalAction.trim())
-        e3.goalAction = "Tell us what you want to achieve.";
-      if (!form.goalReason.trim()) e3.goalReason = "What's your deeper reason?";
-      if (!form.habitAction.trim()) e3.habitAction = "Name the daily action.";
-      if (!form.habitMinutes.trim()) e3.habitMinutes = "How many minutes?";
-    }
-    if (s2 === 2 && form.selectedObstacles.length === 0) {
-      e3.obstacles = "Select at least one obstacle you might face.";
-    }
-    if (s2 === 3 && !form.ifThenPlan.trim()) {
-      e3.ifThenPlan = "Write your backup plan.";
-    }
-    setErrors(e3);
-    return Object.keys(e3).length === 0;
-  };
-  const navigate = (dir) => {
-    setAnimDir(dir);
-    setAnimating(true);
-    setTimeout(() => {
-      setStep((s2) => dir === "fwd" ? s2 + 1 : s2 - 1);
-      setAnimating(false);
-    }, 180);
-  };
-  const goNext = () => {
-    if (step === 4) {
-      createGoalMutation.mutate();
-      return;
-    }
-    if (!validate(step)) return;
-    navigate("fwd");
-  };
-  const goBack = () => {
-    if (step === 1) return;
-    setErrors({});
-    navigate("bwd");
-  };
-  const toggleObstacle = (obs) => {
-    setForm((f2) => {
-      const exists = f2.selectedObstacles.find((o2) => o2.id === obs.id);
-      const updated = exists ? f2.selectedObstacles.filter((o2) => o2.id !== obs.id) : [...f2.selectedObstacles, obs];
-      return { ...f2, selectedObstacles: updated };
-    });
-    setErrors((e3) => ({ ...e3, obstacles: void 0 }));
-  };
-  const addCustomChip = () => {
-    const label = form.customInput.trim();
-    if (!label) return;
-    const normalised = label.toLowerCase();
-    const alreadyExists = form.customChips.some((c2) => c2.label.toLowerCase() === normalised) || OBSTACLE_TEMPLATES.some((t2) => t2.label.toLowerCase() === normalised);
-    if (alreadyExists) {
-      setErrors((e3) => ({
-        ...e3,
-        customInput: "That obstacle is already listed."
-      }));
-      return;
-    }
-    const chip = {
-      id: `custom_${Date.now()}`,
-      label,
-      kind: "custom"
-    };
-    setForm((f2) => ({
-      ...f2,
-      customInput: "",
-      customChips: [...f2.customChips, chip],
-      selectedObstacles: [...f2.selectedObstacles, chip]
-    }));
-    setErrors((e3) => ({ ...e3, obstacles: void 0, customInput: void 0 }));
-  };
-  if (!open) return null;
-  const slideClass = animating ? animDir === "fwd" ? "opacity-0 translate-x-8" : "opacity-0 -translate-x-8" : "opacity-100 translate-x-0";
-  const presetIds = new Set(OBSTACLE_TEMPLATES.map((t2) => t2.id));
-  const uniqueUserObstacles = userObstacles.filter(
-    (o2) => !presetIds.has(String(o2.id)) && !OBSTACLE_TEMPLATES.some(
-      (t2) => t2.label.toLowerCase() === o2.title.toLowerCase()
-    )
-  ).map((o2) => ({
-    id: `user_${String(o2.id)}`,
-    label: o2.title,
-    kind: "user",
-    backendId: o2.id
-  }));
-  const allObstacleChips = [
-    ...OBSTACLE_TEMPLATES.map((o2) => ({
-      id: o2.id,
-      label: o2.label,
-      kind: "builtin"
-    })),
-    ...uniqueUserObstacles,
-    ...form.customChips
-  ];
-  const isSelected = (id2) => form.selectedObstacles.some((o2) => o2.id === id2);
-  const stepTitles = [
-    "Plant your wish",
-    "Name your obstacle",
-    "Write your plan",
-    "Your commitment"
-  ];
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "dialog",
-      {
-        open: true,
-        "aria-modal": "true",
-        "aria-label": "WOOP Goal Builder",
-        "data-ocid": "woop_wizard.dialog",
-        onClick: (e3) => e3.stopPropagation(),
-        onKeyDown: (e3) => {
-          if (e3.key === "Escape") handleClose();
-        },
-        style: {
-          transform: mounted ? "translateY(0)" : "translateY(100%)",
-          transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)"
-        },
-        className: "fixed inset-0 z-[300] flex flex-col bg-card overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1", children: "WOOP Goal Builder" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight", children: stepTitles[step - 1] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "ghost",
-                size: "icon",
-                onClick: handleClose,
-                "data-ocid": "woop_wizard.close_button",
-                "aria-label": "Close goal builder",
-                className: "text-muted-foreground hover:text-foreground shrink-0 w-11 h-11",
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 22 })
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              className: "shrink-0 px-6 pt-5 pb-4",
-              "aria-label": `Step ${step} of 4`,
-              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-center max-w-2xl mx-auto", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full",
-                    style: { background: "oklch(var(--color-accent-missed) / 0.18)" },
-                    "aria-hidden": "true"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out",
-                    style: {
-                      background: "oklch(var(--color-accent-success))",
-                      right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
-                      boxShadow: "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)"
-                    },
-                    "aria-hidden": "true"
-                  }
-                ),
-                STEPS.map((s2) => {
-                  const isActive = step === s2.id;
-                  const isComplete = step > s2.id;
-                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "div",
-                    {
-                      "data-ocid": `woop_wizard.step_indicator.${s2.id}`,
-                      className: "relative z-10 flex-1 flex flex-col items-center gap-2",
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "div",
-                          {
-                            className: "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold text-sm",
-                            style: isComplete ? {
-                              backgroundColor: "oklch(var(--color-accent-success))",
-                              color: "oklch(0.12 0 0)",
-                              boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.55)"
-                            } : isActive ? {
-                              backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                              border: "2.5px solid oklch(var(--color-accent-success))",
-                              color: "oklch(var(--color-accent-success))",
-                              boxShadow: "0 0 20px 4px oklch(var(--color-accent-success) / 0.3)"
-                            } : {
-                              backgroundColor: "oklch(var(--muted))",
-                              border: "2px solid oklch(var(--color-accent-missed) / 0.3)",
-                              color: "oklch(var(--muted-foreground))"
-                            },
-                            children: isComplete ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "svg",
-                              {
-                                viewBox: "0 0 12 12",
-                                width: "14",
-                                height: "14",
-                                fill: "none",
-                                stroke: "currentColor",
-                                strokeWidth: "2.5",
-                                strokeLinecap: "round",
-                                strokeLinejoin: "round",
-                                "aria-hidden": "true",
-                                children: /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "2,6 5,9 10,3" })
-                              }
-                            ) : s2.id
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "span",
-                          {
-                            className: "text-xs font-mono tracking-wider uppercase transition-colors duration-200",
-                            style: isComplete ? { color: "oklch(var(--color-accent-success) / 0.7)" } : isActive ? {
-                              color: "oklch(var(--color-accent-success))",
-                              fontWeight: 700
-                            } : { color: "oklch(var(--muted-foreground) / 0.5)" },
-                            children: s2.label
-                          }
-                        )
-                      ]
-                    },
-                    s2.id
-                  );
-                })
-              ] })
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              className: `max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`,
-              children: [
-                step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Your keystone habit is the daily action. Your goal is the destination. Focus on the action." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "I want to" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.goal_action_input",
-                            value: form.goalAction,
-                            onChange: (e3) => {
-                              setForm((f2) => ({
-                                ...f2,
-                                goalAction: e3.target.value
-                              }));
-                              setErrors((er) => ({ ...er, goalAction: void 0 }));
-                            },
-                            placeholder: "run a marathon",
-                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
-                            "aria-label": "What do you want to achieve"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "so that I can" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.goal_reason_input",
-                            value: form.goalReason,
-                            onChange: (e3) => {
-                              setForm((f2) => ({
-                                ...f2,
-                                goalReason: e3.target.value
-                              }));
-                              setErrors((er) => ({ ...er, goalReason: void 0 }));
-                            },
-                            placeholder: "feel unstoppable",
-                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
-                            "aria-label": "Your deeper reason"
-                          }
-                        )
-                      ] }),
-                      (errors.goalAction || errors.goalReason) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "p",
-                        {
-                          className: "text-base text-destructive",
-                          "data-ocid": "woop_wizard.goal.field_error",
-                          children: errors.goalAction || errors.goalReason
-                        }
-                      ),
-                      assembledWish && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledWish })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-2", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 13, className: "text-accent-success" }),
-                      "Keystone Habit — shown on your dashboard"
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "Every day, I will" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.habit_action_input",
-                            value: form.habitAction,
-                            onChange: (e3) => {
-                              setForm((f2) => ({
-                                ...f2,
-                                habitAction: e3.target.value
-                              }));
-                              setErrors((er) => ({
-                                ...er,
-                                habitAction: void 0
-                              }));
-                            },
-                            placeholder: "run",
-                            className: "input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium",
-                            "aria-label": "Daily habit action"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "for" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.habit_minutes_input",
-                            value: form.habitMinutes,
-                            onChange: (e3) => {
-                              setForm((f2) => ({
-                                ...f2,
-                                habitMinutes: e3.target.value
-                              }));
-                              setErrors((er) => ({
-                                ...er,
-                                habitMinutes: void 0
-                              }));
-                            },
-                            placeholder: "15",
-                            inputMode: "numeric",
-                            className: "input-neumorphic w-20 text-foreground text-xl font-medium text-center",
-                            "aria-label": "Minutes per day"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "minutes" })
-                      ] }),
-                      (errors.habitAction || errors.habitMinutes) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "p",
-                        {
-                          className: "text-base text-destructive",
-                          "data-ocid": "woop_wizard.habit.field_error",
-                          children: errors.habitAction || errors.habitMinutes
-                        }
-                      ),
-                      assembledHabit && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledHabit })
-                    ] })
-                  ] })
-                ] }),
-                step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Unlike wishful thinking, WOOP asks you to name what stands between you and your habit." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xl font-medium text-foreground", children: "What stands between me and my habit?" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "div",
-                    {
-                      className: "flex flex-wrap gap-3",
-                      "data-ocid": "woop_wizard.obstacle_list",
-                      children: allObstacleChips.map((obs, idx) => {
-                        const selected = isSelected(obs.id);
-                        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          "button",
-                          {
-                            type: "button",
-                            "data-ocid": `woop_wizard.obstacle.${idx + 1}`,
-                            onClick: () => toggleObstacle(obs),
-                            "aria-pressed": selected,
-                            className: `chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`,
-                            style: selected ? {
-                              backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
-                              borderColor: "oklch(var(--color-accent-social))",
-                              boxShadow: "0 0 14px oklch(var(--color-accent-social) / 0.4)",
-                              color: "oklch(var(--color-accent-social))"
-                            } : void 0,
-                            children: [
-                              selected && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 13, className: "inline mr-1.5" }),
-                              obs.label
-                            ]
-                          },
-                          obs.id
-                        );
-                      })
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-muted-foreground font-medium", children: "Add a custom obstacle" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        Input,
-                        {
-                          "data-ocid": "woop_wizard.custom_obstacle_input",
-                          value: form.customInput,
-                          onChange: (e3) => {
-                            setForm((f2) => ({ ...f2, customInput: e3.target.value }));
-                            setErrors((er) => ({ ...er, customInput: void 0 }));
-                          },
-                          onKeyDown: (e3) => {
-                            if (e3.key === "Enter") {
-                              e3.preventDefault();
-                              addCustomChip();
-                            }
-                          },
-                          placeholder: "My specific blocker…",
-                          className: "input-neumorphic flex-1 text-lg bg-transparent border-0"
-                        }
-                      ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                        Button,
-                        {
-                          type: "button",
-                          size: "default",
-                          "data-ocid": "woop_wizard.add_custom_obstacle_button",
-                          onClick: addCustomChip,
-                          disabled: !form.customInput.trim(),
-                          className: "button-primary-neon gap-1.5 shrink-0 text-base",
-                          children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 15 }),
-                            " Add"
-                          ]
-                        }
-                      )
-                    ] })
-                  ] }),
-                  errors.customInput && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.custom_obstacle.field_error",
-                      children: errors.customInput
-                    }
-                  ),
-                  errors.obstacles && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.obstacle.field_error",
-                      children: errors.obstacles
-                    }
-                  ),
-                  form.selectedObstacles.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-accent-success", children: [
-                    "Selected:",
-                    " ",
-                    form.selectedObstacles.map((o2) => o2.label).join(", ")
-                  ] })
-                ] }),
-                step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Implementation intentions double follow-through. When you encounter your obstacle, this plan becomes your autopilot." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "If this happens…" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "span",
-                      {
-                        className: "px-3 py-1.5 rounded-xl text-base font-medium",
-                        style: {
-                          backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
-                          color: "oklch(var(--color-accent-social))",
-                          border: "1px solid oklch(var(--color-accent-social) / 0.4)"
-                        },
-                        children: obs.label
-                      },
-                      obs.id
-                    )) })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Then I will…" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-lg text-muted-foreground leading-relaxed", children: [
-                        'IF "',
-                        primaryObstacle ? primaryObstacle : "[obstacle]",
-                        '",'
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg text-muted-foreground shrink-0 mt-2", children: "THEN I will" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          Textarea,
-                          {
-                            "data-ocid": "woop_wizard.if_then_plan_input",
-                            value: form.ifThenPlan,
-                            onChange: (e3) => {
-                              setForm((f2) => ({
-                                ...f2,
-                                ifThenPlan: e3.target.value
-                              }));
-                              setErrors((er) => ({ ...er, ifThenPlan: void 0 }));
-                            },
-                            placeholder: "do a 15-min home workout instead",
-                            rows: 4,
-                            className: "flex-1 bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none",
-                            "aria-label": "Your if-then backup plan"
-                          }
-                        )
-                      ] })
-                    ] }),
-                    errors.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "p",
-                      {
-                        className: "text-base text-destructive",
-                        "data-ocid": "woop_wizard.if_then_plan.field_error",
-                        children: errors.ifThenPlan
-                      }
-                    )
-                  ] }),
-                  createGoalMutation.isError && !((_c2 = (_b3 = createGoalMutation.error) == null ? void 0 : _b3.message) == null ? void 0 : _c2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.create_goal.error_state",
-                      children: "Something went wrong. Please try again."
-                    }
-                  ),
-                  !actor && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-muted-foreground",
-                      "data-ocid": "woop_wizard.actor_loading_state",
-                      children: "Connecting to backend…"
-                    }
-                  )
-                ] }),
-                step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Review your commitment and personalize your goal. This is the contract with yourself — make it real." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-foreground font-medium leading-relaxed", children: assembledWish })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "div",
-                      {
-                        className: "rounded-2xl p-5 space-y-1.5",
-                        style: {
-                          background: "oklch(var(--color-accent-success) / 0.08)",
-                          border: "1px solid oklch(var(--color-accent-success) / 0.3)",
-                          boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.12)"
-                        },
-                        children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "p",
-                            {
-                              className: "text-xs font-mono tracking-widest uppercase",
-                              style: { color: "oklch(var(--color-accent-success))" },
-                              children: "Daily Habit — what you'll see on your dashboard"
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "p",
-                            {
-                              className: "text-lg font-semibold leading-relaxed",
-                              style: { color: "oklch(var(--color-accent-success))" },
-                              children: assembledHabit
-                            }
-                          )
-                        ]
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-2", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Obstacle(s)" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "span",
-                        {
-                          className: "px-3 py-1 rounded-lg text-base font-medium",
-                          style: {
-                            backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
-                            color: "oklch(var(--color-accent-social))"
-                          },
-                          children: obs.label
-                        },
-                        obs.id
-                      )) })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Your Plan" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-foreground leading-relaxed", children: [
-                        'IF "',
-                        primaryObstacle,
-                        '", THEN I will ',
-                        form.ifThenPlan
-                      ] })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Choose an Icon" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "div",
-                      {
-                        className: "grid grid-cols-7 gap-3",
-                        "data-ocid": "woop_wizard.icon_selector",
-                        children: GOAL_ICONS.map((icon) => {
-                          const isIconSelected = form.iconName === icon.id;
-                          return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              type: "button",
-                              onClick: () => setForm((f2) => ({ ...f2, iconName: icon.id })),
-                              "aria-label": `Select ${icon.label} icon`,
-                              "aria-pressed": isIconSelected,
-                              "data-ocid": `woop_wizard.icon.${icon.id}`,
-                              className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5",
-                              style: isIconSelected ? {
-                                backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                                border: "2.5px solid oklch(var(--color-accent-success))",
-                                color: "oklch(var(--color-accent-success))",
-                                boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)"
-                              } : {
-                                backgroundColor: "oklch(var(--card))",
-                                border: "1.5px solid oklch(var(--border))",
-                                color: "oklch(var(--muted-foreground))",
-                                boxShadow: "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)"
-                              },
-                              children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 block", children: icon.svg })
-                            },
-                            icon.id
-                          );
-                        })
-                      }
-                    )
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Theme Color" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "div",
-                      {
-                        className: "flex flex-wrap gap-4",
-                        "data-ocid": "woop_wizard.color_selector",
-                        children: THEME_COLORS.map((color2) => {
-                          const isColorSelected = form.themeColor === color2.value;
-                          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                            "div",
-                            {
-                              className: "flex flex-col items-center gap-2",
-                              children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "button",
-                                  {
-                                    type: "button",
-                                    onClick: () => setForm((f2) => ({
-                                      ...f2,
-                                      themeColor: color2.value
-                                    })),
-                                    "aria-label": color2.label,
-                                    "aria-pressed": isColorSelected,
-                                    "data-ocid": `woop_wizard.color.${color2.id}`,
-                                    className: "w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                    style: {
-                                      backgroundColor: color2.value,
-                                      boxShadow: isColorSelected ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color2.value}, 0 0 14px 3px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
-                                      transform: isColorSelected ? "scale(1.2)" : "scale(1)"
-                                    }
-                                  }
-                                ),
-                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground font-mono", children: color2.label })
-                              ]
-                            },
-                            color2.id
-                          );
-                        })
-                      }
-                    )
-                  ] }),
-                  createGoalMutation.isError && !((_e2 = (_d2 = createGoalMutation.error) == null ? void 0 : _d2.message) == null ? void 0 : _e2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.create_goal.error_state",
-                      children: "Something went wrong. Please try again."
-                    }
-                  )
-                ] })
-              ]
-            }
-          ) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 py-5 border-t border-border bg-card", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                type: "button",
-                variant: "outline",
-                size: "lg",
-                "data-ocid": "woop_wizard.back_button",
-                onClick: step === 4 ? () => {
-                  setErrors({});
-                  setStep(3);
-                } : goBack,
-                disabled: step === 1,
-                className: "gap-2 text-base min-w-[100px]",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { size: 16 }),
-                  step === 4 ? "Edit" : "Back"
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-mono text-muted-foreground", children: [
-              step,
-              " / 4"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                size: "lg",
-                "data-ocid": step === 4 ? "woop_wizard.commit_button" : "woop_wizard.next_button",
-                onClick: goNext,
-                disabled: createGoalMutation.isPending || step === 4 && !actor,
-                className: "gap-2 button-primary-neon text-base min-w-[130px]",
-                children: step === 4 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
-                  "Committing…"
-                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16 }),
-                  "Commit →"
-                ] }) : "Next →"
-              }
-            )
-          ] })
-        ]
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      TierLimitModal,
-      {
-        open: showLimitModal,
-        onClose: () => setShowLimitModal(false),
-        userProfile: userProfile ?? null
-      }
-    )
-  ] });
-}
 function stateLabel(state) {
   switch (state) {
     case GoalState.active:
@@ -74772,12 +74968,96 @@ const FILTER_TABS = [
   { key: GoalState.paused, label: "Paused" },
   { key: GoalState.completed, label: "Completed" }
 ];
+const EDIT_THEME_COLORS = [
+  { id: "amethyst", value: "#7C3AED" },
+  { id: "sapphire", value: "#2563EB" },
+  { id: "emerald", value: "#059669" },
+  { id: "amber", value: "#D97706" },
+  { id: "rose", value: "#E11D48" },
+  { id: "slate", value: "#475569" },
+  { id: "copper", value: "#C2410C" },
+  { id: "teal", value: "#0D9488" }
+];
+const EDIT_OBSTACLE_PRESETS = [
+  "Low Energy",
+  "Time Crunch",
+  "Distraction",
+  "Social Pressure",
+  "Travel / Change of Routine",
+  "Poor Sleep"
+];
+const EDIT_ICONS = [
+  "target",
+  "flame",
+  "zap",
+  "star",
+  "heart",
+  "trophy",
+  "activity",
+  "book",
+  "music",
+  "coffee",
+  "moon",
+  "sun",
+  "running",
+  "bicycle"
+];
+function renderGoalIcon(name, size = 16) {
+  const iconMap = {
+    target: /* @__PURE__ */ jsxRuntimeExports.jsx(Target, { size }),
+    flame: /* @__PURE__ */ jsxRuntimeExports.jsx(Flame, { size }),
+    zap: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size })
+  };
+  return iconMap[name] ?? /* @__PURE__ */ jsxRuntimeExports.jsx(Target, { size });
+}
 function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
+  const existingObstacles = goal.outcome ? goal.outcome.split(",").map((s2) => s2.trim()).filter(Boolean) : [];
+  const existingPreset = existingObstacles.filter(
+    (o2) => EDIT_OBSTACLE_PRESETS.map((p2) => p2.toLowerCase()).includes(o2.toLowerCase())
+  );
+  const existingCustom = existingObstacles.filter(
+    (o2) => !EDIT_OBSTACLE_PRESETS.map((p2) => p2.toLowerCase()).includes(
+      o2.toLowerCase()
+    )
+  );
   const [form, setForm] = reactExports.useState({
     wish: goal.wish,
     wishDescription: goal.wishDescription,
-    ifThenPlan: goal.ifThenPlan
+    ifThenPlan: goal.ifThenPlan,
+    iconName: goal.iconName ?? "target",
+    themeColor: goal.themeColor ?? "#2563EB",
+    obstacles: existingPreset,
+    customObstacleInput: "",
+    customObstacles: existingCustom
   });
+  const customInputRef = reactExports.useRef(null);
+  function allObstacles() {
+    return [...form.obstacles, ...form.customObstacles];
+  }
+  function togglePreset(label) {
+    setForm((f2) => ({
+      ...f2,
+      obstacles: f2.obstacles.includes(label) ? f2.obstacles.filter((o2) => o2 !== label) : [...f2.obstacles, label]
+    }));
+  }
+  function addCustomObstacle() {
+    const val = form.customObstacleInput.trim();
+    if (!val) return;
+    const lower = val.toLowerCase();
+    const alreadyExists = form.customObstacles.some((o2) => o2.toLowerCase() === lower) || EDIT_OBSTACLE_PRESETS.some((p2) => p2.toLowerCase() === lower) || form.obstacles.some((o2) => o2.toLowerCase() === lower);
+    if (alreadyExists) return;
+    setForm((f2) => ({
+      ...f2,
+      customObstacleInput: "",
+      customObstacles: [...f2.customObstacles, val]
+    }));
+  }
+  function removeCustomObstacle(label) {
+    setForm((f2) => ({
+      ...f2,
+      customObstacles: f2.customObstacles.filter((o2) => o2 !== label)
+    }));
+  }
   function handleSave() {
     const req = {};
     if (form.wish.trim() !== goal.wish) req.wish = form.wish.trim();
@@ -74785,9 +75065,14 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
       req.wishDescription = form.wishDescription.trim();
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
       req.ifThenPlan = form.ifThenPlan.trim();
+    if (form.iconName !== (goal.iconName ?? "target"))
+      req.iconName = form.iconName;
+    if (form.themeColor !== (goal.themeColor ?? "#2563EB"))
+      req.themeColor = form.themeColor;
     onSave(req);
   }
-  const hasChanges = form.wish.trim() !== goal.wish || form.wishDescription.trim() !== goal.wishDescription || form.ifThenPlan.trim() !== goal.ifThenPlan;
+  const all = allObstacles();
+  const hasChanges = form.wish.trim() !== goal.wish || form.wishDescription.trim() !== goal.wishDescription || form.ifThenPlan.trim() !== goal.ifThenPlan || form.iconName !== (goal.iconName ?? "target") || form.themeColor !== (goal.themeColor ?? "#2563EB");
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     motion.div,
     {
@@ -74801,29 +75086,9 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Label,
             {
-              htmlFor: "edit-wish",
-              className: "text-xs font-mono uppercase tracking-widest text-muted-foreground",
-              children: "Goal Name"
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              id: "edit-wish",
-              "data-ocid": "goals.edit_wish_input",
-              value: form.wish,
-              onChange: (e3) => setForm((f2) => ({ ...f2, wish: e3.target.value })),
-              className: "bg-muted/60 border-border focus:border-primary text-sm"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Label,
-            {
               htmlFor: "edit-desc",
               className: "text-xs font-mono uppercase tracking-widest text-muted-foreground",
-              children: "Description"
+              children: "Keystone Habit"
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -74832,11 +75097,42 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
               id: "edit-desc",
               "data-ocid": "goals.edit_description_input",
               value: form.wishDescription,
+              maxLength: 140,
               onChange: (e3) => setForm((f2) => ({ ...f2, wishDescription: e3.target.value })),
-              rows: 3,
+              rows: 2,
+              placeholder: "Every day, I will…",
               className: "bg-muted/60 border-border focus:border-primary resize-none text-sm"
             }
-          )
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60 text-right", children: [
+            form.wishDescription.length,
+            "/140"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Label,
+            {
+              htmlFor: "edit-wish",
+              className: "text-xs font-mono uppercase tracking-widest text-muted-foreground",
+              children: "Macro Goal"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              id: "edit-wish",
+              "data-ocid": "goals.edit_wish_input",
+              value: form.wish,
+              maxLength: 140,
+              onChange: (e3) => setForm((f2) => ({ ...f2, wish: e3.target.value })),
+              className: "bg-muted/60 border-border focus:border-primary text-sm"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60 text-right", children: [
+            form.wish.length,
+            "/140"
+          ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -74853,11 +75149,161 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
               id: "edit-plan",
               "data-ocid": "goals.edit_ifthen_input",
               value: form.ifThenPlan,
+              maxLength: 140,
               onChange: (e3) => setForm((f2) => ({ ...f2, ifThenPlan: e3.target.value })),
-              rows: 3,
+              rows: 2,
+              placeholder: "If [obstacle], then I will…",
               className: "bg-muted/60 border-border focus:border-primary resize-none text-sm font-mono"
             }
-          )
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60 text-right", children: [
+            form.ifThenPlan.length,
+            "/140"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Obstacles" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5", children: EDIT_OBSTACLE_PRESETS.map((label) => {
+            const selected = form.obstacles.includes(label);
+            return /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => togglePreset(label),
+                "data-ocid": `goals.edit_obstacle_${label.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
+                className: "text-xs px-2.5 py-1 rounded-full border transition-smooth",
+                style: selected ? {
+                  background: "oklch(var(--color-accent-success) / 0.12)",
+                  borderColor: "oklch(var(--color-accent-success) / 0.4)",
+                  color: "oklch(var(--color-accent-success))"
+                } : {
+                  background: "oklch(var(--muted) / 0.4)",
+                  borderColor: "oklch(var(--border))",
+                  color: "oklch(var(--muted-foreground))"
+                },
+                children: label
+              },
+              label
+            );
+          }) }),
+          form.customObstacles.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5", children: form.customObstacles.map((label) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "span",
+            {
+              className: "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border",
+              style: {
+                background: "oklch(var(--color-accent-skip) / 0.1)",
+                borderColor: "oklch(var(--color-accent-skip) / 0.35)",
+                color: "oklch(var(--color-accent-skip))"
+              },
+              children: [
+                label,
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    "aria-label": `Remove ${label}`,
+                    onClick: () => removeCustomObstacle(label),
+                    className: "ml-0.5 opacity-70 hover:opacity-100 transition-smooth",
+                    "data-ocid": "goals.edit_remove_custom_obstacle",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 10 })
+                  }
+                )
+              ]
+            },
+            label
+          )) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                ref: customInputRef,
+                "data-ocid": "goals.edit_custom_obstacle_input",
+                value: form.customObstacleInput,
+                maxLength: 60,
+                placeholder: "Add custom obstacle…",
+                onChange: (e3) => setForm((f2) => ({ ...f2, customObstacleInput: e3.target.value })),
+                onKeyDown: (e3) => {
+                  if (e3.key === "Enter") {
+                    e3.preventDefault();
+                    addCustomObstacle();
+                  }
+                },
+                className: "bg-muted/60 border-border focus:border-primary text-xs h-8 flex-1"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                type: "button",
+                size: "sm",
+                variant: "outline",
+                onClick: addCustomObstacle,
+                disabled: !form.customObstacleInput.trim(),
+                className: "h-8 px-2.5 text-xs gap-1",
+                "data-ocid": "goals.edit_add_custom_obstacle_button",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 11 }),
+                  "Add"
+                ]
+              }
+            )
+          ] }),
+          all.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60", children: [
+            all.length,
+            " obstacle",
+            all.length !== 1 ? "s" : "",
+            " selected"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Icon" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: EDIT_ICONS.map((icon) => {
+            const selected = form.iconName === icon;
+            return /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setForm((f2) => ({ ...f2, iconName: icon })),
+                "data-ocid": `goals.edit_icon_${icon}`,
+                "aria-label": icon,
+                className: "w-9 h-9 rounded-xl flex items-center justify-center border transition-smooth",
+                style: selected ? {
+                  background: "oklch(var(--color-accent-success) / 0.15)",
+                  borderColor: "oklch(var(--color-accent-success) / 0.5)",
+                  color: "oklch(var(--color-accent-success))"
+                } : {
+                  background: "oklch(var(--muted) / 0.4)",
+                  borderColor: "oklch(var(--border))",
+                  color: "oklch(var(--muted-foreground))"
+                },
+                children: renderGoalIcon(icon, 15)
+              },
+              icon
+            );
+          }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Color" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: EDIT_THEME_COLORS.map((c2) => {
+            const selected = form.themeColor === c2.value;
+            return /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setForm((f2) => ({ ...f2, themeColor: c2.value })),
+                "aria-label": c2.id,
+                "data-ocid": `goals.edit_color_${c2.id}`,
+                className: "w-7 h-7 rounded-full border-2 transition-smooth",
+                style: {
+                  background: c2.value,
+                  borderColor: selected ? "oklch(var(--foreground))" : "transparent",
+                  boxShadow: selected ? `0 0 0 2px ${c2.value}40` : "none",
+                  transform: selected ? "scale(1.15)" : "scale(1)"
+                }
+              },
+              c2.id
+            );
+          }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2 pt-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -74935,12 +75381,12 @@ function GoalDetailPanel({
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Macro Goal" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-xl font-bold text-foreground leading-tight", children: goal.wish }),
-              goal.wishDescription && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 block mb-0.5", children: "Keystone Habit" }),
-                goal.wishDescription
-              ] })
+              goal.wishDescription && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 mb-1", children: "Keystone Habit" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-xl font-bold text-foreground leading-tight mb-2", children: goal.wishDescription })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-0.5", children: "Macro Goal" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-snug", children: goal.wish })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 shrink-0", children: [
               !isEditing && (isActive || isPaused) && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -75005,7 +75451,7 @@ function GoalDetailPanel({
               "data-ocid": "goals.detail_view",
               children: [
                 goal.outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Best Outcome" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Obstacles" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-foreground leading-relaxed", children: goal.outcome })
                 ] }),
                 goal.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -75148,6 +75594,7 @@ function GoalsPage$1() {
   const [deletingGoalId, setDeletingGoalId] = reactExports.useState(null);
   const { actor, isFetching } = useBackend();
   const queryClient2 = useQueryClient();
+  const navigate = useNavigate();
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ["myGoals"],
     queryFn: async () => {
@@ -75242,20 +75689,27 @@ function GoalsPage$1() {
   const selectedGoal = visibleGoals.find((g2) => g2.id === selectedGoalId) ?? null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-6 px-4 pb-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Habit Management" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-1", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-bold text-foreground", children: "My Goals" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-bold text-foreground", children: "My Habits" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          Button,
+          "button",
           {
             type: "button",
-            size: "sm",
             onClick: () => setShowWoop(true),
-            className: "gap-1.5 button-primary-neon shrink-0",
             "data-ocid": "goals.add_goal_button",
+            "aria-label": "Create a new habit",
+            className: "flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth shrink-0",
+            style: {
+              background: "#10B981",
+              color: "#022c22",
+              fontWeight: 500,
+              fontFamily: "var(--font-body, inherit)",
+              boxShadow: "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+              border: "none"
+            },
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 15 }),
-              "New Goal"
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 14 }),
+              "Create Habit"
             ]
           }
         )
@@ -75347,7 +75801,7 @@ function GoalsPage$1() {
               )
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-bold text-foreground mb-2", children: "No goals yet" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-bold text-foreground mb-2", children: "No habits yet" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mb-6 max-w-xs leading-relaxed", children: "Create your first keystone habit using the WOOP framework and start building meaningful behavioral change." }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
             Button,
@@ -75355,10 +75809,10 @@ function GoalsPage$1() {
               type: "button",
               onClick: () => setShowWoop(true),
               className: "gap-2 button-primary-neon",
-              "data-ocid": "goals.create_first_goal_button",
+              "data-ocid": "goals.create_first_habit_button",
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" }),
-                "Create Your First Goal"
+                "Create Your First Habit"
               ]
             }
           )
@@ -75375,7 +75829,7 @@ function GoalsPage$1() {
           " ",
           activeFilter !== "all" ? stateLabel(activeFilter).toLowerCase() : "",
           " ",
-          "goals.",
+          "habits.",
           " ",
           activeFilter === GoalState.active && /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
@@ -75457,10 +75911,16 @@ function GoalsPage$1() {
       {
         open: showWoop,
         onClose: () => setShowWoop(false),
-        onGoalCreated: () => {
+        onGoalCreated: (goalId) => {
           queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
           setActiveFilter(GoalState.active);
-          setShowWoop(false);
+          if (goalId) {
+            try {
+              localStorage.setItem("cumulative-new-habit-id", goalId);
+            } catch {
+            }
+          }
+          void navigate({ to: "/" });
         }
       }
     )

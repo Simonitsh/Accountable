@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LogOut, Target } from "lucide-react";
+import { LogOut, Plus, Target } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import type { CheckIn as BackendCheckIn, GoalPublic } from "../backend.d.ts";
 import { GoalCard } from "../components/GoalCard";
 import type { DayStatus } from "../components/GoalCard";
 import { UndoPopup } from "../components/UndoPopup";
+import WoopWizard from "../components/WoopWizard";
 import { useAuth } from "../hooks/useAuth";
 import { useBackend } from "../hooks/useBackend";
 import {
@@ -21,6 +22,8 @@ import type { GoalAnalytics } from "../types";
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const DONE_STATE_KEY = "cumulative-done-state";
 const LAST_DATE_KEY = "cumulative-last-date";
+const NEW_HABIT_KEY = "cumulative-new-habit-id";
+const NEW_HABIT_DURATION_MS = 10_000;
 
 function goalKey(id: bigint): string {
   return String(id);
@@ -554,7 +557,7 @@ function TabPills({
                   className="w-5 h-5 rounded-full flex items-center justify-center font-bold"
                   style={{
                     background: "#10B981",
-                    color: "#fff",
+                    color: "#022c22",
                     fontSize: "0.65rem",
                     animation:
                       badgeAnimKey > 0
@@ -575,15 +578,77 @@ function TabPills({
   );
 }
 
+// ─── New Habit Badge ─────────────────────────────────────────────────────────────────
+function NewHabitBadge() {
+  return (
+    <>
+      <style>{`
+        @keyframes newHabitFadeIn {
+          0%   { opacity: 0; transform: scale(0.7) translateY(-4px); }
+          60%  { opacity: 1; transform: scale(1.08) translateY(0); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+      <div
+        data-ocid="dashboard.new_habit_badge"
+        aria-label="New habit"
+        style={{
+          position: "absolute",
+          bottom: "10px",
+          right: "12px",
+          background: "#10B981",
+          color: "#022c22",
+          fontSize: "0.65rem",
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          padding: "3px 9px",
+          borderRadius: "20px",
+          pointerEvents: "none",
+          zIndex: 10,
+          boxShadow:
+            "0 2px 8px rgba(16,185,129,0.45), 0 1px 3px rgba(0,0,0,0.4)",
+          animation:
+            "newHabitFadeIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        }}
+      >
+        new habit
+      </div>
+    </>
+  );
+}
+
 // ─── Main Dashboard Page ────────────────────────────────────────────────────────────────
 export function DashboardPage() {
   const [usernameModalDismissed, setUsernameModalDismissed] = useState(false);
+  const [showWoop, setShowWoop] = useState(false);
   const { actor, isFetching: actorFetching } = useBackend();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { principalText } = useAuth();
   const queryClient = useQueryClient();
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
+
+  // ── New habit highlight ─────────────────────────────────────────────────────
+  const [newHabitId, setNewHabitId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(NEW_HABIT_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  // Clear the new habit key immediately so it doesn't show again on re-mount
+  useEffect(() => {
+    if (!newHabitId) return;
+    try {
+      localStorage.removeItem(NEW_HABIT_KEY);
+    } catch {}
+    const timer = setTimeout(() => {
+      setNewHabitId(null);
+    }, NEW_HABIT_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [newHabitId]);
 
   // ── Active / Done tab ──────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"active" | "done">("active");
@@ -1154,14 +1219,57 @@ export function DashboardPage() {
           </p>
         </div>
 
-        {/* Tab pills */}
+        {/* Tab pills + Create Habit button in the same row */}
         {!isLoading && activeGoals.length > 0 && (
-          <TabPills
-            activeTab={activeTab}
-            doneCount={done.length}
-            onTabChange={setActiveTab}
-            badgeAnimKey={badgeAnimKey}
-          />
+          <div className="flex items-center gap-2">
+            <TabPills
+              activeTab={activeTab}
+              doneCount={done.length}
+              onTabChange={setActiveTab}
+              badgeAnimKey={badgeAnimKey}
+            />
+            <button
+              type="button"
+              onClick={() => setShowWoop(true)}
+              data-ocid="dashboard.create_habit_button"
+              aria-label="Create a new habit"
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth ml-auto"
+              style={{
+                background: "#10B981",
+                color: "#022c22",
+                fontFamily: "var(--font-body, inherit)",
+                boxShadow:
+                  "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                fontWeight: 500,
+              }}
+            >
+              <Plus size={14} />
+              Create Habit
+            </button>
+          </div>
+        )}
+        {/* Show Create Habit button even when no goals yet */}
+        {!isLoading && activeGoals.length === 0 && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowWoop(true)}
+              data-ocid="dashboard.create_habit_button"
+              aria-label="Create a new habit"
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
+              style={{
+                background: "#10B981",
+                color: "#022c22",
+                fontFamily: "var(--font-body, inherit)",
+                boxShadow:
+                  "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                fontWeight: 500,
+              }}
+            >
+              <Plus size={14} />
+              Create Habit
+            </button>
+          </div>
         )}
 
         {/* Swipe hint — only shows on Active tab with unswiped habits */}
@@ -1241,10 +1349,25 @@ export function DashboardPage() {
             <h2 className="font-display text-xl font-bold text-foreground mb-2">
               No active habits yet
             </h2>
-            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-              Head to <strong>My Goals</strong> to create your first keystone
-              habit using the WOOP framework.
+            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-4">
+              Create your first keystone habit using the WOOP framework.
             </p>
+            <button
+              type="button"
+              onClick={() => setShowWoop(true)}
+              data-ocid="dashboard.empty_create_habit_button"
+              className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full transition-smooth"
+              style={{
+                background: "#10B981",
+                color: "#022c22",
+                fontWeight: 700,
+                boxShadow:
+                  "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+              }}
+            >
+              <Plus size={12} />
+              Create Habit
+            </button>
           </motion.div>
         )}
 
@@ -1273,33 +1396,36 @@ export function DashboardPage() {
               unswiped.map((goal, index) => {
                 const key = goalKey(goal.id);
                 const isExiting = exitingMap.has(key);
+                const isNewHabit = newHabitId === key;
                 return (
-                  <GoalCard
-                    key={key}
-                    goal={goal}
-                    checkInToday={undefined}
-                    analytics={analyticsMap.get(key)}
-                    index={index}
-                    weekHistory={weekHistoryMap.get(key)}
-                    weekHistoryLoading={weekHistoryLoading}
-                    mode="active"
-                    onCheckIn={handleGoalCardCheckIn}
-                    onExitComplete={handleCardExitComplete}
-                    isDarkMode={isDarkMode}
-                    isCheckingIn={
-                      pendingGoalId === key && checkInMutation.isPending
-                    }
-                    isSkipping={
-                      pendingGoalId === key && checkInMutation.isPending
-                    }
-                    animateIn={recentlyUndone.has(key)}
-                    exitDirection={
-                      isExiting
-                        ? (exitingMap.get(key) ?? null)
-                        : (swipeDirectionMap.get(key) ?? null)
-                    }
-                    isExiting={isExiting}
-                  />
+                  <div key={key} className="relative">
+                    <GoalCard
+                      goal={goal}
+                      checkInToday={undefined}
+                      analytics={analyticsMap.get(key)}
+                      index={index}
+                      weekHistory={weekHistoryMap.get(key)}
+                      weekHistoryLoading={weekHistoryLoading}
+                      mode="active"
+                      onCheckIn={handleGoalCardCheckIn}
+                      onExitComplete={handleCardExitComplete}
+                      isDarkMode={isDarkMode}
+                      isCheckingIn={
+                        pendingGoalId === key && checkInMutation.isPending
+                      }
+                      isSkipping={
+                        pendingGoalId === key && checkInMutation.isPending
+                      }
+                      animateIn={recentlyUndone.has(key)}
+                      exitDirection={
+                        isExiting
+                          ? (exitingMap.get(key) ?? null)
+                          : (swipeDirectionMap.get(key) ?? null)
+                      }
+                      isExiting={isExiting}
+                    />
+                    {isNewHabit && <NewHabitBadge />}
+                  </div>
                 );
               })
             )}
@@ -1355,6 +1481,25 @@ export function DashboardPage() {
           </AnimatePresence>
         )}
       </div>
+
+      {/* WOOP Wizard — opened from dashboard Create Habit button */}
+      <WoopWizard
+        open={showWoop}
+        onClose={() => setShowWoop(false)}
+        onGoalCreated={(goalId) => {
+          queryClient.invalidateQueries({ queryKey: ["myGoals"] });
+          // NOTE: Do NOT call setShowWoop(false) here.
+          // WoopWizard.handleClose() already calls onClose() which sets showWoop=false.
+          // A second setShowWoop(false) here creates a double-close that prevents
+          // the wizard's useEffect(open) reset from running cleanly.
+          if (goalId) {
+            try {
+              localStorage.setItem(NEW_HABIT_KEY, goalId);
+            } catch {}
+            setNewHabitId(goalId);
+          }
+        }}
+      />
     </>
   );
 }
