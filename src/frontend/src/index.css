@@ -491,3 +491,62 @@
     transform: translateY(0);
   }
 }
+
+/* ── New-habit glowing border animation ──────────────────────────────────── */
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes glow-spin {
+  0% {
+    --glow-angle: 0deg;
+  }
+  100% {
+    --glow-angle: 360deg;
+  }
+}
+
+@keyframes glow-wrapper-in {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.new-habit-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius) + 2px);
+  pointer-events: none;
+  z-index: 5;
+  animation: glow-wrapper-in 3s ease-in-out forwards;
+  /* Rotate the conic gradient to simulate a sweeping light source */
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    transparent 200deg,
+    #10b981 250deg,
+    #d4f5e9 290deg,
+    #fffbe6 310deg,
+    #d4f5e9 330deg,
+    #10b981 350deg,
+    transparent 360deg
+  );
+  animation: glow-spin 1.5s linear infinite, glow-wrapper-in 3s ease-in-out
+    forwards;
+  /* Mask: only show the outer ring — clip the interior away */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+}

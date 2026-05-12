@@ -13,7 +13,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header profile={profile} onMenuClick={() => setDrawerOpen(true)} />
+      <Header onMenuClick={() => setDrawerOpen(true)} />
 
       <Drawer
         isOpen={drawerOpen}

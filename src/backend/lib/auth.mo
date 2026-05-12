@@ -1,26 +1,10 @@
 import Map "mo:core/Map";
-import List "mo:core/List";
 import Time "mo:core/Time";
 import Runtime "mo:core/Runtime";
 import Common "../types/common";
 import AuthTypes "../types/auth";
 
 module {
-  public func tierGoalLimit(tier : Common.SubscriptionTier) : Nat {
-    switch tier {
-      case (#tier1) 3;
-      case (#tier2) 10;
-      case (#tier3) 25;
-    };
-  };
-
-  public func getGoalLimit(profile : AuthTypes.UserProfile) : Nat {
-    switch (profile.customGoalLimit) {
-      case (?custom) custom;
-      case null tierGoalLimit(profile.tier);
-    };
-  };
-
   public func toPublic(profile : AuthTypes.UserProfile) : AuthTypes.UserProfilePublic {
     {
       id = profile.id;
@@ -29,8 +13,6 @@ module {
       avatarEmoji = profile.avatarEmoji;
       timezone = profile.timezone;
       role = profile.role;
-      tier = profile.tier;
-      goalLimit = getGoalLimit(profile);
     };
   };
 
@@ -48,8 +30,6 @@ module {
           var avatarEmoji = "";
           var timezone = "";
           var role = #user;
-          var tier = #tier1;
-          var customGoalLimit = null;
           var createdAt = Time.now();
         };
         profiles.add(caller, newProfile);
@@ -131,29 +111,6 @@ module {
       case (?p) p.role == #admin;
       case null false;
     };
-  };
-
-  public func setUserGoalLimit(
-    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
-    auditLog : List.List<AuthTypes.AdminAuditEntry>,
-    caller : Common.UserId,
-    target : Common.UserId,
-    limit : Nat,
-  ) : () {
-    if (not isAdmin(profiles, caller)) {
-      Runtime.trap("Unauthorized: admin only");
-    };
-    let profile = switch (profiles.get(target)) {
-      case (?p) p;
-      case null Runtime.trap("Target user not found");
-    };
-    profile.customGoalLimit := ?limit;
-    auditLog.add({
-      targetPrincipal = target;
-      setBy = caller;
-      limit = limit;
-      timestamp = Time.now();
-    });
   };
 
   public func getUserProfilePublic(

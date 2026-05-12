@@ -1,42 +1,11 @@
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Menu, User } from "lucide-react";
-import type { UserProfilePublic } from "../backend.d.ts";
 import { useDashboardHeader } from "../hooks/useDashboardHeader";
 import { useTheme } from "../hooks/useTheme";
-import { TIER_LABELS } from "../types";
-import type { SubscriptionTier } from "../types";
 
 interface HeaderProps {
-  profile?: UserProfilePublic | null;
   onMenuClick: () => void;
-}
-
-function toNumericTier(tier: UserProfilePublic["tier"]): SubscriptionTier {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
-}
-
-function TierBadge({ tier }: { tier: UserProfilePublic["tier"] }) {
-  const numericTier = toNumericTier(tier);
-  const label = TIER_LABELS[numericTier];
-  const colorMap = {
-    1: "text-muted-foreground border-muted-foreground/40",
-    2: "text-[oklch(var(--color-accent-skip))] border-[oklch(var(--color-accent-skip)/0.4)]",
-    3: "text-[oklch(var(--color-accent-success))] border-[oklch(var(--color-accent-success)/0.4)]",
-  } as const;
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border",
-        colorMap[numericTier],
-      )}
-    >
-      {label}
-    </span>
-  );
 }
 
 function SunIcon() {
@@ -158,7 +127,7 @@ function HeaderProgressRing({
   );
 }
 
-export function Header({ profile, onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const dashboardData = useDashboardHeader();
   const isDashboard = dashboardData !== null;
@@ -196,7 +165,6 @@ export function Header({ profile, onMenuClick }: HeaderProps) {
           <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
             Cumulative
           </h1>
-          {profile && <TierBadge tier={profile.tier} />}
         </div>
       </div>
 

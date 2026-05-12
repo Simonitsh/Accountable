@@ -1,16 +1,16 @@
-import type { backendInterface } from "../backend";
 import {
   CheckInType,
   ConnectionStatus,
   GoalState,
   InteractionType,
-  SubscriptionTier,
   UserRole,
 } from "../backend";
+import type { backendInterface } from "../backend";
 
 const mockPrincipal = { toText: () => "aaaaa-aa", __brand: "Principal" } as any;
 
 const now = BigInt(Date.now()) * BigInt(1_000_000);
+const dayNs = BigInt(24 * 60 * 60 * 1_000) * BigInt(1_000_000);
 
 const sampleObstacle = {
   id: BigInt(1),
@@ -30,6 +30,9 @@ const sampleGoal1 = {
   ifThenPlan: "If I feel tired, then I will start with just 5 minutes of walking.",
   obstacleTemplateId: BigInt(1),
   state: GoalState.active,
+  isLockIn: false,
+  themeColor: "#10B981",
+  iconName: "running",
 };
 
 const sampleGoal2 = {
@@ -43,6 +46,7 @@ const sampleGoal2 = {
   ifThenPlan: "If I miss the morning, then I will meditate during lunch break.",
   obstacleTemplateId: undefined,
   state: GoalState.paused,
+  isLockIn: false,
 };
 
 const sampleCheckIn = {
@@ -52,6 +56,9 @@ const sampleCheckIn = {
   checkInType: CheckInType.success,
   obstacleTemplateId: undefined,
   timestamp: now,
+  executedIfThen: false,
+  lockInStartedAt: undefined,
+  lockInEndedAt: undefined,
 };
 
 const sampleConnection = {
@@ -62,18 +69,121 @@ const sampleConnection = {
   fromPrincipal: mockPrincipal,
 };
 
+// Rich timeline check-ins for the GoalInsightSheet — 14 days of varied data
+const buildTimelineCheckIns = (goalId: bigint) => [
+  // Today — executed backup plan (revival success)
+  {
+    id: BigInt(100),
+    owner: mockPrincipal,
+    goalId,
+    checkInType: CheckInType.success,
+    obstacleTemplateId: undefined,
+    timestamp: now - BigInt(2 * 60 * 60 * 1_000) * BigInt(1_000_000), // 2h ago
+    executedIfThen: true,
+    lockInStartedAt: undefined,
+    lockInEndedAt: undefined,
+    customObstacleNote: undefined,
+  },
+  // Yesterday — normal success
+  {
+    id: BigInt(101),
+    owner: mockPrincipal,
+    goalId,
+    checkInType: CheckInType.success,
+    obstacleTemplateId: undefined,
+    timestamp: now - dayNs - BigInt(3 * 60 * 60 * 1_000) * BigInt(1_000_000),
+    executedIfThen: false,
+    lockInStartedAt: undefined,
+    lockInEndedAt: undefined,
+    customObstacleNote: undefined,
+  },
+  // 2 days ago — skipped with note
+  {
+    id: BigInt(102),
+    owner: mockPrincipal,
+    goalId,
+    checkInType: CheckInType.skip,
+    obstacleTemplateId: BigInt(0), // "Low Energy" preset
+    timestamp: now - BigInt(2) * dayNs - BigInt(1 * 60 * 60 * 1_000) * BigInt(1_000_000),
+    executedIfThen: false,
+    lockInStartedAt: undefined,
+    lockInEndedAt: undefined,
+    customObstacleNote: "Had a particularly draining work meeting that ran late into the evening.",
+  },
+  // 3 days ago — missed (failedLockIn treated as missed)
+  {
+    id: BigInt(103),
+    owner: mockPrincipal,
+    goalId,
+    checkInType: CheckInType.failedLockIn,
+    obstacleTemplateId: BigInt(2),
+    timestamp: now - BigInt(3) * dayNs,
+    executedIfThen: false,
+    lockInStartedAt: undefined,
+    lockInEndedAt: undefined,
+    customObstacleNote: undefined,
+  },
+  // 4 days ago — normal success
+  {
+    id: BigInt(104),
+    owner: mockPrincipal,
+    goalId,
+    checkInType: CheckInType.success,
+    obstacleTemplateId: undefined,
+    timestamp: now - BigInt(4) * dayNs - BigInt(4 * 60 * 60 * 1_000) * BigInt(1_000_000),
+    executedIfThen: false,
+    lockInStartedAt: undefined,
+    lockInEndedAt: undefined,
+    customObstacleNote: undefined,
+  },
+  // 5 days ago — skipped, no note
+  {
+    id: BigInt(105),
+    owner: mockPrincipal,
+    goalId,
+    checkInType: CheckInType.skip,
+    obstacleTemplateId: BigInt(1),
+    timestamp: now - BigInt(5) * dayNs,
+    executedIfThen: false,
+    lockInStartedAt: undefined,
+    lockInEndedAt: undefined,
+    customObstacleNote: undefined,
+  },
+  // 6 days ago — revival success
+  {
+    id: BigInt(106),
+    owner: mockPrincipal,
+    goalId,
+    checkInType: CheckInType.success,
+    obstacleTemplateId: undefined,
+    timestamp: now - BigInt(6) * dayNs - BigInt(2 * 60 * 60 * 1_000) * BigInt(1_000_000),
+    executedIfThen: true,
+    lockInStartedAt: undefined,
+    lockInEndedAt: undefined,
+    customObstacleNote: undefined,
+  },
+];
+
 export const mockBackend: backendInterface = {
   createGoal: async (request) => ({
-    id: BigInt(99),
-    owner: mockPrincipal,
-    createdAt: BigInt(Date.now()) * BigInt(1_000_000),
-    updatedAt: BigInt(Date.now()) * BigInt(1_000_000),
-    wish: request.wish,
-    wishDescription: request.wishDescription,
-    outcome: request.outcome,
-    ifThenPlan: request.ifThenPlan,
-    obstacleTemplateId: request.obstacleTemplateId,
-    state: GoalState.active,
+    __kind__: "ok" as const,
+    ok: {
+      id: BigInt(99),
+      owner: mockPrincipal,
+      createdAt: BigInt(Date.now()) * BigInt(1_000_000),
+      updatedAt: BigInt(Date.now()) * BigInt(1_000_000),
+      wish: request.wish,
+      wishDescription: request.wishDescription,
+      outcome: request.outcome,
+      ifThenPlan: request.ifThenPlan,
+      obstacleTemplateId: request.obstacleTemplateId,
+      state: GoalState.active,
+      isLockIn: request.isLockIn ?? false,
+      startTime: request.startTime,
+      endTime: request.endTime,
+      themeColor: request.themeColor,
+      iconName: request.iconName,
+    },
   }),
 
   createObstacleTemplate: async (request) => ({
@@ -84,8 +194,6 @@ export const mockBackend: backendInterface = {
   }),
 
   devReset: async () => {},
-
-  getAdminAuditLog: async () => [],
 
   getAnalytics: async () => ({
     goals: [
@@ -105,9 +213,12 @@ export const mockBackend: backendInterface = {
     ),
   }),
 
-  getCheckInsForGoal: async () => [sampleCheckIn],
+  getCheckInsForGoal: async () => [{ ...sampleCheckIn }],
 
-  getGoal: async (goalId) => (goalId === BigInt(1) ? sampleGoal1 : null),
+  getCheckInsForGoalTimeline: async (goalId, _fromTimestamp) =>
+    buildTimelineCheckIns(goalId),
+
+  getGoal: async (goalId) => (goalId === BigInt(1) ? { ...sampleGoal1 } : null),
 
   getInteractionCount: async () => BigInt(3),
 
@@ -118,8 +229,6 @@ export const mockBackend: backendInterface = {
     avatarEmoji: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
-    tier: SubscriptionTier.tier1,
-    goalLimit: BigInt(3),
   }),
 
   getPartnerFeed: async () => [
@@ -138,8 +247,6 @@ export const mockBackend: backendInterface = {
     avatarEmoji: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
-    tier: SubscriptionTier.tier1,
-    goalLimit: BigInt(3),
   }),
 
   listAllUsers: async () => [],
@@ -148,7 +255,10 @@ export const mockBackend: backendInterface = {
 
   listMyCheckIns: async () => [sampleCheckIn],
 
-  listMyGoals: async () => [sampleGoal1, sampleGoal2],
+  listMyGoals: async () => [
+    { ...sampleGoal1 },
+    { ...sampleGoal2 },
+  ],
 
   listMyObstacleTemplates: async () => [sampleObstacle],
 
@@ -161,6 +271,10 @@ export const mockBackend: backendInterface = {
     checkInType: request.checkInType,
     obstacleTemplateId: request.obstacleTemplateId,
     timestamp: BigInt(Date.now()) * BigInt(1_000_000),
+    lockInStartedAt: request.lockInStartedAt,
+    lockInEndedAt: request.lockInEndedAt,
+    executedIfThen: request.executedIfThen,
+    customObstacleNote: request.customObstacleNote,
   }),
 
   recordInteraction: async (checkInId, interactionType) => ({
@@ -178,8 +292,6 @@ export const mockBackend: backendInterface = {
     avatarEmoji: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
-    tier: SubscriptionTier.tier1,
-    goalLimit: BigInt(3),
   }),
 
   respondToConnection: async () => true,
@@ -192,8 +304,6 @@ export const mockBackend: backendInterface = {
     fromPrincipal: mockPrincipal,
   }),
 
-  setUserGoalLimit: async () => undefined,
-
   setTimezone: async () => undefined,
 
   updateGoal: async (goalId, request) => ({
@@ -201,6 +311,9 @@ export const mockBackend: backendInterface = {
     ok: {
       ...sampleGoal1,
       id: goalId,
+      isLockIn: request.isLockIn ?? false,
+      startTime: request.startTime,
+      endTime: request.endTime,
       wish: request.wish ?? sampleGoal1.wish,
       wishDescription: request.wishDescription ?? sampleGoal1.wishDescription,
       ifThenPlan: request.ifThenPlan ?? sampleGoal1.ifThenPlan,
@@ -219,6 +332,9 @@ export const mockBackend: backendInterface = {
       checkInType: CheckInType.success,
       obstacleTemplateId: undefined,
       timestamp: BigInt(Date.now()) * BigInt(1_000_000),
+      executedIfThen: false,
+      lockInStartedAt: undefined,
+      lockInEndedAt: undefined,
     },
   ],
 
@@ -231,8 +347,5 @@ export const mockBackend: backendInterface = {
     avatarEmoji: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
-    tier: SubscriptionTier.tier1,
-    goalLimit: BigInt(3),
   }),
 };
-

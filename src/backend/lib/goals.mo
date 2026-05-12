@@ -2,6 +2,9 @@ import List "mo:core/List";
 import Time "mo:core/Time";
 import Common "../types/common";
 import GoalTypes "../types/goals";
+import Text "mo:core/Text";
+import Nat "mo:core/Nat";
+import Int "mo:core/Int";
 
 /// Goals — pure domain logic module.
 ///
@@ -10,6 +13,75 @@ import GoalTypes "../types/goals";
 /// This module returns typed Result<T, GoalError> values — callers must handle
 /// all error variants explicitly.
 module {
+  /// Returns true if two HH:MM time blocks overlap.
+  /// Overlap condition: newStart < existingEnd AND newEnd > existingStart.
+  func timesOverlap(newStart : Text, newEnd : Text, exStart : Text, exEnd : Text) : Bool {
+    newStart < exEnd and newEnd > exStart;
+  };
+
+  /// Finds any active Lock-In goal owned by `caller` whose time block overlaps
+  /// [newStart, newEnd]. Excludes the goal with `excludeId` (for updates).
+  func findOverlappingLockIn(
+    goals : List.List<GoalTypes.Goal>,
+    caller : Common.UserId,
+    newStart : Text,
+    newEnd : Text,
+    excludeId : ?Common.GoalId,
+  ) : ?GoalTypes.Goal {
+    goals.find(func(g) {
+      if (g.owner != caller) return false;
+      if (not g.isLockIn) return false;
+      switch (g.state) {
+        case (#active or #paused) {};
+        case _ { return false };
+      };
+      switch (excludeId) {
+        case (?eid) { if (g.id == eid) return false };
+        case null {};
+      };
+      switch (g.startTime, g.endTime) {
+        case (?gs, ?ge) timesOverlap(newStart, newEnd, gs, ge);
+        case _ false;
+      };
+    });
+  };
+
+  /// Parses "HH:MM" into minutes-from-midnight. Returns null if format is invalid.
+  func parseMinutes(t : Text) : ?Nat {
+    let parts = t.split(#char ':');
+    switch (parts.next(), parts.next()) {
+      case (?hh, ?mm) {
+        switch (Nat.fromText(hh), Nat.fromText(mm)) {
+          case (?h, ?m) { ?(h * 60 + m) };
+          case _ null;
+        };
+      };
+      case _ null;
+    };
+  };
+
+  /// Returns true if the current server time-of-day falls within the
+  /// Lock-In active window: [startMinutes - 5, endMinutes + 5] (inclusive).
+  /// Handles midnight crossover when endMinutes + 5 >= 1440.
+  func isInActiveWindow(startTime : Text, endTime : Text) : Bool {
+    switch (parseMinutes(startTime), parseMinutes(endTime)) {
+      case (?startMin, ?endMin) {
+        let nowNs : Int = Time.now();
+        let nowSec : Int = Int.rem(nowNs / 1_000_000_000, 86400);
+        let nowMin : Nat = Int.abs(nowSec) / 60;
+        let windowStart : Nat = if (startMin >= 5) { startMin - 5 } else { 0 };
+        let windowEnd : Nat = endMin + 5;
+        if (windowEnd >= 1440) {
+          // Midnight crossover: active if nowMin >= windowStart OR nowMin <= (windowEnd - 1440)
+          nowMin >= windowStart or nowMin <= (windowEnd - 1440)
+        } else {
+          nowMin >= windowStart and nowMin <= windowEnd
+        };
+      };
+      case _ false;
+    };
+  };
+
   public func toPublic(goal : GoalTypes.Goal) : GoalTypes.GoalPublic {
     {
       id = goal.id;
@@ -24,14 +96,10 @@ module {
       updatedAt = goal.updatedAt;
       iconName = goal.iconName;
       themeColor = goal.themeColor;
+      isLockIn = goal.isLockIn;
+      startTime = goal.startTime;
+      endTime = goal.endTime;
     };
-  };
-
-  public func countActiveGoals(
-    goals : List.List<GoalTypes.Goal>,
-    owner : Common.UserId,
-  ) : Nat {
-    goals.values().filter(func(g) { g.owner == owner and g.state == #active }).size();
   };
 
   public func createGoal(
@@ -39,11 +107,20 @@ module {
     nextId : Nat,
     caller : Common.UserId,
     request : GoalTypes.CreateGoalRequest,
-    activeGoalCount : Nat,
-    goalLimit : Nat,
   ) : { #ok : GoalTypes.GoalPublic; #err : GoalTypes.GoalError } {
-    if (activeGoalCount >= goalLimit) {
-      return #err(#limitReached);
+    // Overlap validation for Lock-In habits
+    if (request.isLockIn) {
+      switch (request.startTime, request.endTime) {
+        case (?newStart, ?newEnd) {
+          switch (findOverlappingLockIn(goals, caller, newStart, newEnd, null)) {
+            case (?conflict) {
+              return #err(#lockInOverlap("This time overlaps with your existing Lock-In: " # conflict.wish));
+            };
+            case null {};
+          };
+        };
+        case _ {};
+      };
     };
     let now = Time.now();
     let goal : GoalTypes.Goal = {
@@ -59,6 +136,9 @@ module {
       var updatedAt = now;
       var iconName = request.iconName;
       var themeColor = request.themeColor;
+      var isLockIn = request.isLockIn;
+      var startTime = request.startTime;
+      var endTime = request.endTime;
     };
     goals.add(goal);
     #ok(toPublic(goal));
@@ -111,9 +191,37 @@ module {
       case null { #err(#goalNotFound) };
       case (?g) {
         if (g.owner != caller) return #err(#notOwner);
+        // Strict Lock-In edit lockout: reject any edit while the active window is open
+        if (g.isLockIn) {
+          switch (g.startTime, g.endTime) {
+            case (?st, ?et) {
+              if (isInActiveWindow(st, et)) {
+                return #err(#strictLockActive);
+              };
+            };
+            case _ {};
+          };
+        };
         switch (g.state) {
           case (#active or #paused) {};
           case _ { return #err(#goalNotEditable) };
+        };
+        // Determine post-update Lock-In status and times for overlap check
+        let willBeLockIn = switch (request.isLockIn) { case (?v) v; case null g.isLockIn };
+        let willStart = switch (request.startTime) { case (?t) ?t; case null g.startTime };
+        let willEnd = switch (request.endTime) { case (?t) ?t; case null g.endTime };
+        if (willBeLockIn) {
+          switch (willStart, willEnd) {
+            case (?ns, ?ne) {
+              switch (findOverlappingLockIn(goals, caller, ns, ne, ?goalId)) {
+                case (?conflict) {
+                  return #err(#lockInOverlap("This time overlaps with your existing Lock-In: " # conflict.wish));
+                };
+                case null {};
+              };
+            };
+            case _ {};
+          };
         };
         switch (request.wish) {
           case (?w) { g.wish := w };
@@ -133,6 +241,18 @@ module {
         };
         switch (request.themeColor) {
           case (?c) { g.themeColor := ?c };
+          case null {};
+        };
+        switch (request.isLockIn) {
+          case (?v) { g.isLockIn := v };
+          case null {};
+        };
+        switch (request.startTime) {
+          case (?t) { g.startTime := ?t };
+          case null {};
+        };
+        switch (request.endTime) {
+          case (?t) { g.endTime := ?t };
           case null {};
         };
         g.updatedAt := Time.now();

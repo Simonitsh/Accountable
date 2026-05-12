@@ -4,6 +4,7 @@ import Common "../types/common";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
 import CheckInLib "../lib/checkins";
+import Int "mo:core/Int";
 
 mixin (
   checkIns : List.List<CheckInTypes.CheckIn>,
@@ -31,5 +32,11 @@ mixin (
 
   public shared query ({ caller }) func getCheckInsForPeriod(goalId : Common.GoalId, fromTimestamp : Int, toTimestamp : Int) : async [CheckInTypes.CheckIn] {
     CheckInLib.getCheckInsForPeriod(checkIns, goalId, caller, fromTimestamp, toTimestamp);
+  };
+
+  // Returns check-ins for a goal since fromTimestamp, sorted newest-first.
+  // Used by the 14-day Behavioral Timeline in the Goal Insight Sheet.
+  public shared query ({ caller }) func getCheckInsForGoalTimeline(goalId : Common.GoalId, fromTimestamp : Int) : async [CheckInTypes.CheckIn] {
+    CheckInLib.getCheckInsForGoalTimeline(checkIns, goalId, caller, fromTimestamp);
   };
 };

@@ -10,12 +10,6 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface AdminAuditEntry {
-  'limit' : bigint,
-  'targetPrincipal' : UserId,
-  'setBy' : UserId,
-  'timestamp' : Timestamp,
-}
 export interface AnalyticsSummary {
   'goals' : Array<GoalAnalytics>,
   'dailySuccessRate30Days' : Array<number>,
@@ -27,10 +21,16 @@ export interface CheckIn {
   'checkInType' : CheckInType,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'timestamp' : Timestamp,
+  'executedIfThen' : boolean,
+  'lockInStartedAt' : [] | [bigint],
+  'lockInEndedAt' : [] | [bigint],
+  'customObstacleNote' : [] | [string],
 }
 export type CheckInId = bigint;
-export type CheckInType = { 'skip' : null } |
-  { 'success' : null };
+export type CheckInType = { 'failedLockIn' : null } |
+  { 'skip' : null } |
+  { 'success' : null } |
+  { 'inProgress' : null };
 export type ConnectionId = bigint;
 export interface ConnectionPublic {
   'id' : ConnectionId,
@@ -43,12 +43,15 @@ export type ConnectionStatus = { 'pending' : null } |
   { 'rejected' : null } |
   { 'accepted' : null };
 export interface CreateGoalRequest {
+  'startTime' : [] | [string],
+  'endTime' : [] | [string],
   'wish' : string,
   'themeColor' : [] | [string],
   'wishDescription' : string,
   'iconName' : [] | [string],
   'ifThenPlan' : string,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
+  'isLockIn' : boolean,
   'outcome' : string,
 }
 export interface CreateObstacleRequest {
@@ -74,6 +77,8 @@ export interface GoalAnalytics {
 export type GoalId = bigint;
 export interface GoalPublic {
   'id' : GoalId,
+  'startTime' : [] | [string],
+  'endTime' : [] | [string],
   'owner' : UserId,
   'createdAt' : Timestamp,
   'wish' : string,
@@ -84,6 +89,7 @@ export interface GoalPublic {
   'updatedAt' : Timestamp,
   'state' : GoalState,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
+  'isLockIn' : boolean,
   'outcome' : string,
 }
 export type GoalState = { 'active' : null } |
@@ -110,17 +116,21 @@ export interface RecordCheckInRequest {
   'goalId' : GoalId,
   'checkInType' : CheckInType,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
+  'executedIfThen' : boolean,
+  'lockInStartedAt' : [] | [bigint],
+  'lockInEndedAt' : [] | [bigint],
+  'customObstacleNote' : [] | [string],
 }
-export type SubscriptionTier = { 'tier1' : null } |
-  { 'tier2' : null } |
-  { 'tier3' : null };
 export type Timestamp = bigint;
 export interface UpdateGoalRequest {
+  'startTime' : [] | [string],
+  'endTime' : [] | [string],
   'wish' : [] | [string],
   'themeColor' : [] | [string],
   'wishDescription' : [] | [string],
   'iconName' : [] | [string],
   'ifThenPlan' : [] | [string],
+  'isLockIn' : [] | [boolean],
 }
 export type UserId = Principal;
 export interface UserProfilePublic {
@@ -129,14 +139,16 @@ export interface UserProfilePublic {
   'username' : string,
   'displayName' : string,
   'role' : UserRole,
-  'tier' : SubscriptionTier,
-  'goalLimit' : bigint,
   'avatarEmoji' : string,
 }
 export type UserRole = { 'admin' : null } |
   { 'user' : null };
 export interface _SERVICE {
-  'createGoal' : ActorMethod<[CreateGoalRequest], GoalPublic>,
+  'createGoal' : ActorMethod<
+    [CreateGoalRequest],
+    { 'ok' : GoalPublic } |
+      { 'err' : string }
+  >,
   'createObstacleTemplate' : ActorMethod<
     [CreateObstacleRequest],
     ObstacleTemplate
@@ -147,9 +159,9 @@ export interface _SERVICE {
       { 'err' : { 'notFound' : null } | { 'unauthorized' : null } }
   >,
   'devReset' : ActorMethod<[], undefined>,
-  'getAdminAuditLog' : ActorMethod<[], Array<AdminAuditEntry>>,
   'getAnalytics' : ActorMethod<[], AnalyticsSummary>,
   'getCheckInsForGoal' : ActorMethod<[GoalId], Array<CheckIn>>,
+  'getCheckInsForGoalTimeline' : ActorMethod<[GoalId, bigint], Array<CheckIn>>,
   'getCheckInsForPeriod' : ActorMethod<
     [GoalId, bigint, bigint],
     Array<CheckIn>
@@ -172,7 +184,6 @@ export interface _SERVICE {
   'respondToConnection' : ActorMethod<[ConnectionId, boolean], boolean>,
   'sendConnectionRequest' : ActorMethod<[UserId], ConnectionPublic>,
   'setTimezone' : ActorMethod<[string], undefined>,
-  'setUserGoalLimit' : ActorMethod<[UserId, bigint], undefined>,
   'updateGoal' : ActorMethod<
     [GoalId, UpdateGoalRequest],
     { 'ok' : GoalPublic } |

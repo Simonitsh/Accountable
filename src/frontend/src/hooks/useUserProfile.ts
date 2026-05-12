@@ -83,7 +83,7 @@ export function useUserProfile() {
   );
   timezoneMutateRef.current = timezoneMutation.mutate;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — only fire once when data first loads
+  // biome-ignore lint/correctness/useExhaustiveDependencies: effect intentionally runs only once when data first becomes available
   useEffect(() => {
     if (!query.data || timezoneSyncedRef.current) return;
     if (query.data.timezone && query.data.timezone.trim() !== "") {

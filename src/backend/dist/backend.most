@@ -1,18 +1,15 @@
 // Version: 1.0.0
-type AdminAuditEntry__250483748 =
-  {
-    limit : Nat;
-    setBy : UserId__158757552;
-    targetPrincipal : UserId__158757552;
-    timestamp : Timestamp__301639476
-  };
 type CheckInId__143223767 = Nat;
-type CheckInType__225513767 = {#skip; #success};
+type CheckInType__225513767 = {#failedLockIn; #inProgress; #skip; #success};
 type CheckIn__661112040 =
   {
     checkInType : CheckInType__225513767;
+    customObstacleNote : ?Text;
+    executedIfThen : Bool;
     goalId : GoalId__1036611184;
     id : CheckInId__143223767;
+    lockInEndedAt : ?Int;
+    lockInStartedAt : ?Int;
     obstacleTemplateId : ?ObstacleTemplateId__228170292;
     owner : UserId__158757552;
     timestamp : Timestamp__301639476
@@ -34,12 +31,15 @@ type GoalState__810211879 = {#abandoned; #active; #completed; #paused};
 type Goal__520167328 =
   {
     createdAt : Timestamp__301639476;
+    var endTime : ?Text;
     var iconName : ?Text;
     id : GoalId__1036611184;
     var ifThenPlan : Text;
+    var isLockIn : Bool;
     obstacleTemplateId : ?ObstacleTemplateId__228170292;
     outcome : Text;
     owner : UserId__158757552;
+    var startTime : ?Text;
     var state : GoalState__810211879;
     var themeColor : ?Text;
     var updatedAt : Timestamp__301639476;
@@ -71,29 +71,20 @@ type ObstacleTemplate__309430647 =
     owner : UserId__158757552;
     title : Text
   };
-type SubscriptionTier__75232000 = {#tier1; #tier2; #tier3};
 type Timestamp__301639476 = Int;
 type UserId__158757552 = Principal;
 type UserProfile__775633023 =
   {
     var avatarEmoji : Text;
     var createdAt : Timestamp__301639476;
-    var customGoalLimit : ?Nat;
     var displayName : Text;
     id : UserId__158757552;
     var role : UserRole__451090586;
-    var tier : SubscriptionTier__75232000;
     var timezone : Text;
     var username : Text
   };
 type UserRole__451090586 = {#admin; #user};
 actor {
-  stable auditLog :
-    {
-      var blockIndex : Nat__490723111;
-      var blocks : [var [var ?AdminAuditEntry__250483748]];
-      var elementIndex : Nat__490723111
-    };
   stable checkIns :
     {
       var blockIndex : Nat__490723111;

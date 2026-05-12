@@ -1,10 +1,7 @@
 import List "mo:core/List";
-import Map "mo:core/Map";
 import Common "../types/common";
 import GoalTypes "../types/goals";
-import AuthTypes "../types/auth";
 import GoalLib "../lib/goals";
-import AuthLib "../lib/auth";
 
 /// Goals Module — single authoritative source for goal storage.
 ///
@@ -30,22 +27,17 @@ module {
     // covers them — but they MUST remain var/mutable at the declaration site.
     goals : List.List<GoalTypes.Goal>,
     obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
-    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
     nextGoalId : [var Nat],           // ⚠️ MUST be [var Nat], NOT [Nat]
     nextObstacleTemplateId : [var Nat], // ⚠️ MUST be [var Nat], NOT [Nat]
   ) {
-    /// Create a new goal for `caller`. Returns #err #limitReached if the
-    /// caller has reached their tier's concurrent goal limit.
+    /// Create a new goal for `caller`.
     public func createGoal(
       caller : Common.UserId,
       request : GoalTypes.CreateGoalRequest,
     ) : { #ok : GoalTypes.GoalPublic; #err : GoalTypes.GoalError } {
-      let profile = AuthLib.getOrCreateProfile(profiles, caller);
-      let activeCount = GoalLib.countActiveGoals(goals, caller);
-      let limit = AuthLib.getGoalLimit(profile);
       let id = nextGoalId[0];
       nextGoalId[0] += 1;
-      GoalLib.createGoal(goals, id, caller, request, activeCount, limit);
+      GoalLib.createGoal(goals, id, caller, request);
     };
 
     /// Retrieve a goal by ID. Only the owning caller can see their goal.

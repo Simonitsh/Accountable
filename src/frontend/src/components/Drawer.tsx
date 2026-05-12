@@ -1,30 +1,14 @@
 import { cn } from "@/lib/utils";
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  CreditCard,
-  LogOut,
-  ShieldCheck,
-  Target,
-  User,
-  Users,
-  X,
-} from "lucide-react";
+import { LogOut, ShieldCheck, Target, User, Users, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { UserProfilePublic } from "../backend.d.ts";
-import { TIER_LABELS } from "../types";
-import type { SubscriptionTier } from "../types";
 
 interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   profile?: UserProfilePublic | null;
   onLogout: () => void;
-}
-
-function toNumericTier(tier: UserProfilePublic["tier"]): SubscriptionTier {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
 }
 
 interface NavItem {
@@ -37,7 +21,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: "/goals", icon: Target, label: "My Habits" },
   { to: "/profile", icon: User, label: "Profile" },
-  { to: "/settings", icon: CreditCard, label: "Subscription" },
   { to: "/connections", icon: Users, label: "Connections" },
   { to: "/admin", icon: ShieldCheck, label: "Admin Controls", adminOnly: true },
 ];
@@ -144,11 +127,6 @@ export function Drawer({ isOpen, onClose, profile, onLogout }: DrawerProps) {
                   <p className="font-display font-semibold text-foreground text-sm truncate">
                     {displayName}
                   </p>
-                  {profile && (
-                    <p className="text-[10px] font-mono text-muted-foreground">
-                      {TIER_LABELS[toNumericTier(profile.tier)]} tier
-                    </p>
-                  )}
                 </>
               ) : (
                 <Link

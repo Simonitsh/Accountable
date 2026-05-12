@@ -17,10 +17,11 @@ import AnalyticsApi "mixins/analytics-api";
 
 
 
+
+
 actor {
   // Auth & user state
   let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
-  let auditLog = List.empty<AuthTypes.AdminAuditEntry>();
 
   // ─────────────────────────────────────────────────────────────────────────
   // GOAL & OBSTACLE STORAGE — READ THIS BEFORE EDITING
@@ -50,8 +51,8 @@ actor {
   let nextInteractionId : [var Nat] = [var 0];
 
   // Mixins
-  include AuthApi(profiles, auditLog);
-  include GoalsApi(goals, obstacleTemplates, profiles, nextGoalId, nextObstacleTemplateId);
+  include AuthApi(profiles);
+  include GoalsApi(goals, obstacleTemplates, nextGoalId, nextObstacleTemplateId);
   include CheckInsApi(checkIns, goals, nextCheckInId);
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
@@ -63,7 +64,6 @@ actor {
   // ─────────────────────────────────────────────────────────────────────────
   public func devReset() : async () {
     profiles.clear();
-    auditLog.clear();
     goals.clear();
     obstacleTemplates.clear();
     nextGoalId[0] := 0;

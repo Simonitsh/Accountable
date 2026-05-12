@@ -21,6 +21,9 @@ module {
     var updatedAt : Common.Timestamp;
     var iconName : ?Text;
     var themeColor : ?Text;
+    var isLockIn : Bool;
+    var startTime : ?Text;
+    var endTime : ?Text;
   };
 
   public type GoalPublic = {
@@ -36,6 +39,9 @@ module {
     updatedAt : Common.Timestamp;
     iconName : ?Text;
     themeColor : ?Text;
+    isLockIn : Bool;
+    startTime : ?Text;
+    endTime : ?Text;
   };
 
   public type CreateGoalRequest = {
@@ -46,6 +52,9 @@ module {
     ifThenPlan : Text;
     iconName : ?Text;
     themeColor : ?Text;
+    isLockIn : Bool;
+    startTime : ?Text;
+    endTime : ?Text;
   };
 
   public type CreateObstacleRequest = {
@@ -59,6 +68,9 @@ module {
     ifThenPlan : ?Text;
     iconName : ?Text;
     themeColor : ?Text;
+    isLockIn : ?Bool;
+    startTime : ?Text;
+    endTime : ?Text;
   };
 
   /// Typed error variants for goal operations.
@@ -66,8 +78,9 @@ module {
   public type GoalError = {
     #goalNotFound;
     #notOwner;
-    #limitReached;
     #goalNotEditable;
     #invalidInput;
+    #lockInOverlap : Text;
+    #strictLockActive;
   };
 };

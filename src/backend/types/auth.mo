@@ -8,8 +8,6 @@ module {
     var avatarEmoji : Text;
     var timezone : Text;
     var role : Common.UserRole;
-    var tier : Common.SubscriptionTier;
-    var customGoalLimit : ?Nat;
     var createdAt : Common.Timestamp;
   };
 
@@ -20,14 +18,6 @@ module {
     avatarEmoji : Text;
     timezone : Text;
     role : Common.UserRole;
-    tier : Common.SubscriptionTier;
-    goalLimit : Nat;
   };
 
-  public type AdminAuditEntry = {
-    targetPrincipal : Common.UserId;
-    setBy : Common.UserId;
-    limit : Nat;
-    timestamp : Common.Timestamp;
-  };
 };

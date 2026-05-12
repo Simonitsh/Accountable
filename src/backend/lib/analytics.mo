@@ -28,6 +28,7 @@ module {
       switch (c.checkInType) {
         case (#success) totalSuccesses += 1;
         case (#skip) totalSkips += 1;
+        case (#inProgress or #failedLockIn) {}; // Lock-In intermediate states: not counted
       };
     };
 
@@ -169,6 +170,9 @@ module {
         updatedAt = g.updatedAt;
         iconName = g.iconName;
         themeColor = g.themeColor;
+        isLockIn = g.isLockIn;
+        startTime = g.startTime;
+        endTime = g.endTime;
       };
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);

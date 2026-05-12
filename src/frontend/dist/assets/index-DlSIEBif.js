@@ -32766,12 +32766,15 @@ function useAuth() {
 }
 const ObstacleTemplateId = Nat;
 const CreateGoalRequest = Record({
+  "startTime": Opt(Text$1),
+  "endTime": Opt(Text$1),
   "wish": Text$1,
   "themeColor": Opt(Text$1),
   "wishDescription": Text$1,
   "iconName": Opt(Text$1),
   "ifThenPlan": Text$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
+  "isLockIn": Bool,
   "outcome": Text$1
 });
 const GoalId = Nat;
@@ -32785,6 +32788,8 @@ const GoalState$1 = Variant({
 });
 const GoalPublic = Record({
   "id": GoalId,
+  "startTime": Opt(Text$1),
+  "endTime": Opt(Text$1),
   "owner": UserId,
   "createdAt": Timestamp,
   "wish": Text$1,
@@ -32795,6 +32800,7 @@ const GoalPublic = Record({
   "updatedAt": Timestamp,
   "state": GoalState$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
+  "isLockIn": Bool,
   "outcome": Text$1
 });
 const CreateObstacleRequest = Record({
@@ -32808,12 +32814,6 @@ const ObstacleTemplate = Record({
   "description": Text$1
 });
 const CheckInId = Nat;
-const AdminAuditEntry = Record({
-  "limit": Nat,
-  "targetPrincipal": UserId,
-  "setBy": UserId,
-  "timestamp": Timestamp
-});
 const GoalAnalytics = Record({
   "totalMissed": Nat,
   "completionRate": Float64,
@@ -32829,8 +32829,10 @@ const AnalyticsSummary = Record({
   "dailySuccessRate30Days": Vec(Float64)
 });
 const CheckInType$1 = Variant({
+  "failedLockIn": Null,
   "skip": Null,
-  "success": Null
+  "success": Null,
+  "inProgress": Null
 });
 const CheckIn = Record({
   "id": CheckInId,
@@ -32838,22 +32840,19 @@ const CheckIn = Record({
   "goalId": GoalId,
   "checkInType": CheckInType$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
-  "timestamp": Timestamp
+  "timestamp": Timestamp,
+  "executedIfThen": Bool,
+  "lockInStartedAt": Opt(Int),
+  "lockInEndedAt": Opt(Int),
+  "customObstacleNote": Opt(Text$1)
 });
 const UserRole$1 = Variant({ "admin": Null, "user": Null });
-const SubscriptionTier$1 = Variant({
-  "tier1": Null,
-  "tier2": Null,
-  "tier3": Null
-});
 const UserProfilePublic = Record({
   "id": UserId,
   "timezone": Text$1,
   "username": Text$1,
   "displayName": Text$1,
   "role": UserRole$1,
-  "tier": SubscriptionTier$1,
-  "goalLimit": Nat,
   "avatarEmoji": Text$1
 });
 const FeedItem$1 = Record({
@@ -32878,7 +32877,11 @@ const ConnectionPublic = Record({
 const RecordCheckInRequest = Record({
   "goalId": GoalId,
   "checkInType": CheckInType$1,
-  "obstacleTemplateId": Opt(ObstacleTemplateId)
+  "obstacleTemplateId": Opt(ObstacleTemplateId),
+  "executedIfThen": Bool,
+  "lockInStartedAt": Opt(Int),
+  "lockInEndedAt": Opt(Int),
+  "customObstacleNote": Opt(Text$1)
 });
 const InteractionType$1 = Variant({ "highFive": Null });
 const InteractionId = Nat;
@@ -32890,14 +32893,21 @@ const Interaction = Record({
   "timestamp": Timestamp
 });
 const UpdateGoalRequest = Record({
+  "startTime": Opt(Text$1),
+  "endTime": Opt(Text$1),
   "wish": Opt(Text$1),
   "themeColor": Opt(Text$1),
   "wishDescription": Opt(Text$1),
   "iconName": Opt(Text$1),
-  "ifThenPlan": Opt(Text$1)
+  "ifThenPlan": Opt(Text$1),
+  "isLockIn": Opt(Bool)
 });
 Service({
-  "createGoal": Func([CreateGoalRequest], [GoalPublic], []),
+  "createGoal": Func(
+    [CreateGoalRequest],
+    [Variant({ "ok": GoalPublic, "err": Text$1 })],
+    []
+  ),
   "createObstacleTemplate": Func(
     [CreateObstacleRequest],
     [ObstacleTemplate],
@@ -32917,9 +32927,13 @@ Service({
     []
   ),
   "devReset": Func([], [], []),
-  "getAdminAuditLog": Func([], [Vec(AdminAuditEntry)], ["query"]),
   "getAnalytics": Func([], [AnalyticsSummary], ["query"]),
   "getCheckInsForGoal": Func([GoalId], [Vec(CheckIn)], ["query"]),
+  "getCheckInsForGoalTimeline": Func(
+    [GoalId, Int],
+    [Vec(CheckIn)],
+    ["query"]
+  ),
   "getCheckInsForPeriod": Func(
     [GoalId, Int, Int],
     [Vec(CheckIn)],
@@ -32955,7 +32969,6 @@ Service({
   "respondToConnection": Func([ConnectionId, Bool], [Bool], []),
   "sendConnectionRequest": Func([UserId], [ConnectionPublic], []),
   "setTimezone": Func([Text$1], [], []),
-  "setUserGoalLimit": Func([UserId, Nat], [], []),
   "updateGoal": Func(
     [GoalId, UpdateGoalRequest],
     [Variant({ "ok": GoalPublic, "err": Text$1 })],
@@ -32971,12 +32984,15 @@ Service({
 const idlFactory = ({ IDL: IDL2 }) => {
   const ObstacleTemplateId2 = IDL2.Nat;
   const CreateGoalRequest2 = IDL2.Record({
+    "startTime": IDL2.Opt(IDL2.Text),
+    "endTime": IDL2.Opt(IDL2.Text),
     "wish": IDL2.Text,
     "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Text,
     "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Text,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
+    "isLockIn": IDL2.Bool,
     "outcome": IDL2.Text
   });
   const GoalId2 = IDL2.Nat;
@@ -32990,6 +33006,8 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const GoalPublic2 = IDL2.Record({
     "id": GoalId2,
+    "startTime": IDL2.Opt(IDL2.Text),
+    "endTime": IDL2.Opt(IDL2.Text),
     "owner": UserId2,
     "createdAt": Timestamp2,
     "wish": IDL2.Text,
@@ -33000,6 +33018,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "updatedAt": Timestamp2,
     "state": GoalState2,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
+    "isLockIn": IDL2.Bool,
     "outcome": IDL2.Text
   });
   const CreateObstacleRequest2 = IDL2.Record({
@@ -33013,12 +33032,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "description": IDL2.Text
   });
   const CheckInId2 = IDL2.Nat;
-  const AdminAuditEntry2 = IDL2.Record({
-    "limit": IDL2.Nat,
-    "targetPrincipal": UserId2,
-    "setBy": UserId2,
-    "timestamp": Timestamp2
-  });
   const GoalAnalytics2 = IDL2.Record({
     "totalMissed": IDL2.Nat,
     "completionRate": IDL2.Float64,
@@ -33033,29 +33046,31 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "goals": IDL2.Vec(GoalAnalytics2),
     "dailySuccessRate30Days": IDL2.Vec(IDL2.Float64)
   });
-  const CheckInType2 = IDL2.Variant({ "skip": IDL2.Null, "success": IDL2.Null });
+  const CheckInType2 = IDL2.Variant({
+    "failedLockIn": IDL2.Null,
+    "skip": IDL2.Null,
+    "success": IDL2.Null,
+    "inProgress": IDL2.Null
+  });
   const CheckIn2 = IDL2.Record({
     "id": CheckInId2,
     "owner": UserId2,
     "goalId": GoalId2,
     "checkInType": CheckInType2,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
-    "timestamp": Timestamp2
+    "timestamp": Timestamp2,
+    "executedIfThen": IDL2.Bool,
+    "lockInStartedAt": IDL2.Opt(IDL2.Int),
+    "lockInEndedAt": IDL2.Opt(IDL2.Int),
+    "customObstacleNote": IDL2.Opt(IDL2.Text)
   });
   const UserRole2 = IDL2.Variant({ "admin": IDL2.Null, "user": IDL2.Null });
-  const SubscriptionTier2 = IDL2.Variant({
-    "tier1": IDL2.Null,
-    "tier2": IDL2.Null,
-    "tier3": IDL2.Null
-  });
   const UserProfilePublic2 = IDL2.Record({
     "id": UserId2,
     "timezone": IDL2.Text,
     "username": IDL2.Text,
     "displayName": IDL2.Text,
     "role": UserRole2,
-    "tier": SubscriptionTier2,
-    "goalLimit": IDL2.Nat,
     "avatarEmoji": IDL2.Text
   });
   const FeedItem2 = IDL2.Record({
@@ -33080,7 +33095,11 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const RecordCheckInRequest2 = IDL2.Record({
     "goalId": GoalId2,
     "checkInType": CheckInType2,
-    "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2)
+    "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
+    "executedIfThen": IDL2.Bool,
+    "lockInStartedAt": IDL2.Opt(IDL2.Int),
+    "lockInEndedAt": IDL2.Opt(IDL2.Int),
+    "customObstacleNote": IDL2.Opt(IDL2.Text)
   });
   const InteractionType2 = IDL2.Variant({ "highFive": IDL2.Null });
   const InteractionId2 = IDL2.Nat;
@@ -33092,14 +33111,21 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "timestamp": Timestamp2
   });
   const UpdateGoalRequest2 = IDL2.Record({
+    "startTime": IDL2.Opt(IDL2.Text),
+    "endTime": IDL2.Opt(IDL2.Text),
     "wish": IDL2.Opt(IDL2.Text),
     "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Opt(IDL2.Text),
     "iconName": IDL2.Opt(IDL2.Text),
-    "ifThenPlan": IDL2.Opt(IDL2.Text)
+    "ifThenPlan": IDL2.Opt(IDL2.Text),
+    "isLockIn": IDL2.Opt(IDL2.Bool)
   });
   return IDL2.Service({
-    "createGoal": IDL2.Func([CreateGoalRequest2], [GoalPublic2], []),
+    "createGoal": IDL2.Func(
+      [CreateGoalRequest2],
+      [IDL2.Variant({ "ok": GoalPublic2, "err": IDL2.Text })],
+      []
+    ),
     "createObstacleTemplate": IDL2.Func(
       [CreateObstacleRequest2],
       [ObstacleTemplate2],
@@ -33119,9 +33145,13 @@ const idlFactory = ({ IDL: IDL2 }) => {
       []
     ),
     "devReset": IDL2.Func([], [], []),
-    "getAdminAuditLog": IDL2.Func([], [IDL2.Vec(AdminAuditEntry2)], ["query"]),
     "getAnalytics": IDL2.Func([], [AnalyticsSummary2], ["query"]),
     "getCheckInsForGoal": IDL2.Func([GoalId2], [IDL2.Vec(CheckIn2)], ["query"]),
+    "getCheckInsForGoalTimeline": IDL2.Func(
+      [GoalId2, IDL2.Int],
+      [IDL2.Vec(CheckIn2)],
+      ["query"]
+    ),
     "getCheckInsForPeriod": IDL2.Func(
       [GoalId2, IDL2.Int, IDL2.Int],
       [IDL2.Vec(CheckIn2)],
@@ -33161,7 +33191,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "respondToConnection": IDL2.Func([ConnectionId2, IDL2.Bool], [IDL2.Bool], []),
     "sendConnectionRequest": IDL2.Func([UserId2], [ConnectionPublic2], []),
     "setTimezone": IDL2.Func([IDL2.Text], [], []),
-    "setUserGoalLimit": IDL2.Func([UserId2, IDL2.Nat], [], []),
     "updateGoal": IDL2.Func(
       [GoalId2, UpdateGoalRequest2],
       [IDL2.Variant({ "ok": GoalPublic2, "err": IDL2.Text })],
@@ -33225,8 +33254,10 @@ class ExternalBlob2 {
   }
 }
 var CheckInType = /* @__PURE__ */ ((CheckInType2) => {
+  CheckInType2["failedLockIn"] = "failedLockIn";
   CheckInType2["skip"] = "skip";
   CheckInType2["success"] = "success";
+  CheckInType2["inProgress"] = "inProgress";
   return CheckInType2;
 })(CheckInType || {});
 var ConnectionStatus = /* @__PURE__ */ ((ConnectionStatus2) => {
@@ -33246,12 +33277,6 @@ var InteractionType = /* @__PURE__ */ ((InteractionType2) => {
   InteractionType2["highFive"] = "highFive";
   return InteractionType2;
 })(InteractionType || {});
-var SubscriptionTier = /* @__PURE__ */ ((SubscriptionTier2) => {
-  SubscriptionTier2["tier1"] = "tier1";
-  SubscriptionTier2["tier2"] = "tier2";
-  SubscriptionTier2["tier3"] = "tier3";
-  return SubscriptionTier2;
-})(SubscriptionTier || {});
 var UserRole = /* @__PURE__ */ ((UserRole2) => {
   UserRole2["admin"] = "admin";
   UserRole2["user"] = "user";
@@ -33273,14 +33298,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.createGoal(to_candid_CreateGoalRequest_n1(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_GoalPublic_n3(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.createGoal(to_candid_CreateGoalRequest_n1(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_GoalPublic_n3(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
     }
   }
   async createObstacleTemplate(arg0) {
@@ -33301,14 +33326,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.deleteCheckIn(arg0);
-        return from_candid_variant_n9(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.deleteCheckIn(arg0);
-      return from_candid_variant_n9(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
     }
   }
   async devReset() {
@@ -33322,20 +33347,6 @@ class Backend {
       }
     } else {
       const result = await this.actor.devReset();
-      return result;
-    }
-  }
-  async getAdminAuditLog() {
-    if (this.processError) {
-      try {
-        const result = await this.actor.getAdminAuditLog();
-        return result;
-      } catch (e3) {
-        this.processError(e3);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.getAdminAuditLog();
       return result;
     }
   }
@@ -33357,42 +33368,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoal(arg0);
-        return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoal(arg0);
-      return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async getCheckInsForGoalTimeline(arg0, arg1) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
+        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
+      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForPeriod(arg0, arg1, arg2) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-        return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-      return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
     }
   }
   async getGoal(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getGoal(arg0);
-        return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getGoal(arg0);
-      return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
     }
   }
   async getInteractionCount(arg0) {
@@ -33413,14 +33438,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getMyProfile();
-        return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyProfile();
-      return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerFeed() {
@@ -33497,14 +33522,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listMyCheckIns();
-        return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyCheckIns();
-      return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyGoals() {
@@ -33553,14 +33578,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n34(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_CheckIn_n12(this._uploadFile, this._downloadFile, result);
+        return from_candid_CheckIn_n13(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n34(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_CheckIn_n12(this._uploadFile, this._downloadFile, result);
+      return from_candid_CheckIn_n13(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordInteraction(arg0, arg1) {
@@ -33581,14 +33606,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.register(arg0);
-        return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.register(arg0);
-      return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
     }
   }
   async respondToConnection(arg0, arg1) {
@@ -33633,68 +33658,54 @@ class Backend {
       return result;
     }
   }
-  async setUserGoalLimit(arg0, arg1) {
-    if (this.processError) {
-      try {
-        const result = await this.actor.setUserGoalLimit(arg0, arg1);
-        return result;
-      } catch (e3) {
-        this.processError(e3);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.setUserGoalLimit(arg0, arg1);
-      return result;
-    }
-  }
   async updateGoal(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n44(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_variant_n46(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n44(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_variant_n46(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n46(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n46(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
   async updateMyProfile(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_UserProfilePublic_n17(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
     }
   }
 }
-function from_candid_CheckInType_n14(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n15(_uploadFile, _downloadFile, value);
+function from_candid_CheckInType_n15(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n16(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckIn_n12(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n13(_uploadFile, _downloadFile, value);
+function from_candid_CheckIn_n13(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n14(_uploadFile, _downloadFile, value);
 }
 function from_candid_ConnectionPublic_n29(_uploadFile, _downloadFile, value) {
   return from_candid_record_n30(_uploadFile, _downloadFile, value);
@@ -33705,11 +33716,11 @@ function from_candid_ConnectionStatus_n31(_uploadFile, _downloadFile, value) {
 function from_candid_FeedItem_n24(_uploadFile, _downloadFile, value) {
   return from_candid_record_n25(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalPublic_n3(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n4(_uploadFile, _downloadFile, value);
+function from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalState_n6(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n7(_uploadFile, _downloadFile, value);
+function from_candid_GoalState_n7(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n8(_uploadFile, _downloadFile, value);
 }
 function from_candid_InteractionType_n42(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n43(_uploadFile, _downloadFile, value);
@@ -33717,52 +33728,54 @@ function from_candid_InteractionType_n42(_uploadFile, _downloadFile, value) {
 function from_candid_Interaction_n40(_uploadFile, _downloadFile, value) {
   return from_candid_record_n41(_uploadFile, _downloadFile, value);
 }
-function from_candid_SubscriptionTier_n21(_uploadFile, _downloadFile, value) {
+function from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n20(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n21(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n22(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfilePublic_n17(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n18(_uploadFile, _downloadFile, value);
+function from_candid_opt_n17(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
 }
-function from_candid_UserRole_n19(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n20(_uploadFile, _downloadFile, value);
-}
-function from_candid_opt_n16(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_GoalPublic_n3(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n18(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n26(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_UserProfilePublic_n17(_uploadFile, _downloadFile, value[0]);
+  return value.length === 0 ? null : from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n5(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n6(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n8(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n9(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n13(_uploadFile, _downloadFile, value) {
+function from_candid_record_n14(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
     goalId: value.goalId,
-    checkInType: from_candid_CheckInType_n14(_uploadFile, _downloadFile, value.checkInType),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.obstacleTemplateId)),
-    timestamp: value.timestamp
+    checkInType: from_candid_CheckInType_n15(_uploadFile, _downloadFile, value.checkInType),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    timestamp: value.timestamp,
+    executedIfThen: value.executedIfThen,
+    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.lockInStartedAt)),
+    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.lockInEndedAt)),
+    customObstacleNote: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customObstacleNote))
   };
 }
-function from_candid_record_n18(_uploadFile, _downloadFile, value) {
+function from_candid_record_n20(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     timezone: value.timezone,
     username: value.username,
     displayName: value.displayName,
-    role: from_candid_UserRole_n19(_uploadFile, _downloadFile, value.role),
-    tier: from_candid_SubscriptionTier_n21(_uploadFile, _downloadFile, value.tier),
-    goalLimit: value.goalLimit,
+    role: from_candid_UserRole_n21(_uploadFile, _downloadFile, value.role),
     avatarEmoji: value.avatarEmoji
   };
 }
 function from_candid_record_n25(_uploadFile, _downloadFile, value) {
   return {
-    checkIn: from_candid_CheckIn_n12(_uploadFile, _downloadFile, value.checkIn),
+    checkIn: from_candid_CheckIn_n13(_uploadFile, _downloadFile, value.checkIn),
     goalName: value.goalName,
     partnerDisplayName: value.partnerDisplayName,
     highFiveCount: value.highFiveCount
@@ -33777,22 +33790,6 @@ function from_candid_record_n30(_uploadFile, _downloadFile, value) {
     fromPrincipal: value.fromPrincipal
   };
 }
-function from_candid_record_n4(_uploadFile, _downloadFile, value) {
-  return {
-    id: value.id,
-    owner: value.owner,
-    createdAt: value.createdAt,
-    wish: value.wish,
-    themeColor: record_opt_to_undefined(from_candid_opt_n5(_uploadFile, _downloadFile, value.themeColor)),
-    wishDescription: value.wishDescription,
-    iconName: record_opt_to_undefined(from_candid_opt_n5(_uploadFile, _downloadFile, value.iconName)),
-    ifThenPlan: value.ifThenPlan,
-    updatedAt: value.updatedAt,
-    state: from_candid_GoalState_n6(_uploadFile, _downloadFile, value.state),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.obstacleTemplateId)),
-    outcome: value.outcome
-  };
-}
 function from_candid_record_n41(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
@@ -33802,17 +33799,51 @@ function from_candid_record_n41(_uploadFile, _downloadFile, value) {
     timestamp: value.timestamp
   };
 }
+function from_candid_record_n5(_uploadFile, _downloadFile, value) {
+  return {
+    id: value.id,
+    startTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.startTime)),
+    endTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.endTime)),
+    owner: value.owner,
+    createdAt: value.createdAt,
+    wish: value.wish,
+    themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
+    wishDescription: value.wishDescription,
+    iconName: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.iconName)),
+    ifThenPlan: value.ifThenPlan,
+    updatedAt: value.updatedAt,
+    state: from_candid_GoalState_n7(_uploadFile, _downloadFile, value.state),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    isLockIn: value.isLockIn,
+    outcome: value.outcome
+  };
+}
 function from_candid_variant_n10(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: value.ok
+  } : "err" in value ? {
+    __kind__: "err",
+    err: from_candid_variant_n11(_uploadFile, _downloadFile, value.err)
+  } : value;
+}
+function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
   return "notFound" in value ? "notFound" : "unauthorized" in value ? "unauthorized" : value;
 }
-function from_candid_variant_n15(_uploadFile, _downloadFile, value) {
-  return "skip" in value ? "skip" : "success" in value ? "success" : value;
-}
-function from_candid_variant_n20(_uploadFile, _downloadFile, value) {
-  return "admin" in value ? "admin" : "user" in value ? "user" : value;
+function from_candid_variant_n16(_uploadFile, _downloadFile, value) {
+  return "failedLockIn" in value ? "failedLockIn" : "skip" in value ? "skip" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
 function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
-  return "tier1" in value ? "tier1" : "tier2" in value ? "tier2" : "tier3" in value ? "tier3" : value;
+  return "admin" in value ? "admin" : "user" in value ? "user" : value;
+}
+function from_candid_variant_n3(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value.ok)
+  } : "err" in value ? {
+    __kind__: "err",
+    err: value.err
+  } : value;
 }
 function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
   return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
@@ -33820,41 +33851,23 @@ function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
 function from_candid_variant_n43(_uploadFile, _downloadFile, value) {
   return "highFive" in value ? "highFive" : value;
 }
-function from_candid_variant_n46(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: from_candid_GoalPublic_n3(_uploadFile, _downloadFile, value.ok)
-  } : "err" in value ? {
-    __kind__: "err",
-    err: value.err
-  } : value;
-}
-function from_candid_variant_n7(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n8(_uploadFile, _downloadFile, value) {
   return "active" in value ? "active" : "completed" in value ? "completed" : "abandoned" in value ? "abandoned" : "paused" in value ? "paused" : value;
 }
-function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: value.ok
-  } : "err" in value ? {
-    __kind__: "err",
-    err: from_candid_variant_n10(_uploadFile, _downloadFile, value.err)
-  } : value;
-}
-function from_candid_vec_n11(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_CheckIn_n12(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n12(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_CheckIn_n13(_uploadFile, _downloadFile, x3));
 }
 function from_candid_vec_n23(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_FeedItem_n24(_uploadFile, _downloadFile, x3));
 }
 function from_candid_vec_n27(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_UserProfilePublic_n17(_uploadFile, _downloadFile, x3));
+  return value.map((x3) => from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, x3));
 }
 function from_candid_vec_n28(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_ConnectionPublic_n29(_uploadFile, _downloadFile, x3));
 }
 function from_candid_vec_n33(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_GoalPublic_n3(_uploadFile, _downloadFile, x3));
+  return value.map((x3) => from_candid_GoalPublic_n4(_uploadFile, _downloadFile, x3));
 }
 function to_candid_CheckInType_n36(_uploadFile, _downloadFile, value) {
   return to_candid_variant_n37(_uploadFile, _downloadFile, value);
@@ -33862,8 +33875,8 @@ function to_candid_CheckInType_n36(_uploadFile, _downloadFile, value) {
 function to_candid_CreateGoalRequest_n1(_uploadFile, _downloadFile, value) {
   return to_candid_record_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_GoalState_n47(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n48(_uploadFile, _downloadFile, value);
+function to_candid_GoalState_n46(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n47(_uploadFile, _downloadFile, value);
 }
 function to_candid_InteractionType_n38(_uploadFile, _downloadFile, value) {
   return to_candid_variant_n39(_uploadFile, _downloadFile, value);
@@ -33874,17 +33887,20 @@ function to_candid_RecordCheckInRequest_n34(_uploadFile, _downloadFile, value) {
 function to_candid_UpdateGoalRequest_n44(_uploadFile, _downloadFile, value) {
   return to_candid_record_n45(_uploadFile, _downloadFile, value);
 }
-function to_candid_opt_n49(_uploadFile, _downloadFile, value) {
+function to_candid_opt_n48(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_record_n2(_uploadFile, _downloadFile, value) {
   return {
+    startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+    endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
     wish: value.wish,
     themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     wishDescription: value.wishDescription,
     iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     ifThenPlan: value.ifThenPlan,
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
+    isLockIn: value.isLockIn,
     outcome: value.outcome
   };
 }
@@ -33892,23 +33908,34 @@ function to_candid_record_n35(_uploadFile, _downloadFile, value) {
   return {
     goalId: value.goalId,
     checkInType: to_candid_CheckInType_n36(_uploadFile, _downloadFile, value.checkInType),
-    obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none()
+    obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
+    executedIfThen: value.executedIfThen,
+    lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
+    lockInEndedAt: value.lockInEndedAt ? candid_some(value.lockInEndedAt) : candid_none(),
+    customObstacleNote: value.customObstacleNote ? candid_some(value.customObstacleNote) : candid_none()
   };
 }
 function to_candid_record_n45(_uploadFile, _downloadFile, value) {
   return {
+    startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+    endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
     wish: value.wish ? candid_some(value.wish) : candid_none(),
     themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     wishDescription: value.wishDescription ? candid_some(value.wishDescription) : candid_none(),
     iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
-    ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none()
+    ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
+    isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none()
   };
 }
 function to_candid_variant_n37(_uploadFile, _downloadFile, value) {
-  return value == "skip" ? {
+  return value == "failedLockIn" ? {
+    failedLockIn: null
+  } : value == "skip" ? {
     skip: null
   } : value == "success" ? {
     success: null
+  } : value == "inProgress" ? {
+    inProgress: null
   } : value;
 }
 function to_candid_variant_n39(_uploadFile, _downloadFile, value) {
@@ -33916,7 +33943,7 @@ function to_candid_variant_n39(_uploadFile, _downloadFile, value) {
     highFive: null
   } : value;
 }
-function to_candid_variant_n48(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n47(_uploadFile, _downloadFile, value) {
   return value == "active" ? {
     active: null
   } : value == "completed" ? {
@@ -33949,7 +33976,6 @@ const backend = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePrope
   ExternalBlob: ExternalBlob2,
   GoalState,
   InteractionType,
-  SubscriptionTier,
   UserRole,
   Variant_notFound_unauthorized,
   createActor
@@ -36601,77 +36627,45 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$H = [
+const __iconNode$E = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$H);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$E);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$G = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$G);
+const __iconNode$D = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$F = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$F);
+const __iconNode$C = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$C);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$E = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$E);
+const __iconNode$B = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$B);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$D = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-const ChevronRight = createLucideIcon("chevron-right", __iconNode$D);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$C = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
-const ChevronUp = createLucideIcon("chevron-up", __iconNode$C);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$B = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
-];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$B);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$A = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m16 12-4-4-4 4", key: "177agl" }],
-  ["path", { d: "M12 16V8", key: "1sbj14" }]
-];
-const CircleArrowUp = createLucideIcon("circle-arrow-up", __iconNode$A);
+const __iconNode$A = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36680,9 +36674,10 @@ const CircleArrowUp = createLucideIcon("circle-arrow-up", __iconNode$A);
  */
 const __iconNode$z = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
 ];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$z);
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$z);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36691,9 +36686,9 @@ const CircleCheck = createLucideIcon("circle-check", __iconNode$z);
  */
 const __iconNode$y = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const Clock = createLucideIcon("clock", __iconNode$y);
+const CircleCheck = createLucideIcon("circle-check", __iconNode$y);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36701,10 +36696,10 @@ const Clock = createLucideIcon("clock", __iconNode$y);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$x = [
-  ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
-  ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
 ];
-const Copy = createLucideIcon("copy", __iconNode$x);
+const Clock = createLucideIcon("clock", __iconNode$x);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36712,10 +36707,10 @@ const Copy = createLucideIcon("copy", __iconNode$x);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$w = [
-  ["rect", { width: "20", height: "14", x: "2", y: "5", rx: "2", key: "ynyp8z" }],
-  ["line", { x1: "2", x2: "22", y1: "10", y2: "10", key: "1b3vmo" }]
+  ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
+  ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
 ];
-const CreditCard = createLucideIcon("credit-card", __iconNode$w);
+const Copy = createLucideIcon("copy", __iconNode$w);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36775,31 +36770,30 @@ const House = createLucideIcon("house", __iconNode$t);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$s = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "M12 16v-4", key: "1dtifu" }],
-  ["path", { d: "M12 8h.01", key: "e9boi3" }]
-];
-const Info = createLucideIcon("info", __iconNode$s);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$r = [
   ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
   ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
   ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
 ];
-const Link2 = createLucideIcon("link-2", __iconNode$r);
+const Link2 = createLucideIcon("link-2", __iconNode$s);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$q = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-const LoaderCircle = createLucideIcon("loader-circle", __iconNode$q);
+const __iconNode$r = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+const LoaderCircle = createLucideIcon("loader-circle", __iconNode$r);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$q = [
+  ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
+  ["path", { d: "M7 11V7a5 5 0 0 1 9.9-1", key: "1mm8w8" }]
+];
+const LockOpen = createLucideIcon("lock-open", __iconNode$q);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37248,57 +37242,9 @@ function BottomTabBar() {
     }
   );
 }
-const OBSTACLE_TEMPLATES = [
-  {
-    id: "low_energy",
-    label: "Low Energy",
-    description: "I feel tired or lack motivation"
-  },
-  {
-    id: "time_crunch",
-    label: "Time Crunch",
-    description: "I ran out of time or had competing priorities"
-  },
-  {
-    id: "distraction",
-    label: "Distraction",
-    description: "I got pulled away by distractions"
-  },
-  {
-    id: "social_pressure",
-    label: "Social Pressure",
-    description: "External demands took over"
-  },
-  {
-    id: "environment",
-    label: "Environment",
-    description: "My environment wasn't set up for success"
-  },
-  {
-    id: "health",
-    label: "Health",
-    description: "Physical or mental health issues got in the way"
-  }
-];
-const TIER_GOAL_LIMITS = {
-  1: 3,
-  2: 10,
-  3: 25
-};
-const TIER_LABELS = {
-  1: "Free",
-  2: "Plus",
-  3: "Power"
-};
-function toNumericTier$4(tier) {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
-}
 const NAV_ITEMS = [
   { to: "/goals", icon: Target, label: "My Habits" },
   { to: "/profile", icon: User, label: "Profile" },
-  { to: "/settings", icon: CreditCard, label: "Subscription" },
   { to: "/connections", icon: Users, label: "Connections" },
   { to: "/admin", icon: ShieldCheck, label: "Admin Controls", adminOnly: true }
 ];
@@ -37383,13 +37329,7 @@ function Drawer({ isOpen, onClose, profile, onLogout }) {
                       )
                     }
                   ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-w-0", children: displayName ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display font-semibold text-foreground text-sm truncate", children: displayName }),
-                    profile && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] font-mono text-muted-foreground", children: [
-                      TIER_LABELS[toNumericTier$4(profile.tier)],
-                      " tier"
-                    ] })
-                  ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-w-0", children: displayName ? /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display font-semibold text-foreground text-sm truncate", children: displayName }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
                     Link,
                     {
                       to: "/profile",
@@ -37560,30 +37500,6 @@ function useTheme() {
   }, []);
   return { theme, toggleTheme };
 }
-function toNumericTier$3(tier) {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
-}
-function TierBadge$1({ tier }) {
-  const numericTier = toNumericTier$3(tier);
-  const label = TIER_LABELS[numericTier];
-  const colorMap = {
-    1: "text-muted-foreground border-muted-foreground/40",
-    2: "text-[oklch(var(--color-accent-skip))] border-[oklch(var(--color-accent-skip)/0.4)]",
-    3: "text-[oklch(var(--color-accent-success))] border-[oklch(var(--color-accent-success)/0.4)]"
-  };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "span",
-    {
-      className: cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border",
-        colorMap[numericTier]
-      ),
-      children: label
-    }
-  );
-}
 function SunIcon() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "svg",
@@ -37707,7 +37623,7 @@ function HeaderProgressRing({
     }
   );
 }
-function Header({ profile, onMenuClick }) {
+function Header({ onMenuClick }) {
   const { theme, toggleTheme } = useTheme();
   const dashboardData = useDashboardHeader();
   const isDashboard = dashboardData !== null;
@@ -37737,10 +37653,7 @@ function Header({ profile, onMenuClick }) {
             children: /* @__PURE__ */ jsxRuntimeExports.jsx(Menu, { size: 20 })
           }
         ) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center min-w-0 px-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-lg font-bold text-foreground tracking-tight", children: "Cumulative" }),
-          profile && /* @__PURE__ */ jsxRuntimeExports.jsx(TierBadge$1, { tier: profile.tier })
-        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center min-w-0 px-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-lg font-bold text-foreground tracking-tight", children: "Cumulative" }) }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 flex-shrink-0", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
@@ -37795,7 +37708,7 @@ function Layout() {
   const { data: profile } = useUserProfile();
   const { logout } = useAuth();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen flex flex-col bg-background", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Header, { profile, onMenuClick: () => setDrawerOpen(true) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Header, { onMenuClick: () => setDrawerOpen(true) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       Drawer,
       {
@@ -38158,9 +38071,9 @@ function useSetGoalLimitOverride() {
   });
 }
 const MOCK_USERS = [
-  { principal: "aaaaa-aa", username: "alice_dev", tier: 3, goalLimit: 25 },
-  { principal: "bbbbb-bb", username: "bob_user", tier: 1, goalLimit: 3 },
-  { principal: "ccccc-cc", username: "carol_plus", tier: 2, goalLimit: 10 }
+  { principal: "aaaaa-aa", username: "alice_dev", goalLimit: 25 },
+  { principal: "bbbbb-bb", username: "bob_user", goalLimit: 3 },
+  { principal: "ccccc-cc", username: "carol_plus", goalLimit: 10 }
 ];
 const MOCK_AUDIT = [
   {
@@ -38176,20 +38089,6 @@ const MOCK_AUDIT = [
     timestamp: BigInt(Date.now() - 864e5) * BigInt(1e6)
   }
 ];
-function TierBadge({ tier }) {
-  const colours = {
-    1: "bg-muted text-muted-foreground",
-    2: "bg-secondary/20 text-accent-skip",
-    3: "bg-primary/20 text-accent-success"
-  };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "span",
-    {
-      className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold ${colours[tier]}`,
-      children: TIER_LABELS[tier]
-    }
-  );
-}
 function truncate$1(s2, n2 = 12) {
   return s2.length > n2 ? `${s2.slice(0, n2)}…` : s2;
 }
@@ -38207,14 +38106,13 @@ function UserRow({
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
-      className: "grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center p-3 rounded-lg bg-card card-neumorphic border border-border/40 transition-smooth hover:border-primary/30",
+      className: "grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center p-3 rounded-lg bg-card card-neumorphic border border-border/40 transition-smooth hover:border-primary/30",
       "data-ocid": `admin.user_row.item.${index2}`,
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-semibold text-foreground truncate", children: user.username }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono text-muted-foreground", children: truncate$1(user.principal, 16) })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TierBadge, { tier: user.tier }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm text-muted-foreground hidden sm:block", children: [
           "Limit:",
           " ",
@@ -60038,7 +59936,7 @@ function useAnalytics() {
     placeholderData: { goals: [], dailySuccessRate30Days: [] }
   });
 }
-function StatCard$1({ label, value, icon, glowClass }) {
+function StatCard({ label, value, icon, glowClass }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
@@ -60236,7 +60134,7 @@ function AnalyticsPage$1() {
           /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 flex-1 rounded-xl" })
         ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
-            StatCard$1,
+            StatCard,
             {
               label: "Active Goals",
               value: activeGoals,
@@ -60244,7 +60142,7 @@ function AnalyticsPage$1() {
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
-            StatCard$1,
+            StatCard,
             {
               label: "Completion",
               value: `${overallRate}%`,
@@ -60253,7 +60151,7 @@ function AnalyticsPage$1() {
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
-            StatCard$1,
+            StatCard,
             {
               label: "Check-ins",
               value: totalCheckInsThisWeek,
@@ -69332,7 +69230,201 @@ const GOAL_ICONS = [
 function getGoalIcon(iconId) {
   return GOAL_ICONS.find((i) => i.id === iconId) ?? GOAL_ICONS[0];
 }
-const SKIP_COLOR$2 = "#0369A1";
+const OBSTACLE_TEMPLATES = [
+  {
+    id: "low_energy",
+    label: "Low Energy",
+    description: "I feel tired or lack motivation"
+  },
+  {
+    id: "time_crunch",
+    label: "Time Crunch",
+    description: "I ran out of time or had competing priorities"
+  },
+  {
+    id: "distraction",
+    label: "Distraction",
+    description: "I got pulled away by distractions"
+  },
+  {
+    id: "social_pressure",
+    label: "Social Pressure",
+    description: "External demands took over"
+  },
+  {
+    id: "environment",
+    label: "Environment",
+    description: "My environment wasn't set up for success"
+  },
+  {
+    id: "health",
+    label: "Health",
+    description: "Physical or mental health issues got in the way"
+  }
+];
+const MISSED_COLOR$2 = "#6B7280";
+function MissedWindowSheet({
+  goal,
+  open,
+  onClose,
+  onConfirm,
+  isLoading = false
+}) {
+  const [selectedIndex, setSelectedIndex] = reactExports.useState(0);
+  const selectedObstacle = OBSTACLE_TEMPLATES[selectedIndex];
+  function handleClose() {
+    setSelectedIndex(0);
+    onClose();
+  }
+  function handleConfirm() {
+    onConfirm(BigInt(selectedIndex));
+    setSelectedIndex(0);
+    onClose();
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      motion.div,
+      {
+        className: "fixed inset-0 z-40 bg-background/80 backdrop-blur-sm",
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        onClick: handleClose,
+        "data-ocid": "missed_window_sheet.backdrop"
+      },
+      "missed-backdrop"
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      motion.div,
+      {
+        className: "fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-card border border-border",
+        initial: { y: "100%" },
+        animate: { y: 0 },
+        exit: { y: "100%" },
+        transition: { type: "spring", damping: 28, stiffness: 320 },
+        "data-ocid": "missed_window_sheet.dialog",
+        style: {
+          paddingBottom: "calc(16px + env(safe-area-inset-bottom))",
+          boxShadow: "-5px 0 20px rgba(0,0,0,0.7), 0 -5px 20px rgba(0,0,0,0.6)",
+          borderTop: "1px solid rgba(255,255,255,0.13)",
+          borderLeft: "1px solid rgba(255,255,255,0.07)",
+          borderRight: "none",
+          borderBottom: "none"
+        },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center pt-3 pb-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-1 rounded-full bg-muted-foreground/30" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between px-5 pt-3 pb-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  TriangleAlert,
+                  {
+                    className: "w-4 h-4",
+                    style: { color: MISSED_COLOR$2 }
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "span",
+                  {
+                    className: "text-xs font-mono uppercase tracking-widest",
+                    style: { color: MISSED_COLOR$2 },
+                    children: "Missed Window"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-lg text-foreground leading-tight", children: "You missed your time window" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1", children: goal.wishDescription || goal.wish })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: handleClose,
+                className: "ml-4 mt-0.5 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth",
+                "aria-label": "Close",
+                "data-ocid": "missed_window_sheet.close_button",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "w-4 h-4" })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 pb-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mb-3 uppercase tracking-wider font-mono", children: "What got in the way?" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-2 mb-5", children: OBSTACLE_TEMPLATES.map((obstacle, idx) => {
+              const isSelected = idx === selectedIndex;
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setSelectedIndex(idx),
+                  "data-selected": idx === selectedIndex ? "true" : void 0,
+                  className: [
+                    "rounded-xl p-3 text-left transition-smooth border",
+                    isSelected ? "border-transparent" : "bg-muted/40 border-border text-muted-foreground hover:bg-muted"
+                  ].join(" "),
+                  style: isSelected ? {
+                    backgroundColor: "rgba(107,114,128,0.12)",
+                    borderColor: "rgba(107,114,128,0.4)",
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.05)"
+                  } : void 0,
+                  "data-ocid": `missed_window_sheet.obstacle.${obstacle.id}`,
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-sm font-display font-medium leading-tight",
+                        style: isSelected ? { color: MISSED_COLOR$2 } : void 0,
+                        children: obstacle.label
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-0.5 leading-snug", children: obstacle.description })
+                  ]
+                },
+                obstacle.id
+              );
+            }) }),
+            selectedObstacle && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground italic mb-4 px-1", children: [
+              '"',
+              selectedObstacle.description,
+              '"'
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "flex-1 rounded-xl py-3 text-sm font-display font-medium border border-border text-muted-foreground bg-muted/40 transition-smooth hover:bg-muted",
+                  onClick: handleClose,
+                  disabled: isLoading,
+                  "data-ocid": "missed_window_sheet.cancel_button",
+                  children: "Cancel"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "flex-1 rounded-xl py-3 text-sm font-display font-medium transition-smooth",
+                  disabled: isLoading,
+                  onClick: handleConfirm,
+                  style: {
+                    backgroundColor: "rgba(107,114,128,0.15)",
+                    color: MISSED_COLOR$2,
+                    border: "1px solid rgba(107,114,128,0.35)"
+                  },
+                  "data-ocid": "missed_window_sheet.confirm_button",
+                  children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin inline-block" }) : "Log Missed"
+                }
+              )
+            ] })
+          ] })
+        ]
+      },
+      "missed-sheet"
+    )
+  ] }) });
+}
+const SKIP_COLOR$3 = "#0369A1";
+const NOTE_MAX = 140;
 function SkipModal({
   goal,
   open,
@@ -69341,9 +69433,12 @@ function SkipModal({
   isLoading = false
 }) {
   const [selectedObstacleIndex, setSelectedObstacleIndex] = reactExports.useState(0);
-  const selectedObstacle = OBSTACLE_TEMPLATES[selectedObstacleIndex];
+  const [customNote, setCustomNote] = reactExports.useState("");
+  const [noteFocused, setNoteFocused] = reactExports.useState(false);
   function handleConfirm() {
-    onConfirm(BigInt(selectedObstacleIndex));
+    const trimmedNote = customNote.trim();
+    onConfirm(BigInt(selectedObstacleIndex), trimmedNote || void 0);
+    setCustomNote("");
     onClose();
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -69385,14 +69480,14 @@ function SkipModal({
                   CircleAlert,
                   {
                     className: "w-4 h-4",
-                    style: { color: SKIP_COLOR$2 }
+                    style: { color: SKIP_COLOR$3 }
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "span",
                   {
                     className: "text-xs font-mono uppercase tracking-widest",
-                    style: { color: SKIP_COLOR$2 },
+                    style: { color: SKIP_COLOR$3 },
                     children: "Justifiable Skip"
                   }
                 )
@@ -69435,7 +69530,7 @@ function SkipModal({
                       "p",
                       {
                         className: "text-sm font-display font-medium leading-tight",
-                        style: isSelected ? { color: SKIP_COLOR$2 } : void 0,
+                        style: isSelected ? { color: SKIP_COLOR$3 } : void 0,
                         children: obstacle.label
                       }
                     ),
@@ -69445,14 +69540,55 @@ function SkipModal({
                 obstacle.id
               );
             }) }),
-            goal.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-xl p-3 mb-4 bg-muted/30 border border-border", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1", children: "Your If-Then Plan" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-foreground/80 leading-relaxed", children: goal.ifThenPlan })
-            ] }),
-            selectedObstacle && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground italic mb-4 px-1", children: [
-              '"',
-              selectedObstacle.description,
-              '"'
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "label",
+                {
+                  htmlFor: "skip-custom-note",
+                  className: "block text-xs text-muted-foreground uppercase tracking-wider font-mono mb-2",
+                  children: [
+                    "What specifically stopped you today?",
+                    " ",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "normal-case", children: "(Optional)" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "textarea",
+                  {
+                    id: "skip-custom-note",
+                    "data-ocid": "skip_modal.custom_note_textarea",
+                    rows: 2,
+                    maxLength: NOTE_MAX,
+                    value: customNote,
+                    onChange: (e3) => setCustomNote(e3.target.value),
+                    onFocus: () => setNoteFocused(true),
+                    onBlur: () => setNoteFocused(false),
+                    placeholder: "Add a specific detail…",
+                    className: "w-full resize-none rounded-xl px-3 py-2.5 text-sm font-body text-foreground placeholder:text-muted-foreground/50 outline-none transition-smooth",
+                    style: {
+                      background: "oklch(var(--muted) / 0.35)",
+                      border: noteFocused ? "1px solid rgba(3,105,161,0.5)" : "1px solid oklch(var(--border))",
+                      boxShadow: noteFocused ? "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.04)" : "inset 1px 1px 4px rgba(0,0,0,0.3)"
+                    }
+                  }
+                ),
+                (noteFocused || customNote.length > 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "span",
+                  {
+                    className: "absolute bottom-2 right-3 text-xs font-mono pointer-events-none",
+                    style: {
+                      color: customNote.length >= NOTE_MAX ? "#ef4444" : "oklch(var(--muted-foreground) / 0.6)"
+                    },
+                    children: [
+                      customNote.length,
+                      "/",
+                      NOTE_MAX
+                    ]
+                  }
+                )
+              ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -69475,7 +69611,7 @@ function SkipModal({
                   onClick: handleConfirm,
                   style: {
                     backgroundColor: "rgba(3,105,161,0.15)",
-                    color: SKIP_COLOR$2,
+                    color: SKIP_COLOR$3,
                     borderColor: "rgba(3,105,161,0.35)",
                     border: "1px solid"
                   },
@@ -69491,10 +69627,287 @@ function SkipModal({
     )
   ] }) });
 }
-const SUCCESS_COLOR$1 = "#10B981";
-const SKIP_COLOR$1 = "#0369A1";
+const SUCCESS_COLOR$3 = "#10B981";
+function WoopCatchSheet({
+  goal,
+  open,
+  onClose,
+  onExecutedPlan,
+  onProceedToSkip,
+  isLoading = false
+}) {
+  var _a3;
+  const planText = (_a3 = goal.ifThenPlan) == null ? void 0 : _a3.trim();
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      motion.div,
+      {
+        className: "fixed inset-0 z-40",
+        style: {
+          background: "rgba(0,0,0,0.45)",
+          backdropFilter: "blur(2px)"
+        },
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        onClick: onClose,
+        "data-ocid": "woop_catch.backdrop"
+      },
+      "woop-catch-backdrop"
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      motion.div,
+      {
+        className: "fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl",
+        initial: { y: "100%" },
+        animate: { y: 0 },
+        exit: { y: "100%" },
+        transition: { type: "spring", damping: 30, stiffness: 340 },
+        "data-ocid": "woop_catch.dialog",
+        style: {
+          background: "oklch(var(--card))",
+          paddingBottom: "calc(24px + env(safe-area-inset-bottom))",
+          boxShadow: "0 -8px 32px rgba(0,0,0,0.7), 0 -2px 8px rgba(0,0,0,0.5)",
+          borderTop: "1px solid rgba(255,255,255,0.13)",
+          borderLeft: "1px solid rgba(255,255,255,0.07)",
+          borderRight: "none",
+          borderBottom: "none"
+        },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center pt-3 pb-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "w-10 h-1 rounded-full",
+              style: { background: "oklch(var(--muted-foreground) / 0.3)" }
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end px-4 pt-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onClose,
+              "aria-label": "Close",
+              "data-ocid": "woop_catch.close_button",
+              className: "rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "w-4 h-4" })
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-6 pt-1 pb-5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Flame,
+                {
+                  className: "w-4 h-4",
+                  style: { color: SUCCESS_COLOR$3 },
+                  "aria-hidden": "true"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "span",
+                {
+                  className: "text-xs font-mono uppercase tracking-widest",
+                  style: { color: SUCCESS_COLOR$3 },
+                  children: "WOOP Catch"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "h2",
+              {
+                className: "font-display text-xl font-bold leading-snug mb-1",
+                style: { color: "oklch(var(--foreground))" },
+                children: "Wait! Your backup plan is:"
+              }
+            ),
+            planText ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "mt-3 mb-5 rounded-2xl p-4",
+                style: {
+                  background: "rgba(16,185,129,0.07)",
+                  border: "1px solid rgba(16,185,129,0.22)",
+                  boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.04)"
+                },
+                "data-ocid": "woop_catch.plan_text",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-base font-body leading-relaxed",
+                    style: { color: "oklch(var(--foreground) / 0.9)" },
+                    children: planText
+                  }
+                )
+              }
+            ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "mt-3 mb-5 rounded-2xl p-4",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  border: "1px solid oklch(var(--border))"
+                },
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground italic", children: "No If-Then plan was set for this habit." })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                disabled: isLoading,
+                onClick: onExecutedPlan,
+                "data-ocid": "woop_catch.executed_plan_button",
+                className: "w-full py-3.5 rounded-2xl font-display font-semibold text-base tracking-wide transition-smooth mb-3 flex items-center justify-center gap-2 disabled:opacity-50",
+                style: {
+                  background: "rgba(16,185,129,0.15)",
+                  border: "1.5px solid rgba(16,185,129,0.5)",
+                  color: SUCCESS_COLOR$3,
+                  boxShadow: "-3px -3px 8px rgba(60,60,65,0.35), 4px 4px 10px rgba(0,0,0,0.6)"
+                },
+                children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "span",
+                  {
+                    className: "w-4 h-4 border-2 rounded-full animate-spin",
+                    style: {
+                      borderColor: "rgba(16,185,129,0.3)",
+                      borderTopColor: SUCCESS_COLOR$3
+                    }
+                  }
+                ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Flame, { className: "w-4 h-4" }),
+                  "I did my If-Then Plan"
+                ] })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                disabled: isLoading,
+                onClick: onProceedToSkip,
+                "data-ocid": "woop_catch.proceed_skip_button",
+                className: "w-full py-3 rounded-2xl font-display font-medium text-sm tracking-wide transition-smooth text-muted-foreground hover:text-foreground disabled:opacity-40",
+                style: {
+                  background: "transparent",
+                  border: "1px solid oklch(var(--border))"
+                },
+                children: "I still need to skip"
+              }
+            )
+          ] })
+        ]
+      },
+      "woop-catch-sheet"
+    )
+  ] }) });
+}
+const SUCCESS_COLOR$2 = "#10B981";
+const SKIP_COLOR$2 = "#0369A1";
 const GREY_COLOR = "#4B5563";
+const MISSED_COLOR$1 = "#6B7280";
 const SWIPE_THRESHOLD = 60;
+function parseTimeToday(timeStr) {
+  const [h2, m2] = timeStr.split(":").map(Number);
+  const d2 = /* @__PURE__ */ new Date();
+  d2.setHours(h2, m2, 0, 0);
+  return d2;
+}
+function getLockInState(startTime, endTime, todayCheckIn) {
+  const now2 = Date.now();
+  const start = parseTimeToday(startTime).getTime();
+  const end = parseTimeToday(endTime).getTime();
+  const WINDOW = 5 * 60 * 1e3;
+  if ((todayCheckIn == null ? void 0 : todayCheckIn.type) === "success") return "completed";
+  if ((todayCheckIn == null ? void 0 : todayCheckIn.type) === "failedLockIn") return "failed-finalized";
+  if ((todayCheckIn == null ? void 0 : todayCheckIn.type) === "inProgress") {
+    if (Math.abs(now2 - end) <= WINDOW) return "end-window";
+    if (now2 > end + WINDOW) return "missed";
+    return "in-progress";
+  }
+  if (Math.abs(now2 - start) <= WINDOW) return "start-window";
+  if (now2 < start - WINDOW) return "waiting";
+  return "missed";
+}
+function formatTime12h$1(timeStr) {
+  const [h2, m2] = timeStr.split(":").map(Number);
+  const suffix2 = h2 >= 12 ? "PM" : "AM";
+  const h12 = h2 % 12 || 12;
+  return `${h12}:${String(m2).padStart(2, "0")} ${suffix2}`;
+}
+function useLockInTimer(isLockIn, startTime, endTime, lockInTodayCheckIn) {
+  const [tick, setTick] = reactExports.useState(0);
+  reactExports.useEffect(() => {
+    if (!isLockIn) return;
+    const id2 = setInterval(() => setTick((n2) => n2 + 1), 1e3);
+    return () => clearInterval(id2);
+  }, [isLockIn]);
+  if (!isLockIn || !startTime || !endTime) return null;
+  const WINDOW_MS = 5 * 60 * 1e3;
+  const now2 = Date.now();
+  function parseMs(t2) {
+    const [h2, m2] = t2.split(":").map(Number);
+    const d2 = /* @__PURE__ */ new Date();
+    d2.setHours(h2, m2, 0, 0);
+    return d2.getTime();
+  }
+  const startMs = parseMs(startTime);
+  const endMs = parseMs(endTime);
+  const startWindowEnd = startMs + WINDOW_MS;
+  const endWindowEnd = endMs + WINDOW_MS;
+  function fmtCountdown(ms) {
+    const totalSec = Math.max(0, Math.floor(ms / 1e3));
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+  function fmtRemaining(ms) {
+    const totalMin = Math.max(0, Math.floor(ms / 6e4));
+    if (totalMin >= 60) {
+      const h2 = Math.floor(totalMin / 60);
+      const m2 = totalMin % 60;
+      return m2 > 0 ? `${h2}h ${m2}m` : `${h2}h`;
+    }
+    return `${totalMin}m`;
+  }
+  const checkInType = lockInTodayCheckIn == null ? void 0 : lockInTodayCheckIn.type;
+  if (!checkInType && Math.abs(now2 - startMs) <= WINDOW_MS) {
+    return {
+      state: "start-window",
+      text: `⏱️ Check-In Window Closes in ${fmtCountdown(startWindowEnd - now2)}`,
+      color: "#F97316",
+      pulse: true
+    };
+  }
+  if (!checkInType && now2 < startMs - WINDOW_MS) {
+    const minsUntilWindow = Math.max(
+      0,
+      Math.floor((startMs - WINDOW_MS - now2) / 6e4)
+    );
+    const display = minsUntilWindow >= 60 ? `${Math.floor(minsUntilWindow / 60)}h ${minsUntilWindow % 60}m` : `${minsUntilWindow}m`;
+    return {
+      state: "upcoming",
+      text: `⏳ Starts in ${display}`,
+      color: "#9CA3AF",
+      pulse: false
+    };
+  }
+  if (checkInType === "inProgress" && Math.abs(now2 - endMs) <= WINDOW_MS) {
+    return {
+      state: "end-window",
+      text: `⏱️ Check-Out Window Closes in ${fmtCountdown(endWindowEnd - now2)}`,
+      color: "#F97316",
+      pulse: true
+    };
+  }
+  if (checkInType === "inProgress") {
+    return {
+      state: "in-progress",
+      text: `🧠 ${fmtRemaining(endMs - now2)} remaining`,
+      color: "#10B981",
+      pulse: false
+    };
+  }
+  return null;
+}
 function GoalCard({
   goal,
   checkInToday,
@@ -69506,15 +69919,33 @@ function GoalCard({
   onCheckIn,
   onDoneCardTap,
   onExitComplete,
+  onInsightOpen,
   isDarkMode,
   isCheckingIn = false,
   isSkipping = false,
   animateIn = false,
   exitDirection = null,
   isExiting = false,
-  entryFrom = null
+  entryFrom = null,
+  isLockIn = false,
+  lockInStartTime,
+  lockInEndTime,
+  lockInTodayCheckIn,
+  onMissedWindowTap,
+  inProgressPulse = false,
+  executedIfThen = false
 }) {
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
+  const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
+  const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
+  const lockInState = isLockIn && lockInStartTime && lockInEndTime && mode === "active" ? getLockInState(lockInStartTime, lockInEndTime, lockInTodayCheckIn) : null;
+  const lockInTimer = useLockInTimer(
+    isLockIn && mode === "active",
+    lockInStartTime,
+    lockInEndTime,
+    lockInTodayCheckIn
+  );
+  const lockInSwipeDisabled = lockInState !== null && lockInState !== "start-window" && lockInState !== "end-window";
   const [dragX, setDragX] = reactExports.useState(0);
   const [isDragging2, setIsDragging] = reactExports.useState(false);
   const dragDirection = dragX > 0 ? "right" : dragX < 0 ? "left" : null;
@@ -69525,8 +69956,10 @@ function GoalCard({
   const isPointerDown = reactExports.useRef(false);
   const isHorizontalSwipe = reactExports.useRef(false);
   const dragXRef = reactExports.useRef(0);
+  const modalOpenedDuringGestureRef = reactExports.useRef(false);
   const isSuccess = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success";
   const isSkipped = (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
+  const isFailedLockIn = (checkInToday == null ? void 0 : checkInToday.checkInType) === "failedLockIn";
   const goalIcon = getGoalIcon(goal.iconName);
   const themeColor = goal.themeColor;
   const keystoneText = goal.wishDescription || goal.wish;
@@ -69535,11 +69968,19 @@ function GoalCard({
     const embossed = isDarkMode ? "-5px -5px 14px rgba(70,70,80,0.55), 8px 8px 20px rgba(0,0,0,0.9)" : "-5px -5px 14px rgba(90,90,100,0.6), 8px 8px 20px rgba(0,0,0,0.75)";
     const litBorderOpacity = isDarkMode ? 0.12 : 0.18;
     const litBorder = `1px solid rgba(255,255,255,${litBorderOpacity})`;
+    if (mode === "done" && isFailedLockIn) {
+      return {
+        background: cardBgIdle,
+        boxShadow: embossed,
+        border: `1px solid ${MISSED_COLOR$1}`,
+        cursor: "pointer"
+      };
+    }
     if (mode === "done" && isSuccess) {
       return {
         background: cardBgIdle,
         boxShadow: embossed,
-        border: `2px solid ${SUCCESS_COLOR$1}`,
+        border: `2px solid ${SUCCESS_COLOR$2}`,
         cursor: "pointer"
       };
     }
@@ -69547,8 +69988,58 @@ function GoalCard({
       return {
         background: cardBgIdle,
         boxShadow: embossed,
-        border: `2px solid ${SKIP_COLOR$1}`,
+        border: `2px solid ${SKIP_COLOR$2}`,
         cursor: "pointer"
+      };
+    }
+    if (lockInState === "completed") {
+      return {
+        background: cardBgIdle,
+        boxShadow: embossed,
+        border: `2px solid ${SUCCESS_COLOR$2}`,
+        opacity: 0.75,
+        cursor: "pointer"
+      };
+    }
+    if (lockInState === "missed" || lockInState === "failed-finalized") {
+      return {
+        background: cardBgIdle,
+        boxShadow: embossed,
+        border: `1px solid ${MISSED_COLOR$1}`,
+        opacity: 0.75,
+        cursor: "pointer"
+      };
+    }
+    if (lockInState === "in-progress") {
+      return {
+        background: cardBgIdle,
+        boxShadow: embossed,
+        borderTop: `2px solid ${SUCCESS_COLOR$2}`,
+        borderLeft: `2px solid ${SUCCESS_COLOR$2}`,
+        borderRight: litBorder,
+        borderBottom: litBorder
+      };
+    }
+    if (lockInState === "start-window" || lockInState === "end-window") {
+      return {
+        background: cardBgIdle,
+        boxShadow: `${embossed}, 0 0 12px rgba(16,185,129,0.2)`,
+        borderTop: litBorder,
+        borderLeft: "4px solid transparent",
+        borderRight: "none",
+        borderBottom: "none"
+      };
+    }
+    if (lockInState === "waiting") {
+      return {
+        background: cardBgIdle,
+        boxShadow: embossed,
+        borderTop: litBorder,
+        borderLeft: "4px solid transparent",
+        borderRight: "none",
+        borderBottom: "none",
+        opacity: 0.6,
+        cursor: "not-allowed"
       };
     }
     let bgStyle = cardBgIdle;
@@ -69566,7 +70057,28 @@ function GoalCard({
     };
   }
   function onPointerDown(e3) {
+    modalOpenedDuringGestureRef.current = false;
+    if (mode === "done") {
+      isPointerDown.current = true;
+      pointerStartX.current = e3.clientX;
+      pointerStartY.current = e3.clientY;
+      dragXRef.current = 0;
+      return;
+    }
     if (mode !== "active" || isExiting) return;
+    if (lockInSwipeDisabled) {
+      e3.currentTarget.setPointerCapture(e3.pointerId);
+      isPointerDown.current = true;
+      pointerStartX.current = e3.clientX;
+      pointerStartY.current = e3.clientY;
+      dragXRef.current = 0;
+      if (lockInState === "missed" || lockInState === "failed-finalized") {
+        modalOpenedDuringGestureRef.current = true;
+        setShowMissedSheet(true);
+        onMissedWindowTap == null ? void 0 : onMissedWindowTap(goal.id);
+      }
+      return;
+    }
     e3.currentTarget.setPointerCapture(e3.pointerId);
     isPointerDown.current = true;
     isHorizontalSwipe.current = false;
@@ -69577,7 +70089,11 @@ function GoalCard({
     setIsDragging(false);
   }
   function onPointerMove(e3) {
-    if (!isPointerDown.current || mode !== "active" || isExiting) return;
+    if (!isPointerDown.current) return;
+    if (mode !== "active" || isExiting || lockInSwipeDisabled) {
+      dragXRef.current = e3.clientX - pointerStartX.current;
+      return;
+    }
     e3.preventDefault();
     const dx = e3.clientX - pointerStartX.current;
     const dy = e3.clientY - pointerStartY.current;
@@ -69598,28 +70114,51 @@ function GoalCard({
       setDragX(clamped);
     }
   }
+  const TAP_MAX_DRIFT = 10;
   function onPointerUp() {
-    if (mode === "done") {
-      isPointerDown.current = false;
-      dragXRef.current = 0;
-      setDragX(0);
-      setIsDragging(false);
-      isHorizontalSwipe.current = false;
-      return;
-    }
-    if (!isPointerDown.current || isExiting) return;
+    if (!isPointerDown.current) return;
     isPointerDown.current = false;
     const finalDragX = dragXRef.current;
     dragXRef.current = 0;
+    if (mode === "done") {
+      setDragX(0);
+      setIsDragging(false);
+      isHorizontalSwipe.current = false;
+      if (!modalOpenedDuringGestureRef.current && Math.abs(finalDragX) < TAP_MAX_DRIFT && onInsightOpen) {
+        onInsightOpen(goal);
+      }
+      return;
+    }
+    if (isExiting) return;
+    const wasHorizontalSwipe = isHorizontalSwipe.current;
     setDragX(0);
     setIsDragging(false);
     isHorizontalSwipe.current = false;
+    if (lockInSwipeDisabled) {
+      if (!modalOpenedDuringGestureRef.current && !wasHorizontalSwipe && Math.abs(finalDragX) < TAP_MAX_DRIFT && onInsightOpen) {
+        onInsightOpen(goal);
+      }
+      return;
+    }
     if (finalDragX >= SWIPE_THRESHOLD) {
       if (navigator.vibrate) navigator.vibrate([15]);
-      onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
+      if (lockInState === "start-window") {
+        onCheckIn == null ? void 0 : onCheckIn(goal.id, "inProgress", void 0, Date.now());
+      } else if (lockInState === "end-window") {
+        onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, Date.now());
+      } else {
+        onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
+      }
     } else if (finalDragX <= -SWIPE_THRESHOLD) {
+      if (lockInState !== null) return;
       if (navigator.vibrate) navigator.vibrate([15]);
-      setShowSkipModal(true);
+      modalOpenedDuringGestureRef.current = true;
+      setShowWoopCatch(true);
+    } else if (
+      // ── Clean tap on active card body ──────────────────────────────────────
+      !wasHorizontalSwipe && !modalOpenedDuringGestureRef.current && Math.abs(finalDragX) < TAP_MAX_DRIFT && onInsightOpen
+    ) {
+      onInsightOpen(goal);
     }
   }
   function onPointerCancel() {
@@ -69634,11 +70173,35 @@ function GoalCard({
     return () => {
     };
   }, []);
-  function handleSkipConfirm(obstacleTemplateId) {
-    onCheckIn == null ? void 0 : onCheckIn(goal.id, "skip", obstacleTemplateId);
+  function handleSkipConfirm(obstacleTemplateId, customNote) {
+    onCheckIn == null ? void 0 : onCheckIn(
+      goal.id,
+      "skip",
+      obstacleTemplateId,
+      void 0,
+      void 0,
+      false,
+      customNote
+    );
     setShowSkipModal(false);
   }
-  const iconColor = mode === "done" && isSuccess ? SUCCESS_COLOR$1 : mode === "done" && isSkipped ? SKIP_COLOR$1 : themeColor ?? "oklch(var(--muted-foreground))";
+  function handleMissedConfirm(obstacleTemplateId) {
+    onCheckIn == null ? void 0 : onCheckIn(goal.id, "inProgress", obstacleTemplateId);
+    setShowMissedSheet(false);
+  }
+  function handleWoopCatchExecutedPlan() {
+    setShowWoopCatch(false);
+    onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, void 0, true);
+  }
+  function handleWoopCatchProceedToSkip() {
+    setShowWoopCatch(false);
+    setShowSkipModal(true);
+  }
+  function handleSkipModalClose() {
+    setShowSkipModal(false);
+    modalOpenedDuringGestureRef.current = false;
+  }
+  const iconColor = mode === "done" && isFailedLockIn ? MISSED_COLOR$1 : mode === "done" && isSuccess ? SUCCESS_COLOR$2 : mode === "done" && isSkipped ? SKIP_COLOR$2 : themeColor ?? "oklch(var(--muted-foreground))";
   const swipeIconOpacity = Math.max(0, (dragProgress - 0.3) / 0.7);
   const today = /* @__PURE__ */ new Date();
   const WEEK_SLOTS = ["w0", "w1", "w2", "w3", "w4", "w5", "w6"];
@@ -69650,8 +70213,8 @@ function GoalCard({
     return { id: id2, label, status };
   });
   function getBallColor(status) {
-    if (status === "success") return SUCCESS_COLOR$1;
-    if (status === "skip") return SKIP_COLOR$1;
+    if (status === "success") return SUCCESS_COLOR$2;
+    if (status === "skip") return SKIP_COLOR$2;
     return GREY_COLOR;
   }
   const EXIT_DURATION_MS = 320;
@@ -69664,14 +70227,20 @@ function GoalCard({
   const entryFromX = entryFrom === "right" ? 60 : entryFrom === "left" ? -60 : 0;
   const exitFiredRef = reactExports.useRef(false);
   const exitTimerRef = reactExports.useRef(null);
+  const onExitCompleteRef = reactExports.useRef(onExitComplete);
+  reactExports.useEffect(() => {
+    onExitCompleteRef.current = onExitComplete;
+  });
   reactExports.useEffect(() => {
     if (isExiting) {
+      if (exitTimerRef.current !== null) return;
       exitFiredRef.current = false;
-      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
       exitTimerRef.current = setTimeout(() => {
+        var _a3;
+        exitTimerRef.current = null;
         if (!exitFiredRef.current) {
           exitFiredRef.current = true;
-          onExitComplete == null ? void 0 : onExitComplete(goal.id);
+          (_a3 = onExitCompleteRef.current) == null ? void 0 : _a3.call(onExitCompleteRef, goal.id);
         }
       }, EXIT_DURATION_MS);
     } else {
@@ -69682,9 +70251,16 @@ function GoalCard({
       exitFiredRef.current = false;
     }
     return () => {
-      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     };
-  }, [isExiting, goal.id, onExitComplete]);
+  }, [isExiting, goal.id]);
+  reactExports.useEffect(() => {
+    return () => {
+      if (exitTimerRef.current) {
+        clearTimeout(exitTimerRef.current);
+        exitTimerRef.current = null;
+      }
+    };
+  }, []);
   const motionProps = (() => {
     if (mode === "done") {
       return {
@@ -69751,7 +70327,43 @@ function GoalCard({
         className: "relative",
         "data-ocid": `goal.card.${index2 + 1}`,
         children: [
-          mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          inProgressPulse && lockInState === "in-progress" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+              @keyframes inProgressPulse {
+                0%   { opacity: 0; transform: scale(0.97); }
+                40%  { opacity: 0.18; transform: scale(1.01); }
+                100% { opacity: 0; transform: scale(0.99); }
+              }
+            ` }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "absolute inset-0 rounded-2xl pointer-events-none",
+                style: {
+                  background: SUCCESS_COLOR$2,
+                  animation: "inProgressPulse 0.55s ease-out forwards"
+                },
+                "aria-hidden": "true"
+              }
+            )
+          ] }),
+          lockInState === "in-progress" && lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "absolute inset-x-0 bottom-0 rounded-b-2xl py-1.5 px-3 text-center text-xs font-mono pointer-events-none",
+              style: {
+                background: "rgba(16,185,129,0.08)",
+                color: SUCCESS_COLOR$2,
+                borderTop: "1px solid rgba(16,185,129,0.15)"
+              },
+              "aria-live": "polite",
+              children: [
+                "In progress • check out at ",
+                formatTime12h$1(lockInEndTime)
+              ]
+            }
+          ),
+          mode === "active" && !lockInSwipeDisabled && /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
             {
               className: "absolute inset-0 rounded-2xl flex items-center pointer-events-none overflow-hidden",
@@ -69773,7 +70385,7 @@ function GoalCard({
                       Check,
                       {
                         size: 18,
-                        style: { color: SUCCESS_COLOR$1 },
+                        style: { color: SUCCESS_COLOR$2 },
                         strokeWidth: 3
                       }
                     )
@@ -69792,7 +70404,7 @@ function GoalCard({
                       Pause,
                       {
                         size: 18,
-                        style: { color: SKIP_COLOR$1 },
+                        style: { color: SKIP_COLOR$2 },
                         strokeWidth: 2.5
                       }
                     )
@@ -69807,7 +70419,7 @@ function GoalCard({
               ref: cardRef,
               type: "button",
               tabIndex: 0,
-              "aria-label": mode === "done" ? `${keystoneText} — ${isSuccess ? "completed" : "skipped"}. Tap to undo.` : `${keystoneText} — swipe right to complete, left to skip`,
+              "aria-label": mode === "done" ? `${keystoneText} — ${isSuccess ? "completed" : isFailedLockIn ? "missed lock-in" : "skipped"}. Tap to undo.` : lockInState === "completed" ? `${keystoneText} — lock-in completed.` : lockInState === "missed" || lockInState === "failed-finalized" ? `${keystoneText} — time window missed. Tap to log obstacle.` : lockInState === "waiting" ? `${keystoneText} — waiting for time window` : lockInState === "in-progress" ? `${keystoneText} — in progress` : `${keystoneText} — swipe right to complete, left to skip`,
               onPointerDown,
               onPointerMove,
               onPointerUp,
@@ -69819,22 +70431,104 @@ function GoalCard({
               },
               className: "relative select-none overflow-hidden rounded-2xl w-full text-left bg-transparent border-0",
               style: {
-                cursor: mode === "done" ? "pointer" : "grab",
-                transform: mode === "active" ? `translateX(${dragX}px)` : void 0,
+                cursor: mode === "done" ? "pointer" : lockInState === "completed" || lockInState === "missed" || lockInState === "failed-finalized" ? "pointer" : lockInState === "waiting" || lockInState === "in-progress" ? "not-allowed" : "grab",
+                transform: mode === "active" && !lockInSwipeDisabled ? `translateX(${dragX}px)` : void 0,
                 transition: mode === "active" && isDragging2 ? "none" : "transform 0.35s cubic-bezier(0.4,0,0.2,1)",
                 padding: "1.25rem 1.25rem 1rem",
                 userSelect: "none",
                 WebkitUserSelect: "none",
-                touchAction: mode === "active" ? "none" : "auto",
+                touchAction: mode === "active" && !lockInSwipeDisabled ? "none" : "pan-y",
                 ...getCardStyle()
               },
               children: [
+                executedIfThen && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "span",
+                  {
+                    className: "absolute",
+                    style: {
+                      top: "50%",
+                      left: "-2px",
+                      transform: "translateY(-50%)"
+                    },
+                    "aria-label": "Hard-fought win via If-Then plan",
+                    title: "Executed If-Then Plan",
+                    "data-ocid": "goal.revival_icon",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Zap,
+                      {
+                        size: 14,
+                        style: {
+                          color: SUCCESS_COLOR$2,
+                          filter: "drop-shadow(0 0 4px rgba(16,185,129,0.7))"
+                        },
+                        strokeWidth: 2.5,
+                        fill: SUCCESS_COLOR$2
+                      }
+                    )
+                  }
+                ),
+                isLockIn && lockInStartTime && lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono",
+                    style: {
+                      background: "rgba(107,114,128,0.15)",
+                      border: "1px solid rgba(107,114,128,0.3)",
+                      color: lockInState === "start-window" || lockInState === "end-window" ? SUCCESS_COLOR$2 : lockInState === "completed" ? SUCCESS_COLOR$2 : lockInState === "missed" || lockInState === "failed-finalized" ? MISSED_COLOR$1 : "oklch(var(--muted-foreground))"
+                    },
+                    "aria-label": `Time block: ${lockInStartTime} to ${lockInEndTime}`,
+                    children: [
+                      lockInState === "completed" || lockInState === "missed" || lockInState === "failed-finalized" ? /* @__PURE__ */ jsxRuntimeExports.jsx(LockOpen, { size: 10 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 10 }),
+                      formatTime12h$1(lockInStartTime),
+                      " – ",
+                      formatTime12h$1(lockInEndTime)
+                    ]
+                  }
+                ),
+                isLockIn && lockInTimer && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+                @keyframes lockInPulse {
+                  0%, 100% { opacity: 1; }
+                  50% { opacity: 0.5; }
+                }
+              ` }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "mt-1.5 mb-0.5 text-xs font-mono font-medium",
+                      style: {
+                        color: lockInTimer.color,
+                        animation: lockInTimer.pulse ? "lockInPulse 1.2s ease-in-out infinite" : "none"
+                      },
+                      "aria-live": "polite",
+                      "data-ocid": "goal.lockin_timer",
+                      children: lockInTimer.text
+                    }
+                  )
+                ] }),
+                isLockIn && lockInState && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "mt-1 mb-0.5 text-xs font-mono",
+                    style: {
+                      color: lockInState === "start-window" || lockInState === "end-window" ? SUCCESS_COLOR$2 : lockInState === "completed" ? SUCCESS_COLOR$2 : lockInState === "missed" || lockInState === "failed-finalized" ? MISSED_COLOR$1 : "oklch(var(--muted-foreground))"
+                    },
+                    children: [
+                      lockInState === "waiting" && lockInStartTime && `Window opens at ${formatTime12h$1(lockInStartTime)}`,
+                      lockInState === "start-window" && "✓ Check-in window open — swipe right to start",
+                      lockInState === "in-progress" && lockInEndTime && `⏳ In progress — complete by ${formatTime12h$1(lockInEndTime)}`,
+                      lockInState === "end-window" && "✓ Check-out window — swipe right to complete",
+                      lockInState === "completed" && "✅ Lock-In completed",
+                      (lockInState === "missed" || lockInState === "failed-finalized") && "Time window missed — tap to log obstacle"
+                    ]
+                  }
+                ),
                 mode === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "div",
                   {
                     className: "absolute top-3.5 right-3.5 w-2 h-2 rounded-full",
                     style: {
-                      backgroundColor: isSuccess ? SUCCESS_COLOR$1 : SKIP_COLOR$1,
+                      backgroundColor: isSuccess ? SUCCESS_COLOR$2 : isFailedLockIn ? MISSED_COLOR$1 : SKIP_COLOR$2,
                       opacity: 0.85
                     },
                     "aria-hidden": "true"
@@ -69846,7 +70540,7 @@ function GoalCard({
                     className: "absolute top-4 right-4 w-4 h-4 border-2 rounded-full animate-spin",
                     style: {
                       borderColor: "rgba(16,185,129,0.3)",
-                      borderTopColor: SUCCESS_COLOR$1
+                      borderTopColor: SUCCESS_COLOR$2
                     },
                     "aria-hidden": "true"
                   }
@@ -69907,7 +70601,10 @@ function GoalCard({
                       e3.stopPropagation();
                       onDoneCardTap == null ? void 0 : onDoneCardTap(goal.id);
                     },
-                    onPointerDown: (e3) => e3.stopPropagation(),
+                    onPointerDown: (e3) => {
+                      e3.stopPropagation();
+                      modalOpenedDuringGestureRef.current = true;
+                    },
                     onPointerUp: (e3) => e3.stopPropagation(),
                     onPointerMove: (e3) => e3.stopPropagation(),
                     className: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-smooth select-none",
@@ -69927,17 +70624,550 @@ function GoalCard({
         ]
       }
     ),
-    mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+    mode === "active" && !lockInSwipeDisabled && /* @__PURE__ */ jsxRuntimeExports.jsx(
       SkipModal,
       {
         goal,
         open: showSkipModal,
-        onClose: () => setShowSkipModal(false),
+        onClose: handleSkipModalClose,
         onConfirm: handleSkipConfirm,
         isLoading: isSkipping
       }
+    ),
+    mode === "active" && isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      MissedWindowSheet,
+      {
+        goal,
+        open: showMissedSheet,
+        onClose: () => setShowMissedSheet(false),
+        onConfirm: handleMissedConfirm,
+        isLoading: isCheckingIn
+      }
+    ),
+    mode === "active" && !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      WoopCatchSheet,
+      {
+        goal,
+        open: showWoopCatch,
+        onClose: () => setShowWoopCatch(false),
+        onExecutedPlan: handleWoopCatchExecutedPlan,
+        onProceedToSkip: handleWoopCatchProceedToSkip,
+        isLoading: isCheckingIn
+      }
     )
   ] });
+}
+const SUCCESS_COLOR$1 = "#10B981";
+const SKIP_COLOR$1 = "#0369A1";
+const MISSED_COLOR = "#6B7280";
+function formatTime(nanoTs) {
+  const ms = Number(nanoTs / 1000000n);
+  return new Date(ms).toLocaleTimeString(void 0, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+}
+function formatDateLabel(nanoTs) {
+  const ms = Number(nanoTs / 1000000n);
+  const d2 = new Date(ms);
+  const now2 = /* @__PURE__ */ new Date();
+  const todayStr = now2.toDateString();
+  const yesterday = new Date(now2);
+  yesterday.setDate(now2.getDate() - 1);
+  if (d2.toDateString() === todayStr) return "Today";
+  if (d2.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d2.toLocaleDateString(void 0, {
+    weekday: "short",
+    day: "numeric",
+    month: "short"
+  });
+}
+function obstacleLabel(id2) {
+  var _a3;
+  if (id2 === void 0 || id2 === null) return "Unspecified";
+  const idx = Number(id2);
+  return ((_a3 = OBSTACLE_TEMPLATES[idx]) == null ? void 0 : _a3.label) ?? "Unspecified";
+}
+function TimelineNodeCircle({
+  type,
+  isRevival
+}) {
+  const isSuccess = type === CheckInType.success;
+  const isSkip = type === CheckInType.skip;
+  if (isSuccess) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+        style: {
+          background: "rgba(16,185,129,0.15)",
+          border: `2px solid ${SUCCESS_COLOR$1}`,
+          boxShadow: "0 0 0 3px rgba(16,185,129,0.08)"
+        },
+        "aria-hidden": "true",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "w-3 h-3 rounded-full",
+              style: { background: SUCCESS_COLOR$1 }
+            }
+          ),
+          isRevival && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center",
+              style: {
+                background: "oklch(var(--card))",
+                border: `1px solid ${SUCCESS_COLOR$1}`
+              },
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Zap,
+                {
+                  className: "w-2.5 h-2.5",
+                  style: { color: SUCCESS_COLOR$1 },
+                  strokeWidth: 2.5
+                }
+              )
+            }
+          )
+        ]
+      }
+    );
+  }
+  if (isSkip) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+        style: {
+          background: "rgba(3,105,161,0.15)",
+          border: `2px solid ${SKIP_COLOR$1}`,
+          boxShadow: "0 0 0 3px rgba(3,105,161,0.08)"
+        },
+        "aria-hidden": "true",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "w-3 h-3 rounded-full",
+            style: { background: SKIP_COLOR$1 }
+          }
+        )
+      }
+    );
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "flex-shrink-0 w-8 h-8 rounded-full",
+      style: {
+        border: `2px solid ${MISSED_COLOR}`,
+        background: "transparent",
+        boxShadow: "0 0 0 3px rgba(107,114,128,0.08)"
+      },
+      "aria-hidden": "true"
+    }
+  );
+}
+function TimelineItem({ checkIn }) {
+  const isSuccess = checkIn.checkInType === CheckInType.success;
+  const isSkip = checkIn.checkInType === CheckInType.skip;
+  checkIn.checkInType === CheckInType.inProgress || checkIn.checkInType === CheckInType.failedLockIn;
+  const time2 = formatTime(checkIn.timestamp);
+  const isRevival = isSuccess && checkIn.executedIfThen;
+  let primaryText;
+  let primaryColor;
+  if (isSuccess) {
+    primaryText = isRevival ? `Executed backup plan at ${time2}` : `Executed at ${time2}`;
+    primaryColor = SUCCESS_COLOR$1;
+  } else if (isSkip) {
+    const oLabel = obstacleLabel(checkIn.obstacleTemplateId);
+    primaryText = `Skipped at ${time2} • Obstacle: ${oLabel}`;
+    primaryColor = SKIP_COLOR$1;
+  } else {
+    primaryText = "Missed • No action taken";
+    primaryColor = MISSED_COLOR;
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", "data-ocid": "goal_insight.timeline_item", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType, isRevival }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+        isRevival && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Zap,
+          {
+            className: "w-3 h-3 flex-shrink-0",
+            style: { color: SUCCESS_COLOR$1 },
+            strokeWidth: 2.5,
+            "aria-hidden": "true"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "p",
+          {
+            className: "text-sm font-display font-medium leading-snug",
+            style: { color: primaryColor },
+            children: primaryText
+          }
+        )
+      ] }),
+      isSkip && checkIn.customObstacleNote && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "div",
+        {
+          className: "mt-2 rounded-xl px-3 py-2 max-w-xs",
+          style: {
+            background: "rgba(3,105,161,0.08)",
+            border: "1px solid rgba(3,105,161,0.2)"
+          },
+          "data-ocid": "goal_insight.custom_note_bubble",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "p",
+            {
+              className: "text-xs italic leading-relaxed",
+              style: { color: "oklch(var(--muted-foreground))" },
+              children: [
+                "“",
+                checkIn.customObstacleNote,
+                "”"
+              ]
+            }
+          )
+        }
+      )
+    ] })
+  ] });
+}
+function groupByDay(checkIns) {
+  const map2 = /* @__PURE__ */ new Map();
+  for (const ci of checkIns) {
+    const ms = Number(ci.timestamp / 1000000n);
+    const key = new Date(ms).toDateString();
+    const bucket = map2.get(key) ?? [];
+    bucket.push(ci);
+    map2.set(key, bucket);
+  }
+  const sortedEntries = Array.from(map2.entries()).sort(([keyA], [keyB]) => {
+    const dateA = new Date(keyA).getTime();
+    const dateB = new Date(keyB).getTime();
+    return dateB - dateA;
+  });
+  return sortedEntries.map(([, items]) => ({
+    label: formatDateLabel(items[0].timestamp),
+    items
+  }));
+}
+function TimelineSkeleton() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-5", "data-ocid": "goal_insight.loading_state", children: [...Array(5)].map((_2, i) => (
+    // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton array, no reordering possible
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3 items-start", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "div",
+        {
+          className: "w-8 h-8 rounded-full flex-shrink-0 animate-pulse",
+          style: { background: "oklch(var(--muted) / 0.5)" }
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 space-y-2 pt-1", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "h-3 rounded-full animate-pulse",
+            style: {
+              background: "oklch(var(--muted) / 0.5)",
+              width: `${55 + i % 3 * 15}%`
+            }
+          }
+        ),
+        i % 2 === 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "h-2.5 rounded-full animate-pulse",
+            style: {
+              background: "oklch(var(--muted) / 0.35)",
+              width: "40%"
+            }
+          }
+        )
+      ] })
+    ] }, i)
+  )) });
+}
+function GoalInsightSheet({
+  goal,
+  isOpen,
+  onClose
+}) {
+  const { actor, actorReady } = useBackend();
+  const [checkIns, setCheckIns] = reactExports.useState([]);
+  const [isLoading, setIsLoading] = reactExports.useState(false);
+  const [error, setError] = reactExports.useState(null);
+  reactExports.useEffect(() => {
+    if (!isOpen || !actorReady || !actor) return;
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+    const now2 = BigInt(Date.now()) * 1000000n;
+    const fourteenDaysNs = BigInt(14 * 24 * 60 * 60 * 1e3) * 1000000n;
+    const fromTimestamp = now2 - fourteenDaysNs;
+    actor.getCheckInsForGoalTimeline(goal.id, fromTimestamp).then((data) => {
+      if (!cancelled) {
+        const sorted = [...data].sort(
+          (a2, b2) => a2.timestamp > b2.timestamp ? -1 : a2.timestamp < b2.timestamp ? 1 : 0
+        );
+        setCheckIns(sorted);
+      }
+    }).catch(() => {
+      if (!cancelled) setError("Could not load timeline. Tap to retry.");
+    }).finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, actorReady, actor, goal.id]);
+  reactExports.useEffect(() => {
+    if (!isOpen) {
+      setCheckIns([]);
+      setError(null);
+    }
+  }, [isOpen]);
+  const groups = groupByDay(checkIns);
+  const isEmpty = !isLoading && !error && checkIns.length === 0;
+  const habitName = goal.wishDescription || goal.wish || "Habit";
+  const macroWish = goal.wish;
+  const outcome = goal.outcome;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: isOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      motion.div,
+      {
+        className: "fixed inset-0 z-40",
+        style: {
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(3px)"
+        },
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        onClick: onClose,
+        "data-ocid": "goal_insight.backdrop"
+      },
+      "goal-insight-backdrop"
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      motion.div,
+      {
+        className: "fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl flex flex-col",
+        style: {
+          background: "oklch(var(--card))",
+          maxHeight: "88dvh",
+          boxShadow: "0 -10px 40px rgba(0,0,0,0.75), 0 -2px 10px rgba(0,0,0,0.5)",
+          borderTop: "1px solid rgba(255,255,255,0.13)",
+          borderLeft: "1px solid rgba(255,255,255,0.07)",
+          borderRight: "none",
+          borderBottom: "none",
+          paddingBottom: "calc(24px + env(safe-area-inset-bottom))"
+        },
+        initial: { y: "100%" },
+        animate: { y: 0 },
+        exit: { y: "100%" },
+        transition: { type: "spring", damping: 30, stiffness: 340 },
+        "data-ocid": "goal_insight.dialog",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center pt-3 pb-1 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "w-10 h-1 rounded-full",
+              style: { background: "oklch(var(--muted-foreground) / 0.3)" }
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "flex-shrink-0 px-6 pt-3 pb-5",
+              style: {
+                borderBottom: "1px solid rgba(255,255,255,0.07)"
+              },
+              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "h2",
+                    {
+                      className: "font-display text-xl font-bold leading-tight truncate",
+                      style: { color: "oklch(var(--foreground))" },
+                      "data-ocid": "goal_insight.habit_name",
+                      children: habitName
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1.5 space-y-0.5", children: [
+                    macroWish && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "p",
+                      {
+                        className: "text-sm font-body leading-snug line-clamp-2",
+                        style: { color: "oklch(var(--muted-foreground))" },
+                        "data-ocid": "goal_insight.macro_wish",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "text-xs font-mono uppercase tracking-widest mr-1.5",
+                              style: {
+                                color: "oklch(var(--muted-foreground) / 0.6)"
+                              },
+                              children: "Wish"
+                            }
+                          ),
+                          macroWish
+                        ]
+                      }
+                    ),
+                    outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "p",
+                      {
+                        className: "text-sm font-body leading-snug line-clamp-2",
+                        style: { color: "oklch(var(--muted-foreground))" },
+                        "data-ocid": "goal_insight.outcome",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "text-xs font-mono uppercase tracking-widest mr-1.5",
+                              style: {
+                                color: "oklch(var(--muted-foreground) / 0.6)"
+                              },
+                              children: "Outcome"
+                            }
+                          ),
+                          outcome
+                        ]
+                      }
+                    )
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: onClose,
+                    "aria-label": "Close Goal Insight",
+                    "data-ocid": "goal_insight.close_button",
+                    className: "flex-shrink-0 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "w-4 h-4" })
+                  }
+                )
+              ] })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "flex-1 overflow-y-auto px-6 pt-5",
+              style: { overscrollBehavior: "contain" },
+              "data-ocid": "goal_insight.timeline_section",
+              children: [
+                isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineSkeleton, {}),
+                !isLoading && error && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "flex flex-col items-center justify-center gap-3 py-10 text-center",
+                    "data-ocid": "goal_insight.error_state",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-sm",
+                        style: { color: "oklch(var(--muted-foreground))" },
+                        children: error
+                      }
+                    )
+                  }
+                ),
+                isEmpty && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "flex flex-col items-center justify-center gap-3 py-12 text-center",
+                    "data-ocid": "goal_insight.empty_state",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "div",
+                        {
+                          className: "w-12 h-12 rounded-full flex items-center justify-center mb-1",
+                          style: {
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.08)"
+                          },
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "text-2xl select-none",
+                              style: { color: "oklch(var(--muted-foreground) / 0.5)" },
+                              children: "⬤"
+                            }
+                          )
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "p",
+                        {
+                          className: "text-sm leading-relaxed max-w-[220px]",
+                          style: { color: "oklch(var(--muted-foreground))" },
+                          children: [
+                            "No activity in the last 14 days.",
+                            " ",
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--foreground) / 0.5)" }, children: "Start building your timeline." })
+                          ]
+                        }
+                      )
+                    ]
+                  }
+                ),
+                !isLoading && !error && groups.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "absolute left-[15px] top-0 bottom-0 w-[2px] pointer-events-none",
+                      style: {
+                        background: "linear-gradient(to bottom, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)"
+                      },
+                      "aria-hidden": "true"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-0", children: groups.map((group, gi) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: groups keyed by stable date string position
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "div",
+                        {
+                          className: "mb-3 ml-11",
+                          "data-ocid": `goal_insight.day_group.${gi + 1}`,
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full",
+                              style: {
+                                color: "oklch(var(--muted-foreground))",
+                                background: "rgba(255,255,255,0.04)",
+                                border: "1px solid rgba(255,255,255,0.07)"
+                              },
+                              children: group.label
+                            }
+                          )
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ml-3 flex flex-col gap-0", children: group.items.map((ci, ii) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: items within a day group, stable order
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineItem, { checkIn: ci }, `${gi}-${ii}`)
+                      )) })
+                    ] }, gi)
+                  )) })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-4" })
+              ]
+            }
+          )
+        ]
+      },
+      "goal-insight-sheet"
+    )
+  ] }) });
 }
 const SUCCESS_COLOR = "#10B981";
 const SKIP_COLOR = "#0369A1";
@@ -70099,182 +71329,6 @@ function Textarea({ className, ...props }) {
     }
   );
 }
-function toNumericTier$2(tier) {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
-}
-function getNextTier(current) {
-  if (current === 1) return 2;
-  if (current === 2) return 3;
-  return null;
-}
-const TIER_ACCENT = {
-  1: "text-muted-foreground",
-  2: "text-accent-skip",
-  3: "text-accent-success"
-};
-const TIER_UPGRADE_COPY = {
-  1: {
-    headline: "Ready to build more habits?",
-    body: "Upgrade to Plus and manage up to 10 goals simultaneously. Research shows multi-habit tracking accelerates overall progress."
-  },
-  2: {
-    headline: "Unlock your full potential.",
-    body: "Power tier gives you 25 concurrent goals — ideal for high-performers who want to stack habits systematically."
-  },
-  3: {
-    headline: "You've reached the maximum.",
-    body: "Power tier supports up to 25 active goals. Archive completed or paused goals to free up slots."
-  }
-};
-function TierLimitModal({
-  open,
-  onClose,
-  userProfile
-}) {
-  const navigate = useNavigate();
-  if (!open) return null;
-  const currentTier = userProfile ? toNumericTier$2(userProfile.tier) : 1;
-  const nextTier = getNextTier(currentTier);
-  const currentLimit = TIER_GOAL_LIMITS[currentTier];
-  const nextLimit = nextTier ? TIER_GOAL_LIMITS[nextTier] : null;
-  const copy2 = TIER_UPGRADE_COPY[currentTier];
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: "fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm",
-        "aria-hidden": "true"
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "dialog",
-      {
-        open: true,
-        "aria-modal": "true",
-        "aria-label": "Goal Limit Reached",
-        "data-ocid": "tier_limit.dialog",
-        className: "fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] max-w-sm w-full mx-auto rounded-2xl bg-card border border-border/20 overflow-hidden p-0 m-auto",
-        style: {
-          boxShadow: "-5px -5px 16px rgba(65,65,75,0.5), 9px 9px 24px rgba(0,0,0,0.9)",
-          borderTop: "1px solid rgba(255,255,255,0.13)",
-          borderLeft: "1px solid rgba(255,255,255,0.07)"
-        },
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative px-5 pt-5 pb-4 border-b border-border", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-accent-social/10 border border-accent-social/20 shrink-0 mt-0.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 18, className: "text-accent-social" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1 pr-6", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-base font-display font-semibold text-foreground leading-tight", children: "Goal Limit Reached" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5", children: [
-                  TIER_LABELS[currentTier],
-                  " plan · ",
-                  currentLimit,
-                  " active goal",
-                  currentLimit !== 1 ? "s" : "",
-                  " max"
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "ghost",
-                size: "icon",
-                onClick: onClose,
-                "data-ocid": "tier_limit.close_button",
-                "aria-label": "Close",
-                className: "absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground w-7 h-7",
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 15 })
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-5 space-y-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/20", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wide", children: "Current Plan" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "p",
-                  {
-                    className: `text-lg font-display font-bold ${TIER_ACCENT[currentTier]}`,
-                    children: [
-                      "Tier ",
-                      currentTier,
-                      " — ",
-                      TIER_LABELS[currentTier]
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Active goal limit" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-foreground", children: currentLimit })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-relaxed", children: copy2.body }),
-            nextTier && nextLimit && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "div",
-              {
-                "data-ocid": "tier_limit.upgrade_card",
-                className: "p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-primary font-medium uppercase tracking-wide", children: "Upgrade to" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base font-display font-bold text-foreground", children: [
-                        "Tier ",
-                        nextTier,
-                        " — ",
-                        TIER_LABELS[nextTier]
-                      ] })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Goal limit" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-mono font-bold text-accent-success", children: nextLimit })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: copy2.headline })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2 px-5 pb-5", children: [
-            nextTier ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                type: "button",
-                "data-ocid": "tier_limit.upgrade_button",
-                className: "w-full gap-2 button-primary-neon",
-                onClick: () => {
-                  onClose();
-                  void navigate({ to: "/settings" });
-                },
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleArrowUp, { size: 16 }),
-                  "Upgrade to ",
-                  TIER_LABELS[nextTier]
-                ]
-              }
-            ) : null,
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "outline",
-                "data-ocid": "tier_limit.cancel_button",
-                className: "w-full",
-                onClick: onClose,
-                children: nextTier ? "Not now" : "Got it"
-              }
-            )
-          ] })
-        ]
-      }
-    )
-  ] });
-}
 const THEME_COLORS = [
   { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
   { id: "sapphire", label: "Sapphire", value: "#2563EB" },
@@ -70296,6 +71350,9 @@ const EMPTY = {
   goalReason: "",
   habitAction: "",
   habitMinutes: "",
+  isLockIn: false,
+  lockInStartTime: "",
+  lockInEndTime: "",
   selectedObstacles: [],
   customInput: "",
   customChips: [],
@@ -70303,21 +71360,34 @@ const EMPTY = {
   iconName: "target",
   themeColor: "#2563EB"
 };
+function findOverlapGoal$1(newStart, newEnd, existing, excludeId) {
+  if (!newStart || !newEnd || newStart >= newEnd) return null;
+  for (const g2 of existing) {
+    if (excludeId !== void 0 && g2.id === excludeId) continue;
+    if (!g2.startTime || !g2.endTime) continue;
+    if (newStart < g2.endTime && newEnd > g2.startTime) {
+      return g2.wishDescription || "an existing Lock-In";
+    }
+  }
+  return null;
+}
 function WoopWizard({
   open,
   onClose,
-  onGoalCreated
+  onGoalCreated,
+  existingLockInGoals = [],
+  editingGoalId
 }) {
   var _a3, _b3, _c2, _d2, _e2;
   const [step, setStep] = reactExports.useState(1);
   const [animating, setAnimating] = reactExports.useState(false);
   const [animDir, setAnimDir] = reactExports.useState("fwd");
   const [mounted, setMounted] = reactExports.useState(false);
-  const [showLimitModal, setShowLimitModal] = reactExports.useState(false);
   const [errors, setErrors] = reactExports.useState({});
   const [form, setForm] = reactExports.useState(EMPTY);
+  const [focusedField, setFocusedField] = reactExports.useState(null);
+  const [overlapError, setOverlapError] = reactExports.useState(null);
   const { actor, isFetching } = useBackend();
-  const { data: userProfile } = useUserProfile();
   const queryClient2 = useQueryClient();
   reactExports.useEffect(() => {
     if (!open) {
@@ -70368,9 +71438,13 @@ function WoopWizard({
         obstacleTemplateId,
         ifThenPlan: form.ifThenPlan.trim(),
         iconName: form.iconName || void 0,
-        themeColor: form.themeColor || void 0
+        themeColor: form.themeColor || void 0,
+        isLockIn: form.isLockIn,
+        startTime: form.isLockIn && form.lockInStartTime ? form.lockInStartTime : void 0,
+        endTime: form.isLockIn && form.lockInEndTime ? form.lockInEndTime : void 0
       });
-      return created;
+      if (created.__kind__ === "err") throw new Error(created.err);
+      return created.ok;
     },
     onSuccess: async (data) => {
       await queryClient2.invalidateQueries({
@@ -70388,15 +71462,9 @@ function WoopWizard({
       handleClose();
     },
     onError: (error) => {
-      var _a4;
-      const msg = ((_a4 = error.message) == null ? void 0 : _a4.toLowerCase()) ?? "";
-      if (msg.includes("limitreached") || msg.includes("limit reached") || msg.includes("goal limit")) {
-        setShowLimitModal(true);
-      } else {
-        ue.error("Failed to create habit. Please try again.", {
-          description: error.message
-        });
-      }
+      ue.error("Failed to create habit. Please try again.", {
+        description: error.message
+      });
     }
   });
   const handleClose = reactExports.useCallback(() => {
@@ -70413,6 +71481,13 @@ function WoopWizard({
       if (!form.goalReason.trim()) e3.goalReason = "What's your deeper reason?";
       if (!form.habitAction.trim()) e3.habitAction = "Name the daily action.";
       if (!form.habitMinutes.trim()) e3.habitMinutes = "How many minutes?";
+      if (form.isLockIn) {
+        if (!form.lockInStartTime) e3.lockInStartTime = "Pick a start time.";
+        if (!form.lockInEndTime) e3.lockInEndTime = "Pick an end time.";
+        if (form.lockInStartTime && form.lockInEndTime && form.lockInStartTime >= form.lockInEndTime)
+          e3.lockInEndTime = "End time must be after start time.";
+        if (overlapError) e3.lockInEndTime = overlapError;
+      }
     }
     if (s2 === 2 && form.selectedObstacles.length === 0) {
       e3.obstacles = "Select at least one obstacle you might face.";
@@ -70437,6 +71512,7 @@ function WoopWizard({
       return;
     }
     if (!validate(step)) return;
+    if (step === 1 && overlapError) return;
     navigate("fwd");
   };
   const goBack = () => {
@@ -70512,707 +71588,869 @@ function WoopWizard({
     "Write your plan",
     "Your commitment"
   ];
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "dialog",
-      {
-        open: true,
-        "aria-modal": "true",
-        "aria-label": "WOOP Goal Builder",
-        "data-ocid": "woop_wizard.dialog",
-        onClick: (e3) => e3.stopPropagation(),
-        onKeyDown: (e3) => {
-          if (e3.key === "Escape") handleClose();
-        },
-        style: {
-          transform: mounted ? "translateY(0)" : "translateY(100%)",
-          transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)"
-        },
-        className: "fixed inset-0 z-[300] flex flex-col bg-card overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1", children: "WOOP Habit Builder" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight", children: stepTitles[step - 1] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                variant: "ghost",
-                size: "icon",
-                onClick: handleClose,
-                "data-ocid": "woop_wizard.close_button",
-                "aria-label": "Close goal builder",
-                className: "text-muted-foreground hover:text-foreground shrink-0 w-11 h-11",
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 22 })
-              }
-            )
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "dialog",
+    {
+      open: true,
+      "aria-modal": "true",
+      "aria-label": "WOOP Goal Builder",
+      "data-ocid": "woop_wizard.dialog",
+      onClick: (e3) => e3.stopPropagation(),
+      onKeyDown: (e3) => {
+        if (e3.key === "Escape") handleClose();
+      },
+      style: {
+        transform: mounted ? "translateY(0)" : "translateY(100%)",
+        transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)"
+      },
+      className: "fixed inset-0 z-[300] flex flex-col bg-card overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1", children: "WOOP Habit Builder" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight", children: stepTitles[step - 1] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
+            Button,
             {
-              className: "shrink-0 px-6 pt-5 pb-4",
-              "aria-label": `Step ${step} of 4`,
-              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-center max-w-2xl mx-auto", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full",
-                    style: { background: "oklch(var(--color-accent-missed) / 0.18)" },
-                    "aria-hidden": "true"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out",
-                    style: {
-                      background: "oklch(var(--color-accent-success))",
-                      right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
-                      boxShadow: "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)"
-                    },
-                    "aria-hidden": "true"
-                  }
-                ),
-                STEPS.map((s2) => {
-                  const isActive = step === s2.id;
-                  const isComplete = step > s2.id;
-                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "div",
-                    {
-                      "data-ocid": `woop_wizard.step_indicator.${s2.id}`,
-                      className: "relative z-10 flex-1 flex flex-col items-center gap-2",
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "div",
-                          {
-                            className: "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold text-sm",
-                            style: isComplete ? {
-                              backgroundColor: "oklch(var(--color-accent-success))",
-                              color: "oklch(0.12 0 0)",
-                              boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.55)"
-                            } : isActive ? {
-                              backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                              border: "2.5px solid oklch(var(--color-accent-success))",
-                              color: "oklch(var(--color-accent-success))",
-                              boxShadow: "0 0 20px 4px oklch(var(--color-accent-success) / 0.3)"
-                            } : {
-                              backgroundColor: "oklch(var(--muted))",
-                              border: "2px solid oklch(var(--color-accent-missed) / 0.3)",
-                              color: "oklch(var(--muted-foreground))"
-                            },
-                            children: isComplete ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "svg",
-                              {
-                                viewBox: "0 0 12 12",
-                                width: "14",
-                                height: "14",
-                                fill: "none",
-                                stroke: "currentColor",
-                                strokeWidth: "2.5",
-                                strokeLinecap: "round",
-                                strokeLinejoin: "round",
-                                "aria-hidden": "true",
-                                children: /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "2,6 5,9 10,3" })
-                              }
-                            ) : s2.id
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "span",
-                          {
-                            className: "text-xs font-mono tracking-wider uppercase transition-colors duration-200",
-                            style: isComplete ? { color: "oklch(var(--color-accent-success) / 0.7)" } : isActive ? {
-                              color: "oklch(var(--color-accent-success))",
-                              fontWeight: 700
-                            } : { color: "oklch(var(--muted-foreground) / 0.5)" },
-                            children: s2.label
-                          }
-                        )
-                      ]
-                    },
-                    s2.id
-                  );
-                })
-              ] })
+              type: "button",
+              variant: "ghost",
+              size: "icon",
+              onClick: handleClose,
+              "data-ocid": "woop_wizard.close_button",
+              "aria-label": "Close goal builder",
+              className: "text-muted-foreground hover:text-foreground shrink-0 w-11 h-11",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 22 })
             }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              className: `max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`,
-              children: [
-                step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Your keystone habit is the daily action. Your goal is the destination. Focus on the action." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "I want to" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.goal_action_input",
-                            value: form.goalAction,
-                            onChange: (e3) => {
-                              const val = e3.target.value.slice(0, 140);
-                              setForm((f2) => ({ ...f2, goalAction: val }));
-                              setErrors((er) => ({ ...er, goalAction: void 0 }));
-                            },
-                            placeholder: "run a marathon",
-                            maxLength: 140,
-                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
-                            "aria-label": "What do you want to achieve"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "so that I can" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.goal_reason_input",
-                            value: form.goalReason,
-                            onChange: (e3) => {
-                              const val = e3.target.value.slice(0, 140);
-                              setForm((f2) => ({ ...f2, goalReason: val }));
-                              setErrors((er) => ({ ...er, goalReason: void 0 }));
-                            },
-                            placeholder: "feel unstoppable",
-                            maxLength: 140,
-                            className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
-                            "aria-label": "Your deeper reason"
-                          }
-                        )
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                          form.goalAction.length,
-                          "/140"
-                        ] }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                          form.goalReason.length,
-                          "/140"
-                        ] })
-                      ] }),
-                      (errors.goalAction || errors.goalReason) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "p",
-                        {
-                          className: "text-base text-destructive",
-                          "data-ocid": "woop_wizard.goal.field_error",
-                          children: errors.goalAction || errors.goalReason
-                        }
-                      ),
-                      assembledWish && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledWish })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-2", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 13, className: "text-accent-success" }),
-                      "Keystone Habit — shown on your dashboard"
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "Every day, I will" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.habit_action_input",
-                            value: form.habitAction,
-                            onChange: (e3) => {
-                              const val = e3.target.value.slice(0, 140);
-                              setForm((f2) => ({ ...f2, habitAction: val }));
-                              setErrors((er) => ({
-                                ...er,
-                                habitAction: void 0
-                              }));
-                            },
-                            placeholder: "run",
-                            maxLength: 140,
-                            className: "input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium",
-                            "aria-label": "Daily habit action"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "for" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            "data-ocid": "woop_wizard.habit_minutes_input",
-                            value: form.habitMinutes,
-                            onChange: (e3) => {
-                              const raw = e3.target.value.replace(/[^0-9]/g, "");
-                              const num = Number.parseInt(raw, 10);
-                              const capped = Number.isNaN(num) ? "" : String(Math.min(num, 1440));
-                              setForm((f2) => ({ ...f2, habitMinutes: capped }));
-                              setErrors((er) => ({
-                                ...er,
-                                habitMinutes: void 0
-                              }));
-                            },
-                            placeholder: "15",
-                            inputMode: "numeric",
-                            className: "input-neumorphic w-20 text-foreground text-xl font-medium text-center",
-                            "aria-label": "Minutes per day"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "minutes" })
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between items-center gap-2 text-xs text-muted-foreground/60 font-mono", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                          form.habitAction.length,
-                          "/140"
-                        ] }),
-                        form.habitMinutes && Number.parseInt(form.habitMinutes, 10) >= 1440 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-amber-400/80", children: "Max 1440 min (24 h)" })
-                      ] }),
-                      (errors.habitAction || errors.habitMinutes) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "p",
-                        {
-                          className: "text-base text-destructive",
-                          "data-ocid": "woop_wizard.habit.field_error",
-                          children: errors.habitAction || errors.habitMinutes
-                        }
-                      ),
-                      assembledHabit && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledHabit })
-                    ] })
-                  ] })
-                ] }),
-                step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Unlike wishful thinking, WOOP asks you to name what stands between you and your habit." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xl font-medium text-foreground", children: "What stands between me and my habit?" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "div",
-                    {
-                      className: "flex flex-wrap gap-3",
-                      "data-ocid": "woop_wizard.obstacle_list",
-                      children: allObstacleChips.map((obs, idx) => {
-                        const selected = isSelected(obs.id);
-                        const isCustom = obs.kind === "custom";
-                        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          "div",
-                          {
-                            className: "relative inline-flex items-center",
-                            children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                                "button",
-                                {
-                                  type: "button",
-                                  "data-ocid": `woop_wizard.obstacle.${idx + 1}`,
-                                  onClick: () => toggleObstacle(obs),
-                                  "aria-pressed": selected,
-                                  className: `chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`,
-                                  style: selected ? {
-                                    backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
-                                    borderColor: "oklch(var(--color-accent-social))",
-                                    boxShadow: "0 0 14px oklch(var(--color-accent-social) / 0.4)",
-                                    color: "oklch(var(--color-accent-social))"
-                                  } : void 0,
-                                  children: [
-                                    selected && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 13, className: "inline mr-1.5" }),
-                                    obs.label
-                                  ]
-                                }
-                              ),
-                              isCustom && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "button",
-                                {
-                                  type: "button",
-                                  "aria-label": `Remove ${obs.label}`,
-                                  "data-ocid": `woop_wizard.remove_custom_obstacle.${idx + 1}`,
-                                  onClick: (e3) => {
-                                    e3.stopPropagation();
-                                    setForm((f2) => ({
-                                      ...f2,
-                                      customChips: f2.customChips.filter(
-                                        (c2) => c2.id !== obs.id
-                                      ),
-                                      selectedObstacles: f2.selectedObstacles.filter(
-                                        (o2) => o2.id !== obs.id
-                                      )
-                                    }));
-                                  },
-                                  style: {
-                                    position: "absolute",
-                                    top: "-8px",
-                                    right: "-8px",
-                                    width: "18px",
-                                    height: "18px",
-                                    borderRadius: "50%",
-                                    background: "#2a2a3a",
-                                    border: "1.5px solid rgba(255,255,255,0.18)",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    cursor: "pointer",
-                                    boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
-                                    zIndex: 10
-                                  },
-                                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 9, color: "#fff" })
-                                }
-                              )
-                            ]
-                          },
-                          obs.id
-                        );
-                      })
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-muted-foreground font-medium", children: "Add a custom obstacle" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "shrink-0 px-6 pt-5 pb-4",
+            "aria-label": `Step ${step} of 4`,
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-center max-w-2xl mx-auto", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full",
+                  style: { background: "oklch(var(--color-accent-missed) / 0.18)" },
+                  "aria-hidden": "true"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out",
+                  style: {
+                    background: "oklch(var(--color-accent-success))",
+                    right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
+                    boxShadow: "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)"
+                  },
+                  "aria-hidden": "true"
+                }
+              ),
+              STEPS.map((s2) => {
+                const isActive = step === s2.id;
+                const isComplete = step > s2.id;
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    "data-ocid": `woop_wizard.step_indicator.${s2.id}`,
+                    className: "relative z-10 flex-1 flex flex-col items-center gap-2",
+                    children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        Input,
+                        "div",
                         {
-                          "data-ocid": "woop_wizard.custom_obstacle_input",
-                          value: form.customInput,
-                          onChange: (e3) => {
-                            setForm((f2) => ({ ...f2, customInput: e3.target.value }));
-                            setErrors((er) => ({ ...er, customInput: void 0 }));
+                          className: "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold text-sm",
+                          style: isComplete ? {
+                            backgroundColor: "oklch(var(--color-accent-success))",
+                            color: "oklch(0.12 0 0)",
+                            boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.55)"
+                          } : isActive ? {
+                            backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                            border: "2.5px solid oklch(var(--color-accent-success))",
+                            color: "oklch(var(--color-accent-success))",
+                            boxShadow: "0 0 20px 4px oklch(var(--color-accent-success) / 0.3)"
+                          } : {
+                            backgroundColor: "oklch(var(--muted))",
+                            border: "2px solid oklch(var(--color-accent-missed) / 0.3)",
+                            color: "oklch(var(--muted-foreground))"
                           },
-                          onKeyDown: (e3) => {
-                            if (e3.key === "Enter") {
-                              e3.preventDefault();
-                              addCustomChip();
+                          children: isComplete ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "svg",
+                            {
+                              viewBox: "0 0 12 12",
+                              width: "14",
+                              height: "14",
+                              fill: "none",
+                              stroke: "currentColor",
+                              strokeWidth: "2.5",
+                              strokeLinecap: "round",
+                              strokeLinejoin: "round",
+                              "aria-hidden": "true",
+                              children: /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "2,6 5,9 10,3" })
                             }
+                          ) : s2.id
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "text-xs font-mono tracking-wider uppercase transition-colors duration-200",
+                          style: isComplete ? { color: "oklch(var(--color-accent-success) / 0.7)" } : isActive ? {
+                            color: "oklch(var(--color-accent-success))",
+                            fontWeight: 700
+                          } : { color: "oklch(var(--muted-foreground) / 0.5)" },
+                          children: s2.label
+                        }
+                      )
+                    ]
+                  },
+                  s2.id
+                );
+              })
+            ] })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: `max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`,
+            children: [
+              step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Your keystone habit is the daily action. Your goal is the destination. Focus on the action." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "I want to" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          "data-ocid": "woop_wizard.goal_action_input",
+                          value: form.goalAction,
+                          onChange: (e3) => {
+                            const val = e3.target.value.slice(0, 140);
+                            setForm((f2) => ({ ...f2, goalAction: val }));
+                            setErrors((er) => ({ ...er, goalAction: void 0 }));
                           },
-                          placeholder: "My specific blocker…",
-                          className: "input-neumorphic flex-1 text-lg bg-transparent border-0"
+                          onFocus: () => setFocusedField("goalAction"),
+                          onBlur: () => setFocusedField(null),
+                          placeholder: "run a marathon",
+                          maxLength: 140,
+                          className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
+                          "aria-label": "What do you want to achieve"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "so that I can" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          "data-ocid": "woop_wizard.goal_reason_input",
+                          value: form.goalReason,
+                          onChange: (e3) => {
+                            const val = e3.target.value.slice(0, 140);
+                            setForm((f2) => ({ ...f2, goalReason: val }));
+                            setErrors((er) => ({ ...er, goalReason: void 0 }));
+                          },
+                          onFocus: () => setFocusedField("goalReason"),
+                          onBlur: () => setFocusedField(null),
+                          placeholder: "feel unstoppable",
+                          maxLength: 140,
+                          className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
+                          "aria-label": "Your deeper reason"
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "span",
+                        {
+                          className: `transition-opacity duration-200 ${focusedField === "goalAction" ? "opacity-100" : "opacity-0"}`,
+                          children: [
+                            form.goalAction.length,
+                            "/140"
+                          ]
                         }
                       ),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                        Button,
+                        "span",
                         {
-                          type: "button",
-                          size: "default",
-                          "data-ocid": "woop_wizard.add_custom_obstacle_button",
-                          onClick: addCustomChip,
-                          disabled: !form.customInput.trim(),
-                          className: "button-primary-neon gap-1.5 shrink-0 text-base",
+                          className: `transition-opacity duration-200 ${focusedField === "goalReason" ? "opacity-100" : "opacity-0"}`,
                           children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 15 }),
-                            " Add"
+                            form.goalReason.length,
+                            "/140"
                           ]
                         }
                       )
-                    ] })
-                  ] }),
-                  errors.customInput && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.custom_obstacle.field_error",
-                      children: errors.customInput
-                    }
-                  ),
-                  errors.obstacles && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.obstacle.field_error",
-                      children: errors.obstacles
-                    }
-                  ),
-                  form.selectedObstacles.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-accent-success", children: [
-                    "Selected:",
-                    " ",
-                    form.selectedObstacles.map((o2) => o2.label).join(", ")
+                    ] }),
+                    (errors.goalAction || errors.goalReason) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-base text-destructive",
+                        "data-ocid": "woop_wizard.goal.field_error",
+                        children: errors.goalAction || errors.goalReason
+                      }
+                    ),
+                    assembledWish && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledWish })
                   ] })
                 ] }),
-                step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Implementation intentions double follow-through. When you encounter your obstacle, this plan becomes your autopilot." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "If this happens…" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 13, className: "text-accent-success" }),
+                    "Keystone Habit — shown on your dashboard"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-xl", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "Every day, I will" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          "data-ocid": "woop_wizard.habit_action_input",
+                          value: form.habitAction,
+                          onChange: (e3) => {
+                            const val = e3.target.value.slice(0, 140);
+                            setForm((f2) => ({ ...f2, habitAction: val }));
+                            setErrors((er) => ({
+                              ...er,
+                              habitAction: void 0
+                            }));
+                          },
+                          onFocus: () => setFocusedField("habitAction"),
+                          onBlur: () => setFocusedField(null),
+                          placeholder: "run",
+                          maxLength: 140,
+                          className: "input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium",
+                          "aria-label": "Daily habit action"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "for" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          "data-ocid": "woop_wizard.habit_minutes_input",
+                          value: form.habitMinutes,
+                          onChange: (e3) => {
+                            const raw = e3.target.value.replace(/[^0-9]/g, "");
+                            const num = Number.parseInt(raw, 10);
+                            const capped = Number.isNaN(num) ? "" : String(Math.min(num, 1440));
+                            setForm((f2) => ({ ...f2, habitMinutes: capped }));
+                            setErrors((er) => ({
+                              ...er,
+                              habitMinutes: void 0
+                            }));
+                          },
+                          placeholder: "15",
+                          inputMode: "numeric",
+                          className: "input-neumorphic w-20 text-foreground text-xl font-medium text-center",
+                          "aria-label": "Minutes per day"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "minutes" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between items-center gap-2 text-xs text-muted-foreground/60 font-mono", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "span",
+                        {
+                          className: `transition-opacity duration-200 ${focusedField === "habitAction" ? "opacity-100" : "opacity-0"}`,
+                          children: [
+                            form.habitAction.length,
+                            "/140"
+                          ]
+                        }
+                      ),
+                      form.habitMinutes && Number.parseInt(form.habitMinutes, 10) >= 1440 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-amber-400/80", children: "Max 1440 min (24 h)" })
+                    ] }),
+                    (errors.habitAction || errors.habitMinutes) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-base text-destructive",
+                        "data-ocid": "woop_wizard.habit.field_error",
+                        children: errors.habitAction || errors.habitMinutes
+                      }
+                    ),
+                    assembledHabit && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledHabit })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-display font-semibold text-foreground", children: "Enable Lock-In Mode" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-0.5", children: "Strict time block — check in & out within a defined window" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        role: "switch",
+                        "aria-checked": form.isLockIn,
+                        "data-ocid": "woop_wizard.lockin_toggle",
+                        onClick: () => setForm((f2) => ({ ...f2, isLockIn: !f2.isLockIn })),
+                        className: "relative shrink-0 w-14 h-7 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        style: {
+                          background: form.isLockIn ? "#10B981" : "oklch(var(--muted))",
+                          boxShadow: form.isLockIn ? "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.12)" : "inset 2px 2px 5px rgba(0,0,0,0.45), inset -2px -2px 4px rgba(255,255,255,0.07)"
+                        },
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "span",
+                          {
+                            className: "absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300",
+                            style: {
+                              left: form.isLockIn ? "calc(100% - 24px)" : "4px",
+                              boxShadow: "1px 1px 4px rgba(0,0,0,0.4)"
+                            }
+                          }
+                        )
+                      }
+                    )
+                  ] }),
+                  form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pt-2 border-t border-border/20", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "label",
+                          {
+                            htmlFor: "lockin-start-time",
+                            className: "text-xs font-mono tracking-widest text-muted-foreground uppercase",
+                            children: "Start Time"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            id: "lockin-start-time",
+                            type: "time",
+                            "data-ocid": "woop_wizard.lockin_start_time",
+                            value: form.lockInStartTime,
+                            onChange: (e3) => {
+                              const val = e3.target.value;
+                              setForm((f2) => ({
+                                ...f2,
+                                lockInStartTime: val
+                              }));
+                              setErrors((er) => ({
+                                ...er,
+                                lockInStartTime: void 0
+                              }));
+                              const conflict = findOverlapGoal$1(
+                                val,
+                                form.lockInEndTime,
+                                existingLockInGoals,
+                                editingGoalId
+                              );
+                              setOverlapError(
+                                conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
+                              );
+                            },
+                            className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40",
+                            style: {
+                              background: "oklch(var(--card))",
+                              boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)"
+                            }
+                          }
+                        ),
+                        errors.lockInStartTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-xs text-destructive",
+                            "data-ocid": "woop_wizard.lockin_start_time.field_error",
+                            children: errors.lockInStartTime
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "label",
+                          {
+                            htmlFor: "lockin-end-time",
+                            className: "text-xs font-mono tracking-widest text-muted-foreground uppercase",
+                            children: "End Time"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            id: "lockin-end-time",
+                            type: "time",
+                            "data-ocid": "woop_wizard.lockin_end_time",
+                            value: form.lockInEndTime,
+                            onChange: (e3) => {
+                              const val = e3.target.value;
+                              setForm((f2) => ({ ...f2, lockInEndTime: val }));
+                              setErrors((er) => ({
+                                ...er,
+                                lockInEndTime: void 0
+                              }));
+                              const conflict = findOverlapGoal$1(
+                                form.lockInStartTime,
+                                val,
+                                existingLockInGoals,
+                                editingGoalId
+                              );
+                              setOverlapError(
+                                conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
+                              );
+                            },
+                            className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40",
+                            style: {
+                              background: "oklch(var(--card))",
+                              boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)"
+                            }
+                          }
+                        ),
+                        errors.lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-xs text-destructive",
+                            "data-ocid": "woop_wizard.lockin_end_time.field_error",
+                            children: errors.lockInEndTime
+                          }
+                        )
+                      ] })
+                    ] }),
+                    overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-sm font-medium",
+                        style: { color: "#EF4444" },
+                        "data-ocid": "woop_wizard.lockin_overlap.field_error",
+                        children: overlapError
+                      }
+                    )
+                  ] })
+                ] }) })
+              ] }),
+              step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Unlike wishful thinking, WOOP asks you to name what stands between you and your habit." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xl font-medium text-foreground", children: "What stands between me and my habit?" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "flex flex-wrap gap-3",
+                    "data-ocid": "woop_wizard.obstacle_list",
+                    children: allObstacleChips.map((obs, idx) => {
+                      const selected = isSelected(obs.id);
+                      const isCustom = obs.kind === "custom";
+                      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: "relative inline-flex items-center",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                              "button",
+                              {
+                                type: "button",
+                                "data-ocid": `woop_wizard.obstacle.${idx + 1}`,
+                                onClick: () => toggleObstacle(obs),
+                                "aria-pressed": selected,
+                                className: `chip-neumorphic text-base px-4 py-2.5 transition-all duration-200 ${selected ? "active" : ""}`,
+                                style: selected ? {
+                                  backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
+                                  borderColor: "oklch(var(--color-accent-social))",
+                                  boxShadow: "0 0 14px oklch(var(--color-accent-social) / 0.4)",
+                                  color: "oklch(var(--color-accent-social))"
+                                } : void 0,
+                                children: [
+                                  selected && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 13, className: "inline mr-1.5" }),
+                                  obs.label
+                                ]
+                              }
+                            ),
+                            isCustom && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "button",
+                              {
+                                type: "button",
+                                "aria-label": `Remove ${obs.label}`,
+                                "data-ocid": `woop_wizard.remove_custom_obstacle.${idx + 1}`,
+                                onClick: (e3) => {
+                                  e3.stopPropagation();
+                                  setForm((f2) => ({
+                                    ...f2,
+                                    customChips: f2.customChips.filter(
+                                      (c2) => c2.id !== obs.id
+                                    ),
+                                    selectedObstacles: f2.selectedObstacles.filter(
+                                      (o2) => o2.id !== obs.id
+                                    )
+                                  }));
+                                },
+                                style: {
+                                  position: "absolute",
+                                  top: "-8px",
+                                  right: "-8px",
+                                  width: "18px",
+                                  height: "18px",
+                                  borderRadius: "50%",
+                                  background: "#2a2a3a",
+                                  border: "1.5px solid rgba(255,255,255,0.18)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: "pointer",
+                                  boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                                  zIndex: 10
+                                },
+                                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 9, color: "#fff" })
+                              }
+                            )
+                          ]
+                        },
+                        obs.id
+                      );
+                    })
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-muted-foreground font-medium", children: "Add a custom obstacle" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Input,
+                      {
+                        "data-ocid": "woop_wizard.custom_obstacle_input",
+                        value: form.customInput,
+                        onChange: (e3) => {
+                          setForm((f2) => ({ ...f2, customInput: e3.target.value }));
+                          setErrors((er) => ({ ...er, customInput: void 0 }));
+                        },
+                        onKeyDown: (e3) => {
+                          if (e3.key === "Enter") {
+                            e3.preventDefault();
+                            addCustomChip();
+                          }
+                        },
+                        placeholder: "My specific blocker…",
+                        className: "input-neumorphic flex-1 text-lg bg-transparent border-0"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      Button,
+                      {
+                        type: "button",
+                        size: "default",
+                        "data-ocid": "woop_wizard.add_custom_obstacle_button",
+                        onClick: addCustomChip,
+                        disabled: !form.customInput.trim(),
+                        className: "button-primary-neon gap-1.5 shrink-0 text-base",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 15 }),
+                          " Add"
+                        ]
+                      }
+                    )
+                  ] })
+                ] }),
+                errors.customInput && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-base text-destructive",
+                    "data-ocid": "woop_wizard.custom_obstacle.field_error",
+                    children: errors.customInput
+                  }
+                ),
+                errors.obstacles && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-base text-destructive",
+                    "data-ocid": "woop_wizard.obstacle.field_error",
+                    children: errors.obstacles
+                  }
+                ),
+                form.selectedObstacles.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-accent-success", children: [
+                  "Selected:",
+                  " ",
+                  form.selectedObstacles.map((o2) => o2.label).join(", ")
+                ] })
+              ] }),
+              step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Implementation intentions double follow-through. When you encounter your obstacle, this plan becomes your autopilot." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-base font-mono tracking-widest text-muted-foreground uppercase shrink-0", children: "IF" }),
+                      form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "px-3 py-1.5 rounded-xl text-base font-medium",
+                          style: {
+                            backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
+                            color: "oklch(var(--color-accent-social))",
+                            border: "1px solid oklch(var(--color-accent-social) / 0.4)"
+                          },
+                          children: obs.label
+                        },
+                        obs.id
+                      ))
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 pt-1", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Then I will..." }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Textarea,
+                        {
+                          "data-ocid": "woop_wizard.if_then_plan_input",
+                          value: form.ifThenPlan,
+                          onChange: (e3) => {
+                            const val = e3.target.value.slice(0, 140);
+                            setForm((f2) => ({ ...f2, ifThenPlan: val }));
+                            setErrors((er) => ({ ...er, ifThenPlan: void 0 }));
+                          },
+                          onFocus: () => setFocusedField("ifThenPlan"),
+                          onBlur: () => setFocusedField(null),
+                          placeholder: "do a 15-min home workout instead",
+                          maxLength: 140,
+                          rows: 4,
+                          className: "w-full bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none",
+                          "aria-label": "Your if-then backup plan"
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "span",
+                      {
+                        className: `text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
+                        children: [
+                          form.ifThenPlan.length,
+                          "/140"
+                        ]
+                      }
+                    ) })
+                  ] }),
+                  errors.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "text-base text-destructive",
+                      "data-ocid": "woop_wizard.if_then_plan.field_error",
+                      children: errors.ifThenPlan
+                    }
+                  )
+                ] }),
+                createGoalMutation.isError && !((_c2 = (_b3 = createGoalMutation.error) == null ? void 0 : _b3.message) == null ? void 0 : _c2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-base text-destructive",
+                    "data-ocid": "woop_wizard.create_goal.error_state",
+                    children: "Something went wrong. Please try again."
+                  }
+                ),
+                !actor && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-base text-muted-foreground",
+                    "data-ocid": "woop_wizard.actor_loading_state",
+                    children: "Connecting to backend…"
+                  }
+                )
+              ] }),
+              step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Review your commitment and personalize your goal. This is the contract with yourself — make it real." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-foreground font-medium leading-relaxed", children: assembledWish })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      className: "rounded-2xl p-5 space-y-1.5",
+                      style: {
+                        background: "oklch(var(--color-accent-success) / 0.08)",
+                        border: "1px solid oklch(var(--color-accent-success) / 0.3)",
+                        boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.12)"
+                      },
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-xs font-mono tracking-widest uppercase",
+                            style: { color: "oklch(var(--color-accent-success))" },
+                            children: "Daily Habit"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-lg font-semibold leading-relaxed",
+                            style: { color: "oklch(var(--color-accent-success))" },
+                            children: assembledHabit
+                          }
+                        )
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Obstacle(s)" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "span",
                       {
-                        className: "px-3 py-1.5 rounded-xl text-base font-medium",
+                        className: "px-3 py-1 rounded-lg text-base font-medium",
                         style: {
                           backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
-                          color: "oklch(var(--color-accent-social))",
-                          border: "1px solid oklch(var(--color-accent-social) / 0.4)"
+                          color: "oklch(var(--color-accent-social))"
                         },
                         children: obs.label
                       },
                       obs.id
                     )) })
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Then I will…" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-lg text-muted-foreground leading-relaxed", children: [
-                        'IF "',
-                        primaryObstacle ? primaryObstacle : "[obstacle]",
-                        '":'
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg text-muted-foreground shrink-0 mt-2", children: "THEN I will" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          Textarea,
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Your Plan" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-foreground leading-relaxed", children: [
+                      'IF "',
+                      primaryObstacle,
+                      '", THEN I will ',
+                      form.ifThenPlan
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Choose an Icon" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "grid grid-cols-7 gap-3",
+                      "data-ocid": "woop_wizard.icon_selector",
+                      children: GOAL_ICONS.map((icon) => {
+                        const isIconSelected = form.iconName === icon.id;
+                        return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "button",
                           {
-                            "data-ocid": "woop_wizard.if_then_plan_input",
-                            value: form.ifThenPlan,
-                            onChange: (e3) => {
-                              const val = e3.target.value.slice(0, 140);
-                              setForm((f2) => ({ ...f2, ifThenPlan: val }));
-                              setErrors((er) => ({ ...er, ifThenPlan: void 0 }));
+                            type: "button",
+                            onClick: () => setForm((f2) => ({ ...f2, iconName: icon.id })),
+                            "aria-label": `Select ${icon.label} icon`,
+                            "aria-pressed": isIconSelected,
+                            "data-ocid": `woop_wizard.icon.${icon.id}`,
+                            className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5",
+                            style: isIconSelected ? {
+                              backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                              border: "2.5px solid oklch(var(--color-accent-success))",
+                              color: "oklch(var(--color-accent-success))",
+                              boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)"
+                            } : {
+                              backgroundColor: "oklch(var(--card))",
+                              border: "1.5px solid oklch(var(--border))",
+                              color: "oklch(var(--muted-foreground))",
+                              boxShadow: "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)"
                             },
-                            placeholder: "do a 15-min home workout instead",
-                            maxLength: 140,
-                            rows: 4,
-                            className: "flex-1 bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none",
-                            "aria-label": "Your if-then backup plan"
-                          }
-                        )
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-muted-foreground/60 font-mono", children: [
-                        form.ifThenPlan.length,
-                        "/140"
-                      ] }) })
-                    ] }),
-                    errors.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "p",
-                      {
-                        className: "text-base text-destructive",
-                        "data-ocid": "woop_wizard.if_then_plan.field_error",
-                        children: errors.ifThenPlan
-                      }
-                    )
-                  ] }),
-                  createGoalMutation.isError && !((_c2 = (_b3 = createGoalMutation.error) == null ? void 0 : _b3.message) == null ? void 0 : _c2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.create_goal.error_state",
-                      children: "Something went wrong. Please try again."
-                    }
-                  ),
-                  !actor && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
-                    {
-                      className: "text-base text-muted-foreground",
-                      "data-ocid": "woop_wizard.actor_loading_state",
-                      children: "Connecting to backend…"
+                            children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 block", children: icon.svg })
+                          },
+                          icon.id
+                        );
+                      })
                     }
                   )
                 ] }),
-                step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Review your commitment and personalize your goal. This is the contract with yourself — make it real." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-foreground font-medium leading-relaxed", children: assembledWish })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "div",
-                      {
-                        className: "rounded-2xl p-5 space-y-1.5",
-                        style: {
-                          background: "oklch(var(--color-accent-success) / 0.08)",
-                          border: "1px solid oklch(var(--color-accent-success) / 0.3)",
-                          boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.12)"
-                        },
-                        children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "p",
-                            {
-                              className: "text-xs font-mono tracking-widest uppercase",
-                              style: { color: "oklch(var(--color-accent-success))" },
-                              children: "Daily Habit — what you'll see on your dashboard"
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "p",
-                            {
-                              className: "text-lg font-semibold leading-relaxed",
-                              style: { color: "oklch(var(--color-accent-success))" },
-                              children: assembledHabit
-                            }
-                          )
-                        ]
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-2", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Obstacle(s)" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: form.selectedObstacles.map((obs) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "span",
-                        {
-                          className: "px-3 py-1 rounded-lg text-base font-medium",
-                          style: {
-                            backgroundColor: "oklch(var(--color-accent-social) / 0.15)",
-                            color: "oklch(var(--color-accent-social))"
-                          },
-                          children: obs.label
-                        },
-                        obs.id
-                      )) })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Your Plan" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base text-foreground leading-relaxed", children: [
-                        'IF "',
-                        primaryObstacle,
-                        '", THEN I will ',
-                        form.ifThenPlan
-                      ] })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Choose an Icon" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "div",
-                      {
-                        className: "grid grid-cols-7 gap-3",
-                        "data-ocid": "woop_wizard.icon_selector",
-                        children: GOAL_ICONS.map((icon) => {
-                          const isIconSelected = form.iconName === icon.id;
-                          return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              type: "button",
-                              onClick: () => setForm((f2) => ({ ...f2, iconName: icon.id })),
-                              "aria-label": `Select ${icon.label} icon`,
-                              "aria-pressed": isIconSelected,
-                              "data-ocid": `woop_wizard.icon.${icon.id}`,
-                              className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5",
-                              style: isIconSelected ? {
-                                backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                                border: "2.5px solid oklch(var(--color-accent-success))",
-                                color: "oklch(var(--color-accent-success))",
-                                boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)"
-                              } : {
-                                backgroundColor: "oklch(var(--card))",
-                                border: "1.5px solid oklch(var(--border))",
-                                color: "oklch(var(--muted-foreground))",
-                                boxShadow: "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)"
-                              },
-                              children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 block", children: icon.svg })
-                            },
-                            icon.id
-                          );
-                        })
-                      }
-                    )
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Theme Color" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "div",
-                      {
-                        className: "flex flex-wrap gap-4",
-                        "data-ocid": "woop_wizard.color_selector",
-                        children: THEME_COLORS.map((color2) => {
-                          const isColorSelected = form.themeColor === color2.value;
-                          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                            "div",
-                            {
-                              className: "flex flex-col items-center gap-2",
-                              children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "button",
-                                  {
-                                    type: "button",
-                                    onClick: () => setForm((f2) => ({
-                                      ...f2,
-                                      themeColor: color2.value
-                                    })),
-                                    "aria-label": color2.label,
-                                    "aria-pressed": isColorSelected,
-                                    "data-ocid": `woop_wizard.color.${color2.id}`,
-                                    className: "w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                    style: {
-                                      backgroundColor: color2.value,
-                                      boxShadow: isColorSelected ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color2.value}, 0 0 14px 3px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
-                                      transform: isColorSelected ? "scale(1.2)" : "scale(1)"
-                                    }
-                                  }
-                                ),
-                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground font-mono", children: color2.label })
-                              ]
-                            },
-                            color2.id
-                          );
-                        })
-                      }
-                    )
-                  ] }),
-                  createGoalMutation.isError && !((_e2 = (_d2 = createGoalMutation.error) == null ? void 0 : _d2.message) == null ? void 0 : _e2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Theme Color" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
                     {
-                      className: "text-base text-destructive",
-                      "data-ocid": "woop_wizard.create_goal.error_state",
-                      children: "Something went wrong. Please try again."
+                      className: "flex flex-wrap gap-4",
+                      "data-ocid": "woop_wizard.color_selector",
+                      children: THEME_COLORS.map((color2) => {
+                        const isColorSelected = form.themeColor === color2.value;
+                        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                          "div",
+                          {
+                            className: "flex flex-col items-center gap-2",
+                            children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "button",
+                                {
+                                  type: "button",
+                                  onClick: () => setForm((f2) => ({
+                                    ...f2,
+                                    themeColor: color2.value
+                                  })),
+                                  "aria-label": color2.label,
+                                  "aria-pressed": isColorSelected,
+                                  "data-ocid": `woop_wizard.color.${color2.id}`,
+                                  className: "w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                  style: {
+                                    backgroundColor: color2.value,
+                                    boxShadow: isColorSelected ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color2.value}, 0 0 14px 3px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                                    transform: isColorSelected ? "scale(1.2)" : "scale(1)"
+                                  }
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground font-mono", children: color2.label })
+                            ]
+                          },
+                          color2.id
+                        );
+                      })
                     }
                   )
-                ] })
+                ] }),
+                createGoalMutation.isError && !((_e2 = (_d2 = createGoalMutation.error) == null ? void 0 : _d2.message) == null ? void 0 : _e2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-base text-destructive",
+                    "data-ocid": "woop_wizard.create_goal.error_state",
+                    children: "Something went wrong. Please try again."
+                  }
+                )
+              ] })
+            ]
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 py-5 border-t border-border bg-card", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              type: "button",
+              variant: "outline",
+              size: "lg",
+              "data-ocid": "woop_wizard.back_button",
+              onClick: step === 4 ? () => {
+                setErrors({});
+                setStep(3);
+              } : goBack,
+              disabled: step === 1,
+              className: "gap-2 text-base min-w-[100px]",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { size: 16 }),
+                step === 4 ? "Edit" : "Back"
               ]
             }
-          ) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shrink-0 flex items-center justify-between px-6 py-5 border-t border-border bg-card", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                type: "button",
-                variant: "outline",
-                size: "lg",
-                "data-ocid": "woop_wizard.back_button",
-                onClick: step === 4 ? () => {
-                  setErrors({});
-                  setStep(3);
-                } : goBack,
-                disabled: step === 1,
-                className: "gap-2 text-base min-w-[100px]",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { size: 16 }),
-                  step === 4 ? "Edit" : "Back"
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-mono text-muted-foreground", children: [
-              step,
-              " / 4"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Button,
-              {
-                type: "button",
-                size: "lg",
-                "data-ocid": step === 4 ? "woop_wizard.commit_button" : "woop_wizard.next_button",
-                onClick: goNext,
-                disabled: createGoalMutation.isPending || step === 4 && !actor,
-                className: "gap-2 button-primary-neon text-base min-w-[130px]",
-                children: step === 4 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
-                  "Committing…"
-                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16 }),
-                  "Commit →"
-                ] }) : "Next →"
-              }
-            )
-          ] })
-        ]
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      TierLimitModal,
-      {
-        open: showLimitModal,
-        onClose: () => setShowLimitModal(false),
-        userProfile: userProfile ?? null
-      }
-    )
-  ] });
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-mono text-muted-foreground", children: [
+            step,
+            " / 4"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              type: "button",
+              size: "lg",
+              "data-ocid": step === 4 ? "woop_wizard.commit_button" : "woop_wizard.next_button",
+              onClick: goNext,
+              disabled: createGoalMutation.isPending || step === 4 && !actor || step === 1 && !!overlapError,
+              className: "gap-2 button-primary-neon text-base min-w-[130px]",
+              children: step === 4 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
+                "Committing…"
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16 }),
+                "Commit →"
+              ] }) : "Next →"
+            }
+          )
+        ] })
+      ]
+    }
+  ) });
 }
-const DONE_STATE_KEY = "cumulative-done-state";
-const LAST_DATE_KEY = "cumulative-last-date";
 const NEW_HABIT_KEY = "cumulative-new-habit-id";
 const NEW_HABIT_DURATION_MS = 1e4;
 function goalKey(id2) {
   return String(id2);
 }
-function isTodayTimestamp(ts) {
+function isCheckInToday(ts, tz) {
   const ms = Number(ts / 1000000n);
   const d2 = new Date(ms);
-  const now2 = /* @__PURE__ */ new Date();
-  return d2.getFullYear() === now2.getFullYear() && d2.getMonth() === now2.getMonth() && d2.getDate() === now2.getDate();
+  const todayStr = getLocalDateStr(/* @__PURE__ */ new Date(), tz);
+  const dStr = getLocalDateStr(d2, tz);
+  return dStr === todayStr;
 }
 function getLocalDateStr(d2 = /* @__PURE__ */ new Date(), tz) {
   var _a3, _b3, _c2;
@@ -71269,42 +72507,6 @@ function msUntilMidnight(tz) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
   return Math.max(0, tomorrow.getTime() - now2.getTime());
-}
-function serializeDoneMap(map2) {
-  return JSON.stringify(
-    [...map2.entries()].map(([k2, v2]) => [
-      k2,
-      { checkInId: String(v2.checkInId), checkInType: v2.checkInType }
-    ])
-  );
-}
-function deserializeDoneMap(raw) {
-  try {
-    const arr = JSON.parse(raw);
-    return new Map(
-      arr.map(([k2, v2]) => [
-        k2,
-        { checkInId: BigInt(v2.checkInId), checkInType: v2.checkInType }
-      ])
-    );
-  } catch {
-    return /* @__PURE__ */ new Map();
-  }
-}
-function loadDoneMap() {
-  try {
-    const raw = localStorage.getItem(DONE_STATE_KEY);
-    if (!raw) return /* @__PURE__ */ new Map();
-    return deserializeDoneMap(raw);
-  } catch {
-    return /* @__PURE__ */ new Map();
-  }
-}
-function saveDoneMap(map2) {
-  try {
-    localStorage.setItem(DONE_STATE_KEY, serializeDoneMap(map2));
-  } catch {
-  }
 }
 function isValidUsernameFormat$1(value) {
   return /^[a-zA-Z0-9_]{3,20}$/.test(value);
@@ -71658,6 +72860,9 @@ function TabPills({
     }) })
   ] });
 }
+function NewHabitGlow() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { "aria-hidden": "true", className: "new-habit-glow" });
+}
 function NewHabitBadge() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
@@ -71695,7 +72900,6 @@ function NewHabitBadge() {
   ] });
 }
 function DashboardPage$1() {
-  var _a3;
   const [usernameModalDismissed, setUsernameModalDismissed] = reactExports.useState(false);
   const [showWoop, setShowWoop] = reactExports.useState(false);
   const { actor, isFetching: actorFetching } = useBackend();
@@ -71727,25 +72931,16 @@ function DashboardPage$1() {
   const [exitingMap, setExitingMap] = reactExports.useState(
     /* @__PURE__ */ new Map()
   );
-  const pendingDoneDataRef = reactExports.useRef(/* @__PURE__ */ new Map());
   const [swipeDirectionMap, setSwipeDirectionMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const erroredCardIdsRef = reactExports.useRef(/* @__PURE__ */ new Set());
+  const [inProgressPulseMap, setInProgressPulseMap] = reactExports.useState(
+    /* @__PURE__ */ new Set()
+  );
   const userTimezone = (profile == null ? void 0 : profile.timezone) && profile.timezone.trim() !== "" ? profile.timezone.trim() : void 0;
-  const [doneMap, setDoneMapRaw] = reactExports.useState(() => {
-    const storedDate = localStorage.getItem(LAST_DATE_KEY);
-    const today = getLocalDateStr();
-    if (storedDate && storedDate !== today) {
-      localStorage.removeItem(DONE_STATE_KEY);
-    }
-    localStorage.setItem(LAST_DATE_KEY, today);
-    return loadDoneMap();
-  });
-  function setDoneMap(updater) {
-    setDoneMapRaw((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      saveDoneMap(next);
-      return next;
-    });
-  }
+  const [optimisticDoneMap, setOptimisticDoneMap] = reactExports.useState(
+    /* @__PURE__ */ new Map()
+  );
+  const [insightGoal, setInsightGoal] = reactExports.useState(null);
   const [undoTarget, setUndoTarget] = reactExports.useState(null);
   const [isUndoing, setIsUndoing] = reactExports.useState(false);
   const [recentlyUndone, setRecentlyUndone] = reactExports.useState(/* @__PURE__ */ new Set());
@@ -71756,11 +72951,11 @@ function DashboardPage$1() {
     function scheduleReset() {
       const ms = msUntilMidnight(userTimezone);
       timer = setTimeout(() => {
-        const today = getLocalDateStr(/* @__PURE__ */ new Date(), userTimezone);
-        localStorage.removeItem(DONE_STATE_KEY);
-        localStorage.setItem(LAST_DATE_KEY, today);
-        setDoneMapRaw(/* @__PURE__ */ new Map());
         queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
+        queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
+        setExitingMap(/* @__PURE__ */ new Map());
+        setSwipeDirectionMap(/* @__PURE__ */ new Map());
+        setOptimisticDoneMap(/* @__PURE__ */ new Map());
         scheduleReset();
       }, ms + 1e3);
     }
@@ -71799,15 +72994,33 @@ function DashboardPage$1() {
   });
   const isLoading = goalsLoading || checkInsLoading;
   const activeGoals = goals.filter((g2) => g2.state === GoalState.active);
-  reactExports.useMemo(() => {
+  const todayDoneMap = reactExports.useMemo(() => {
     const map2 = /* @__PURE__ */ new Map();
     for (const c2 of checkIns) {
-      if (isTodayTimestamp(c2.timestamp)) {
-        map2.set(goalKey(c2.goalId), c2);
+      if (isCheckInToday(c2.timestamp, userTimezone)) {
+        const checkInType = c2.checkInType === CheckInType.success ? "success" : c2.checkInType === CheckInType.skip ? "skip" : c2.checkInType === CheckInType.inProgress ? "inProgress" : c2.checkInType === CheckInType.failedLockIn ? "failedLockIn" : "skip";
+        const executedIfThen = c2.executedIfThen ?? false;
+        map2.set(goalKey(c2.goalId), {
+          checkInId: c2.id,
+          checkInType,
+          executedIfThen
+        });
       }
     }
     return map2;
-  }, [checkIns]);
+  }, [checkIns, userTimezone]);
+  reactExports.useEffect(() => {
+    setOptimisticDoneMap((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Map(prev);
+      for (const key of prev.keys()) {
+        if (todayDoneMap.has(key)) {
+          next.delete(key);
+        }
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [todayDoneMap]);
   const fetchWeekHistory = reactExports.useCallback(async () => {
     if (!actor || activeGoals.length === 0) return;
     setWeekHistoryLoading(true);
@@ -71896,113 +73109,31 @@ function DashboardPage$1() {
     mutationFn: async ({
       goalId,
       checkInType,
-      obstacleTemplateId
+      obstacleTemplateId,
+      lockInStartedAt,
+      lockInEndedAt,
+      executedIfThen,
+      customObstacleNote
     }) => {
       if (!actor) return null;
-      return actor.recordCheckIn({ goalId, checkInType, obstacleTemplateId });
+      return actor.recordCheckIn({
+        goalId,
+        checkInType,
+        obstacleTemplateId,
+        lockInStartedAt,
+        lockInEndedAt,
+        executedIfThen: executedIfThen ?? false,
+        customObstacleNote
+      });
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, _variables) => {
       queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
-      const key = goalKey(variables.goalId);
-      if (data) {
-        const checkInId = data.id;
-        const checkInType = variables.checkInType === CheckInType.success ? "success" : "skip";
-        if (pendingDoneDataRef.current.has(key)) {
-          pendingDoneDataRef.current.set(key, { checkInId, checkInType });
-        }
-        setDoneMapRaw((prev) => {
-          if (!prev.has(key)) return prev;
-          const next = new Map(prev);
-          next.set(key, { checkInId, checkInType });
-          saveDoneMap(next);
-          return next;
-        });
-      }
       void fetchWeekHistory();
     },
     onError: (_err, variables) => {
       const key = goalKey(variables.goalId);
-      setDoneMapRaw((prev) => {
-        if (!prev.has(key)) return prev;
-        const next = new Map(prev);
-        next.set(key, { ...prev.get(key), checkInId: 0n });
-        saveDoneMap(next);
-        return next;
-      });
-      ue.error("Check-in failed. Tap the card in Done to undo if needed.");
-    },
-    onSettled: () => {
-      setPendingGoalId(null);
-    }
-  });
-  function handleCardExitComplete(goalId) {
-    const key = goalKey(goalId);
-    const entry = pendingDoneDataRef.current.get(key) ?? {
-      checkInId: 0n,
-      checkInType: swipeDirectionMap.get(key) === "right" ? "success" : "skip"
-    };
-    pendingDoneDataRef.current.delete(key);
-    setExitingMap((prev) => {
-      const next = new Map(prev);
-      next.delete(key);
-      return next;
-    });
-    setDoneMapRaw((prev) => {
-      const next = new Map(prev);
-      next.set(key, entry);
-      saveDoneMap(next);
-      return next;
-    });
-    setBadgeAnimKey((k2) => k2 + 1);
-    setActiveTab("done");
-  }
-  function handleGoalCardCheckIn(goalId, type, obstacleId) {
-    const key = goalKey(goalId);
-    const direction = type === "success" ? "right" : "left";
-    setSwipeDirectionMap((prev) => {
-      const next = new Map(prev);
-      next.set(key, direction);
-      return next;
-    });
-    setExitingMap((prev) => {
-      const next = new Map(prev);
-      next.set(key, direction);
-      return next;
-    });
-    setPendingGoalId(key);
-    pendingDoneDataRef.current.set(key, {
-      checkInId: 0n,
-      checkInType: type
-    });
-    checkInMutation.mutate({
-      goalId,
-      checkInType: type === "success" ? CheckInType.success : CheckInType.skip,
-      obstacleTemplateId: obstacleId
-    });
-  }
-  function handleDoneCardTap(goalId) {
-    const goal = goals.find((g2) => goalKey(g2.id) === goalKey(goalId));
-    if (!goal) return;
-    setUndoTarget({ goalId, goal });
-  }
-  async function handleUndoConfirm() {
-    if (!undoTarget) return;
-    const key = goalKey(undoTarget.goalId);
-    const entry = doneMap.get(key);
-    if (!entry) return;
-    if (entry.checkInId === 0n) {
-      ue.error("Still saving — please wait a moment, then try again.");
-      return;
-    }
-    setIsUndoing(true);
-    try {
-      if (actor) {
-        const result = await actor.deleteCheckIn(entry.checkInId);
-        if ("err" in result) {
-          throw new Error("Backend error");
-        }
-      }
-      setDoneMap((prev) => {
+      erroredCardIdsRef.current.add(key);
+      setExitingMap((prev) => {
         const next = new Map(prev);
         next.delete(key);
         return next;
@@ -72012,7 +73143,157 @@ function DashboardPage$1() {
         next.delete(key);
         return next;
       });
+      setOptimisticDoneMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setTimeout(() => {
+        erroredCardIdsRef.current.delete(key);
+      }, 600);
+      ue.error("Check-in failed. Please try again.");
+    },
+    onSettled: () => {
+      setPendingGoalId(null);
+    }
+  });
+  const handleCardExitComplete = reactExports.useCallback((goalId) => {
+    const key = goalKey(goalId);
+    if (erroredCardIdsRef.current.has(key)) return;
+    setExitingMap((prev) => {
+      const next = new Map(prev);
+      next.delete(key);
+      return next;
+    });
+    setBadgeAnimKey((k2) => k2 + 1);
+    setActiveTab("done");
+  }, []);
+  function handleGoalCardCheckIn(goalId, type, obstacleId, lockInStartedAtMs, lockInEndedAtMs, executedIfThen, customObstacleNote) {
+    const key = goalKey(goalId);
+    const goal = activeGoals.find((g2) => goalKey(g2.id) === key);
+    let backendType;
+    if (type === "success") backendType = CheckInType.success;
+    else if (type === "skip") backendType = CheckInType.skip;
+    else if (
+      // Bug 1/2: when inProgress type is passed from MissedWindowSheet,
+      // obstacleId is now correctly set (not undefined).
+      // The presence of an obstacleId combined with isLockIn means
+      // this is a failed-lock-in report from the missed-window flow.
+      type === "inProgress" && obstacleId !== void 0 && (goal == null ? void 0 : goal.isLockIn)
+    ) {
+      backendType = CheckInType.failedLockIn;
+    } else {
+      backendType = CheckInType.inProgress;
+    }
+    const direction = type === "success" ? "right" : "left";
+    const shouldSlide = type === "success" || type === "skip" || backendType === CheckInType.failedLockIn;
+    if (shouldSlide) {
+      setSwipeDirectionMap((prev) => {
+        const next = new Map(prev);
+        next.set(key, direction);
+        return next;
+      });
       setExitingMap((prev) => {
+        const next = new Map(prev);
+        next.set(key, direction);
+        return next;
+      });
+      const optimisticCheckInType = backendType === CheckInType.success ? "success" : backendType === CheckInType.failedLockIn ? "failedLockIn" : "skip";
+      setOptimisticDoneMap((prev) => {
+        const next = new Map(prev);
+        next.set(key, {
+          checkInId: 0n,
+          // placeholder — real id comes from backend
+          checkInType: optimisticCheckInType,
+          executedIfThen: executedIfThen ?? false
+        });
+        return next;
+      });
+    } else if (backendType === CheckInType.inProgress) {
+      setInProgressPulseMap((prev) => new Set(prev).add(key));
+      setTimeout(() => {
+        setInProgressPulseMap((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }, 600);
+    }
+    setPendingGoalId(key);
+    checkInMutation.mutate({
+      goalId,
+      checkInType: backendType,
+      obstacleTemplateId: obstacleId,
+      lockInStartedAt: lockInStartedAtMs !== void 0 ? BigInt(Math.floor(lockInStartedAtMs)) * 1000000n : void 0,
+      lockInEndedAt: lockInEndedAtMs !== void 0 ? BigInt(Math.floor(lockInEndedAtMs)) * 1000000n : void 0,
+      executedIfThen: executedIfThen ?? false,
+      customObstacleNote
+    });
+  }
+  const [_lockInStateTick, setLockInStateTick] = reactExports.useState(0);
+  reactExports.useEffect(() => {
+    const interval = setInterval(() => {
+      setLockInStateTick((n2) => n2 + 1);
+    }, 3e4);
+    return () => clearInterval(interval);
+  }, []);
+  const cleanupDoneRef = reactExports.useRef(false);
+  reactExports.useEffect(() => {
+    if (cleanupDoneRef.current || !actor || checkIns.length === 0 || isLoading)
+      return;
+    cleanupDoneRef.current = true;
+    const stuck = checkIns.filter((c2) => {
+      if (c2.checkInType !== CheckInType.inProgress) return false;
+      if (!isCheckInToday(c2.timestamp, userTimezone)) return false;
+      const goal = goals.find((g2) => goalKey(g2.id) === goalKey(c2.goalId));
+      return goal && !goal.isLockIn;
+    });
+    if (stuck.length === 0) return;
+    (async () => {
+      for (const c2 of stuck) {
+        try {
+          await actor.deleteCheckIn(c2.id);
+        } catch {
+        }
+      }
+      void queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
+    })();
+  }, [goals, checkIns]);
+  reactExports.useEffect(() => {
+    cleanupDoneRef.current = false;
+  }, [goals, checkIns]);
+  function handleDoneCardTap(goalId) {
+    const goal = goals.find((g2) => goalKey(g2.id) === goalKey(goalId));
+    if (!goal) return;
+    setUndoTarget({ goalId, goal });
+  }
+  async function handleUndoConfirm() {
+    if (!undoTarget) return;
+    const key = goalKey(undoTarget.goalId);
+    const entry = todayDoneMap.get(key);
+    if (!entry) {
+      ue.error("Still saving — please wait a moment, then try again.");
+      return;
+    }
+    setIsUndoing(true);
+    try {
+      if (actor) {
+        const result = await actor.deleteCheckIn(entry.checkInId);
+        if (result.__kind__ === "err") {
+          throw new Error("Backend error");
+        }
+      }
+      setSwipeDirectionMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setExitingMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setOptimisticDoneMap((prev) => {
         const next = new Map(prev);
         next.delete(key);
         return next;
@@ -72035,20 +73316,56 @@ function DashboardPage$1() {
       setIsUndoing(false);
     }
   }
-  const unswiped = activeGoals.filter((g2) => !doneMap.has(goalKey(g2.id)));
-  const done = activeGoals.filter((g2) => doneMap.has(goalKey(g2.id)));
+  const lockInCheckInMap = reactExports.useMemo(() => {
+    const map2 = /* @__PURE__ */ new Map();
+    for (const c2 of checkIns) {
+      if (!isCheckInToday(c2.timestamp, userTimezone)) continue;
+      const gKey = goalKey(c2.goalId);
+      let ciType = null;
+      if (c2.checkInType === CheckInType.inProgress) ciType = "inProgress";
+      else if (c2.checkInType === CheckInType.failedLockIn)
+        ciType = "failedLockIn";
+      else if (c2.checkInType === CheckInType.success) ciType = "success";
+      if (ciType) {
+        map2.set(gKey, {
+          type: ciType,
+          startedAt: c2.lockInStartedAt !== void 0 ? Number(c2.lockInStartedAt / 1000000n) : void 0,
+          endedAt: c2.lockInEndedAt !== void 0 ? Number(c2.lockInEndedAt / 1000000n) : void 0
+        });
+      }
+    }
+    return map2;
+  }, [checkIns, userTimezone, _lockInStateTick]);
+  const unswiped = activeGoals.filter((g2) => {
+    const entry = todayDoneMap.get(goalKey(g2.id));
+    if ((entry == null ? void 0 : entry.checkInType) === "inProgress") return true;
+    return !entry && !exitingMap.has(goalKey(g2.id)) && !optimisticDoneMap.has(goalKey(g2.id));
+  });
+  const mergedDoneMap = reactExports.useMemo(() => {
+    if (optimisticDoneMap.size === 0) return todayDoneMap;
+    const merged = new Map(todayDoneMap);
+    for (const [k2, v2] of optimisticDoneMap) {
+      if (!merged.has(k2)) merged.set(k2, v2);
+    }
+    return merged;
+  }, [todayDoneMap, optimisticDoneMap]);
+  const done = activeGoals.filter((g2) => {
+    const entry = mergedDoneMap.get(goalKey(g2.id));
+    return entry && entry.checkInType !== "inProgress";
+  });
+  const exitingGoals = activeGoals.filter((g2) => exitingMap.has(goalKey(g2.id)));
   const trulyUnswiped = unswiped.filter((g2) => !exitingMap.has(goalKey(g2.id)));
   const todayCompleted = done.filter(
     (g2) => {
-      var _a4;
-      return ((_a4 = doneMap.get(goalKey(g2.id))) == null ? void 0 : _a4.checkInType) === "success";
+      var _a3;
+      return ((_a3 = mergedDoneMap.get(goalKey(g2.id))) == null ? void 0 : _a3.checkInType) === "success";
     }
   ).length;
   const totalActive = activeGoals.length;
   const hasSkipToday = done.some(
     (g2) => {
-      var _a4;
-      return ((_a4 = doneMap.get(goalKey(g2.id))) == null ? void 0 : _a4.checkInType) === "skip";
+      var _a3;
+      return ((_a3 = mergedDoneMap.get(goalKey(g2.id))) == null ? void 0 : _a3.checkInType) === "skip";
     }
   );
   const isAllComplete = totalActive > 0 && done.length === totalActive;
@@ -72074,7 +73391,16 @@ function DashboardPage$1() {
     [behavioralMessage, todayCompleted, totalActive, isAllComplete]
   );
   useDashboardHeaderWriter(headerData);
-  const showSwipeHint = activeTab === "active" && !isLoading && trulyUnswiped.length > 0;
+  const swipeableCount = trulyUnswiped.filter((g2) => {
+    if (!g2.isLockIn || !g2.startTime || !g2.endTime) return true;
+    const state = getLockInState(
+      g2.startTime,
+      g2.endTime,
+      lockInCheckInMap.get(goalKey(g2.id))
+    );
+    return state === "start-window" || state === "end-window";
+  }).length;
+  const showSwipeHint = activeTab === "active" && !isLoading && swipeableCount > 0;
   const hasDisplayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     needsUsername && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -72088,7 +73414,13 @@ function DashboardPage$1() {
       {
         open: !!undoTarget,
         goal: (undoTarget == null ? void 0 : undoTarget.goal) ?? null,
-        checkInType: undoTarget ? ((_a3 = doneMap.get(goalKey(undoTarget.goalId))) == null ? void 0 : _a3.checkInType) ?? null : null,
+        checkInType: undoTarget ? (() => {
+          var _a3;
+          const t2 = ((_a3 = todayDoneMap.get(goalKey(undoTarget.goalId)) ?? mergedDoneMap.get(goalKey(undoTarget.goalId))) == null ? void 0 : _a3.checkInType) ?? null;
+          if (t2 === "success") return t2;
+          if (t2 === "skip" || t2 === "failedLockIn") return "skip";
+          return null;
+        })() : null,
         isLoading: isUndoing,
         onUndo: () => {
           void handleUndoConfirm();
@@ -72294,7 +73626,7 @@ function DashboardPage$1() {
               ]
             }
           ),
-          !isLoading && activeTab === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { mode: "popLayout", children: unswiped.length === 0 && activeGoals.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+          !isLoading && activeTab === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { mode: "popLayout", children: unswiped.length === 0 && exitingGoals.length === 0 && activeGoals.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
             motion.div,
             {
               initial: { opacity: 0, y: 8 },
@@ -72313,34 +73645,46 @@ function DashboardPage$1() {
               ] })
             },
             "all-done"
-          ) : unswiped.map((goal, index2) => {
-            const key = goalKey(goal.id);
-            const isExiting = exitingMap.has(key);
-            const isNewHabit = newHabitId === key;
-            return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                GoalCard,
-                {
-                  goal,
-                  checkInToday: void 0,
-                  analytics: analyticsMap.get(key),
-                  index: index2,
-                  weekHistory: weekHistoryMap.get(key),
-                  weekHistoryLoading,
-                  mode: "active",
-                  onCheckIn: handleGoalCardCheckIn,
-                  onExitComplete: handleCardExitComplete,
-                  isDarkMode,
-                  isCheckingIn: pendingGoalId === key && checkInMutation.isPending,
-                  isSkipping: pendingGoalId === key && checkInMutation.isPending,
-                  animateIn: recentlyUndone.has(key),
-                  exitDirection: isExiting ? exitingMap.get(key) ?? null : swipeDirectionMap.get(key) ?? null,
-                  isExiting
-                }
-              ),
-              isNewHabit && /* @__PURE__ */ jsxRuntimeExports.jsx(NewHabitBadge, {})
-            ] }, key);
-          }) }),
+          ) : (
+            // Render unswiped goals + any currently-exiting goals
+            [...unswiped, ...exitingGoals].map((goal, index2) => {
+              const key = goalKey(goal.id);
+              const isExiting = exitingMap.has(key);
+              const isNewHabit = newHabitId === key;
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  GoalCard,
+                  {
+                    goal,
+                    checkInToday: void 0,
+                    analytics: analyticsMap.get(key),
+                    index: index2,
+                    weekHistory: weekHistoryMap.get(key),
+                    weekHistoryLoading,
+                    mode: "active",
+                    onCheckIn: handleGoalCardCheckIn,
+                    onExitComplete: handleCardExitComplete,
+                    onInsightOpen: setInsightGoal,
+                    isDarkMode,
+                    isCheckingIn: pendingGoalId === key && checkInMutation.isPending,
+                    isSkipping: pendingGoalId === key && checkInMutation.isPending,
+                    animateIn: recentlyUndone.has(key),
+                    exitDirection: isExiting ? exitingMap.get(key) ?? null : swipeDirectionMap.get(key) ?? null,
+                    isExiting,
+                    inProgressPulse: inProgressPulseMap.has(key),
+                    isLockIn: goal.isLockIn,
+                    lockInStartTime: goal.startTime,
+                    lockInEndTime: goal.endTime,
+                    lockInTodayCheckIn: lockInCheckInMap.get(key),
+                    onMissedWindowTap: () => {
+                    }
+                  }
+                ),
+                isNewHabit && /* @__PURE__ */ jsxRuntimeExports.jsx(NewHabitGlow, {}),
+                isNewHabit && /* @__PURE__ */ jsxRuntimeExports.jsx(NewHabitBadge, {})
+              ] }, key);
+            })
+          ) }),
           !isLoading && activeTab === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { mode: "popLayout", children: done.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
             motion.div,
             {
@@ -72363,7 +73707,7 @@ function DashboardPage$1() {
             "done-empty"
           ) : done.map((goal, index2) => {
             const key = goalKey(goal.id);
-            const entry = doneMap.get(key);
+            const entry = mergedDoneMap.get(key);
             const swipeDir = swipeDirectionMap.get(key) ?? null;
             return /* @__PURE__ */ jsxRuntimeExports.jsx(
               GoalCard,
@@ -72376,8 +73720,13 @@ function DashboardPage$1() {
                 weekHistoryLoading,
                 mode: "done",
                 onDoneCardTap: handleDoneCardTap,
+                onInsightOpen: setInsightGoal,
                 isDarkMode,
-                entryFrom: swipeDir
+                entryFrom: swipeDir,
+                isLockIn: goal.isLockIn,
+                lockInStartTime: goal.startTime,
+                lockInEndTime: goal.endTime,
+                executedIfThen: (entry == null ? void 0 : entry.executedIfThen) ?? false
               },
               key
             );
@@ -72385,11 +73734,26 @@ function DashboardPage$1() {
         ]
       }
     ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: insightGoal && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      GoalInsightSheet,
+      {
+        goal: insightGoal,
+        isOpen: true,
+        onClose: () => setInsightGoal(null)
+      },
+      String(insightGoal.id)
+    ) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       WoopWizard,
       {
         open: showWoop,
         onClose: () => setShowWoop(false),
+        existingLockInGoals: activeGoals.filter((g2) => g2.isLockIn && g2.startTime && g2.endTime).map((g2) => ({
+          id: g2.id,
+          startTime: g2.startTime,
+          endTime: g2.endTime,
+          wishDescription: g2.wishDescription
+        })),
         onGoalCreated: (goalId) => {
           queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
           if (goalId) {
@@ -72424,7 +73788,7 @@ function FeedItem({ item, index: index2 }) {
   const [hasHighFived, setHasHighFived] = reactExports.useState(false);
   const [isLoading, setIsLoading] = reactExports.useState(false);
   const isSuccess = item.checkIn.checkInType === "success";
-  const obstacleLabel = item.checkIn.obstacleTemplateId ? (_a3 = OBSTACLE_TEMPLATES.find((t2) => t2.id === item.checkIn.obstacleTemplateId)) == null ? void 0 : _a3.label : void 0;
+  const obstacleLabel2 = item.checkIn.obstacleTemplateId ? (_a3 = OBSTACLE_TEMPLATES.find((t2) => t2.id === item.checkIn.obstacleTemplateId)) == null ? void 0 : _a3.label : void 0;
   async function handleHighFive() {
     if (hasHighFived || isLoading || !actor) return;
     setIsLoading(true);
@@ -72468,9 +73832,9 @@ function FeedItem({ item, index: index2 }) {
             }
           )
         ] }),
-        !isSuccess && obstacleLabel && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 rounded-lg px-3 py-1.5 w-fit", children: [
+        !isSuccess && obstacleLabel2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 rounded-lg px-3 py-1.5 w-fit", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "opacity-60", children: "Obstacle:" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-accent-skip font-medium", children: obstacleLabel })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-accent-skip font-medium", children: obstacleLabel2 })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-1 border-t border-border/30", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground", children: formatRelativeTime(item.checkIn.timestamp) }),
@@ -74581,7 +75945,7 @@ var DescriptionWarning$1 = ({ contentRef, descriptionId }) => {
   }, [MESSAGE, contentRef, descriptionId]);
   return null;
 };
-var Root$2 = Dialog;
+var Root$1 = Dialog;
 var Trigger = DialogTrigger;
 var Portal = DialogPortal;
 var Overlay = DialogOverlay;
@@ -74597,7 +75961,7 @@ var useDialogScope = createDialogScope();
 var AlertDialog$1 = (props) => {
   const { __scopeAlertDialog, ...alertDialogProps } = props;
   const dialogScope = useDialogScope(__scopeAlertDialog);
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root$2, { ...dialogScope, ...alertDialogProps, modal: true });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root$1, { ...dialogScope, ...alertDialogProps, modal: true });
 };
 AlertDialog$1.displayName = ROOT_NAME;
 var TRIGGER_NAME = "AlertDialogTrigger";
@@ -74883,7 +76247,7 @@ var Primitive = NODES.reduce((primitive, node) => {
   Node2.displayName = `Primitive.${node}`;
   return { ...primitive, [node]: Node2 };
 }, {});
-var NAME$1 = "Label";
+var NAME = "Label";
 var Label$1 = reactExports.forwardRef((props, forwardedRef) => {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     Primitive.label,
@@ -74900,14 +76264,14 @@ var Label$1 = reactExports.forwardRef((props, forwardedRef) => {
     }
   );
 });
-Label$1.displayName = NAME$1;
-var Root$1 = Label$1;
+Label$1.displayName = NAME;
+var Root = Label$1;
 function Label({
   className,
   ...props
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Root$1,
+    Root,
     {
       "data-slot": "label",
       className: cn(
@@ -75010,7 +76374,65 @@ function renderGoalIcon(name, size = 16) {
   };
   return iconMap[name] ?? /* @__PURE__ */ jsxRuntimeExports.jsx(Target, { size });
 }
-function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
+function formatTime12h(timeStr) {
+  const [h2, m2] = timeStr.split(":").map(Number);
+  const suffix2 = h2 >= 12 ? "PM" : "AM";
+  const h12 = h2 % 12 || 12;
+  return `${h12}:${String(m2).padStart(2, "0")} ${suffix2}`;
+}
+function addMinutesToTime(timeStr, minutes) {
+  const [h2, m2] = timeStr.split(":").map(Number);
+  const totalMins = Math.min(h2 * 60 + m2 + minutes, 23 * 60 + 59);
+  const newH = Math.floor(totalMins / 60);
+  const newM = totalMins % 60;
+  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+}
+function isLockInActiveWindow(goal) {
+  if (!goal.isLockIn || !goal.startTime || !goal.endTime) return false;
+  const now2 = Date.now();
+  const [sh, sm] = goal.startTime.split(":").map(Number);
+  const [eh, em] = goal.endTime.split(":").map(Number);
+  const today = /* @__PURE__ */ new Date();
+  const startDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    sh,
+    sm,
+    0,
+    0
+  );
+  const endDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    eh,
+    em,
+    0,
+    0
+  );
+  const windowStart = startDate.getTime() - 5 * 60 * 1e3;
+  const windowEnd = endDate.getTime() + 5 * 60 * 1e3;
+  return now2 >= windowStart && now2 <= windowEnd;
+}
+function findOverlapGoal(newStart, newEnd, existing, excludeId) {
+  if (!newStart || !newEnd || newStart >= newEnd) return null;
+  for (const g2 of existing) {
+    if (excludeId !== void 0 && g2.id === excludeId) continue;
+    if (!g2.startTime || !g2.endTime) continue;
+    if (newStart < g2.endTime && newEnd > g2.startTime) {
+      return g2.wishDescription || "an existing Lock-In";
+    }
+  }
+  return null;
+}
+function GoalEditForm({
+  goal,
+  onSave,
+  onCancel,
+  isSaving,
+  existingLockInGoals = []
+}) {
   const existingObstacles = goal.outcome ? goal.outcome.split(",").map((s2) => s2.trim()).filter(Boolean) : [];
   const existingPreset = existingObstacles.filter(
     (o2) => EDIT_OBSTACLE_PRESETS.map((p2) => p2.toLowerCase()).includes(o2.toLowerCase())
@@ -75028,9 +76450,14 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
     themeColor: goal.themeColor ?? "#2563EB",
     obstacles: existingPreset,
     customObstacleInput: "",
-    customObstacles: existingCustom
+    customObstacles: existingCustom,
+    isLockIn: goal.isLockIn ?? false,
+    lockInStartTime: goal.startTime ?? "",
+    lockInEndTime: goal.endTime ?? ""
   });
   const customInputRef = reactExports.useRef(null);
+  const [focusedField, setFocusedField] = reactExports.useState(null);
+  const [overlapError, setOverlapError] = reactExports.useState(null);
   function allObstacles() {
     return [...form.obstacles, ...form.customObstacles];
   }
@@ -75069,10 +76496,16 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
       req.iconName = form.iconName;
     if (form.themeColor !== (goal.themeColor ?? "#2563EB"))
       req.themeColor = form.themeColor;
+    if (form.isLockIn !== (goal.isLockIn ?? false))
+      req.isLockIn = form.isLockIn;
+    if (form.lockInStartTime !== (goal.startTime ?? ""))
+      req.startTime = form.lockInStartTime || void 0;
+    if (form.lockInEndTime !== (goal.endTime ?? ""))
+      req.endTime = form.lockInEndTime || void 0;
     onSave(req);
   }
   const all = allObstacles();
-  const hasChanges = form.wish.trim() !== goal.wish || form.wishDescription.trim() !== goal.wishDescription || form.ifThenPlan.trim() !== goal.ifThenPlan || form.iconName !== (goal.iconName ?? "target") || form.themeColor !== (goal.themeColor ?? "#2563EB");
+  const hasChanges = form.wish.trim() !== goal.wish || form.wishDescription.trim() !== goal.wishDescription || form.ifThenPlan.trim() !== goal.ifThenPlan || form.iconName !== (goal.iconName ?? "target") || form.themeColor !== (goal.themeColor ?? "#2563EB") || form.isLockIn !== (goal.isLockIn ?? false) || form.lockInStartTime !== (goal.startTime ?? "") || form.lockInEndTime !== (goal.endTime ?? "");
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     motion.div,
     {
@@ -75099,15 +76532,23 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
               value: form.wishDescription,
               maxLength: 140,
               onChange: (e3) => setForm((f2) => ({ ...f2, wishDescription: e3.target.value })),
+              onFocus: () => setFocusedField("wishDescription"),
+              onBlur: () => setFocusedField(null),
               rows: 2,
               placeholder: "Every day, I will…",
               className: "bg-muted/60 border-border focus:border-primary resize-none text-sm"
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60 text-right", children: [
-            form.wishDescription.length,
-            "/140"
-          ] })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "p",
+            {
+              className: `text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`,
+              children: [
+                form.wishDescription.length,
+                "/140"
+              ]
+            }
+          )
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -75126,13 +76567,21 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
               value: form.wish,
               maxLength: 140,
               onChange: (e3) => setForm((f2) => ({ ...f2, wish: e3.target.value })),
+              onFocus: () => setFocusedField("wish"),
+              onBlur: () => setFocusedField(null),
               className: "bg-muted/60 border-border focus:border-primary text-sm"
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60 text-right", children: [
-            form.wish.length,
-            "/140"
-          ] })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "p",
+            {
+              className: `text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`,
+              children: [
+                form.wish.length,
+                "/140"
+              ]
+            }
+          )
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -75151,15 +76600,23 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
               value: form.ifThenPlan,
               maxLength: 140,
               onChange: (e3) => setForm((f2) => ({ ...f2, ifThenPlan: e3.target.value })),
+              onFocus: () => setFocusedField("ifThenPlan"),
+              onBlur: () => setFocusedField(null),
               rows: 2,
               placeholder: "If [obstacle], then I will…",
               className: "bg-muted/60 border-border focus:border-primary resize-none text-sm font-mono"
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60 text-right", children: [
-            form.ifThenPlan.length,
-            "/140"
-          ] })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "p",
+            {
+              className: `text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
+              children: [
+                form.ifThenPlan.length,
+                "/140"
+              ]
+            }
+          )
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Obstacles" }),
@@ -75305,6 +76762,166 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
             );
           }) })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Lock-In Mode" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "rounded-xl p-4 space-y-3",
+              style: {
+                background: "oklch(var(--muted) / 0.3)",
+                border: "1px solid oklch(var(--border) / 0.3)"
+              },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium text-foreground", children: "Enable Lock-In Mode" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-0.5", children: "Strict time block with check-in & check-out" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      role: "switch",
+                      "aria-checked": form.isLockIn,
+                      "data-ocid": "goals.edit_lockin_toggle",
+                      onClick: () => setForm((f2) => ({ ...f2, isLockIn: !f2.isLockIn })),
+                      className: "relative shrink-0 w-12 h-6 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      style: {
+                        background: form.isLockIn ? "#10B981" : "oklch(var(--muted))",
+                        boxShadow: form.isLockIn ? "inset 2px 2px 5px rgba(0,0,0,0.3)" : "inset 2px 2px 5px rgba(0,0,0,0.4)"
+                      },
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300",
+                          style: {
+                            left: form.isLockIn ? "calc(100% - 22px)" : "2px",
+                            boxShadow: "1px 1px 3px rgba(0,0,0,0.4)"
+                          }
+                        }
+                      )
+                    }
+                  )
+                ] }),
+                form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-xs",
+                    style: {
+                      background: "rgba(245, 158, 11, 0.08)",
+                      borderLeft: "3px solid rgba(245, 158, 11, 0.7)",
+                      boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.25), inset -1px -1px 3px rgba(255,255,255,0.04)"
+                    },
+                    "data-ocid": "goals.edit_lockin_commitment_banner",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "shrink-0 mt-0.5 text-sm", "aria-hidden": "true", children: "🔒" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "p",
+                        {
+                          className: "leading-snug",
+                          style: { color: "rgba(251, 191, 36, 0.9)" },
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Lock-In time blocks are a strict commitment." }),
+                            " ",
+                            "You can only change these times outside your active window."
+                          ]
+                        }
+                      )
+                    ]
+                  }
+                ),
+                form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3 pt-2 border-t border-border/20", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "label",
+                      {
+                        htmlFor: "edit-start-time",
+                        className: "text-xs text-muted-foreground font-mono uppercase",
+                        children: "Start Time"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        id: "edit-start-time",
+                        type: "time",
+                        "data-ocid": "goals.edit_lockin_start_time",
+                        value: form.lockInStartTime,
+                        onChange: (e3) => {
+                          const val = e3.target.value;
+                          setForm((f2) => ({ ...f2, lockInStartTime: val }));
+                          const conflict = findOverlapGoal(
+                            val,
+                            form.lockInEndTime,
+                            existingLockInGoals,
+                            goal.id
+                          );
+                          setOverlapError(
+                            conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
+                          );
+                        },
+                        className: "w-full rounded-lg px-2.5 py-2 text-sm font-mono text-foreground border border-border/30 focus:outline-none focus:ring-1 focus:ring-primary/40",
+                        style: {
+                          background: "oklch(var(--card))",
+                          boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                          colorScheme: "dark"
+                        }
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "label",
+                      {
+                        htmlFor: "edit-end-time",
+                        className: "text-xs text-muted-foreground font-mono uppercase",
+                        children: "End Time"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        id: "edit-end-time",
+                        type: "time",
+                        "data-ocid": "goals.edit_lockin_end_time",
+                        value: form.lockInEndTime,
+                        onChange: (e3) => {
+                          const val = e3.target.value;
+                          setForm((f2) => ({ ...f2, lockInEndTime: val }));
+                          const conflict = findOverlapGoal(
+                            form.lockInStartTime,
+                            val,
+                            existingLockInGoals,
+                            goal.id
+                          );
+                          setOverlapError(
+                            conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
+                          );
+                        },
+                        className: "w-full rounded-lg px-2.5 py-2 text-sm font-mono text-foreground border border-border/30 focus:outline-none focus:ring-1 focus:ring-primary/40",
+                        style: {
+                          background: "oklch(var(--card))",
+                          boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                          colorScheme: "dark"
+                        }
+                      }
+                    )
+                  ] })
+                ] }),
+                overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-xs font-medium mt-2",
+                    style: { color: "#EF4444" },
+                    "data-ocid": "goals.edit_lockin_overlap.field_error",
+                    children: overlapError
+                  }
+                )
+              ]
+            }
+          )
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2 pt-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Button,
@@ -75312,7 +76929,7 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }) {
               type: "button",
               size: "sm",
               onClick: handleSave,
-              disabled: isSaving || !hasChanges || !form.wish.trim(),
+              disabled: isSaving || !hasChanges || !form.wish.trim() || !!overlapError,
               className: "gap-1.5 button-primary-neon flex-1",
               "data-ocid": "goals.edit_save_button",
               children: isSaving ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -75353,10 +76970,21 @@ function GoalDetailPanel({
   onUpdateGoal,
   isUpdating,
   onDeleteGoal,
-  isDeleting
+  isDeleting,
+  existingLockInGoals = []
 }) {
   const [isEditing, setIsEditing] = reactExports.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = reactExports.useState(false);
+  const [isLocked, setIsLocked] = reactExports.useState(() => isLockInActiveWindow(goal));
+  const [showLockTooltip, setShowLockTooltip] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    setIsLocked(isLockInActiveWindow(goal));
+    const id2 = setInterval(() => {
+      setIsLocked(isLockInActiveWindow(goal));
+    }, 3e4);
+    return () => clearInterval(id2);
+  }, [goal]);
+  const lockWindowEndLabel = goal.endTime ? formatTime12h(addMinutesToTime(goal.endTime, 5)) : "";
   const isActive = goal.state === GoalState.active;
   const isPaused = goal.state === GoalState.paused;
   const isCompleted = goal.state === GoalState.completed;
@@ -75389,17 +77017,76 @@ function GoalDetailPanel({
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-snug", children: goal.wish })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 shrink-0", children: [
-              !isEditing && (isActive || isPaused) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  onClick: () => setIsEditing(true),
-                  className: "w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth",
-                  "aria-label": "Edit goal",
-                  "data-ocid": "goals.detail_edit_button",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(PenLine, { size: 13 })
-                }
-              ),
+              !isEditing && (isActive || isPaused) && (isLocked ? (
+                /* ── Locked Edit Button ───────────────────────────────────────── */
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      disabled: true,
+                      "aria-label": "Edit locked — Lock-In window is active",
+                      "data-ocid": "goals.detail_edit_button",
+                      onMouseEnter: () => setShowLockTooltip(true),
+                      onMouseLeave: () => setShowLockTooltip(false),
+                      onFocus: () => setShowLockTooltip(true),
+                      onBlur: () => setShowLockTooltip(false),
+                      onClick: () => {
+                        ue.warning(
+                          `🔒 Locked: You cannot edit a Lock-In habit while it is in progress. Window ends at ${lockWindowEndLabel}.`,
+                          { duration: 5e3 }
+                        );
+                      },
+                      className: "w-8 h-8 rounded-full flex items-center justify-center transition-smooth",
+                      style: {
+                        background: "oklch(var(--muted) / 0.25)",
+                        color: "oklch(var(--muted-foreground) / 0.45)",
+                        cursor: "not-allowed",
+                        opacity: 0.6,
+                        boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)"
+                      },
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 12 })
+                    }
+                  ),
+                  showLockTooltip && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      role: "tooltip",
+                      className: "absolute right-0 bottom-full mb-2 z-50 w-64 rounded-xl px-3 py-2.5 text-xs leading-relaxed pointer-events-none",
+                      style: {
+                        background: "oklch(var(--card))",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        boxShadow: "-3px -3px 10px rgba(60,60,70,0.4), 5px 5px 16px rgba(0,0,0,0.75)",
+                        color: "oklch(var(--foreground) / 0.85)"
+                      },
+                      children: [
+                        "🔒 ",
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-medium", children: "Locked:" }),
+                        " You cannot edit a Lock-In habit while it is in progress.",
+                        " ",
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { color: "#F97316" }, children: [
+                          "Window ends at ",
+                          lockWindowEndLabel,
+                          "."
+                        ] })
+                      ]
+                    }
+                  )
+                ] })
+              ) : (
+                /* ── Normal Edit Button ───────────────────────────────────────── */
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setIsEditing(true),
+                    className: "w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth",
+                    "aria-label": "Edit goal",
+                    "data-ocid": "goals.detail_edit_button",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(PenLine, { size: 13 })
+                  }
+                )
+              )),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
                 {
@@ -75438,7 +77125,8 @@ function GoalDetailPanel({
               goal,
               onSave: handleSaveEdit,
               onCancel: () => setIsEditing(false),
-              isSaving: isUpdating
+              isSaving: isUpdating,
+              existingLockInGoals
             },
             "edit"
           ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -75854,7 +77542,15 @@ function GoalsPage$1() {
         onUpdateGoal: handleUpdateGoal,
         isUpdating: updateGoalMutation.isPending,
         onDeleteGoal: handleDeleteGoal,
-        isDeleting: deletingGoalId === selectedGoal.id && deleteGoalMutation.isPending
+        isDeleting: deletingGoalId === selectedGoal.id && deleteGoalMutation.isPending,
+        existingLockInGoals: visibleGoals.filter(
+          (g2) => g2.isLockIn && g2.startTime && g2.endTime && g2.state === GoalState.active
+        ).map((g2) => ({
+          id: g2.id,
+          startTime: g2.startTime,
+          endTime: g2.endTime,
+          wishDescription: g2.wishDescription
+        }))
       },
       String(selectedGoal.id)
     ) }),
@@ -75911,6 +77607,14 @@ function GoalsPage$1() {
       {
         open: showWoop,
         onClose: () => setShowWoop(false),
+        existingLockInGoals: visibleGoals.filter(
+          (g2) => g2.isLockIn && g2.startTime && g2.endTime && g2.state === GoalState.active
+        ).map((g2) => ({
+          id: g2.id,
+          startTime: g2.startTime,
+          endTime: g2.endTime,
+          wishDescription: g2.wishDescription
+        })),
         onGoalCreated: (goalId) => {
           queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
           setActiveFilter(GoalState.active);
@@ -76425,17 +78129,6 @@ function OnboardingPage({ onComplete }) {
     )
   ] });
 }
-const TIER_COLOURS = {
-  1: { badge: "bg-muted text-muted-foreground border-border/60", glow: "" },
-  2: {
-    badge: "bg-secondary/20 text-accent-skip border-secondary/30",
-    glow: "shadow-glow-skip"
-  },
-  3: {
-    badge: "bg-primary/20 text-accent-success border-primary/30",
-    glow: "shadow-glow-success"
-  }
-};
 function CopyPrincipal({ principal }) {
   const [copied, setCopied] = reactExports.useState(false);
   const handleCopy = async () => {
@@ -76458,17 +78151,6 @@ function CopyPrincipal({ principal }) {
       ]
     }
   );
-}
-function StatCard({
-  label,
-  value,
-  sub
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1 p-4 rounded-xl bg-card card-neumorphic border border-border/40", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: label }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-2xl font-bold text-foreground", children: value }),
-    sub && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: sub })
-  ] });
 }
 function EditProfileSection({ initialDisplayName }) {
   const { actor } = useBackend();
@@ -76562,11 +78244,6 @@ function EditProfileSection({ initialDisplayName }) {
     }
   );
 }
-function toNumericTier$1(tier) {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
-}
 function ProfilePage$1() {
   const { data: profile, isLoading } = useUserProfile();
   const { principalText } = useAuth();
@@ -76587,10 +78264,6 @@ function ProfilePage$1() {
       }
     );
   }
-  const tier = profile ? toNumericTier$1(profile.tier) : 1;
-  const tierColour = TIER_COLOURS[tier];
-  const defaultLimit = TIER_GOAL_LIMITS[tier];
-  const isOverridden = profile ? Number(profile.goalLimit) !== defaultLimit : false;
   const avatarInitial = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim()[0].toUpperCase() : (profile == null ? void 0 : profile.username) && profile.username.trim() !== "" ? profile.username.trim()[0].toUpperCase() : null;
   const displayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim() : "";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -76600,12 +78273,7 @@ function ProfilePage$1() {
       "data-ocid": "profile.page",
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex flex-col gap-4 p-5 rounded-2xl bg-card card-neumorphic border border-border/20 overflow-hidden", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              className: `absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl bg-primary ${tierColour.glow}`
-            }
-          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl bg-primary" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-2 relative pt-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "div",
@@ -76643,15 +78311,7 @@ function ProfilePage$1() {
                 }
               ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground italic", children: "No display name set" }),
               (profile == null ? void 0 : profile.role) === "admin" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-primary/20 text-accent-success border-primary/30 text-xs mt-1", children: "Admin" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Badge,
-              {
-                className: `text-xs font-semibold ${tierColour.badge}`,
-                "data-ocid": "profile.tier_badge",
-                children: TIER_LABELS[tier]
-              }
-            )
+            ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-3 border-t border-border/30 pt-3", children: [
             (profile == null ? void 0 : profile.username) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
@@ -76667,210 +78327,12 @@ function ProfilePage$1() {
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(EditProfileSection, { initialDisplayName: displayName }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            StatCard,
-            {
-              label: "Subscription",
-              value: TIER_LABELS[tier],
-              sub: `Tier ${tier}`
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            StatCard,
-            {
-              label: "Goal Limit",
-              value: profile ? Number(profile.goalLimit) : defaultLimit,
-              sub: isOverridden ? "Admin override active" : `Tier ${tier} default`
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl bg-muted/30 border border-border/30 flex flex-col gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "What you get" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("ul", { className: "flex flex-col gap-1.5", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-success flex-shrink-0" }),
-              "Up to",
-              " ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: profile ? Number(profile.goalLimit) : defaultLimit }),
-              " ",
-              "concurrent goals"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-success flex-shrink-0" }),
-              "WOOP goal builder with obstacle planning"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-success flex-shrink-0" }),
-              "Accountability partner feed"
-            ] }),
-            tier >= 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-skip flex-shrink-0" }),
-              "Advanced analytics & consistency charts"
-            ] }),
-            tier >= 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex items-center gap-2 text-sm text-foreground", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-success flex-shrink-0" }),
-              "Priority support & early features"
-            ] })
-          ] })
-        ] })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(EditProfileSection, { initialDisplayName: displayName })
       ]
     }
   );
-}
-var NAME = "Separator";
-var DEFAULT_ORIENTATION = "horizontal";
-var ORIENTATIONS = ["horizontal", "vertical"];
-var Separator$1 = reactExports.forwardRef((props, forwardedRef) => {
-  const { decorative, orientation: orientationProp = DEFAULT_ORIENTATION, ...domProps } = props;
-  const orientation = isValidOrientation(orientationProp) ? orientationProp : DEFAULT_ORIENTATION;
-  const ariaOrientation = orientation === "vertical" ? orientation : void 0;
-  const semanticProps = decorative ? { role: "none" } : { "aria-orientation": ariaOrientation, role: "separator" };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Primitive.div,
-    {
-      "data-orientation": orientation,
-      ...semanticProps,
-      ...domProps,
-      ref: forwardedRef
-    }
-  );
-});
-Separator$1.displayName = NAME;
-function isValidOrientation(orientation) {
-  return ORIENTATIONS.includes(orientation);
-}
-var Root = Separator$1;
-function Separator({
-  className,
-  orientation = "horizontal",
-  decorative = true,
-  ...props
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Root,
-    {
-      "data-slot": "separator",
-      decorative,
-      orientation,
-      className: cn(
-        "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function toNumericTier(tier) {
-  if (tier === "tier3") return 3;
-  if (tier === "tier2") return 2;
-  return 1;
-}
-const PLANS = [
-  {
-    tier: 1,
-    name: "Free",
-    price: "$0/mo",
-    colour: "border-border/50 bg-card/60",
-    features: ["3 concurrent goals", "WOOP goal builder", "Partner Feed"]
-  },
-  {
-    tier: 2,
-    name: "Plus",
-    price: "$6/mo",
-    colour: "border-secondary/30 bg-secondary/5",
-    features: [
-      "10 concurrent goals",
-      "Advanced analytics",
-      "Priority connections"
-    ]
-  },
-  {
-    tier: 3,
-    name: "Power",
-    price: "$15/mo",
-    colour: "border-primary/30 bg-primary/5",
-    features: [
-      "25 concurrent goals",
-      "Early access features",
-      "Priority support"
-    ]
-  }
-];
-function PlanCard({
-  tier,
-  name,
-  price,
-  colour,
-  features,
-  isCurrent
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: `relative flex flex-col gap-3 p-4 rounded-xl border transition-smooth card-neumorphic ${colour} ${isCurrent ? "ring-1 ring-primary/50" : ""}`,
-      "data-ocid": `settings.plan_card.${tier}`,
-      children: [
-        isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute top-3 right-3 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/20 text-accent-success border border-primary/30", children: "Current" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-sm font-bold text-foreground", children: name }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-mono", children: price })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "flex flex-col gap-1", children: features.map((f2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "li",
-          {
-            className: "flex items-center gap-2 text-xs text-muted-foreground",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1 h-1 rounded-full bg-primary/60 flex-shrink-0" }),
-              f2
-            ]
-          },
-          f2
-        )) })
-      ]
-    }
-  );
-}
-function InfoRow({
-  label,
-  value,
-  mono = false
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between py-2.5", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground", children: label }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "span",
-      {
-        className: `text-sm font-medium text-foreground ${mono ? "font-mono" : ""}`,
-        children: value
-      }
-    )
-  ] });
 }
 function SettingsPage$1() {
-  const { data: profile, isLoading } = useUserProfile();
-  if (isLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "div",
-      {
-        className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
-        "data-ocid": "settings.loading_state",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-48 rounded-lg" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-28 w-full rounded-xl" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-32 rounded-xl" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-32 rounded-xl" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-32 rounded-xl" })
-          ] })
-        ]
-      }
-    );
-  }
-  const tier = profile ? toNumericTier(profile.tier) : 1;
-  const defaultLimit = TIER_GOAL_LIMITS[tier];
-  const isOverridden = !!profile && Number(profile.goalLimit) !== defaultLimit;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
@@ -76880,68 +78342,11 @@ function SettingsPage$1() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-muted flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { className: "w-5 h-5 text-muted-foreground" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-xl font-bold text-foreground", children: "Subscription Settings" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Manage your plan" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-xl font-bold text-foreground", children: "Settings" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "App preferences" })
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-5 rounded-2xl bg-card card-neumorphic border border-border/40 flex flex-col gap-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "Current Plan" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Badge,
-              {
-                className: tier === 3 ? "bg-primary/20 text-accent-success border-primary/30" : tier === 2 ? "bg-secondary/20 text-accent-skip border-secondary/30" : "bg-muted text-muted-foreground border-border/60",
-                "data-ocid": "settings.current_tier_badge",
-                children: TIER_LABELS[tier]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Separator, { className: "bg-border/30" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            InfoRow,
-            {
-              label: "Subscription tier",
-              value: `Tier ${tier} — ${TIER_LABELS[tier]}`
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            InfoRow,
-            {
-              label: "Goal limit",
-              value: profile ? Number(profile.goalLimit) : defaultLimit,
-              mono: true
-            }
-          ),
-          isOverridden && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Info, { className: "w-3.5 h-3.5 text-accent-success flex-shrink-0" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-accent-success", children: "Your limit has been overridden by an administrator." })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-muted-foreground" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-base font-semibold text-foreground", children: "Available Plans" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 gap-3 sm:grid-cols-3", children: PLANS.map((p2) => /* @__PURE__ */ jsxRuntimeExports.jsx(PlanCard, { ...p2, isCurrent: p2.tier === tier }, p2.tier)) })
-        ] }),
-        tier < 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
-          {
-            className: "flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 transition-smooth hover:border-primary/30 cursor-pointer group",
-            "data-ocid": "settings.upgrade_cta",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-muted-foreground group-hover:text-primary transition-smooth" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-semibold text-foreground", children: "Upgrade your plan" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Unlock more goals and advanced features" })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-4 h-4 text-muted-foreground group-hover:text-primary transition-smooth" })
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground text-center leading-relaxed", children: "Subscription changes are managed through your account. Contact support if you need assistance." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-5 rounded-2xl bg-card card-neumorphic border border-border/40", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground text-center py-6", children: "Settings and preferences coming soon." }) })
       ]
     }
   );

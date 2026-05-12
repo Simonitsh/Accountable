@@ -1,5 +1,4 @@
 import Map "mo:core/Map";
-import List "mo:core/List";
 import Runtime "mo:core/Runtime";
 import Common "../types/common";
 import AuthTypes "../types/auth";
@@ -7,7 +6,6 @@ import AuthLib "../lib/auth";
 
 mixin (
   profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
-  auditLog : List.List<AuthTypes.AdminAuditEntry>,
 ) {
   public shared ({ caller }) func register(username : Text) : async AuthTypes.UserProfilePublic {
     if (caller.isAnonymous()) Runtime.trap("Anonymous callers cannot register");
@@ -42,18 +40,9 @@ mixin (
     };
   };
 
-  public shared ({ caller }) func setUserGoalLimit(target : Common.UserId, limit : Nat) : async () {
-    AuthLib.setUserGoalLimit(profiles, auditLog, caller, target, limit);
-  };
-
   public shared ({ caller }) func setTimezone(tz : Text) : async () {
     if (caller.isAnonymous()) Runtime.trap("Anonymous callers cannot set timezone");
     AuthLib.setTimezone(profiles, caller, tz);
-  };
-
-  public shared query ({ caller }) func getAdminAuditLog() : async [AuthTypes.AdminAuditEntry] {
-    if (not AuthLib.isAdmin(profiles, caller)) Runtime.trap("Unauthorized: admin only");
-    auditLog.toArray();
   };
 
   public shared query ({ caller }) func listAllUsers() : async [AuthTypes.UserProfilePublic] {

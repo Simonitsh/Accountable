@@ -7,12 +7,25 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export type GoalId = bigint;
+export interface UpdateGoalRequest {
+    startTime?: string;
+    endTime?: string;
+    wish?: string;
+    themeColor?: string;
+    wishDescription?: string;
+    iconName?: string;
+    ifThenPlan?: string;
+    isLockIn?: boolean;
+}
 export type Timestamp = bigint;
 export interface RecordCheckInRequest {
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
+    executedIfThen: boolean;
+    lockInStartedAt?: bigint;
+    lockInEndedAt?: bigint;
+    customObstacleNote?: string;
 }
 export interface GoalAnalytics {
     totalMissed: bigint;
@@ -25,12 +38,15 @@ export interface GoalAnalytics {
     currentStreak: bigint;
 }
 export interface CreateGoalRequest {
+    startTime?: string;
+    endTime?: string;
     wish: string;
     themeColor?: string;
     wishDescription: string;
     iconName?: string;
     ifThenPlan: string;
     obstacleTemplateId?: ObstacleTemplateId;
+    isLockIn: boolean;
     outcome: string;
 }
 export type ObstacleTemplateId = bigint;
@@ -41,6 +57,8 @@ export interface AnalyticsSummary {
 }
 export interface GoalPublic {
     id: GoalId;
+    startTime?: string;
+    endTime?: string;
     owner: UserId;
     createdAt: Timestamp;
     wish: string;
@@ -51,6 +69,7 @@ export interface GoalPublic {
     updatedAt: Timestamp;
     state: GoalState;
     obstacleTemplateId?: ObstacleTemplateId;
+    isLockIn: boolean;
     outcome: string;
 }
 export interface UserProfilePublic {
@@ -59,8 +78,6 @@ export interface UserProfilePublic {
     username: string;
     displayName: string;
     role: UserRole;
-    tier: SubscriptionTier;
-    goalLimit: bigint;
     avatarEmoji: string;
 }
 export interface CreateObstacleRequest {
@@ -82,6 +99,10 @@ export interface CheckIn {
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
     timestamp: Timestamp;
+    executedIfThen: boolean;
+    lockInStartedAt?: bigint;
+    lockInEndedAt?: bigint;
+    customObstacleNote?: string;
 }
 export interface FeedItem {
     checkIn: CheckIn;
@@ -104,22 +125,12 @@ export interface Interaction {
     checkInId: CheckInId;
     timestamp: Timestamp;
 }
-export interface AdminAuditEntry {
-    limit: bigint;
-    targetPrincipal: UserId;
-    setBy: UserId;
-    timestamp: Timestamp;
-}
-export interface UpdateGoalRequest {
-    wish?: string;
-    themeColor?: string;
-    wishDescription?: string;
-    iconName?: string;
-    ifThenPlan?: string;
-}
+export type GoalId = bigint;
 export enum CheckInType {
+    failedLockIn = "failedLockIn",
     skip = "skip",
-    success = "success"
+    success = "success",
+    inProgress = "inProgress"
 }
 export enum ConnectionStatus {
     pending = "pending",
@@ -135,11 +146,6 @@ export enum GoalState {
 export enum InteractionType {
     highFive = "highFive"
 }
-export enum SubscriptionTier {
-    tier1 = "tier1",
-    tier2 = "tier2",
-    tier3 = "tier3"
-}
 export enum UserRole {
     admin = "admin",
     user = "user"
@@ -149,7 +155,13 @@ export enum Variant_notFound_unauthorized {
     unauthorized = "unauthorized"
 }
 export interface backendInterface {
-    createGoal(request: CreateGoalRequest): Promise<GoalPublic>;
+    createGoal(request: CreateGoalRequest): Promise<{
+        __kind__: "ok";
+        ok: GoalPublic;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     createObstacleTemplate(request: CreateObstacleRequest): Promise<ObstacleTemplate>;
     deleteCheckIn(checkInId: CheckInId): Promise<{
         __kind__: "ok";
@@ -159,9 +171,9 @@ export interface backendInterface {
         err: Variant_notFound_unauthorized;
     }>;
     devReset(): Promise<void>;
-    getAdminAuditLog(): Promise<Array<AdminAuditEntry>>;
     getAnalytics(): Promise<AnalyticsSummary>;
     getCheckInsForGoal(goalId: GoalId): Promise<Array<CheckIn>>;
+    getCheckInsForGoalTimeline(goalId: GoalId, fromTimestamp: bigint): Promise<Array<CheckIn>>;
     getCheckInsForPeriod(goalId: GoalId, fromTimestamp: bigint, toTimestamp: bigint): Promise<Array<CheckIn>>;
     getGoal(goalId: GoalId): Promise<GoalPublic | null>;
     getInteractionCount(checkInId: CheckInId): Promise<bigint>;
@@ -181,7 +193,6 @@ export interface backendInterface {
     respondToConnection(connectionId: ConnectionId, accept: boolean): Promise<boolean>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;
     setTimezone(tz: string): Promise<void>;
-    setUserGoalLimit(target: UserId, limit: bigint): Promise<void>;
     updateGoal(goalId: GoalId, request: UpdateGoalRequest): Promise<{
         __kind__: "ok";
         ok: GoalPublic;

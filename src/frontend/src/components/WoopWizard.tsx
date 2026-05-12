@@ -7,15 +7,22 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ObstacleTemplate as BackendObstacleTemplate } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
-import { useUserProfile } from "../hooks/useUserProfile";
 import { OBSTACLE_TEMPLATES } from "../types/index";
 import { GOAL_ICONS } from "../utils/goalIcons";
-import TierLimitModal from "./TierLimitModal";
 
 interface WoopWizardProps {
   open: boolean;
   onClose: () => void;
   onGoalCreated?: (goalId?: string) => void;
+  /** Existing active Lock-In goals — used for real-time overlap validation */
+  existingLockInGoals?: Array<{
+    id: bigint;
+    startTime?: string;
+    endTime?: string;
+    wishDescription: string;
+  }>;
+  /** ID of the goal being edited — excluded from the overlap check */
+  editingGoalId?: bigint;
 }
 
 interface SelectedObstacle {
@@ -31,6 +38,10 @@ interface FormState {
   goalReason: string;
   habitAction: string;
   habitMinutes: string;
+  // Lock-In
+  isLockIn: boolean;
+  lockInStartTime: string;
+  lockInEndTime: string;
   // Step 2 — Obstacles
   selectedObstacles: SelectedObstacle[];
   customInput: string;
@@ -67,6 +78,9 @@ const EMPTY: FormState = {
   goalReason: "",
   habitAction: "",
   habitMinutes: "",
+  isLockIn: false,
+  lockInStartTime: "",
+  lockInEndTime: "",
   selectedObstacles: [],
   customInput: "",
   customChips: [],
@@ -75,21 +89,46 @@ const EMPTY: FormState = {
   themeColor: "#2563EB",
 };
 
+/** Returns the conflicting Lock-In goal name if newStart/newEnd overlaps any existing block. */
+function findOverlapGoal(
+  newStart: string,
+  newEnd: string,
+  existing: Array<{
+    id: bigint;
+    startTime?: string;
+    endTime?: string;
+    wishDescription: string;
+  }>,
+  excludeId?: bigint,
+): string | null {
+  if (!newStart || !newEnd || newStart >= newEnd) return null;
+  for (const g of existing) {
+    if (excludeId !== undefined && g.id === excludeId) continue;
+    if (!g.startTime || !g.endTime) continue;
+    if (newStart < g.endTime && newEnd > g.startTime) {
+      return g.wishDescription || "an existing Lock-In";
+    }
+  }
+  return null;
+}
+
 export default function WoopWizard({
   open,
   onClose,
   onGoalCreated,
+  existingLockInGoals = [],
+  editingGoalId,
 }: WoopWizardProps) {
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [animDir, setAnimDir] = useState<"fwd" | "bwd">("fwd");
   const [mounted, setMounted] = useState(false);
-  const [showLimitModal, setShowLimitModal] = useState(false);
   const [errors, setErrors] = useState<StepError>({});
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [overlapError, setOverlapError] = useState<string | null>(null);
 
   const { actor, isFetching } = useBackend();
-  const { data: userProfile } = useUserProfile();
   const queryClient = useQueryClient();
 
   // Slide-up entrance animation + full reset on open
@@ -158,7 +197,7 @@ export default function WoopWizard({
       );
       const obstacleTemplateId = primaryUserObs?.backendId;
 
-      const created = await actor.createGoal({
+      const created = (await actor.createGoal({
         wish: assembledWish,
         wishDescription: assembledHabit,
         outcome: assembledObstacles,
@@ -166,8 +205,18 @@ export default function WoopWizard({
         ifThenPlan: form.ifThenPlan.trim(),
         iconName: form.iconName || undefined,
         themeColor: form.themeColor || undefined,
-      });
-      return created;
+        isLockIn: form.isLockIn,
+        startTime:
+          form.isLockIn && form.lockInStartTime
+            ? form.lockInStartTime
+            : undefined,
+        endTime:
+          form.isLockIn && form.lockInEndTime ? form.lockInEndTime : undefined,
+      })) as unknown as
+        | { __kind__: "ok"; ok: { id: bigint } }
+        | { __kind__: "err"; err: string };
+      if (created.__kind__ === "err") throw new Error(created.err);
+      return created.ok;
     },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({
@@ -185,18 +234,9 @@ export default function WoopWizard({
       handleClose();
     },
     onError: (error: Error) => {
-      const msg = error.message?.toLowerCase() ?? "";
-      if (
-        msg.includes("limitreached") ||
-        msg.includes("limit reached") ||
-        msg.includes("goal limit")
-      ) {
-        setShowLimitModal(true);
-      } else {
-        toast.error("Failed to create habit. Please try again.", {
-          description: error.message,
-        });
-      }
+      toast.error("Failed to create habit. Please try again.", {
+        description: error.message,
+      });
     },
   });
 
@@ -215,6 +255,17 @@ export default function WoopWizard({
       if (!form.goalReason.trim()) e.goalReason = "What's your deeper reason?";
       if (!form.habitAction.trim()) e.habitAction = "Name the daily action.";
       if (!form.habitMinutes.trim()) e.habitMinutes = "How many minutes?";
+      if (form.isLockIn) {
+        if (!form.lockInStartTime) e.lockInStartTime = "Pick a start time.";
+        if (!form.lockInEndTime) e.lockInEndTime = "Pick an end time.";
+        if (
+          form.lockInStartTime &&
+          form.lockInEndTime &&
+          form.lockInStartTime >= form.lockInEndTime
+        )
+          e.lockInEndTime = "End time must be after start time.";
+        if (overlapError) e.lockInEndTime = overlapError;
+      }
     }
     if (s === 2 && form.selectedObstacles.length === 0) {
       e.obstacles = "Select at least one obstacle you might face.";
@@ -241,6 +292,7 @@ export default function WoopWizard({
       return;
     }
     if (!validate(step)) return;
+    if (step === 1 && overlapError) return;
     navigate("fwd");
   };
 
@@ -514,6 +566,8 @@ export default function WoopWizard({
                           setForm((f) => ({ ...f, goalAction: val }));
                           setErrors((er) => ({ ...er, goalAction: undefined }));
                         }}
+                        onFocus={() => setFocusedField("goalAction")}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="run a marathon"
                         maxLength={140}
                         className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
@@ -530,6 +584,8 @@ export default function WoopWizard({
                           setForm((f) => ({ ...f, goalReason: val }));
                           setErrors((er) => ({ ...er, goalReason: undefined }));
                         }}
+                        onFocus={() => setFocusedField("goalReason")}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="feel unstoppable"
                         maxLength={140}
                         className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
@@ -537,8 +593,16 @@ export default function WoopWizard({
                       />
                     </div>
                     <div className="flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono">
-                      <span>{form.goalAction.length}/140</span>
-                      <span>{form.goalReason.length}/140</span>
+                      <span
+                        className={`transition-opacity duration-200 ${focusedField === "goalAction" ? "opacity-100" : "opacity-0"}`}
+                      >
+                        {form.goalAction.length}/140
+                      </span>
+                      <span
+                        className={`transition-opacity duration-200 ${focusedField === "goalReason" ? "opacity-100" : "opacity-0"}`}
+                      >
+                        {form.goalReason.length}/140
+                      </span>
                     </div>
                     {(errors.goalAction || errors.goalReason) && (
                       <p
@@ -577,6 +641,8 @@ export default function WoopWizard({
                             habitAction: undefined,
                           }));
                         }}
+                        onFocus={() => setFocusedField("habitAction")}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="run"
                         maxLength={140}
                         className="input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium"
@@ -610,7 +676,11 @@ export default function WoopWizard({
                       </span>
                     </div>
                     <div className="flex justify-between items-center gap-2 text-xs text-muted-foreground/60 font-mono">
-                      <span>{form.habitAction.length}/140</span>
+                      <span
+                        className={`transition-opacity duration-200 ${focusedField === "habitAction" ? "opacity-100" : "opacity-0"}`}
+                      >
+                        {form.habitAction.length}/140
+                      </span>
                       {form.habitMinutes &&
                         Number.parseInt(form.habitMinutes, 10) >= 1440 && (
                           <span className="text-amber-400/80">
@@ -630,6 +700,164 @@ export default function WoopWizard({
                       <p className="text-base text-accent-success font-medium leading-relaxed">
                         {assembledHabit}
                       </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Lock-In Mode Toggle */}
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-base font-display font-semibold text-foreground">
+                          Enable Lock-In Mode
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          Strict time block — check in &amp; out within a
+                          defined window
+                        </p>
+                      </div>
+                      {/* Neumorphic CSS toggle switch */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={form.isLockIn}
+                        data-ocid="woop_wizard.lockin_toggle"
+                        onClick={() =>
+                          setForm((f) => ({ ...f, isLockIn: !f.isLockIn }))
+                        }
+                        className="relative shrink-0 w-14 h-7 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        style={{
+                          background: form.isLockIn
+                            ? "#10B981"
+                            : "oklch(var(--muted))",
+                          boxShadow: form.isLockIn
+                            ? "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.12)"
+                            : "inset 2px 2px 5px rgba(0,0,0,0.45), inset -2px -2px 4px rgba(255,255,255,0.07)",
+                        }}
+                      >
+                        <span
+                          className="absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300"
+                          style={{
+                            left: form.isLockIn ? "calc(100% - 24px)" : "4px",
+                            boxShadow: "1px 1px 4px rgba(0,0,0,0.4)",
+                          }}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Time pickers — shown when Lock-In is enabled */}
+                    {form.isLockIn && (
+                      <div className="space-y-3 pt-2 border-t border-border/20">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label
+                              htmlFor="lockin-start-time"
+                              className="text-xs font-mono tracking-widest text-muted-foreground uppercase"
+                            >
+                              Start Time
+                            </label>
+                            <input
+                              id="lockin-start-time"
+                              type="time"
+                              data-ocid="woop_wizard.lockin_start_time"
+                              value={form.lockInStartTime}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setForm((f) => ({
+                                  ...f,
+                                  lockInStartTime: val,
+                                }));
+                                setErrors((er) => ({
+                                  ...er,
+                                  lockInStartTime: undefined,
+                                }));
+                                const conflict = findOverlapGoal(
+                                  val,
+                                  form.lockInEndTime,
+                                  existingLockInGoals,
+                                  editingGoalId,
+                                );
+                                setOverlapError(
+                                  conflict
+                                    ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
+                                    : null,
+                                );
+                              }}
+                              className="w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40"
+                              style={{
+                                background: "oklch(var(--card))",
+                                boxShadow:
+                                  "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                              }}
+                            />
+                            {errors.lockInStartTime && (
+                              <p
+                                className="text-xs text-destructive"
+                                data-ocid="woop_wizard.lockin_start_time.field_error"
+                              >
+                                {errors.lockInStartTime}
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <label
+                              htmlFor="lockin-end-time"
+                              className="text-xs font-mono tracking-widest text-muted-foreground uppercase"
+                            >
+                              End Time
+                            </label>
+                            <input
+                              id="lockin-end-time"
+                              type="time"
+                              data-ocid="woop_wizard.lockin_end_time"
+                              value={form.lockInEndTime}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setForm((f) => ({ ...f, lockInEndTime: val }));
+                                setErrors((er) => ({
+                                  ...er,
+                                  lockInEndTime: undefined,
+                                }));
+                                const conflict = findOverlapGoal(
+                                  form.lockInStartTime,
+                                  val,
+                                  existingLockInGoals,
+                                  editingGoalId,
+                                );
+                                setOverlapError(
+                                  conflict
+                                    ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
+                                    : null,
+                                );
+                              }}
+                              className="w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40"
+                              style={{
+                                background: "oklch(var(--card))",
+                                boxShadow:
+                                  "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                              }}
+                            />
+                            {errors.lockInEndTime && (
+                              <p
+                                className="text-xs text-destructive"
+                                data-ocid="woop_wizard.lockin_end_time.field_error"
+                              >
+                                {errors.lockInEndTime}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {overlapError && (
+                          <p
+                            className="text-sm font-medium"
+                            style={{ color: "#EF4444" }}
+                            data-ocid="woop_wizard.lockin_overlap.field_error"
+                          >
+                            {overlapError}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -795,40 +1023,32 @@ export default function WoopWizard({
                 </p>
 
                 <div className="space-y-4">
-                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
-                    If this happens…
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {form.selectedObstacles.map((obs) => (
-                      <span
-                        key={obs.id}
-                        className="px-3 py-1.5 rounded-xl text-base font-medium"
-                        style={{
-                          backgroundColor:
-                            "oklch(var(--color-accent-social) / 0.15)",
-                          color: "oklch(var(--color-accent-social))",
-                          border:
-                            "1px solid oklch(var(--color-accent-social) / 0.4)",
-                        }}
-                      >
-                        {obs.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
-                    Then I will…
-                  </p>
                   <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3">
-                    <p className="text-lg text-muted-foreground leading-relaxed">
-                      IF "{primaryObstacle ? primaryObstacle : "[obstacle]"}":
-                    </p>
-                    <div className="flex items-start gap-3">
-                      <span className="text-lg text-muted-foreground shrink-0 mt-2">
-                        THEN I will
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base font-mono tracking-widest text-muted-foreground uppercase shrink-0">
+                        IF
                       </span>
+                      {form.selectedObstacles.map((obs) => (
+                        <span
+                          key={obs.id}
+                          className="px-3 py-1.5 rounded-xl text-base font-medium"
+                          style={{
+                            backgroundColor:
+                              "oklch(var(--color-accent-social) / 0.15)",
+                            color: "oklch(var(--color-accent-social))",
+                            border:
+                              "1px solid oklch(var(--color-accent-social) / 0.4)",
+                          }}
+                        >
+                          {obs.label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
+                        Then I will...
+                      </p>
                       <Textarea
                         data-ocid="woop_wizard.if_then_plan_input"
                         value={form.ifThenPlan}
@@ -837,15 +1057,19 @@ export default function WoopWizard({
                           setForm((f) => ({ ...f, ifThenPlan: val }));
                           setErrors((er) => ({ ...er, ifThenPlan: undefined }));
                         }}
+                        onFocus={() => setFocusedField("ifThenPlan")}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="do a 15-min home workout instead"
                         maxLength={140}
                         rows={4}
-                        className="flex-1 bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none"
+                        className="w-full bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none"
                         aria-label="Your if-then backup plan"
                       />
                     </div>
                     <div className="flex justify-end">
-                      <span className="text-xs text-muted-foreground/60 font-mono">
+                      <span
+                        className={`text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`}
+                      >
                         {form.ifThenPlan.length}/140
                       </span>
                     </div>
@@ -913,7 +1137,7 @@ export default function WoopWizard({
                       className="text-xs font-mono tracking-widest uppercase"
                       style={{ color: "oklch(var(--color-accent-success))" }}
                     >
-                      Daily Habit — what you'll see on your dashboard
+                      Daily Habit
                     </p>
                     <p
                       className="text-lg font-semibold leading-relaxed"
@@ -1099,7 +1323,11 @@ export default function WoopWizard({
                 : "woop_wizard.next_button"
             }
             onClick={goNext}
-            disabled={createGoalMutation.isPending || (step === 4 && !actor)}
+            disabled={
+              createGoalMutation.isPending ||
+              (step === 4 && !actor) ||
+              (step === 1 && !!overlapError)
+            }
             className="gap-2 button-primary-neon text-base min-w-[130px]"
           >
             {step === 4 ? (
@@ -1120,12 +1348,6 @@ export default function WoopWizard({
           </Button>
         </div>
       </dialog>
-
-      <TierLimitModal
-        open={showLimitModal}
-        onClose={() => setShowLimitModal(false)}
-        userProfile={userProfile ?? null}
-      />
     </>
   );
 }

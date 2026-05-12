@@ -5,8 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckInType, GoalState } from "../backend";
 import type { CheckIn as BackendCheckIn, GoalPublic } from "../backend.d.ts";
-import { GoalCard } from "../components/GoalCard";
-import type { DayStatus } from "../components/GoalCard";
+import { GoalCard, getLockInState } from "../components/GoalCard";
+import type { DayStatus, LockInCheckIn } from "../components/GoalCard";
+import { GoalInsightSheet } from "../components/GoalInsightSheet";
 import { UndoPopup } from "../components/UndoPopup";
 import WoopWizard from "../components/WoopWizard";
 import { useAuth } from "../hooks/useAuth";
@@ -20,8 +21,6 @@ import { useUserProfile } from "../hooks/useUserProfile";
 import type { GoalAnalytics } from "../types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
-const DONE_STATE_KEY = "cumulative-done-state";
-const LAST_DATE_KEY = "cumulative-last-date";
 const NEW_HABIT_KEY = "cumulative-new-habit-id";
 const NEW_HABIT_DURATION_MS = 10_000;
 
@@ -29,15 +28,16 @@ function goalKey(id: bigint): string {
   return String(id);
 }
 
-function isTodayTimestamp(ts: bigint): boolean {
+/**
+ * Returns true if the IC nanosecond timestamp falls on today's calendar day
+ * in the given IANA timezone (falls back to local time if tz is omitted).
+ */
+function isCheckInToday(ts: bigint, tz?: string): boolean {
   const ms = Number(ts / 1_000_000n);
   const d = new Date(ms);
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
+  const todayStr = getLocalDateStr(new Date(), tz);
+  const dStr = getLocalDateStr(d, tz);
+  return dStr === todayStr;
 }
 
 /** Returns "YYYY-MM-DD" in the given IANA timezone (or local if omitted). */
@@ -121,52 +121,14 @@ function msUntilMidnight(tz?: string): number {
 // ─── Done-tab state type ───────────────────────────────────────────────────────────
 interface DoneEntry {
   checkInId: bigint;
-  checkInType: "success" | "skip";
+  checkInType: "success" | "skip" | "inProgress" | "failedLockIn";
+  executedIfThen?: boolean;
 }
 
 type DoneMap = Map<string, DoneEntry>;
 
-function serializeDoneMap(map: DoneMap): string {
-  return JSON.stringify(
-    [...map.entries()].map(([k, v]) => [
-      k,
-      { checkInId: String(v.checkInId), checkInType: v.checkInType },
-    ]),
-  );
-}
-
-function deserializeDoneMap(raw: string): DoneMap {
-  try {
-    const arr = JSON.parse(raw) as [
-      string,
-      { checkInId: string; checkInType: "success" | "skip" },
-    ][];
-    return new Map(
-      arr.map(([k, v]) => [
-        k,
-        { checkInId: BigInt(v.checkInId), checkInType: v.checkInType },
-      ]),
-    );
-  } catch {
-    return new Map();
-  }
-}
-
-function loadDoneMap(): DoneMap {
-  try {
-    const raw = localStorage.getItem(DONE_STATE_KEY);
-    if (!raw) return new Map();
-    return deserializeDoneMap(raw);
-  } catch {
-    return new Map();
-  }
-}
-
-function saveDoneMap(map: DoneMap) {
-  try {
-    localStorage.setItem(DONE_STATE_KEY, serializeDoneMap(map));
-  } catch {}
-}
+// ─── trulyUnswiped note: unswiped already excludes exitingMap entries,
+// so showSwipeHint correctly hides while any card is mid-animation.
 
 // ─── Username availability types ────────────────────────────────────────────────────
 type UsernameAvailability =
@@ -578,6 +540,11 @@ function TabPills({
   );
 }
 
+// ─── New Habit Glow Border ──────────────────────────────────────────────────────────
+function NewHabitGlow() {
+  return <div aria-hidden="true" className="new-habit-glow" />;
+}
+
 // ─── New Habit Badge ─────────────────────────────────────────────────────────────────
 function NewHabitBadge() {
   return (
@@ -660,13 +627,18 @@ export function DashboardPage() {
     new Map(),
   );
 
-  // Pending done-entry data waiting for the animation to finish
-  const pendingDoneDataRef = useRef<Map<string, DoneEntry>>(new Map());
-
   // ── Track swipe direction per goal for exit animation ─────────────────────────
   const [swipeDirectionMap, setSwipeDirectionMap] = useState<
     Map<string, "left" | "right">
   >(new Map());
+
+  // ── Bug 7: track cards that had a backend error, so onExitComplete skips them ──
+  const erroredCardIdsRef = useRef<Set<string>>(new Set());
+
+  // ── Bug 3/10: track in-progress pulse animation for Lock-In start-window check-in ──
+  const [inProgressPulseMap, setInProgressPulseMap] = useState<Set<string>>(
+    new Set(),
+  );
 
   // User timezone (from profile — used for midnight reset)
   const userTimezone =
@@ -674,27 +646,15 @@ export function DashboardPage() {
       ? profile.timezone.trim()
       : undefined;
 
-  // ── Done-map state (persisted to localStorage) ─────────────────────────────────
-  const [doneMap, setDoneMapRaw] = useState<DoneMap>(() => {
-    // We don't have profile.timezone synchronously at init time, so use local
-    // midnight for the initial check. The effect below keeps it updated.
-    const storedDate = localStorage.getItem(LAST_DATE_KEY);
-    const today = getLocalDateStr();
-    if (storedDate && storedDate !== today) {
-      // Midnight has passed: clear done state
-      localStorage.removeItem(DONE_STATE_KEY);
-    }
-    localStorage.setItem(LAST_DATE_KEY, today);
-    return loadDoneMap();
-  });
+  // ── Optimistic Done map: populated when a swipe starts so the card appears in Done
+  // immediately after the exit animation, even if the backend query hasn't refetched yet.
+  // Entries are cleared when todayDoneMap receives the real backend data.
+  const [optimisticDoneMap, setOptimisticDoneMap] = useState<DoneMap>(
+    new Map(),
+  );
 
-  function setDoneMap(updater: DoneMap | ((prev: DoneMap) => DoneMap)) {
-    setDoneMapRaw((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      saveDoneMap(next);
-      return next;
-    });
-  }
+  // ── Goal Insight sheet state ─────────────────────────────────────────────
+  const [insightGoal, setInsightGoal] = useState<GoalPublic | null>(null);
 
   // ── Undo popup state ─────────────────────────────────────────────────────
   const [undoTarget, setUndoTarget] = useState<{
@@ -711,20 +671,21 @@ export function DashboardPage() {
   >(new Map());
   const [weekHistoryLoading, setWeekHistoryLoading] = useState(false);
 
-  // ── Midnight reset: fires at next local midnight then repeats daily ──────────────
+  // ── Midnight reset: invalidates check-ins at local midnight so the day boundary
+  // is respected in todayDoneMap (derived from backend). No localStorage needed.
   // biome-ignore lint/correctness/useExhaustiveDependencies: queryClient is stable; intentional re-run only on timezone change
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     function scheduleReset() {
       const ms = msUntilMidnight(userTimezone);
       timer = setTimeout(() => {
-        // Day boundary crossed: clear done state and update LAST_DATE_KEY
-        const today = getLocalDateStr(new Date(), userTimezone);
-        localStorage.removeItem(DONE_STATE_KEY);
-        localStorage.setItem(LAST_DATE_KEY, today);
-        setDoneMapRaw(new Map());
-        // Also invalidate check-ins so the weekly tracker refreshes
+        // Day boundary crossed: invalidate check-ins so Done tab re-derives from today's data
         queryClient.invalidateQueries({ queryKey: ["myCheckIns"] });
+        queryClient.invalidateQueries({ queryKey: ["myGoals"] });
+        // Also clear animation state for the new day
+        setExitingMap(new Map());
+        setSwipeDirectionMap(new Map());
+        setOptimisticDoneMap(new Map());
         // Schedule the next reset (for the following day)
         scheduleReset();
       }, ms + 1000); // +1s buffer to land safely past midnight
@@ -783,16 +744,49 @@ export function DashboardPage() {
   // Active goals only
   const activeGoals = goals.filter((g) => g.state === GoalState.active);
 
-  // Map goalId (as string) → today's check-in
-  const _todayCheckInMap = useMemo(() => {
-    const map = new Map<string, BackendCheckIn>();
+  // ── Backend-derived done map: source of truth for Done tab across all devices ──
+  // Each entry = today's check-in (filtered by user's timezone), keyed by goalId.
+  const todayDoneMap = useMemo<DoneMap>(() => {
+    const map: DoneMap = new Map();
     for (const c of checkIns) {
-      if (isTodayTimestamp(c.timestamp)) {
-        map.set(goalKey(c.goalId), c);
+      if (isCheckInToday(c.timestamp, userTimezone)) {
+        const checkInType: "success" | "skip" | "inProgress" | "failedLockIn" =
+          c.checkInType === CheckInType.success
+            ? "success"
+            : c.checkInType === CheckInType.skip
+              ? "skip"
+              : c.checkInType === CheckInType.inProgress
+                ? "inProgress"
+                : c.checkInType === CheckInType.failedLockIn
+                  ? "failedLockIn"
+                  : "skip";
+        // Read executedIfThen from the check-in record
+        const executedIfThen = c.executedIfThen ?? false;
+        map.set(goalKey(c.goalId), {
+          checkInId: c.id,
+          checkInType,
+          executedIfThen,
+        });
       }
     }
     return map;
-  }, [checkIns]);
+  }, [checkIns, userTimezone]);
+
+  // ── Promote optimisticDoneMap entries once todayDoneMap has real backend data ────
+  // When the backend query returns, clear any optimistic entries that are now
+  // covered by real data. This prevents stale optimistic entries accumulating.
+  useEffect(() => {
+    setOptimisticDoneMap((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Map(prev);
+      for (const key of prev.keys()) {
+        if (todayDoneMap.has(key)) {
+          next.delete(key);
+        }
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [todayDoneMap]);
 
   // ── Fetch 7-day history for all active goals ──────────────────────────────────
   const fetchWeekHistory = useCallback(async () => {
@@ -903,124 +897,231 @@ export function DashboardPage() {
       goalId,
       checkInType,
       obstacleTemplateId,
+      lockInStartedAt,
+      lockInEndedAt,
+      executedIfThen,
+      customObstacleNote,
     }: {
       goalId: bigint;
       checkInType: CheckInType;
       obstacleTemplateId?: bigint;
+      lockInStartedAt?: bigint;
+      lockInEndedAt?: bigint;
+      executedIfThen?: boolean;
+      customObstacleNote?: string;
     }) => {
       if (!actor) return null;
-      return actor.recordCheckIn({ goalId, checkInType, obstacleTemplateId });
+      return actor.recordCheckIn({
+        goalId,
+        checkInType,
+        obstacleTemplateId,
+        lockInStartedAt,
+        lockInEndedAt,
+        executedIfThen: executedIfThen ?? false,
+        customObstacleNote: customObstacleNote,
+      });
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, _variables) => {
+      // Invalidate so todayDoneMap re-derives from the fresh backend data.
+      // The card is already visually in Done via exitingMap optimistic state.
       queryClient.invalidateQueries({ queryKey: ["myCheckIns"] });
-      const key = goalKey(variables.goalId);
-      // Update the real checkInId now that we have it from the backend.
-      // The optimistic entry was stored immediately in handleGoalCardCheckIn.
-      if (data) {
-        const checkInId = (data as BackendCheckIn).id;
-        const checkInType =
-          variables.checkInType === CheckInType.success ? "success" : "skip";
-        // Update pendingDoneDataRef if card is still mid-animation
-        if (pendingDoneDataRef.current.has(key)) {
-          pendingDoneDataRef.current.set(key, { checkInId, checkInType });
-        }
-        // Also update doneMap if the animation already finished and moved it there
-        setDoneMapRaw((prev) => {
-          if (!prev.has(key)) return prev; // Card not in done tab yet, nothing to update
-          const next = new Map(prev);
-          next.set(key, { checkInId, checkInType });
-          saveDoneMap(next);
-          return next;
-        });
-      }
       void fetchWeekHistory();
     },
     onError: (_err, variables) => {
-      // Mutation failed: show toast but KEEP the card in Done (optimistic).
-      // The user can tap the Done card to undo if they want.
-      // Only log an error — do NOT bounce the card back to Active.
+      // Mutation failed: snap card back to Active by clearing exitingMap entry.
       const key = goalKey(variables.goalId);
-      // Clear the 0n placeholder checkInId so undo will show the right error.
-      setDoneMapRaw((prev) => {
-        if (!prev.has(key)) return prev;
-        // Card is already in Done — mark checkInId as 0n to signal error
-        // (undo will refuse 0n and ask user to wait or retry)
+      // Bug 7: mark as errored so handleCardExitComplete skips this card
+      erroredCardIdsRef.current.add(key);
+      // Bug 8: if this was a Lock-In end-window checkout (success type with
+      // an existing inProgress check-in), keep the card in Active at in-progress
+      // state so the user can retry the checkout swipe.
+      setExitingMap((prev) => {
         const next = new Map(prev);
-        next.set(key, { ...prev.get(key)!, checkInId: 0n });
-        saveDoneMap(next);
+        next.delete(key);
         return next;
       });
-      toast.error("Check-in failed. Tap the card in Done to undo if needed.");
+      setSwipeDirectionMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setOptimisticDoneMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      // Clean up the errored flag after a short delay so future swipes work
+      setTimeout(() => {
+        erroredCardIdsRef.current.delete(key);
+      }, 600);
+      toast.error("Check-in failed. Please try again.");
     },
     onSettled: () => {
       setPendingGoalId(null);
     },
   });
 
-  // Called by GoalCard when its Phase-1 exit animation finishes
-  function handleCardExitComplete(goalId: bigint) {
+  // Called by GoalCard when its Phase-1 exit animation finishes.
+  // We clear the exitingMap so the card disappears from Active.
+  // todayDoneMap (from backend) will add it to Done once the
+  // invalidateQueries refetch completes (usually within milliseconds).
+  // Wrapped in useCallback so GoalCard's ref always has the latest version
+  // without triggering the exit-timer effect to re-run.
+  const handleCardExitComplete = useCallback((goalId: bigint) => {
     const key = goalKey(goalId);
-    // ALWAYS move the card to Done regardless of whether backend has responded.
-    // Use pendingDoneDataRef entry if available; otherwise create a fallback
-    // optimistic entry with checkInId=0n (will be updated by onSuccess).
-    const entry = pendingDoneDataRef.current.get(key) ?? {
-      checkInId: 0n,
-      checkInType: (swipeDirectionMap.get(key) === "right"
-        ? "success"
-        : "skip") as "success" | "skip",
-    };
-    pendingDoneDataRef.current.delete(key);
+    // Bug 7: if a backend error already snapped this card back, do nothing
+    if (erroredCardIdsRef.current.has(key)) return;
     setExitingMap((prev) => {
       const next = new Map(prev);
       next.delete(key);
       return next;
     });
-    setDoneMapRaw((prev) => {
-      const next = new Map(prev);
-      next.set(key, entry);
-      saveDoneMap(next);
-      return next;
-    });
     setBadgeAnimKey((k) => k + 1);
     // Automatically switch to Done tab so the user sees the result
     setActiveTab("done");
-  }
+  }, []);
 
   function handleGoalCardCheckIn(
     goalId: bigint,
-    type: "success" | "skip",
+    type: "success" | "skip" | "inProgress",
     obstacleId?: bigint,
+    lockInStartedAtMs?: number,
+    lockInEndedAtMs?: number,
+    executedIfThen?: boolean,
+    customObstacleNote?: string,
   ) {
     const key = goalKey(goalId);
+    const goal = activeGoals.find((g) => goalKey(g.id) === key);
+
+    let backendType: CheckInType;
+    if (type === "success") backendType = CheckInType.success;
+    else if (type === "skip") backendType = CheckInType.skip;
+    else if (
+      // Bug 1/2: when inProgress type is passed from MissedWindowSheet,
+      // obstacleId is now correctly set (not undefined).
+      // The presence of an obstacleId combined with isLockIn means
+      // this is a failed-lock-in report from the missed-window flow.
+      type === "inProgress" &&
+      obstacleId !== undefined &&
+      goal?.isLockIn
+    ) {
+      backendType = CheckInType.failedLockIn;
+    } else {
+      // Bug 3: plain inProgress (Lock-In start-window check-in)
+      // stays in Active — does NOT exit to Done.
+      backendType = CheckInType.inProgress;
+    }
+
     const direction: "left" | "right" = type === "success" ? "right" : "left";
-    // Record direction for Done-tab entry animation
-    setSwipeDirectionMap((prev) => {
-      const next = new Map(prev);
-      next.set(key, direction);
-      return next;
-    });
-    // Phase 1: card stays in Active list but plays exit animation
-    setExitingMap((prev) => {
-      const next = new Map(prev);
-      next.set(key, direction);
-      return next;
-    });
+    // Bug 3: inProgress Lock-In check-in must NOT trigger slide-to-Done.
+    // Only terminal types (success, skip, failedLockIn) exit the Active list.
+    const shouldSlide =
+      type === "success" ||
+      type === "skip" ||
+      backendType === CheckInType.failedLockIn;
+
+    if (shouldSlide) {
+      setSwipeDirectionMap((prev) => {
+        const next = new Map(prev);
+        next.set(key, direction);
+        return next;
+      });
+      setExitingMap((prev) => {
+        const next = new Map(prev);
+        next.set(key, direction);
+        return next;
+      });
+      // Optimistically add to Done map so the card appears immediately after
+      // the exit animation, before the backend query refetches.
+      const optimisticCheckInType: "success" | "skip" | "failedLockIn" =
+        backendType === CheckInType.success
+          ? "success"
+          : backendType === CheckInType.failedLockIn
+            ? "failedLockIn"
+            : "skip";
+      setOptimisticDoneMap((prev) => {
+        const next = new Map(prev);
+        next.set(key, {
+          checkInId: 0n, // placeholder — real id comes from backend
+          checkInType: optimisticCheckInType,
+          executedIfThen: executedIfThen ?? false,
+        });
+        return next;
+      });
+    } else if (backendType === CheckInType.inProgress) {
+      // Bug 3: play a brief in-progress pulse animation (card stays in Active)
+      setInProgressPulseMap((prev) => new Set(prev).add(key));
+      setTimeout(() => {
+        setInProgressPulseMap((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }, 600);
+    }
+
     setPendingGoalId(key);
-    // Store done data IMMEDIATELY (optimistically) so handleCardExitComplete
-    // always has it ready when the animation timer fires, regardless of whether
-    // the backend mutation has returned yet. We use a placeholder checkInId of
-    // 0n; the real ID is updated when onSuccess fires.
-    pendingDoneDataRef.current.set(key, {
-      checkInId: 0n,
-      checkInType: type,
-    });
-    // Fire backend mutation — onSuccess will update the real checkInId
     checkInMutation.mutate({
       goalId,
-      checkInType: type === "success" ? CheckInType.success : CheckInType.skip,
+      checkInType: backendType,
       obstacleTemplateId: obstacleId,
+      lockInStartedAt:
+        lockInStartedAtMs !== undefined
+          ? BigInt(Math.floor(lockInStartedAtMs)) * 1_000_000n
+          : undefined,
+      lockInEndedAt:
+        lockInEndedAtMs !== undefined
+          ? BigInt(Math.floor(lockInEndedAtMs)) * 1_000_000n
+          : undefined,
+      executedIfThen: executedIfThen ?? false,
+      customObstacleNote,
     });
   }
+
+  // ── Bug 10: periodic check for in-progress Lock-In goals that should be 'missed' ──
+  // Runs every 30s. If past endTime + 5min AND goal has inProgress check-in, the
+  // getLockInState function will return 'missed' automatically on next render.
+  // No new backend write needed — just force a re-render every 30s.
+  const [_lockInStateTick, setLockInStateTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLockInStateTick((n) => n + 1);
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── Bug 5: on data load, clean up any non-Lock-In goals with inProgress check-ins ──
+  // These are stuck states from previous bugs. Auto-delete the check-in so the
+  // card returns to Active and can be swiped normally.
+  const cleanupDoneRef = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: actor/queryClient/userTimezone/isLoading are stable; run on data changes only
+  useEffect(() => {
+    if (cleanupDoneRef.current || !actor || checkIns.length === 0 || isLoading)
+      return;
+    cleanupDoneRef.current = true;
+    const stuck = checkIns.filter((c) => {
+      if (c.checkInType !== CheckInType.inProgress) return false;
+      if (!isCheckInToday(c.timestamp, userTimezone)) return false;
+      const goal = goals.find((g) => goalKey(g.id) === goalKey(c.goalId));
+      return goal && !goal.isLockIn; // non-Lock-In with inProgress = stuck
+    });
+    if (stuck.length === 0) return;
+    (async () => {
+      for (const c of stuck) {
+        try {
+          await actor.deleteCheckIn(c.id);
+        } catch {
+          // best-effort
+        }
+      }
+      void queryClient.invalidateQueries({ queryKey: ["myCheckIns"] });
+    })();
+  }, [goals, checkIns]);
+  // Reset cleanup flag so re-runs catch new stuck states
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref mutation only; no external deps needed
+  useEffect(() => {
+    cleanupDoneRef.current = false;
+  }, [goals, checkIns]);
 
   // ── Undo logic ─────────────────────────────────────────────────────────────
   function handleDoneCardTap(goalId: bigint) {
@@ -1035,12 +1136,10 @@ export function DashboardPage() {
   async function handleUndoConfirm() {
     if (!undoTarget) return;
     const key = goalKey(undoTarget.goalId);
-    const entry = doneMap.get(key);
-    if (!entry) return;
-
-    // If the real checkInId hasn't arrived from the backend yet (optimistic
-    // placeholder is 0n), we cannot delete it. Show an error.
-    if (entry.checkInId === 0n) {
+    // Get checkInId from the backend-derived map (not localStorage)
+    const entry = todayDoneMap.get(key);
+    if (!entry) {
+      // Check-in may not have landed yet — wait a moment
       toast.error("Still saving — please wait a moment, then try again.");
       return;
     }
@@ -1049,23 +1148,22 @@ export function DashboardPage() {
     try {
       if (actor) {
         const result = await actor.deleteCheckIn(entry.checkInId);
-        if ("err" in result) {
+        if (result.__kind__ === "err") {
           throw new Error("Backend error");
         }
       }
-      // Remove from done map → goal goes back to Active tab
-      setDoneMap((prev) => {
-        const next = new Map(prev);
-        next.delete(key);
-        return next;
-      });
-      // Clear swipe direction and exiting state so the card re-enters cleanly
+      // Clear animation state so the card re-enters the Active list cleanly
       setSwipeDirectionMap((prev) => {
         const next = new Map(prev);
         next.delete(key);
         return next;
       });
       setExitingMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setOptimisticDoneMap((prev) => {
         const next = new Map(prev);
         next.delete(key);
         return next;
@@ -1079,7 +1177,8 @@ export function DashboardPage() {
           return next;
         });
       }, 800);
-      // Invalidate check-ins
+      // Bug 6: invalidate check-ins so getLockInState re-derives from fresh data,
+      // naturally returning Lock-In cards to 'waiting' or correct state.
       void queryClient.invalidateQueries({ queryKey: ["myCheckIns"] });
       void fetchWeekHistory();
       setUndoTarget(null);
@@ -1092,20 +1191,74 @@ export function DashboardPage() {
     }
   }
 
-  // ── Derived lists ─────────────────────────────────────────────────────────────
-  // unswiped: goals not yet in doneMap (exitingMap goals stay here while animating)
-  const unswiped = activeGoals.filter((g) => !doneMap.has(goalKey(g.id)));
-  const done = activeGoals.filter((g) => doneMap.has(goalKey(g.id)));
+  // ── Lock-In today check-in map ────────────────────────────────────────────────────────
+  // biome-ignore lint/correctness/useExhaustiveDependencies: _lockInStateTick is a counter that intentionally triggers re-derivation every 30 s
+  const lockInCheckInMap = useMemo(() => {
+    void _lockInStateTick; // ensures memo re-runs on 30s tick
+    const map = new Map<string, LockInCheckIn>();
+    for (const c of checkIns) {
+      if (!isCheckInToday(c.timestamp, userTimezone)) continue;
+      const gKey = goalKey(c.goalId);
+      let ciType: LockInCheckIn["type"] | null = null;
+      if (c.checkInType === CheckInType.inProgress) ciType = "inProgress";
+      else if (c.checkInType === CheckInType.failedLockIn)
+        ciType = "failedLockIn";
+      else if (c.checkInType === CheckInType.success) ciType = "success";
+      if (ciType) {
+        map.set(gKey, {
+          type: ciType,
+          startedAt:
+            c.lockInStartedAt !== undefined
+              ? Number(c.lockInStartedAt / 1_000_000n)
+              : undefined,
+          endedAt:
+            c.lockInEndedAt !== undefined
+              ? Number(c.lockInEndedAt / 1_000_000n)
+              : undefined,
+        });
+      }
+    }
+    return map;
+  }, [checkIns, userTimezone, _lockInStateTick]);
+
+  // unswiped: goals not in todayDoneMap AND not currently exiting
+  // Lock-In inProgress goals stay in active tab
+  const unswiped = activeGoals.filter((g) => {
+    const entry = todayDoneMap.get(goalKey(g.id));
+    if (entry?.checkInType === "inProgress") return true;
+    return (
+      !entry &&
+      !exitingMap.has(goalKey(g.id)) &&
+      !optimisticDoneMap.has(goalKey(g.id))
+    );
+  });
+  // Merged done map: real backend data takes priority; optimistic fills the gap
+  // while the backend query refetches after a swipe.
+  const mergedDoneMap = useMemo<DoneMap>(() => {
+    if (optimisticDoneMap.size === 0) return todayDoneMap;
+    const merged = new Map(todayDoneMap);
+    for (const [k, v] of optimisticDoneMap) {
+      if (!merged.has(k)) merged.set(k, v);
+    }
+    return merged;
+  }, [todayDoneMap, optimisticDoneMap]);
+  // done: goals with final check-ins (success, skip, failedLockIn) — from merged map
+  const done = activeGoals.filter((g) => {
+    const entry = mergedDoneMap.get(goalKey(g.id));
+    return entry && entry.checkInType !== "inProgress";
+  });
+  // exitingGoals: goals mid-slide-out animation (belong to Active DOM still)
+  const exitingGoals = activeGoals.filter((g) => exitingMap.has(goalKey(g.id)));
   // trulyUnswiped: goals not in done AND not mid-exit (used for swipe hint)
   const trulyUnswiped = unswiped.filter((g) => !exitingMap.has(goalKey(g.id)));
 
   // ── Derived counts for progress ring ──────────────────────────────────────────
   const todayCompleted = done.filter(
-    (g) => doneMap.get(goalKey(g.id))?.checkInType === "success",
+    (g) => mergedDoneMap.get(goalKey(g.id))?.checkInType === "success",
   ).length;
   const totalActive = activeGoals.length;
   const hasSkipToday = done.some(
-    (g) => doneMap.get(goalKey(g.id))?.checkInType === "skip",
+    (g) => mergedDoneMap.get(goalKey(g.id))?.checkInType === "skip",
   );
   const isAllComplete = totalActive > 0 && done.length === totalActive;
 
@@ -1140,9 +1293,20 @@ export function DashboardPage() {
 
   useDashboardHeaderWriter(headerData);
 
-  // ── Show swipe hint only when on Active tab with unswiped habits ──────────────
+  // ── Show swipe hint only when there are genuinely swipeable active habits ─────
+  // Lock-In cards in 'waiting' or 'in-progress' states cannot be swiped, so they
+  // must not count toward the hint trigger.
+  const swipeableCount = trulyUnswiped.filter((g) => {
+    if (!g.isLockIn || !g.startTime || !g.endTime) return true; // non Lock-In: always swipeable
+    const state = getLockInState(
+      g.startTime,
+      g.endTime,
+      lockInCheckInMap.get(goalKey(g.id)),
+    );
+    return state === "start-window" || state === "end-window";
+  }).length;
   const showSwipeHint =
-    activeTab === "active" && !isLoading && trulyUnswiped.length > 0;
+    activeTab === "active" && !isLoading && swipeableCount > 0;
 
   // Determine if displayName is set (not default "friend")
   const hasDisplayName =
@@ -1162,7 +1326,16 @@ export function DashboardPage() {
         goal={undoTarget?.goal ?? null}
         checkInType={
           undoTarget
-            ? (doneMap.get(goalKey(undoTarget.goalId))?.checkInType ?? null)
+            ? (() => {
+                const t =
+                  (
+                    todayDoneMap.get(goalKey(undoTarget.goalId)) ??
+                    mergedDoneMap.get(goalKey(undoTarget.goalId))
+                  )?.checkInType ?? null;
+                if (t === "success") return t;
+                if (t === "skip" || t === "failedLockIn") return "skip";
+                return null; // inProgress maps to null (not a Done-tab terminal state)
+              })()
             : null
         }
         isLoading={isUndoing}
@@ -1371,10 +1544,12 @@ export function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Active tab: un-swiped habits */}
+        {/* Active tab: un-swiped habits + currently-exiting ones (mid-animation) */}
         {!isLoading && activeTab === "active" && (
           <AnimatePresence mode="popLayout">
-            {unswiped.length === 0 && activeGoals.length > 0 ? (
+            {unswiped.length === 0 &&
+            exitingGoals.length === 0 &&
+            activeGoals.length > 0 ? (
               <motion.div
                 key="all-done"
                 initial={{ opacity: 0, y: 8 }}
@@ -1393,7 +1568,8 @@ export function DashboardPage() {
                 </p>
               </motion.div>
             ) : (
-              unswiped.map((goal, index) => {
+              // Render unswiped goals + any currently-exiting goals
+              [...unswiped, ...exitingGoals].map((goal, index) => {
                 const key = goalKey(goal.id);
                 const isExiting = exitingMap.has(key);
                 const isNewHabit = newHabitId === key;
@@ -1409,6 +1585,7 @@ export function DashboardPage() {
                       mode="active"
                       onCheckIn={handleGoalCardCheckIn}
                       onExitComplete={handleCardExitComplete}
+                      onInsightOpen={setInsightGoal}
                       isDarkMode={isDarkMode}
                       isCheckingIn={
                         pendingGoalId === key && checkInMutation.isPending
@@ -1423,7 +1600,16 @@ export function DashboardPage() {
                           : (swipeDirectionMap.get(key) ?? null)
                       }
                       isExiting={isExiting}
+                      inProgressPulse={inProgressPulseMap.has(key)}
+                      isLockIn={goal.isLockIn}
+                      lockInStartTime={goal.startTime}
+                      lockInEndTime={goal.endTime}
+                      lockInTodayCheckIn={lockInCheckInMap.get(key)}
+                      onMissedWindowTap={() => {
+                        /* handled inside GoalCard via MissedWindowSheet */
+                      }}
                     />
+                    {isNewHabit && <NewHabitGlow />}
                     {isNewHabit && <NewHabitBadge />}
                   </div>
                 );
@@ -1457,7 +1643,7 @@ export function DashboardPage() {
             ) : (
               done.map((goal, index) => {
                 const key = goalKey(goal.id);
-                const entry = doneMap.get(key);
+                const entry = mergedDoneMap.get(key);
                 const swipeDir = swipeDirectionMap.get(key) ?? null;
                 return (
                   <GoalCard
@@ -1472,8 +1658,13 @@ export function DashboardPage() {
                     weekHistoryLoading={weekHistoryLoading}
                     mode="done"
                     onDoneCardTap={handleDoneCardTap}
+                    onInsightOpen={setInsightGoal}
                     isDarkMode={isDarkMode}
                     entryFrom={swipeDir}
+                    isLockIn={goal.isLockIn}
+                    lockInStartTime={goal.startTime}
+                    lockInEndTime={goal.endTime}
+                    executedIfThen={entry?.executedIfThen ?? false}
                   />
                 );
               })
@@ -1482,10 +1673,30 @@ export function DashboardPage() {
         )}
       </div>
 
+      {/* Goal Insight Sheet — always mounted so exit animation plays before unmount */}
+      <AnimatePresence>
+        {insightGoal && (
+          <GoalInsightSheet
+            key={String(insightGoal.id)}
+            goal={insightGoal}
+            isOpen={true}
+            onClose={() => setInsightGoal(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* WOOP Wizard — opened from dashboard Create Habit button */}
       <WoopWizard
         open={showWoop}
         onClose={() => setShowWoop(false)}
+        existingLockInGoals={activeGoals
+          .filter((g) => g.isLockIn && g.startTime && g.endTime)
+          .map((g) => ({
+            id: g.id,
+            startTime: g.startTime,
+            endTime: g.endTime,
+            wishDescription: g.wishDescription,
+          }))}
         onGoalCreated={(goalId) => {
           queryClient.invalidateQueries({ queryKey: ["myGoals"] });
           // NOTE: Do NOT call setShowWoop(false) here.

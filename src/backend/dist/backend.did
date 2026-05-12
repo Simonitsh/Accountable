@@ -7,33 +7,32 @@ type UserProfilePublic =
  record {
    avatarEmoji: text;
    displayName: text;
-   goalLimit: nat;
    id: UserId;
    role: UserRole;
-   tier: SubscriptionTier;
    timezone: text;
    username: text;
  };
 type UserId = principal;
 type UpdateGoalRequest = 
  record {
+   endTime: opt text;
    iconName: opt text;
    ifThenPlan: opt text;
+   isLockIn: opt bool;
+   startTime: opt text;
    themeColor: opt text;
    wish: opt text;
    wishDescription: opt text;
  };
 type Timestamp = int;
-type SubscriptionTier = 
- variant {
-   tier1;
-   tier2;
-   tier3;
- };
 type RecordCheckInRequest = 
  record {
    checkInType: CheckInType;
+   customObstacleNote: opt text;
+   executedIfThen: bool;
    goalId: GoalId;
+   lockInEndedAt: opt int;
+   lockInStartedAt: opt int;
    obstacleTemplateId: opt ObstacleTemplateId;
  };
 type ObstacleTemplateId = nat;
@@ -64,12 +63,15 @@ type GoalState =
 type GoalPublic = 
  record {
    createdAt: Timestamp;
+   endTime: opt text;
    iconName: opt text;
    id: GoalId;
    ifThenPlan: text;
+   isLockIn: bool;
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
    owner: UserId;
+   startTime: opt text;
    state: GoalState;
    themeColor: opt text;
    updatedAt: Timestamp;
@@ -102,10 +104,13 @@ type CreateObstacleRequest =
  };
 type CreateGoalRequest = 
  record {
+   endTime: opt text;
    iconName: opt text;
    ifThenPlan: text;
+   isLockIn: bool;
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
+   startTime: opt text;
    themeColor: opt text;
    wish: text;
    wishDescription: text;
@@ -127,6 +132,8 @@ type ConnectionPublic =
 type ConnectionId = nat;
 type CheckInType = 
  variant {
+   failedLockIn;
+   inProgress;
    skip;
    success;
  };
@@ -134,8 +141,12 @@ type CheckInId = nat;
 type CheckIn = 
  record {
    checkInType: CheckInType;
+   customObstacleNote: opt text;
+   executedIfThen: bool;
    goalId: GoalId;
    id: CheckInId;
+   lockInEndedAt: opt int;
+   lockInStartedAt: opt int;
    obstacleTemplateId: opt ObstacleTemplateId;
    owner: UserId;
    timestamp: Timestamp;
@@ -145,15 +156,12 @@ type AnalyticsSummary =
    dailySuccessRate30Days: vec float64;
    goals: vec GoalAnalytics;
  };
-type AdminAuditEntry = 
- record {
-   limit: nat;
-   setBy: UserId;
-   targetPrincipal: UserId;
-   timestamp: Timestamp;
- };
 service : {
-  createGoal: (request: CreateGoalRequest) -> (GoalPublic);
+  createGoal: (request: CreateGoalRequest) ->
+   (variant {
+      err: text;
+      ok: GoalPublic;
+    });
   createObstacleTemplate: (request: CreateObstacleRequest) ->
    (ObstacleTemplate);
   deleteCheckIn: (checkInId: CheckInId) ->
@@ -165,9 +173,10 @@ service : {
       ok;
     });
   devReset: () -> ();
-  getAdminAuditLog: () -> (vec AdminAuditEntry) query;
   getAnalytics: () -> (AnalyticsSummary) query;
   getCheckInsForGoal: (goalId: GoalId) -> (vec CheckIn) query;
+  getCheckInsForGoalTimeline: (goalId: GoalId, fromTimestamp: int) ->
+   (vec CheckIn) query;
   getCheckInsForPeriod: (goalId: GoalId, fromTimestamp: int, toTimestamp:
    int) -> (vec CheckIn) query;
   getGoal: (goalId: GoalId) -> (opt GoalPublic) query;
@@ -189,7 +198,6 @@ service : {
   respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
   setTimezone: (tz: text) -> ();
-  setUserGoalLimit: (target: UserId, limit: nat) -> ();
   updateGoal: (goalId: GoalId, request: UpdateGoalRequest) ->
    (variant {
       err: text;

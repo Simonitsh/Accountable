@@ -1,7 +1,6 @@
 export type UserRole = "user" | "admin";
-export type SubscriptionTier = 1 | 2 | 3;
 export type GoalState = "active" | "completed" | "archived";
-export type CheckInType = "success" | "skip";
+export type CheckInType = "success" | "skip" | "inProgress" | "failedLockIn";
 export type ConnectionStatus = "pending" | "accepted" | "rejected";
 
 export interface UserProfile {
@@ -9,7 +8,6 @@ export interface UserProfile {
   username: string;
   displayName: string;
   role: UserRole;
-  tier: SubscriptionTier;
   goalLimit: number;
 }
 
@@ -24,6 +22,9 @@ export interface Goal {
   state: GoalState;
   iconName?: string;
   themeColor?: string;
+  isLockIn: boolean;
+  startTime?: string;
+  endTime?: string;
   createdAt: bigint;
   updatedAt: bigint;
 }
@@ -35,6 +36,10 @@ export interface CheckIn {
   checkInType: CheckInType;
   obstacleTemplateId?: string;
   timestamp: bigint;
+  lockInStartedAt?: number;
+  lockInEndedAt?: number;
+  executedIfThen: boolean;
+  customObstacleNote?: string;
 }
 
 export interface Connection {
@@ -104,15 +109,3 @@ export const OBSTACLE_TEMPLATES: ObstacleTemplate[] = [
     description: "Physical or mental health issues got in the way",
   },
 ];
-
-export const TIER_GOAL_LIMITS: Record<SubscriptionTier, number> = {
-  1: 3,
-  2: 10,
-  3: 25,
-};
-
-export const TIER_LABELS: Record<SubscriptionTier, string> = {
-  1: "Free",
-  2: "Plus",
-  3: "Power",
-};

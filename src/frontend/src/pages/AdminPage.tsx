@@ -8,14 +8,11 @@ import { AlertTriangle, Clock, Save, Search, Shield } from "lucide-react";
 import { useState } from "react";
 import { useBackend } from "../hooks/useBackend";
 import { useUserProfile } from "../hooks/useUserProfile";
-import { TIER_LABELS } from "../types";
-import type { SubscriptionTier } from "../types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserProfilePublic {
   principal: string;
   username: string;
-  tier: SubscriptionTier;
   goalLimit: number;
 }
 
@@ -88,9 +85,9 @@ function useSetGoalLimitOverride() {
 
 // ─── Mock data (used as fallback) ────────────────────────────────────────────
 const MOCK_USERS: UserProfilePublic[] = [
-  { principal: "aaaaa-aa", username: "alice_dev", tier: 3, goalLimit: 25 },
-  { principal: "bbbbb-bb", username: "bob_user", tier: 1, goalLimit: 3 },
-  { principal: "ccccc-cc", username: "carol_plus", tier: 2, goalLimit: 10 },
+  { principal: "aaaaa-aa", username: "alice_dev", goalLimit: 25 },
+  { principal: "bbbbb-bb", username: "bob_user", goalLimit: 3 },
+  { principal: "ccccc-cc", username: "carol_plus", goalLimit: 10 },
 ];
 const MOCK_AUDIT: AdminAuditEntry[] = [
   {
@@ -108,21 +105,6 @@ const MOCK_AUDIT: AdminAuditEntry[] = [
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-function TierBadge({ tier }: { tier: SubscriptionTier }) {
-  const colours: Record<SubscriptionTier, string> = {
-    1: "bg-muted text-muted-foreground",
-    2: "bg-secondary/20 text-accent-skip",
-    3: "bg-primary/20 text-accent-success",
-  };
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold ${colours[tier]}`}
-    >
-      {TIER_LABELS[tier]}
-    </span>
-  );
-}
-
 function truncate(s: string, n = 12) {
   return s.length > n ? `${s.slice(0, n)}…` : s;
 }
@@ -145,7 +127,7 @@ function UserRow({
 
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center p-3 rounded-lg bg-card card-neumorphic border border-border/40 transition-smooth hover:border-primary/30"
+      className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center p-3 rounded-lg bg-card card-neumorphic border border-border/40 transition-smooth hover:border-primary/30"
       data-ocid={`admin.user_row.item.${index}`}
     >
       {/* Principal + username */}
@@ -157,9 +139,6 @@ function UserRow({
           {truncate(user.principal, 16)}
         </p>
       </div>
-
-      {/* Tier */}
-      <TierBadge tier={user.tier} />
 
       {/* Current limit */}
       <span className="text-sm text-muted-foreground hidden sm:block">

@@ -20,6 +20,7 @@ import {
   Clock,
   Edit3,
   Flame,
+  Lock,
   Pause,
   Play,
   Plus,
@@ -30,7 +31,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { GoalState } from "../backend";
 import type {
@@ -145,7 +146,89 @@ function renderGoalIcon(name: string, size = 16) {
   return iconMap[name] ?? <Target size={size} />;
 }
 
-// ─── Edit Form ────────────────────────────────────────────────────────────────
+interface LockInGoalRef {
+  id: bigint;
+  startTime?: string;
+  endTime?: string;
+  wishDescription: string;
+}
+
+/**
+ * Formats an HH:MM time string to 12-hour display (e.g. "14:05" → "2:05 PM").
+ * Mirrors formatTime12h in GoalCard.tsx.
+ */
+function formatTime12h(timeStr: string): string {
+  const [h, m] = timeStr.split(":").map(Number);
+  const suffix = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+/**
+ * Adds `minutes` to an HH:MM time string and returns a new HH:MM string.
+ * Works within a single day (clamps at 23:59).
+ */
+function addMinutesToTime(timeStr: string, minutes: number): string {
+  const [h, m] = timeStr.split(":").map(Number);
+  const totalMins = Math.min(h * 60 + m + minutes, 23 * 60 + 59);
+  const newH = Math.floor(totalMins / 60);
+  const newM = totalMins % 60;
+  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+}
+
+/**
+ * Returns true if the current time falls within the Active Lock-In Window:
+ * [startTime - 5 min, endTime + 5 min].
+ * Returns false if the goal is not a Lock-In or is missing times.
+ */
+function isLockInActiveWindow(goal: GoalPublic): boolean {
+  if (!goal.isLockIn || !goal.startTime || !goal.endTime) return false;
+  const now = Date.now();
+  const [sh, sm] = goal.startTime.split(":").map(Number);
+  const [eh, em] = goal.endTime.split(":").map(Number);
+  const today = new Date();
+  const startDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    sh,
+    sm,
+    0,
+    0,
+  );
+  const endDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    eh,
+    em,
+    0,
+    0,
+  );
+  const windowStart = startDate.getTime() - 5 * 60 * 1000;
+  const windowEnd = endDate.getTime() + 5 * 60 * 1000;
+  return now >= windowStart && now <= windowEnd;
+}
+
+/** Returns the conflicting Lock-In goal name if newStart/newEnd overlaps any existing block. */
+function findOverlapGoal(
+  newStart: string,
+  newEnd: string,
+  existing: LockInGoalRef[],
+  excludeId?: bigint,
+): string | null {
+  if (!newStart || !newEnd || newStart >= newEnd) return null;
+  for (const g of existing) {
+    if (excludeId !== undefined && g.id === excludeId) continue;
+    if (!g.startTime || !g.endTime) continue;
+    if (newStart < g.endTime && newEnd > g.startTime) {
+      return g.wishDescription || "an existing Lock-In";
+    }
+  }
+  return null;
+}
+
+// ─── Edit Form ──────────────────────────────────────────────────────────────────
 interface EditFormData {
   wish: string;
   wishDescription: string;
@@ -155,6 +238,9 @@ interface EditFormData {
   obstacles: string[];
   customObstacleInput: string;
   customObstacles: string[];
+  isLockIn: boolean;
+  lockInStartTime: string;
+  lockInEndTime: string;
 }
 
 interface GoalEditFormProps {
@@ -162,9 +248,16 @@ interface GoalEditFormProps {
   onSave: (req: UpdateGoalRequest) => void;
   onCancel: () => void;
   isSaving: boolean;
+  existingLockInGoals?: LockInGoalRef[];
 }
 
-function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
+function GoalEditForm({
+  goal,
+  onSave,
+  onCancel,
+  isSaving,
+  existingLockInGoals = [],
+}: GoalEditFormProps) {
   // Parse existing obstacles from goal.outcome (stored as comma-separated labels)
   const existingObstacles = goal.outcome
     ? goal.outcome
@@ -193,9 +286,14 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
     obstacles: existingPreset,
     customObstacleInput: "",
     customObstacles: existingCustom,
+    isLockIn: goal.isLockIn ?? false,
+    lockInStartTime: goal.startTime ?? "",
+    lockInEndTime: goal.endTime ?? "",
   });
 
   const customInputRef = useRef<HTMLInputElement>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [overlapError, setOverlapError] = useState<string | null>(null);
 
   function allObstacles(): string[] {
     return [...form.obstacles, ...form.customObstacles];
@@ -244,6 +342,12 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
       req.iconName = form.iconName;
     if (form.themeColor !== (goal.themeColor ?? "#2563EB"))
       req.themeColor = form.themeColor;
+    if (form.isLockIn !== (goal.isLockIn ?? false))
+      req.isLockIn = form.isLockIn;
+    if (form.lockInStartTime !== (goal.startTime ?? ""))
+      req.startTime = form.lockInStartTime || undefined;
+    if (form.lockInEndTime !== (goal.endTime ?? ""))
+      req.endTime = form.lockInEndTime || undefined;
     onSave(req);
   }
 
@@ -253,7 +357,10 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
     form.wishDescription.trim() !== goal.wishDescription ||
     form.ifThenPlan.trim() !== goal.ifThenPlan ||
     form.iconName !== (goal.iconName ?? "target") ||
-    form.themeColor !== (goal.themeColor ?? "#2563EB");
+    form.themeColor !== (goal.themeColor ?? "#2563EB") ||
+    form.isLockIn !== (goal.isLockIn ?? false) ||
+    form.lockInStartTime !== (goal.startTime ?? "") ||
+    form.lockInEndTime !== (goal.endTime ?? "");
 
   return (
     <motion.div
@@ -279,11 +386,15 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
           onChange={(e) =>
             setForm((f) => ({ ...f, wishDescription: e.target.value }))
           }
+          onFocus={() => setFocusedField("wishDescription")}
+          onBlur={() => setFocusedField(null)}
           rows={2}
           placeholder="Every day, I will…"
           className="bg-muted/60 border-border focus:border-primary resize-none text-sm"
         />
-        <p className="text-[10px] text-muted-foreground/60 text-right">
+        <p
+          className={`text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`}
+        >
           {form.wishDescription.length}/140
         </p>
       </div>
@@ -302,9 +413,13 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
           value={form.wish}
           maxLength={140}
           onChange={(e) => setForm((f) => ({ ...f, wish: e.target.value }))}
+          onFocus={() => setFocusedField("wish")}
+          onBlur={() => setFocusedField(null)}
           className="bg-muted/60 border-border focus:border-primary text-sm"
         />
-        <p className="text-[10px] text-muted-foreground/60 text-right">
+        <p
+          className={`text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`}
+        >
           {form.wish.length}/140
         </p>
       </div>
@@ -325,11 +440,15 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
           onChange={(e) =>
             setForm((f) => ({ ...f, ifThenPlan: e.target.value }))
           }
+          onFocus={() => setFocusedField("ifThenPlan")}
+          onBlur={() => setFocusedField(null)}
           rows={2}
           placeholder="If [obstacle], then I will…"
           className="bg-muted/60 border-border focus:border-primary resize-none text-sm font-mono"
         />
-        <p className="text-[10px] text-muted-foreground/60 text-right">
+        <p
+          className={`text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`}
+        >
           {form.ifThenPlan.length}/140
         </p>
       </div>
@@ -502,12 +621,169 @@ function GoalEditForm({ goal, onSave, onCancel, isSaving }: GoalEditFormProps) {
         </div>
       </div>
 
+      {/* Lock-In Mode */}
+      <div className="space-y-2">
+        <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+          Lock-In Mode
+        </Label>
+        <div
+          className="rounded-xl p-4 space-y-3"
+          style={{
+            background: "oklch(var(--muted) / 0.3)",
+            border: "1px solid oklch(var(--border) / 0.3)",
+          }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Enable Lock-In Mode
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Strict time block with check-in &amp; check-out
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.isLockIn}
+              data-ocid="goals.edit_lockin_toggle"
+              onClick={() => setForm((f) => ({ ...f, isLockIn: !f.isLockIn }))}
+              className="relative shrink-0 w-12 h-6 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              style={{
+                background: form.isLockIn ? "#10B981" : "oklch(var(--muted))",
+                boxShadow: form.isLockIn
+                  ? "inset 2px 2px 5px rgba(0,0,0,0.3)"
+                  : "inset 2px 2px 5px rgba(0,0,0,0.4)",
+              }}
+            >
+              <span
+                className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300"
+                style={{
+                  left: form.isLockIn ? "calc(100% - 22px)" : "2px",
+                  boxShadow: "1px 1px 3px rgba(0,0,0,0.4)",
+                }}
+              />
+            </button>
+          </div>
+          {form.isLockIn && (
+            <div
+              className="flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-xs"
+              style={{
+                background: "rgba(245, 158, 11, 0.08)",
+                borderLeft: "3px solid rgba(245, 158, 11, 0.7)",
+                boxShadow:
+                  "inset 2px 2px 5px rgba(0,0,0,0.25), inset -1px -1px 3px rgba(255,255,255,0.04)",
+              }}
+              data-ocid="goals.edit_lockin_commitment_banner"
+            >
+              <span className="shrink-0 mt-0.5 text-sm" aria-hidden="true">
+                🔒
+              </span>
+              <p
+                className="leading-snug"
+                style={{ color: "rgba(251, 191, 36, 0.9)" }}
+              >
+                <span className="font-semibold">
+                  Lock-In time blocks are a strict commitment.
+                </span>{" "}
+                You can only change these times outside your active window.
+              </p>
+            </div>
+          )}
+          {form.isLockIn && (
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/20">
+              <div className="space-y-1">
+                <label
+                  htmlFor="edit-start-time"
+                  className="text-xs text-muted-foreground font-mono uppercase"
+                >
+                  Start Time
+                </label>
+                <input
+                  id="edit-start-time"
+                  type="time"
+                  data-ocid="goals.edit_lockin_start_time"
+                  value={form.lockInStartTime}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm((f) => ({ ...f, lockInStartTime: val }));
+                    const conflict = findOverlapGoal(
+                      val,
+                      form.lockInEndTime,
+                      existingLockInGoals,
+                      goal.id,
+                    );
+                    setOverlapError(
+                      conflict
+                        ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
+                        : null,
+                    );
+                  }}
+                  className="w-full rounded-lg px-2.5 py-2 text-sm font-mono text-foreground border border-border/30 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  style={{
+                    background: "oklch(var(--card))",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                    colorScheme: "dark",
+                  }}
+                />
+              </div>
+              <div className="space-y-1">
+                <label
+                  htmlFor="edit-end-time"
+                  className="text-xs text-muted-foreground font-mono uppercase"
+                >
+                  End Time
+                </label>
+                <input
+                  id="edit-end-time"
+                  type="time"
+                  data-ocid="goals.edit_lockin_end_time"
+                  value={form.lockInEndTime}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm((f) => ({ ...f, lockInEndTime: val }));
+                    const conflict = findOverlapGoal(
+                      form.lockInStartTime,
+                      val,
+                      existingLockInGoals,
+                      goal.id,
+                    );
+                    setOverlapError(
+                      conflict
+                        ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
+                        : null,
+                    );
+                  }}
+                  className="w-full rounded-lg px-2.5 py-2 text-sm font-mono text-foreground border border-border/30 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  style={{
+                    background: "oklch(var(--card))",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                    colorScheme: "dark",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          {overlapError && (
+            <p
+              className="text-xs font-medium mt-2"
+              style={{ color: "#EF4444" }}
+              data-ocid="goals.edit_lockin_overlap.field_error"
+            >
+              {overlapError}
+            </p>
+          )}
+        </div>
+      </div>
+
       <div className="flex gap-2 pt-1">
         <Button
           type="button"
           size="sm"
           onClick={handleSave}
-          disabled={isSaving || !hasChanges || !form.wish.trim()}
+          disabled={
+            isSaving || !hasChanges || !form.wish.trim() || !!overlapError
+          }
           className="gap-1.5 button-primary-neon flex-1"
           data-ocid="goals.edit_save_button"
         >
@@ -550,6 +826,7 @@ interface GoalDetailProps {
   isUpdating: boolean;
   onDeleteGoal: (goalId: bigint) => void;
   isDeleting: boolean;
+  existingLockInGoals?: LockInGoalRef[];
 }
 
 function GoalDetailPanel({
@@ -561,9 +838,27 @@ function GoalDetailPanel({
   isUpdating,
   onDeleteGoal,
   isDeleting,
+  existingLockInGoals = [],
 }: GoalDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isLocked, setIsLocked] = useState(() => isLockInActiveWindow(goal));
+  const [showLockTooltip, setShowLockTooltip] = useState(false);
+
+  // Recompute lock state every 30 seconds so it updates reactively when the window opens/closes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setIsLocked is stable; goal.startTime/endTime are the only fields that matter
+  useEffect(() => {
+    setIsLocked(isLockInActiveWindow(goal));
+    const id = setInterval(() => {
+      setIsLocked(isLockInActiveWindow(goal));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [goal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Compute the window-end label for the tooltip: endTime + 5 min
+  const lockWindowEndLabel = goal.endTime
+    ? formatTime12h(addMinutesToTime(goal.endTime, 5))
+    : "";
 
   const isActive = goal.state === GoalState.active;
   const isPaused = goal.state === GoalState.paused;
@@ -610,17 +905,70 @@ function GoalDetailPanel({
             </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {!isEditing && (isActive || isPaused) && (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
-                aria-label="Edit goal"
-                data-ocid="goals.detail_edit_button"
-              >
-                <Edit3 size={13} />
-              </button>
-            )}
+            {!isEditing &&
+              (isActive || isPaused) &&
+              (isLocked ? (
+                /* ── Locked Edit Button ───────────────────────────────────────── */
+                <div className="relative">
+                  <button
+                    type="button"
+                    disabled
+                    aria-label="Edit locked — Lock-In window is active"
+                    data-ocid="goals.detail_edit_button"
+                    onMouseEnter={() => setShowLockTooltip(true)}
+                    onMouseLeave={() => setShowLockTooltip(false)}
+                    onFocus={() => setShowLockTooltip(true)}
+                    onBlur={() => setShowLockTooltip(false)}
+                    onClick={() => {
+                      toast.warning(
+                        `🔒 Locked: You cannot edit a Lock-In habit while it is in progress. Window ends at ${lockWindowEndLabel}.`,
+                        { duration: 5000 },
+                      );
+                    }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-smooth"
+                    style={{
+                      background: "oklch(var(--muted) / 0.25)",
+                      color: "oklch(var(--muted-foreground) / 0.45)",
+                      cursor: "not-allowed",
+                      opacity: 0.6,
+                      boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                    }}
+                  >
+                    <Lock size={12} />
+                  </button>
+                  {/* CSS tooltip — visible on hover/focus */}
+                  {showLockTooltip && (
+                    <div
+                      role="tooltip"
+                      className="absolute right-0 bottom-full mb-2 z-50 w-64 rounded-xl px-3 py-2.5 text-xs leading-relaxed pointer-events-none"
+                      style={{
+                        background: "oklch(var(--card))",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        boxShadow:
+                          "-3px -3px 10px rgba(60,60,70,0.4), 5px 5px 16px rgba(0,0,0,0.75)",
+                        color: "oklch(var(--foreground) / 0.85)",
+                      }}
+                    >
+                      🔒 <span className="font-medium">Locked:</span> You cannot
+                      edit a Lock-In habit while it is in progress.{" "}
+                      <span style={{ color: "#F97316" }}>
+                        Window ends at {lockWindowEndLabel}.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ── Normal Edit Button ───────────────────────────────────────── */
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
+                  aria-label="Edit goal"
+                  data-ocid="goals.detail_edit_button"
+                >
+                  <Edit3 size={13} />
+                </button>
+              ))}
             <button
               type="button"
               onClick={onClose}
@@ -658,6 +1006,7 @@ function GoalDetailPanel({
               onSave={handleSaveEdit}
               onCancel={() => setIsEditing(false)}
               isSaving={isUpdating}
+              existingLockInGoals={existingLockInGoals}
             />
           ) : (
             <motion.div
@@ -1107,6 +1456,20 @@ export function GoalsPage() {
             isDeleting={
               deletingGoalId === selectedGoal.id && deleteGoalMutation.isPending
             }
+            existingLockInGoals={visibleGoals
+              .filter(
+                (g) =>
+                  g.isLockIn &&
+                  g.startTime &&
+                  g.endTime &&
+                  g.state === GoalState.active,
+              )
+              .map((g) => ({
+                id: g.id,
+                startTime: g.startTime,
+                endTime: g.endTime,
+                wishDescription: g.wishDescription,
+              }))}
           />
         )}
       </AnimatePresence>
@@ -1178,6 +1541,20 @@ export function GoalsPage() {
       <WoopWizard
         open={showWoop}
         onClose={() => setShowWoop(false)}
+        existingLockInGoals={visibleGoals
+          .filter(
+            (g) =>
+              g.isLockIn &&
+              g.startTime &&
+              g.endTime &&
+              g.state === GoalState.active,
+          )
+          .map((g) => ({
+            id: g.id,
+            startTime: g.startTime,
+            endTime: g.endTime,
+            wishDescription: g.wishDescription,
+          }))}
         onGoalCreated={(goalId) => {
           queryClient.invalidateQueries({ queryKey: ["myGoals"] });
           setActiveFilter(GoalState.active);

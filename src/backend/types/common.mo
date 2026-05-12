@@ -8,9 +8,7 @@ module {
   public type ObstacleTemplateId = Nat;
 
   public type UserRole = { #user; #admin };
-  public type SubscriptionTier = { #tier1; #tier2; #tier3 };
-
-  public type CheckInType = { #success; #skip };
+  public type CheckInType = { #success; #skip; #inProgress; #failedLockIn };
   public type ConnectionStatus = { #pending; #accepted; #rejected };
   public type InteractionType = { #highFive };
   public type GoalState = { #active; #paused; #completed; #abandoned };
