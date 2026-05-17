@@ -241,6 +241,8 @@ interface EditFormData {
   isLockIn: boolean;
   lockInStartTime: string;
   lockInEndTime: string;
+  lockInDurationHours: number;
+  lockInDurationMinutes: number;
 }
 
 interface GoalEditFormProps {
@@ -277,6 +279,18 @@ function GoalEditForm({
       ),
   );
 
+  // Pre-populate duration wheels from stored startTime/endTime
+  const initDuration = (() => {
+    if ((goal.isLockIn ?? false) && goal.startTime && goal.endTime) {
+      const [sh, sm] = goal.startTime.split(":").map(Number);
+      const [eh, em] = goal.endTime.split(":").map(Number);
+      const diffMins = eh * 60 + em - (sh * 60 + sm);
+      const safeDiff = Math.max(0, diffMins);
+      return { hours: Math.floor(safeDiff / 60), minutes: safeDiff % 60 };
+    }
+    return { hours: 0, minutes: 0 };
+  })();
+
   const [form, setForm] = useState<EditFormData>({
     wish: goal.wish,
     wishDescription: goal.wishDescription,
@@ -289,6 +303,8 @@ function GoalEditForm({
     isLockIn: goal.isLockIn ?? false,
     lockInStartTime: goal.startTime ?? "",
     lockInEndTime: goal.endTime ?? "",
+    lockInDurationHours: initDuration.hours,
+    lockInDurationMinutes: initDuration.minutes,
   });
 
   const customInputRef = useRef<HTMLInputElement>(null);
@@ -331,6 +347,20 @@ function GoalEditForm({
     }));
   }
 
+  // Recalculate endTime whenever startTime or duration changes
+  function recalcEndTime(
+    startTime: string,
+    durationHours: number,
+    durationMinutes: number,
+  ): string {
+    if (!startTime) return "";
+    const [h, m] = startTime.split(":").map(Number);
+    const totalMins = h * 60 + m + durationHours * 60 + durationMinutes;
+    const endH = Math.floor(totalMins / 60) % 24;
+    const endM = totalMins % 60;
+    return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+  }
+
   function handleSave() {
     const req: UpdateGoalRequest = {};
     if (form.wish.trim() !== goal.wish) req.wish = form.wish.trim();
@@ -352,6 +382,11 @@ function GoalEditForm({
   }
 
   const all = allObstacles();
+  // Duration validation: if Lock-In is enabled, duration must be > 0
+  const isDurationZero =
+    form.isLockIn &&
+    form.lockInDurationHours === 0 &&
+    form.lockInDurationMinutes === 0;
   const hasChanges =
     form.wish.trim() !== goal.wish ||
     form.wishDescription.trim() !== goal.wishDescription ||
@@ -691,7 +726,8 @@ function GoalEditForm({
             </div>
           )}
           {form.isLockIn && (
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/20">
+            <div className="space-y-3 pt-2 border-t border-border/20">
+              {/* Start Time */}
               <div className="space-y-1">
                 <label
                   htmlFor="edit-start-time"
@@ -706,16 +742,25 @@ function GoalEditForm({
                   value={form.lockInStartTime}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setForm((f) => ({ ...f, lockInStartTime: val }));
+                    const newEnd = recalcEndTime(
+                      val,
+                      form.lockInDurationHours,
+                      form.lockInDurationMinutes,
+                    );
+                    setForm((f) => ({
+                      ...f,
+                      lockInStartTime: val,
+                      lockInEndTime: newEnd,
+                    }));
                     const conflict = findOverlapGoal(
                       val,
-                      form.lockInEndTime,
+                      newEnd,
                       existingLockInGoals,
                       goal.id,
                     );
                     setOverlapError(
                       conflict
-                        ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
+                        ? "Conflict: This time overlaps with an existing Lock-In habit."
                         : null,
                     );
                   }}
@@ -727,41 +772,169 @@ function GoalEditForm({
                   }}
                 />
               </div>
-              <div className="space-y-1">
-                <label
-                  htmlFor="edit-end-time"
-                  className="text-xs text-muted-foreground font-mono uppercase"
-                >
-                  End Time
-                </label>
-                <input
-                  id="edit-end-time"
-                  type="time"
-                  data-ocid="goals.edit_lockin_end_time"
-                  value={form.lockInEndTime}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setForm((f) => ({ ...f, lockInEndTime: val }));
-                    const conflict = findOverlapGoal(
-                      form.lockInStartTime,
-                      val,
-                      existingLockInGoals,
-                      goal.id,
-                    );
-                    setOverlapError(
-                      conflict
-                        ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
-                        : null,
-                    );
-                  }}
-                  className="w-full rounded-lg px-2.5 py-2 text-sm font-mono text-foreground border border-border/30 focus:outline-none focus:ring-1 focus:ring-primary/40"
-                  style={{
-                    background: "oklch(var(--card))",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
-                    colorScheme: "dark",
-                  }}
-                />
+              {/* Duration wheels */}
+              <div>
+                <span className="block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2">
+                  Duration
+                </span>
+                <div className="flex gap-3">
+                  {/* Hours wheel */}
+                  <div className="flex-1">
+                    <label
+                      htmlFor="edit-lockin-hours"
+                      className="block text-[11px] text-muted-foreground/60 mb-1.5"
+                    >
+                      Hours
+                    </label>
+                    <select
+                      id="edit-lockin-hours"
+                      data-ocid="goals.edit_lockin_duration_hours"
+                      value={form.lockInDurationHours}
+                      onChange={(e) => {
+                        const h = Number(e.target.value);
+                        const newEnd = recalcEndTime(
+                          form.lockInStartTime,
+                          h,
+                          form.lockInDurationMinutes,
+                        );
+                        setForm((f) => ({
+                          ...f,
+                          lockInDurationHours: h,
+                          lockInEndTime: newEnd,
+                        }));
+                        const conflict = findOverlapGoal(
+                          form.lockInStartTime,
+                          newEnd,
+                          existingLockInGoals,
+                          goal.id,
+                        );
+                        setOverlapError(
+                          conflict
+                            ? "Conflict: This time overlaps with an existing Lock-In habit."
+                            : null,
+                        );
+                      }}
+                      size={5}
+                      className="w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer overflow-auto scrollbar-none"
+                      style={{
+                        background: "oklch(var(--card))",
+                        border: "1px solid rgba(245,158,11,0.2)",
+                        boxShadow:
+                          "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.12)",
+                        color: "oklch(var(--foreground))",
+                        padding: "4px 0",
+                        outline: "none",
+                      }}
+                    >
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <option
+                          // biome-ignore lint/suspicious/noArrayIndexKey: hour value is the key, not an index
+                          key={h}
+                          value={h}
+                          style={{
+                            background: "oklch(var(--card))",
+                            color:
+                              form.lockInDurationHours === h
+                                ? "#F59E0B"
+                                : "oklch(var(--foreground))",
+                            fontWeight:
+                              form.lockInDurationHours === h ? 700 : 400,
+                          }}
+                        >
+                          {String(h).padStart(2, "0")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Minutes wheel */}
+                  <div className="flex-1">
+                    <label
+                      htmlFor="edit-lockin-minutes"
+                      className="block text-[11px] text-muted-foreground/60 mb-1.5"
+                    >
+                      Min
+                    </label>
+                    <select
+                      id="edit-lockin-minutes"
+                      data-ocid="goals.edit_lockin_duration_minutes"
+                      value={form.lockInDurationMinutes}
+                      onChange={(e) => {
+                        const mins = Number(e.target.value);
+                        const newEnd = recalcEndTime(
+                          form.lockInStartTime,
+                          form.lockInDurationHours,
+                          mins,
+                        );
+                        setForm((f) => ({
+                          ...f,
+                          lockInDurationMinutes: mins,
+                          lockInEndTime: newEnd,
+                        }));
+                        const conflict = findOverlapGoal(
+                          form.lockInStartTime,
+                          newEnd,
+                          existingLockInGoals,
+                          goal.id,
+                        );
+                        setOverlapError(
+                          conflict
+                            ? "Conflict: This time overlaps with an existing Lock-In habit."
+                            : null,
+                        );
+                      }}
+                      size={5}
+                      className="w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer overflow-auto scrollbar-none"
+                      style={{
+                        background: "oklch(var(--card))",
+                        border: "1px solid rgba(245,158,11,0.2)",
+                        boxShadow:
+                          "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.12)",
+                        color: "oklch(var(--foreground))",
+                        padding: "4px 0",
+                        outline: "none",
+                      }}
+                    >
+                      {Array.from({ length: 60 }, (_, m) => (
+                        <option
+                          // biome-ignore lint/suspicious/noArrayIndexKey: minute value is the key, not an index
+                          key={m}
+                          value={m}
+                          style={{
+                            background: "oklch(var(--card))",
+                            color:
+                              form.lockInDurationMinutes === m
+                                ? "#F59E0B"
+                                : "oklch(var(--foreground))",
+                            fontWeight:
+                              form.lockInDurationMinutes === m ? 700 : 400,
+                          }}
+                        >
+                          {String(m).padStart(2, "0")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {isDurationZero && (
+                  <p
+                    className="text-xs text-destructive mt-2"
+                    data-ocid="goals.edit_lockin_duration.field_error"
+                  >
+                    Duration must be at least 1 minute.
+                  </p>
+                )}
               </div>
+              {/* Computed end time (read-only preview) */}
+              {form.lockInStartTime &&
+                !isDurationZero &&
+                form.lockInEndTime && (
+                  <p className="text-xs font-mono text-muted-foreground/70">
+                    Ends at{" "}
+                    <span style={{ color: "#F59E0B" }}>
+                      {formatTime12h(form.lockInEndTime)}
+                    </span>
+                  </p>
+                )}
             </div>
           )}
           {overlapError && (
@@ -782,7 +955,11 @@ function GoalEditForm({
           size="sm"
           onClick={handleSave}
           disabled={
-            isSaving || !hasChanges || !form.wish.trim() || !!overlapError
+            isSaving ||
+            !hasChanges ||
+            !form.wish.trim() ||
+            !!overlapError ||
+            isDurationZero
           }
           className="gap-1.5 button-primary-neon flex-1"
           data-ocid="goals.edit_save_button"
@@ -846,7 +1023,6 @@ function GoalDetailPanel({
   const [showLockTooltip, setShowLockTooltip] = useState(false);
 
   // Recompute lock state every 30 seconds so it updates reactively when the window opens/closes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setIsLocked is stable; goal.startTime/endTime are the only fields that matter
   useEffect(() => {
     setIsLocked(isLockInActiveWindow(goal));
     const id = setInterval(() => {

@@ -7,6 +7,7 @@ module {
     var displayName : Text;
     var avatarEmoji : Text;
     var timezone : Text;
+    var bio : ?Text;
     var role : Common.UserRole;
     var createdAt : Common.Timestamp;
   };
@@ -17,6 +18,7 @@ module {
     displayName : Text;
     avatarEmoji : Text;
     timezone : Text;
+    bio : ?Text;
     role : Common.UserRole;
   };
 

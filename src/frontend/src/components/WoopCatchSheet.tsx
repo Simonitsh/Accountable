@@ -107,7 +107,7 @@ export function WoopCatchSheet({
                 className="font-display text-xl font-bold leading-snug mb-1"
                 style={{ color: "oklch(var(--foreground))" }}
               >
-                Wait! Your backup plan is:
+                Wait! Your If-Then plan is:
               </h2>
 
               {/* If-Then plan callout */}

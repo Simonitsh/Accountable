@@ -36,8 +36,6 @@ export function useUserProfile() {
   const query = useQuery<UserProfilePublic | null>({
     queryKey: ["userProfile"],
     queryFn: async () => {
-      // Defensive guard — should never be null if enabled condition is correct,
-      // but throw to surface any timing issue rather than silently returning null.
       if (!actor) throw new Error("actor not ready");
       try {
         return await actor.getMyProfile();
@@ -45,13 +43,9 @@ export function useUserProfile() {
         return null;
       }
     },
-    // Only fire when BOTH auth has settled AND the canister actor is ready.
-    // This is the critical fix: prevents premature firing that caused the loop.
     enabled: isAuthenticated && actorReady,
     staleTime: 0,
     refetchOnMount: true,
-    // Safety net: if the first fetch returned null (new user, not yet registered),
-    // retry every 500ms — but stop after MAX_RETRIES to prevent infinite polling.
     refetchInterval: (query) => {
       if (query.state.data) {
         retryCount.current = 0;
@@ -76,14 +70,11 @@ export function useUserProfile() {
     },
   });
 
-  // Auto-detect and save timezone once after profile loads if it's empty
-  // Stable ref to mutate so it doesn't create a dep on the mutation object
   const timezoneMutateRef = useRef<(tz: string) => void>(
     timezoneMutation.mutate,
   );
   timezoneMutateRef.current = timezoneMutation.mutate;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: effect intentionally runs only once when data first becomes available
   useEffect(() => {
     if (!query.data || timezoneSyncedRef.current) return;
     if (query.data.timezone && query.data.timezone.trim() !== "") {
@@ -97,4 +88,27 @@ export function useUserProfile() {
   }, [query.data]);
 
   return query;
+}
+
+/**
+ * Returns a mutation to update the user's bio.
+ * Only updates the displayed bio after the backend confirms success.
+ */
+export function useUpdateBio() {
+  const { actor } = useBackend();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (bio: string) => {
+      if (!actor) throw new Error("Actor not available");
+      const bioArg = bio.trim().length > 0 ? bio.trim() : null;
+      const result = await actor.updateMyProfile(null, null, bioArg);
+      if (result.__kind__ === "err") throw new Error(result.err);
+      return result.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      queryClient.refetchQueries({ queryKey: ["userProfile"] });
+    },
+  });
 }

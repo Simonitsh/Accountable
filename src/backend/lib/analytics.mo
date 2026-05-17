@@ -28,7 +28,7 @@ module {
       switch (c.checkInType) {
         case (#success) totalSuccesses += 1;
         case (#skip) totalSkips += 1;
-        case (#inProgress or #failedLockIn) {}; // Lock-In intermediate states: not counted
+        case (#inProgress or #missedCheckIn or #missedCheckOut) {}; // Lock-In intermediate/failed states: not counted
       };
     };
 

@@ -12,6 +12,7 @@ module {
       displayName = profile.displayName;
       avatarEmoji = profile.avatarEmoji;
       timezone = profile.timezone;
+      bio = profile.bio;
       role = profile.role;
     };
   };
@@ -29,6 +30,7 @@ module {
           var displayName = "";
           var avatarEmoji = "";
           var timezone = "";
+          var bio = null;
           var role = #user;
           var createdAt = Time.now();
         };
@@ -71,7 +73,8 @@ module {
     caller : Common.UserId,
     displayName : ?Text,
     avatarEmoji : ?Text,
-  ) : AuthTypes.UserProfilePublic {
+    bio : ?Text,
+  ) : { #ok : AuthTypes.UserProfilePublic; #err : Text } {
     let profile = getOrCreateProfile(profiles, caller);
     switch (displayName) {
       case (?dn) { profile.displayName := dn };
@@ -81,7 +84,14 @@ module {
       case (?ae) { profile.avatarEmoji := ae };
       case null {};
     };
-    toPublic(profile);
+    switch (bio) {
+      case (?b) {
+        if (b.size() > 160) return #err("Bio cannot exceed 160 characters");
+        profile.bio := ?b;
+      };
+      case null {};
+    };
+    #ok(toPublic(profile));
   };
 
   public func setTimezone(

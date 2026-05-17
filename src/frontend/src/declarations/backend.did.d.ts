@@ -27,8 +27,9 @@ export interface CheckIn {
   'customObstacleNote' : [] | [string],
 }
 export type CheckInId = bigint;
-export type CheckInType = { 'failedLockIn' : null } |
-  { 'skip' : null } |
+export type CheckInType = { 'skip' : null } |
+  { 'missedCheckIn' : null } |
+  { 'missedCheckOut' : null } |
   { 'success' : null } |
   { 'inProgress' : null };
 export type ConnectionId = bigint;
@@ -113,6 +114,7 @@ export interface ObstacleTemplate {
 }
 export type ObstacleTemplateId = bigint;
 export interface RecordCheckInRequest {
+  'timezoneOffsetMinutes' : bigint,
   'goalId' : GoalId,
   'checkInType' : CheckInType,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
@@ -135,6 +137,7 @@ export interface UpdateGoalRequest {
 export type UserId = Principal;
 export interface UserProfilePublic {
   'id' : UserId,
+  'bio' : [] | [string],
   'timezone' : string,
   'username' : string,
   'displayName' : string,
@@ -156,7 +159,11 @@ export interface _SERVICE {
   'deleteCheckIn' : ActorMethod<
     [CheckInId],
     { 'ok' : null } |
-      { 'err' : { 'notFound' : null } | { 'unauthorized' : null } }
+      {
+        'err' : { 'sealed' : string } |
+          { 'notFound' : null } |
+          { 'unauthorized' : null }
+      }
   >,
   'devReset' : ActorMethod<[], undefined>,
   'getAnalytics' : ActorMethod<[], AnalyticsSummary>,
@@ -191,8 +198,9 @@ export interface _SERVICE {
   >,
   'updateGoalState' : ActorMethod<[GoalId, GoalState], boolean>,
   'updateMyProfile' : ActorMethod<
-    [[] | [string], [] | [string]],
-    UserProfilePublic
+    [[] | [string], [] | [string], [] | [string]],
+    { 'ok' : UserProfilePublic } |
+      { 'err' : string }
   >,
 }
 export declare const idlService: IDL.ServiceClass;

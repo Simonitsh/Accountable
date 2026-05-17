@@ -110,12 +110,12 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     lockInEndedAt: undefined,
     customObstacleNote: "Had a particularly draining work meeting that ran late into the evening.",
   },
-  // 3 days ago — missed (failedLockIn treated as missed)
+  // 3 days ago — missed (missedCheckIn)
   {
     id: BigInt(103),
     owner: mockPrincipal,
     goalId,
-    checkInType: CheckInType.failedLockIn,
+    checkInType: CheckInType.missedCheckIn,
     obstacleTemplateId: BigInt(2),
     timestamp: now - BigInt(3) * dayNs,
     executedIfThen: false,
@@ -340,12 +340,16 @@ export const mockBackend: backendInterface = {
 
   isUsernameAvailable: async (username: string) => username !== "alex_cumulative",
 
-  updateMyProfile: async (displayName, _avatarEmoji) => ({
-    id: mockPrincipal,
-    username: "alex_cumulative",
-    displayName: displayName ?? "",
-    avatarEmoji: "",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    role: UserRole.user,
+  updateMyProfile: async (displayName, _avatarEmoji, bio) => ({
+    __kind__: "ok" as const,
+    ok: {
+      id: mockPrincipal,
+      username: "alex_cumulative",
+      displayName: displayName ?? "",
+      avatarEmoji: "",
+      bio: bio ?? undefined,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      role: UserRole.user,
+    },
   }),
 };

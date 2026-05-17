@@ -1,6 +1,7 @@
 // Version: 1.0.0
 type CheckInId__143223767 = Nat;
-type CheckInType__225513767 = {#failedLockIn; #inProgress; #skip; #success};
+type CheckInType__225513767 =
+  {#inProgress; #missedCheckIn; #missedCheckOut; #skip; #success};
 type CheckIn__661112040 =
   {
     checkInType : CheckInType__225513767;
@@ -76,6 +77,7 @@ type UserId__158757552 = Principal;
 type UserProfile__775633023 =
   {
     var avatarEmoji : Text;
+    var bio : ?Text;
     var createdAt : Timestamp__301639476;
     var displayName : Text;
     id : UserId__158757552;

@@ -73,8 +73,9 @@ export const AnalyticsSummary = IDL.Record({
   'dailySuccessRate30Days' : IDL.Vec(IDL.Float64),
 });
 export const CheckInType = IDL.Variant({
-  'failedLockIn' : IDL.Null,
   'skip' : IDL.Null,
+  'missedCheckIn' : IDL.Null,
+  'missedCheckOut' : IDL.Null,
   'success' : IDL.Null,
   'inProgress' : IDL.Null,
 });
@@ -93,6 +94,7 @@ export const CheckIn = IDL.Record({
 export const UserRole = IDL.Variant({ 'admin' : IDL.Null, 'user' : IDL.Null });
 export const UserProfilePublic = IDL.Record({
   'id' : UserId,
+  'bio' : IDL.Opt(IDL.Text),
   'timezone' : IDL.Text,
   'username' : IDL.Text,
   'displayName' : IDL.Text,
@@ -119,6 +121,7 @@ export const ConnectionPublic = IDL.Record({
   'fromPrincipal' : UserId,
 });
 export const RecordCheckInRequest = IDL.Record({
+  'timezoneOffsetMinutes' : IDL.Int,
   'goalId' : GoalId,
   'checkInType' : CheckInType,
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
@@ -164,6 +167,7 @@ export const idlService = IDL.Service({
         IDL.Variant({
           'ok' : IDL.Null,
           'err' : IDL.Variant({
+            'sealed' : IDL.Text,
             'notFound' : IDL.Null,
             'unauthorized' : IDL.Null,
           }),
@@ -221,8 +225,8 @@ export const idlService = IDL.Service({
     ),
   'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
   'updateMyProfile' : IDL.Func(
-      [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-      [UserProfilePublic],
+      [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+      [IDL.Variant({ 'ok' : UserProfilePublic, 'err' : IDL.Text })],
       [],
     ),
 });
@@ -295,8 +299,9 @@ export const idlFactory = ({ IDL }) => {
     'dailySuccessRate30Days' : IDL.Vec(IDL.Float64),
   });
   const CheckInType = IDL.Variant({
-    'failedLockIn' : IDL.Null,
     'skip' : IDL.Null,
+    'missedCheckIn' : IDL.Null,
+    'missedCheckOut' : IDL.Null,
     'success' : IDL.Null,
     'inProgress' : IDL.Null,
   });
@@ -315,6 +320,7 @@ export const idlFactory = ({ IDL }) => {
   const UserRole = IDL.Variant({ 'admin' : IDL.Null, 'user' : IDL.Null });
   const UserProfilePublic = IDL.Record({
     'id' : UserId,
+    'bio' : IDL.Opt(IDL.Text),
     'timezone' : IDL.Text,
     'username' : IDL.Text,
     'displayName' : IDL.Text,
@@ -341,6 +347,7 @@ export const idlFactory = ({ IDL }) => {
     'fromPrincipal' : UserId,
   });
   const RecordCheckInRequest = IDL.Record({
+    'timezoneOffsetMinutes' : IDL.Int,
     'goalId' : GoalId,
     'checkInType' : CheckInType,
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
@@ -386,6 +393,7 @@ export const idlFactory = ({ IDL }) => {
           IDL.Variant({
             'ok' : IDL.Null,
             'err' : IDL.Variant({
+              'sealed' : IDL.Text,
               'notFound' : IDL.Null,
               'unauthorized' : IDL.Null,
             }),
@@ -447,8 +455,8 @@ export const idlFactory = ({ IDL }) => {
       ),
     'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
     'updateMyProfile' : IDL.Func(
-        [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-        [UserProfilePublic],
+        [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+        [IDL.Variant({ 'ok' : UserProfilePublic, 'err' : IDL.Text })],
         [],
       ),
   });

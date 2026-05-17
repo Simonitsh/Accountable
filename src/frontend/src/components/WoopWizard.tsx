@@ -42,6 +42,8 @@ interface FormState {
   isLockIn: boolean;
   lockInStartTime: string;
   lockInEndTime: string;
+  lockInDurationHours: number;
+  lockInDurationMinutes: number;
   // Step 2 — Obstacles
   selectedObstacles: SelectedObstacle[];
   customInput: string;
@@ -81,6 +83,8 @@ const EMPTY: FormState = {
   isLockIn: false,
   lockInStartTime: "",
   lockInEndTime: "",
+  lockInDurationHours: 0,
+  lockInDurationMinutes: 0,
   selectedObstacles: [],
   customInput: "",
   customChips: [],
@@ -165,6 +169,28 @@ export default function WoopWizard({
     form.habitAction.trim() && form.habitMinutes.trim()
       ? `Every day, I will ${form.habitAction.trim()} for ${form.habitMinutes.trim()} minutes`
       : "";
+
+  // Auto-calculate lockInEndTime from startTime + duration
+  useEffect(() => {
+    if (form.lockInStartTime) {
+      const [h, m] = form.lockInStartTime.split(":").map(Number);
+      const totalMinutes =
+        h * 60 +
+        m +
+        (form.lockInDurationHours || 0) * 60 +
+        (form.lockInDurationMinutes || 0);
+      const endH = Math.floor(totalMinutes / 60) % 24;
+      const endM = totalMinutes % 60;
+      setForm((prev) => ({
+        ...prev,
+        lockInEndTime: `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`,
+      }));
+    }
+  }, [
+    form.lockInStartTime,
+    form.lockInDurationHours,
+    form.lockInDurationMinutes,
+  ]);
   const assembledObstacles = form.selectedObstacles
     .map((o) => o.label)
     .join(", ");
@@ -265,6 +291,13 @@ export default function WoopWizard({
         )
           e.lockInEndTime = "End time must be after start time.";
         if (overlapError) e.lockInEndTime = overlapError;
+        if (
+          form.isLockIn &&
+          form.lockInDurationHours === 0 &&
+          form.lockInDurationMinutes === 0
+        ) {
+          e.lockInEndTime = "Duration must be at least 1 minute";
+        }
       }
     }
     if (s === 2 && form.selectedObstacles.length === 0) {
@@ -729,7 +762,7 @@ export default function WoopWizard({
                         className="relative shrink-0 w-14 h-7 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         style={{
                           background: form.isLockIn
-                            ? "#10B981"
+                            ? "#F59E0B"
                             : "oklch(var(--muted))",
                           boxShadow: form.isLockIn
                             ? "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.12)"
@@ -780,7 +813,7 @@ export default function WoopWizard({
                                 );
                                 setOverlapError(
                                   conflict
-                                    ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
+                                    ? "Conflict: This time overlaps with an existing Lock-In habit."
                                     : null,
                                 );
                               }}
@@ -800,47 +833,126 @@ export default function WoopWizard({
                               </p>
                             )}
                           </div>
-                          <div className="space-y-2">
-                            <label
-                              htmlFor="lockin-end-time"
-                              className="text-xs font-mono tracking-widest text-muted-foreground uppercase"
-                            >
-                              End Time
-                            </label>
-                            <input
-                              id="lockin-end-time"
-                              type="time"
-                              data-ocid="woop_wizard.lockin_end_time"
-                              value={form.lockInEndTime}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setForm((f) => ({ ...f, lockInEndTime: val }));
-                                setErrors((er) => ({
-                                  ...er,
-                                  lockInEndTime: undefined,
-                                }));
-                                const conflict = findOverlapGoal(
-                                  form.lockInStartTime,
-                                  val,
-                                  existingLockInGoals,
-                                  editingGoalId,
-                                );
-                                setOverlapError(
-                                  conflict
-                                    ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}`
-                                    : null,
-                                );
-                              }}
-                              className="w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40"
-                              style={{
-                                background: "oklch(var(--card))",
-                                boxShadow:
-                                  "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                              }}
-                            />
+                          {/* Duration — scrollable wheel selectors */}
+                          <div>
+                            <span className="block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2">
+                              Duration
+                            </span>
+                            <div className="flex gap-3">
+                              {/* Hours wheel */}
+                              <div className="flex-1">
+                                <label
+                                  htmlFor="lockin-hours"
+                                  className="block text-[11px] text-muted-foreground/60 mb-1.5"
+                                >
+                                  Hours
+                                </label>
+                                <select
+                                  id="lockin-hours"
+                                  data-ocid="woop_wizard.lockin_duration_hours"
+                                  value={form.lockInDurationHours}
+                                  onChange={(e) =>
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      lockInDurationHours: Number(
+                                        e.target.value,
+                                      ),
+                                    }))
+                                  }
+                                  size={5}
+                                  className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer"
+                                  style={{
+                                    background: "oklch(var(--card))",
+                                    border: "1px solid rgba(245,158,11,0.25)",
+                                    boxShadow:
+                                      "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                    color: "oklch(var(--foreground))",
+                                    padding: "6px 0",
+                                    outline: "none",
+                                    overflowY: "auto",
+                                  }}
+                                >
+                                  {Array.from({ length: 24 }, (_, h) => (
+                                    <option
+                                      // biome-ignore lint/suspicious/noArrayIndexKey: hour value is the key, not an index
+                                      key={h}
+                                      value={h}
+                                      style={{
+                                        background: "oklch(var(--card))",
+                                        color:
+                                          form.lockInDurationHours === h
+                                            ? "#F59E0B"
+                                            : "oklch(var(--foreground))",
+                                        fontWeight:
+                                          form.lockInDurationHours === h
+                                            ? 700
+                                            : 400,
+                                      }}
+                                    >
+                                      {String(h).padStart(2, "0")}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              {/* Minutes wheel */}
+                              <div className="flex-1">
+                                <label
+                                  htmlFor="lockin-minutes"
+                                  className="block text-[11px] text-muted-foreground/60 mb-1.5"
+                                >
+                                  Min
+                                </label>
+                                <select
+                                  id="lockin-minutes"
+                                  data-ocid="woop_wizard.lockin_duration_minutes"
+                                  value={form.lockInDurationMinutes}
+                                  onChange={(e) =>
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      lockInDurationMinutes: Number(
+                                        e.target.value,
+                                      ),
+                                    }))
+                                  }
+                                  size={5}
+                                  className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer"
+                                  style={{
+                                    background: "oklch(var(--card))",
+                                    border: "1px solid rgba(245,158,11,0.25)",
+                                    boxShadow:
+                                      "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                    color: "oklch(var(--foreground))",
+                                    padding: "6px 0",
+                                    outline: "none",
+                                    overflowY: "auto",
+                                  }}
+                                >
+                                  {Array.from({ length: 60 }, (_, m) => (
+                                    <option
+                                      // biome-ignore lint/suspicious/noArrayIndexKey: minute value is the key, not an index
+                                      key={m}
+                                      value={m}
+                                      style={{
+                                        background: "oklch(var(--card))",
+                                        color:
+                                          form.lockInDurationMinutes === m
+                                            ? "#F59E0B"
+                                            : "oklch(var(--foreground))",
+                                        fontWeight:
+                                          form.lockInDurationMinutes === m
+                                            ? 700
+                                            : 400,
+                                      }}
+                                    >
+                                      {String(m).padStart(2, "0")}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
                             {errors.lockInEndTime && (
                               <p
-                                className="text-xs text-destructive"
+                                className="text-xs text-destructive mt-2"
                                 data-ocid="woop_wizard.lockin_end_time.field_error"
                               >
                                 {errors.lockInEndTime}
@@ -1063,7 +1175,7 @@ export default function WoopWizard({
                         maxLength={140}
                         rows={4}
                         className="w-full bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none"
-                        aria-label="Your if-then backup plan"
+                        aria-label="Your If-Then plan"
                       />
                     </div>
                     <div className="flex justify-end">

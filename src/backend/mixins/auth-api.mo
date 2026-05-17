@@ -18,8 +18,8 @@ mixin (
     AuthLib.toPublic(profile);
   };
 
-  public shared ({ caller }) func updateMyProfile(displayName : ?Text, avatarEmoji : ?Text) : async AuthTypes.UserProfilePublic {
-    AuthLib.updateProfile(profiles, caller, displayName, avatarEmoji);
+  public shared ({ caller }) func updateMyProfile(displayName : ?Text, avatarEmoji : ?Text, bio : ?Text) : async { #ok : AuthTypes.UserProfilePublic; #err : Text } {
+    AuthLib.updateProfile(profiles, caller, displayName, avatarEmoji, bio);
   };
 
   public shared query ({ caller }) func isUsernameAvailable(username : Text) : async Bool {

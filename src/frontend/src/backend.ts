@@ -101,6 +101,7 @@ export interface UpdateGoalRequest {
 }
 export type Timestamp = bigint;
 export interface RecordCheckInRequest {
+    timezoneOffsetMinutes: bigint;
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
@@ -156,6 +157,7 @@ export interface GoalPublic {
 }
 export interface UserProfilePublic {
     id: UserId;
+    bio?: string;
     timezone: string;
     username: string;
     displayName: string;
@@ -209,8 +211,9 @@ export interface Interaction {
 }
 export type GoalId = bigint;
 export enum CheckInType {
-    failedLockIn = "failedLockIn",
     skip = "skip",
+    missedCheckIn = "missedCheckIn",
+    missedCheckOut = "missedCheckOut",
     success = "success",
     inProgress = "inProgress"
 }
@@ -232,10 +235,6 @@ export enum UserRole {
     admin = "admin",
     user = "user"
 }
-export enum Variant_notFound_unauthorized {
-    notFound = "notFound",
-    unauthorized = "unauthorized"
-}
 export interface backendInterface {
     createGoal(request: CreateGoalRequest): Promise<{
         __kind__: "ok";
@@ -250,7 +249,16 @@ export interface backendInterface {
         ok: null;
     } | {
         __kind__: "err";
-        err: Variant_notFound_unauthorized;
+        err: {
+            __kind__: "sealed";
+            sealed: string;
+        } | {
+            __kind__: "notFound";
+            notFound: null;
+        } | {
+            __kind__: "unauthorized";
+            unauthorized: null;
+        };
     }>;
     devReset(): Promise<void>;
     getAnalytics(): Promise<AnalyticsSummary>;
@@ -283,7 +291,13 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
-    updateMyProfile(displayName: string | null, avatarEmoji: string | null): Promise<UserProfilePublic>;
+    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null): Promise<{
+        __kind__: "ok";
+        ok: UserProfilePublic;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
 }
 import type { CheckIn as _CheckIn, CheckInId as _CheckInId, CheckInType as _CheckInType, ConnectionId as _ConnectionId, ConnectionPublic as _ConnectionPublic, ConnectionStatus as _ConnectionStatus, CreateGoalRequest as _CreateGoalRequest, FeedItem as _FeedItem, GoalId as _GoalId, GoalPublic as _GoalPublic, GoalState as _GoalState, Interaction as _Interaction, InteractionId as _InteractionId, InteractionType as _InteractionType, ObstacleTemplateId as _ObstacleTemplateId, RecordCheckInRequest as _RecordCheckInRequest, Timestamp as _Timestamp, UpdateGoalRequest as _UpdateGoalRequest, UserId as _UserId, UserProfilePublic as _UserProfilePublic, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -327,7 +341,16 @@ export class Backend implements backendInterface {
         ok: null;
     } | {
         __kind__: "err";
-        err: Variant_notFound_unauthorized;
+        err: {
+            __kind__: "sealed";
+            sealed: string;
+        } | {
+            __kind__: "notFound";
+            notFound: null;
+        } | {
+            __kind__: "unauthorized";
+            unauthorized: null;
+        };
     }> {
         if (this.processError) {
             try {
@@ -698,18 +721,24 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateMyProfile(arg0: string | null, arg1: string | null): Promise<UserProfilePublic> {
+    async updateMyProfile(arg0: string | null, arg1: string | null, arg2: string | null): Promise<{
+        __kind__: "ok";
+        ok: UserProfilePublic;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1));
-                return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg2));
+                return from_candid_variant_n49(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1));
-            return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg2));
+            return from_candid_variant_n49(this._uploadFile, this._downloadFile, result);
         }
     }
 }
@@ -799,6 +828,7 @@ function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }
 function from_candid_record_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: _UserId;
+    bio: [] | [string];
     timezone: string;
     username: string;
     displayName: string;
@@ -806,6 +836,7 @@ function from_candid_record_n20(_uploadFile: (file: ExternalBlob) => Promise<Uin
     avatarEmoji: string;
 }): {
     id: UserId;
+    bio?: string;
     timezone: string;
     username: string;
     displayName: string;
@@ -814,6 +845,7 @@ function from_candid_record_n20(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         id: value.id,
+        bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
         timezone: value.timezone,
         username: value.username,
         displayName: value.displayName,
@@ -936,6 +968,8 @@ function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Ui
     ok: null;
 } | {
     err: {
+        sealed: string;
+    } | {
         notFound: null;
     } | {
         unauthorized: null;
@@ -945,7 +979,16 @@ function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Ui
     ok: null;
 } | {
     __kind__: "err";
-    err: Variant_notFound_unauthorized;
+    err: {
+        __kind__: "sealed";
+        sealed: string;
+    } | {
+        __kind__: "notFound";
+        notFound: null;
+    } | {
+        __kind__: "unauthorized";
+        unauthorized: null;
+    };
 } {
     return "ok" in value ? {
         __kind__: "ok",
@@ -956,22 +999,44 @@ function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Ui
     } : value;
 }
 function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    sealed: string;
+} | {
     notFound: null;
 } | {
     unauthorized: null;
-}): Variant_notFound_unauthorized {
-    return "notFound" in value ? Variant_notFound_unauthorized.notFound : "unauthorized" in value ? Variant_notFound_unauthorized.unauthorized : value;
+}): {
+    __kind__: "sealed";
+    sealed: string;
+} | {
+    __kind__: "notFound";
+    notFound: null;
+} | {
+    __kind__: "unauthorized";
+    unauthorized: null;
+} {
+    return "sealed" in value ? {
+        __kind__: "sealed",
+        sealed: value.sealed
+    } : "notFound" in value ? {
+        __kind__: "notFound",
+        notFound: value.notFound
+    } : "unauthorized" in value ? {
+        __kind__: "unauthorized",
+        unauthorized: value.unauthorized
+    } : value;
 }
 function from_candid_variant_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    failedLockIn: null;
-} | {
     skip: null;
+} | {
+    missedCheckIn: null;
+} | {
+    missedCheckOut: null;
 } | {
     success: null;
 } | {
     inProgress: null;
 }): CheckInType {
-    return "failedLockIn" in value ? CheckInType.failedLockIn : "skip" in value ? CheckInType.skip : "success" in value ? CheckInType.success : "inProgress" in value ? CheckInType.inProgress : value;
+    return "skip" in value ? CheckInType.skip : "missedCheckIn" in value ? CheckInType.missedCheckIn : "missedCheckOut" in value ? CheckInType.missedCheckOut : "success" in value ? CheckInType.success : "inProgress" in value ? CheckInType.inProgress : value;
 }
 function from_candid_variant_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
@@ -1012,6 +1077,25 @@ function from_candid_variant_n43(_uploadFile: (file: ExternalBlob) => Promise<Ui
     highFive: null;
 }): InteractionType {
     return "highFive" in value ? InteractionType.highFive : value;
+}
+function from_candid_variant_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: _UserProfilePublic;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: UserProfilePublic;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, value.ok)
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
 }
 function from_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     active: null;
@@ -1097,6 +1181,7 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     };
 }
 function to_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    timezoneOffsetMinutes: bigint;
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
@@ -1105,6 +1190,7 @@ function to_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     lockInEndedAt?: bigint;
     customObstacleNote?: string;
 }): {
+    timezoneOffsetMinutes: bigint;
     goalId: _GoalId;
     checkInType: _CheckInType;
     obstacleTemplateId: [] | [_ObstacleTemplateId];
@@ -1114,6 +1200,7 @@ function to_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     customObstacleNote: [] | [string];
 } {
     return {
+        timezoneOffsetMinutes: value.timezoneOffsetMinutes,
         goalId: value.goalId,
         checkInType: to_candid_CheckInType_n36(_uploadFile, _downloadFile, value.checkInType),
         obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
@@ -1154,18 +1241,22 @@ function to_candid_record_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     };
 }
 function to_candid_variant_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CheckInType): {
-    failedLockIn: null;
-} | {
     skip: null;
+} | {
+    missedCheckIn: null;
+} | {
+    missedCheckOut: null;
 } | {
     success: null;
 } | {
     inProgress: null;
 } {
-    return value == CheckInType.failedLockIn ? {
-        failedLockIn: null
-    } : value == CheckInType.skip ? {
+    return value == CheckInType.skip ? {
         skip: null
+    } : value == CheckInType.missedCheckIn ? {
+        missedCheckIn: null
+    } : value == CheckInType.missedCheckOut ? {
+        missedCheckOut: null
     } : value == CheckInType.success ? {
         success: null
     } : value == CheckInType.inProgress ? {

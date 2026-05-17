@@ -25,9 +25,9 @@ mixin (
   public shared query ({ caller }) func getCheckInsForGoal(goalId : Common.GoalId) : async [CheckInTypes.CheckIn] {
     CheckInLib.getCheckInsForGoal(checkIns, goalId, caller);
   };
-  public shared ({ caller }) func deleteCheckIn(checkInId : Common.CheckInId) : async { #ok; #err : { #notFound; #unauthorized } } {
+  public shared ({ caller }) func deleteCheckIn(checkInId : Common.CheckInId) : async { #ok; #err : { #notFound; #unauthorized; #sealed : Text } } {
     if (caller.isAnonymous()) Runtime.trap("Anonymous callers cannot delete check-ins");
-    CheckInLib.deleteCheckIn(checkIns, checkInId, caller);
+    CheckInLib.deleteCheckIn(checkIns, goals, checkInId, caller);
   };
 
   public shared query ({ caller }) func getCheckInsForPeriod(goalId : Common.GoalId, fromTimestamp : Int, toTimestamp : Int) : async [CheckInTypes.CheckIn] {

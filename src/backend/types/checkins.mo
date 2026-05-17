@@ -22,5 +22,6 @@ module {
     lockInEndedAt : ?Int;
     executedIfThen : Bool;
     customObstacleNote : ?Text;
+    timezoneOffsetMinutes : Int;
   };
 };

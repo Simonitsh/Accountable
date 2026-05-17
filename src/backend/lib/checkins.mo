@@ -10,8 +10,9 @@ module {
   // 86400 seconds in nanoseconds
   let DAY_NS : Int = 86_400_000_000_000;
 
-  func sameDay(a : Common.Timestamp, b : Common.Timestamp) : Bool {
-    (a / DAY_NS) == (b / DAY_NS);
+  func sameDay(a : Common.Timestamp, b : Common.Timestamp, timezoneOffsetMinutes : Int) : Bool {
+    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
+    ((a + offsetNs) / DAY_NS) == ((b + offsetNs) / DAY_NS);
   };
 
   public func hasSameDayCheckIn(
@@ -19,9 +20,10 @@ module {
     goalId : Common.GoalId,
     caller : Common.UserId,
     now : Common.Timestamp,
+    timezoneOffsetMinutes : Int,
   ) : Bool {
     switch (checkIns.find(func(c) {
-      c.goalId == goalId and c.owner == caller and sameDay(c.timestamp, now)
+      c.goalId == goalId and c.owner == caller and sameDay(c.timestamp, now, timezoneOffsetMinutes)
     })) {
       case (?_) true;
       case null false;
@@ -44,58 +46,54 @@ module {
       };
     };
     let now = Time.now();
-    // One-per-day rule:
-    // For Lock-In goals: allow #inProgress AND #success (check-in + check-out) on the same day.
-    //   - Block a second #inProgress if one already exists today.
-    //   - Block #success if a #success already exists today (already checked out).
-    //   - Block #failedLockIn if any terminal record already exists today.
-    // For regular goals: block any duplicate on the same day.
+    // One-per-day rule for Lock-In goals:
+    //   - #inProgress: block if already started today
+    //   - #success:    block if already checked out today
+    //   - #missedCheckIn / #missedCheckOut: block if any terminal record already exists today;
+    //                  both require an obstacleTemplateId for analytics
     if (goal.isLockIn) {
       switch (request.checkInType) {
         case (#inProgress) {
-          // Block if already have an #inProgress today
           let alreadyStarted = checkIns.find(func(c) {
             c.goalId == request.goalId and c.owner == caller and
-            sameDay(c.timestamp, now) and c.checkInType == #inProgress
+            sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and c.checkInType == #inProgress
           }) != null;
           if (alreadyStarted) Runtime.trap("Lock-In already started today");
         };
         case (#success) {
-          // Block if already checked out today
           let alreadyDone = checkIns.find(func(c) {
             c.goalId == request.goalId and c.owner == caller and
-            sameDay(c.timestamp, now) and c.checkInType == #success
+            sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and c.checkInType == #success
           }) != null;
           if (alreadyDone) Runtime.trap("Lock-In already completed today");
         };
-        case (#failedLockIn) {
+        case (#missedCheckIn or #missedCheckOut) {
           // Block if any terminal record already exists today
           let alreadyTerminal = checkIns.find(func(c) {
             c.goalId == request.goalId and c.owner == caller and
-            sameDay(c.timestamp, now) and
-            (c.checkInType == #success or c.checkInType == #failedLockIn)
+            sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
+            (c.checkInType == #success or c.checkInType == #missedCheckIn or c.checkInType == #missedCheckOut)
           }) != null;
           if (alreadyTerminal) Runtime.trap("Lock-In already finalized today");
-          // #failedLockIn requires obstacle linkage for analytics
+          // Both missed variants require obstacle linkage for analytics
           switch (request.obstacleTemplateId) {
-            case null Runtime.trap("Failed Lock-In requires an obstacle template for analytics");
+            case null Runtime.trap("Missed Lock-In requires an obstacle template for analytics");
             case (?_) {};
           };
         };
         case (#skip) {
-          // Skip on a Lock-In goal is treated like a regular skip — requires obstacle
           switch (request.obstacleTemplateId) {
             case null Runtime.trap("Skip check-in requires an obstacle template");
             case (?_) {};
           };
-          if (hasSameDayCheckIn(checkIns, request.goalId, caller, now)) {
+          if (hasSameDayCheckIn(checkIns, request.goalId, caller, now, request.timezoneOffsetMinutes)) {
             Runtime.trap("Already checked in for this goal today");
           };
         };
       };
     } else {
       // Regular goal: strict one-per-day
-      if (hasSameDayCheckIn(checkIns, request.goalId, caller, now)) {
+      if (hasSameDayCheckIn(checkIns, request.goalId, caller, now, request.timezoneOffsetMinutes)) {
         Runtime.trap("Already checked in for this goal today");
       };
       // Skip requires obstacle linkage
@@ -106,7 +104,7 @@ module {
             case (?_) {};
           };
         };
-        case (#success or #inProgress or #failedLockIn) {};
+        case (#success or #inProgress or #missedCheckIn or #missedCheckOut) {};
       };
     };
     // Validate customObstacleNote length
@@ -149,13 +147,27 @@ module {
 
   public func deleteCheckIn(
     checkIns : List.List<CheckInTypes.CheckIn>,
+    goals : List.List<GoalTypes.Goal>,
     checkInId : Common.CheckInId,
     caller : Common.UserId,
-  ) : { #ok; #err : { #notFound; #unauthorized } } {
+  ) : { #ok; #err : { #notFound; #unauthorized; #sealed : Text } } {
     switch (checkIns.find(func(c) { c.id == checkInId })) {
       case null #err(#notFound);
       case (?c) {
         if (c.owner != caller) return #err(#unauthorized);
+        // All terminal Lock-In states are permanently sealed — no undo.
+        // Covers: #success, #missedCheckIn, #missedCheckOut
+        let isTerminalLockIn = c.checkInType == #success or
+          c.checkInType == #missedCheckIn or
+          c.checkInType == #missedCheckOut;
+        if (isTerminalLockIn) {
+          switch (goals.find(func(g) { g.id == c.goalId })) {
+            case (?g) {
+              if (g.isLockIn) return #err(#sealed("Sealed: Lock-In sessions cannot be undone."));
+            };
+            case null {};
+          };
+        };
         checkIns.retain(func(c) { c.id != checkInId });
         #ok;
       };

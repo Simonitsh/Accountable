@@ -19,6 +19,7 @@ export interface UpdateGoalRequest {
 }
 export type Timestamp = bigint;
 export interface RecordCheckInRequest {
+    timezoneOffsetMinutes: bigint;
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
@@ -74,6 +75,7 @@ export interface GoalPublic {
 }
 export interface UserProfilePublic {
     id: UserId;
+    bio?: string;
     timezone: string;
     username: string;
     displayName: string;
@@ -127,8 +129,9 @@ export interface Interaction {
 }
 export type GoalId = bigint;
 export enum CheckInType {
-    failedLockIn = "failedLockIn",
     skip = "skip",
+    missedCheckIn = "missedCheckIn",
+    missedCheckOut = "missedCheckOut",
     success = "success",
     inProgress = "inProgress"
 }
@@ -150,10 +153,6 @@ export enum UserRole {
     admin = "admin",
     user = "user"
 }
-export enum Variant_notFound_unauthorized {
-    notFound = "notFound",
-    unauthorized = "unauthorized"
-}
 export interface backendInterface {
     createGoal(request: CreateGoalRequest): Promise<{
         __kind__: "ok";
@@ -168,7 +167,16 @@ export interface backendInterface {
         ok: null;
     } | {
         __kind__: "err";
-        err: Variant_notFound_unauthorized;
+        err: {
+            __kind__: "sealed";
+            sealed: string;
+        } | {
+            __kind__: "notFound";
+            notFound: null;
+        } | {
+            __kind__: "unauthorized";
+            unauthorized: null;
+        };
     }>;
     devReset(): Promise<void>;
     getAnalytics(): Promise<AnalyticsSummary>;
@@ -201,5 +209,11 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
-    updateMyProfile(displayName: string | null, avatarEmoji: string | null): Promise<UserProfilePublic>;
+    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null): Promise<{
+        __kind__: "ok";
+        ok: UserProfilePublic;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
 }

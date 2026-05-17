@@ -32829,8 +32829,9 @@ const AnalyticsSummary = Record({
   "dailySuccessRate30Days": Vec(Float64)
 });
 const CheckInType$1 = Variant({
-  "failedLockIn": Null,
   "skip": Null,
+  "missedCheckIn": Null,
+  "missedCheckOut": Null,
   "success": Null,
   "inProgress": Null
 });
@@ -32849,6 +32850,7 @@ const CheckIn = Record({
 const UserRole$1 = Variant({ "admin": Null, "user": Null });
 const UserProfilePublic = Record({
   "id": UserId,
+  "bio": Opt(Text$1),
   "timezone": Text$1,
   "username": Text$1,
   "displayName": Text$1,
@@ -32875,6 +32877,7 @@ const ConnectionPublic = Record({
   "fromPrincipal": UserId
 });
 const RecordCheckInRequest = Record({
+  "timezoneOffsetMinutes": Int,
   "goalId": GoalId,
   "checkInType": CheckInType$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
@@ -32919,6 +32922,7 @@ Service({
       Variant({
         "ok": Null,
         "err": Variant({
+          "sealed": Text$1,
           "notFound": Null,
           "unauthorized": Null
         })
@@ -32976,8 +32980,8 @@ Service({
   ),
   "updateGoalState": Func([GoalId, GoalState$1], [Bool], []),
   "updateMyProfile": Func(
-    [Opt(Text$1), Opt(Text$1)],
-    [UserProfilePublic],
+    [Opt(Text$1), Opt(Text$1), Opt(Text$1)],
+    [Variant({ "ok": UserProfilePublic, "err": Text$1 })],
     []
   )
 });
@@ -33047,8 +33051,9 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "dailySuccessRate30Days": IDL2.Vec(IDL2.Float64)
   });
   const CheckInType2 = IDL2.Variant({
-    "failedLockIn": IDL2.Null,
     "skip": IDL2.Null,
+    "missedCheckIn": IDL2.Null,
+    "missedCheckOut": IDL2.Null,
     "success": IDL2.Null,
     "inProgress": IDL2.Null
   });
@@ -33067,6 +33072,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const UserRole2 = IDL2.Variant({ "admin": IDL2.Null, "user": IDL2.Null });
   const UserProfilePublic2 = IDL2.Record({
     "id": UserId2,
+    "bio": IDL2.Opt(IDL2.Text),
     "timezone": IDL2.Text,
     "username": IDL2.Text,
     "displayName": IDL2.Text,
@@ -33093,6 +33099,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "fromPrincipal": UserId2
   });
   const RecordCheckInRequest2 = IDL2.Record({
+    "timezoneOffsetMinutes": IDL2.Int,
     "goalId": GoalId2,
     "checkInType": CheckInType2,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
@@ -33137,6 +33144,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
         IDL2.Variant({
           "ok": IDL2.Null,
           "err": IDL2.Variant({
+            "sealed": IDL2.Text,
             "notFound": IDL2.Null,
             "unauthorized": IDL2.Null
           })
@@ -33198,8 +33206,8 @@ const idlFactory = ({ IDL: IDL2 }) => {
     ),
     "updateGoalState": IDL2.Func([GoalId2, GoalState2], [IDL2.Bool], []),
     "updateMyProfile": IDL2.Func(
-      [IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text)],
-      [UserProfilePublic2],
+      [IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text)],
+      [IDL2.Variant({ "ok": UserProfilePublic2, "err": IDL2.Text })],
       []
     )
   });
@@ -33254,8 +33262,9 @@ class ExternalBlob2 {
   }
 }
 var CheckInType = /* @__PURE__ */ ((CheckInType2) => {
-  CheckInType2["failedLockIn"] = "failedLockIn";
   CheckInType2["skip"] = "skip";
+  CheckInType2["missedCheckIn"] = "missedCheckIn";
+  CheckInType2["missedCheckOut"] = "missedCheckOut";
   CheckInType2["success"] = "success";
   CheckInType2["inProgress"] = "inProgress";
   return CheckInType2;
@@ -33282,11 +33291,6 @@ var UserRole = /* @__PURE__ */ ((UserRole2) => {
   UserRole2["user"] = "user";
   return UserRole2;
 })(UserRole || {});
-var Variant_notFound_unauthorized = /* @__PURE__ */ ((Variant_notFound_unauthorized2) => {
-  Variant_notFound_unauthorized2["notFound"] = "notFound";
-  Variant_notFound_unauthorized2["unauthorized"] = "unauthorized";
-  return Variant_notFound_unauthorized2;
-})(Variant_notFound_unauthorized || {});
 class Backend {
   constructor(actor, _uploadFile, _downloadFile, processError2) {
     this.actor = actor;
@@ -33686,18 +33690,18 @@ class Backend {
       return result;
     }
   }
-  async updateMyProfile(arg0, arg1) {
+  async updateMyProfile(arg0, arg1, arg2) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg2));
+        return from_candid_variant_n49(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg2));
+      return from_candid_variant_n49(this._uploadFile, this._downloadFile, result);
     }
   }
 }
@@ -33766,6 +33770,7 @@ function from_candid_record_n14(_uploadFile, _downloadFile, value) {
 function from_candid_record_n20(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
+    bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
     timezone: value.timezone,
     username: value.username,
     displayName: value.displayName,
@@ -33828,10 +33833,19 @@ function from_candid_variant_n10(_uploadFile, _downloadFile, value) {
   } : value;
 }
 function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
-  return "notFound" in value ? "notFound" : "unauthorized" in value ? "unauthorized" : value;
+  return "sealed" in value ? {
+    __kind__: "sealed",
+    sealed: value.sealed
+  } : "notFound" in value ? {
+    __kind__: "notFound",
+    notFound: value.notFound
+  } : "unauthorized" in value ? {
+    __kind__: "unauthorized",
+    unauthorized: value.unauthorized
+  } : value;
 }
 function from_candid_variant_n16(_uploadFile, _downloadFile, value) {
-  return "failedLockIn" in value ? "failedLockIn" : "skip" in value ? "skip" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
+  return "skip" in value ? "skip" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
 function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
   return "admin" in value ? "admin" : "user" in value ? "user" : value;
@@ -33850,6 +33864,15 @@ function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
 }
 function from_candid_variant_n43(_uploadFile, _downloadFile, value) {
   return "highFive" in value ? "highFive" : value;
+}
+function from_candid_variant_n49(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, value.ok)
+  } : "err" in value ? {
+    __kind__: "err",
+    err: value.err
+  } : value;
 }
 function from_candid_variant_n8(_uploadFile, _downloadFile, value) {
   return "active" in value ? "active" : "completed" in value ? "completed" : "abandoned" in value ? "abandoned" : "paused" in value ? "paused" : value;
@@ -33906,6 +33929,7 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
 }
 function to_candid_record_n35(_uploadFile, _downloadFile, value) {
   return {
+    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     goalId: value.goalId,
     checkInType: to_candid_CheckInType_n36(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
@@ -33928,10 +33952,12 @@ function to_candid_record_n45(_uploadFile, _downloadFile, value) {
   };
 }
 function to_candid_variant_n37(_uploadFile, _downloadFile, value) {
-  return value == "failedLockIn" ? {
-    failedLockIn: null
-  } : value == "skip" ? {
+  return value == "skip" ? {
     skip: null
+  } : value == "missedCheckIn" ? {
+    missedCheckIn: null
+  } : value == "missedCheckOut" ? {
+    missedCheckOut: null
   } : value == "success" ? {
     success: null
   } : value == "inProgress" ? {
@@ -33977,7 +34003,6 @@ const backend = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePrope
   GoalState,
   InteractionType,
   UserRole,
-  Variant_notFound_unauthorized,
   createActor
 }, Symbol.toStringTag, { value: "Module" }));
 function useBackend() {
@@ -34002,13 +34027,9 @@ function useUserProfile() {
         return null;
       }
     },
-    // Only fire when BOTH auth has settled AND the canister actor is ready.
-    // This is the critical fix: prevents premature firing that caused the loop.
     enabled: isAuthenticated && actorReady,
     staleTime: 0,
     refetchOnMount: true,
-    // Safety net: if the first fetch returned null (new user, not yet registered),
-    // retry every 500ms — but stop after MAX_RETRIES to prevent infinite polling.
     refetchInterval: (query2) => {
       if (query2.state.data) {
         retryCount.current = 0;
@@ -34046,6 +34067,23 @@ function useUserProfile() {
     timezoneMutateRef.current(detected);
   }, [query.data]);
   return query;
+}
+function useUpdateBio() {
+  const { actor } = useBackend();
+  const queryClient2 = useQueryClient();
+  return useMutation({
+    mutationFn: async (bio) => {
+      if (!actor) throw new Error("Actor not available");
+      const bioArg = bio.trim().length > 0 ? bio.trim() : null;
+      const result = await actor.updateMyProfile(null, null, bioArg);
+      if (result.__kind__ === "err") throw new Error(result.err);
+      return result.ok;
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
+      queryClient2.refetchQueries({ queryKey: ["userProfile"] });
+    }
+  });
 }
 function r(e3) {
   var t2, f2, n2 = "";
@@ -36627,37 +36665,45 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$E = [
+const __iconNode$F = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$E);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$F);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$D = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$D);
+const __iconNode$E = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$E);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$C = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$C);
+const __iconNode$D = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$B = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$B);
+const __iconNode$C = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$C);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$B = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$B);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36707,17 +36753,6 @@ const Clock = createLucideIcon("clock", __iconNode$x);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$w = [
-  ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
-  ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
-];
-const Copy = createLucideIcon("copy", __iconNode$w);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$v = [
   [
     "path",
     {
@@ -36726,7 +36761,19 @@ const __iconNode$v = [
     }
   ]
 ];
-const Flame = createLucideIcon("flame", __iconNode$v);
+const Flame = createLucideIcon("flame", __iconNode$w);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$v = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", key: "13o1zl" }],
+  ["path", { d: "M2 12h20", key: "9i4pu4" }]
+];
+const Globe = createLucideIcon("globe", __iconNode$v);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -68950,6 +68997,38 @@ reactExports.forwardRef(function(e3, t2) {
     })) : null;
   }));
 });
+const OBSTACLE_TEMPLATES = [
+  {
+    id: "low_energy",
+    label: "Low Energy",
+    description: "I feel tired or lack motivation"
+  },
+  {
+    id: "time_crunch",
+    label: "Time Crunch",
+    description: "I ran out of time or had competing priorities"
+  },
+  {
+    id: "distraction",
+    label: "Distraction",
+    description: "I got pulled away by distractions"
+  },
+  {
+    id: "social_pressure",
+    label: "Social Pressure",
+    description: "External demands took over"
+  },
+  {
+    id: "environment",
+    label: "Environment",
+    description: "My environment wasn't set up for success"
+  },
+  {
+    id: "health",
+    label: "Health",
+    description: "Physical or mental health issues got in the way"
+  }
+];
 const GOAL_ICONS = [
   {
     id: "target",
@@ -69230,55 +69309,29 @@ const GOAL_ICONS = [
 function getGoalIcon(iconId) {
   return GOAL_ICONS.find((i) => i.id === iconId) ?? GOAL_ICONS[0];
 }
-const OBSTACLE_TEMPLATES = [
-  {
-    id: "low_energy",
-    label: "Low Energy",
-    description: "I feel tired or lack motivation"
-  },
-  {
-    id: "time_crunch",
-    label: "Time Crunch",
-    description: "I ran out of time or had competing priorities"
-  },
-  {
-    id: "distraction",
-    label: "Distraction",
-    description: "I got pulled away by distractions"
-  },
-  {
-    id: "social_pressure",
-    label: "Social Pressure",
-    description: "External demands took over"
-  },
-  {
-    id: "environment",
-    label: "Environment",
-    description: "My environment wasn't set up for success"
-  },
-  {
-    id: "health",
-    label: "Health",
-    description: "Physical or mental health issues got in the way"
-  }
-];
-const MISSED_COLOR$2 = "#6B7280";
+const OCEAN_BLUE = "#0369A1";
+const NOTE_MAX$1 = 140;
 function MissedWindowSheet({
   goal,
   open,
   onClose,
   onConfirm,
-  isLoading = false
+  isLoading = false,
+  failureType = "missed-start"
 }) {
   const [selectedIndex, setSelectedIndex] = reactExports.useState(0);
-  const selectedObstacle = OBSTACLE_TEMPLATES[selectedIndex];
+  const [customNote, setCustomNote] = reactExports.useState("");
+  const [noteFocused, setNoteFocused] = reactExports.useState(false);
   function handleClose() {
     setSelectedIndex(0);
+    setCustomNote("");
     onClose();
   }
   function handleConfirm() {
-    onConfirm(BigInt(selectedIndex));
+    const trimmedNote = customNote.trim();
+    onConfirm(BigInt(selectedIndex), trimmedNote || void 0);
     setSelectedIndex(0);
+    setCustomNote("");
     onClose();
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -69320,19 +69373,19 @@ function MissedWindowSheet({
                   TriangleAlert,
                   {
                     className: "w-4 h-4",
-                    style: { color: MISSED_COLOR$2 }
+                    style: { color: OCEAN_BLUE }
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "span",
                   {
                     className: "text-xs font-mono uppercase tracking-widest",
-                    style: { color: MISSED_COLOR$2 },
-                    children: "Missed Window"
+                    style: { color: OCEAN_BLUE },
+                    children: failureType === "missed-checkout" ? "Missed Check-Out Window" : "Missed Start Window"
                   }
                 )
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-lg text-foreground leading-tight", children: "You missed your time window" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-lg text-foreground leading-tight", children: failureType === "missed-checkout" ? "You missed the check-out window" : "You missed the start window" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1", children: goal.wishDescription || goal.wish })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -69359,12 +69412,12 @@ function MissedWindowSheet({
                   "data-selected": idx === selectedIndex ? "true" : void 0,
                   className: [
                     "rounded-xl p-3 text-left transition-smooth border",
-                    isSelected ? "border-transparent" : "bg-muted/40 border-border text-muted-foreground hover:bg-muted"
+                    isSelected ? "border-transparent" : "border-[rgba(3,105,161,0.45)] text-foreground/80 hover:bg-[rgba(3,105,161,0.1)] hover:text-foreground"
                   ].join(" "),
                   style: isSelected ? {
-                    backgroundColor: "rgba(107,114,128,0.12)",
-                    borderColor: "rgba(107,114,128,0.4)",
-                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.05)"
+                    backgroundColor: "rgba(3,105,161,0.15)",
+                    borderColor: "rgba(3,105,161,0.55)",
+                    boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.35), inset 0 0 8px rgba(3,105,161,0.25), inset -1px -1px 3px rgba(255,255,255,0.05)"
                   } : void 0,
                   "data-ocid": `missed_window_sheet.obstacle.${obstacle.id}`,
                   children: [
@@ -69372,7 +69425,7 @@ function MissedWindowSheet({
                       "p",
                       {
                         className: "text-sm font-display font-medium leading-tight",
-                        style: isSelected ? { color: MISSED_COLOR$2 } : void 0,
+                        style: isSelected ? { color: OCEAN_BLUE } : void 0,
                         children: obstacle.label
                       }
                     ),
@@ -69382,10 +69435,55 @@ function MissedWindowSheet({
                 obstacle.id
               );
             }) }),
-            selectedObstacle && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground italic mb-4 px-1", children: [
-              '"',
-              selectedObstacle.description,
-              '"'
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "label",
+                {
+                  htmlFor: "missed-custom-note",
+                  className: "block text-xs text-muted-foreground uppercase tracking-wider font-mono mb-2",
+                  children: [
+                    "What got in the way today?",
+                    " ",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "normal-case", children: "(Optional)" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "textarea",
+                  {
+                    id: "missed-custom-note",
+                    "data-ocid": "missed_window_sheet.custom_note_textarea",
+                    rows: 2,
+                    maxLength: NOTE_MAX$1,
+                    value: customNote,
+                    onChange: (e3) => setCustomNote(e3.target.value),
+                    onFocus: () => setNoteFocused(true),
+                    onBlur: () => setNoteFocused(false),
+                    placeholder: "Write a specific reason for today… (optional)",
+                    className: "w-full resize-none rounded-xl px-3 py-2.5 text-sm font-body text-foreground placeholder:text-muted-foreground/50 outline-none transition-smooth",
+                    style: {
+                      background: "oklch(var(--muted) / 0.35)",
+                      border: noteFocused ? "1px solid rgba(3,105,161,0.6)" : "1px solid oklch(var(--border))",
+                      boxShadow: noteFocused ? "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.04), 0 0 8px rgba(3,105,161,0.15)" : "inset 1px 1px 4px rgba(0,0,0,0.3)"
+                    }
+                  }
+                ),
+                (noteFocused || customNote.length > 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "span",
+                  {
+                    className: "absolute bottom-2 right-3 text-xs font-mono pointer-events-none",
+                    style: {
+                      color: customNote.length >= NOTE_MAX$1 ? "#ef4444" : "oklch(var(--muted-foreground) / 0.6)"
+                    },
+                    children: [
+                      customNote.length,
+                      "/",
+                      NOTE_MAX$1
+                    ]
+                  }
+                )
+              ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -69407,9 +69505,10 @@ function MissedWindowSheet({
                   disabled: isLoading,
                   onClick: handleConfirm,
                   style: {
-                    backgroundColor: "rgba(107,114,128,0.15)",
-                    color: MISSED_COLOR$2,
-                    border: "1px solid rgba(107,114,128,0.35)"
+                    backgroundColor: "rgba(3,105,161,0.18)",
+                    color: OCEAN_BLUE,
+                    border: "1px solid rgba(3,105,161,0.6)",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 0 12px rgba(3,105,161,0.2)"
                   },
                   "data-ocid": "missed_window_sheet.confirm_button",
                   children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin inline-block" }) : "Log Missed"
@@ -69716,7 +69815,7 @@ function WoopCatchSheet({
               {
                 className: "font-display text-xl font-bold leading-snug mb-1",
                 style: { color: "oklch(var(--foreground))" },
-                children: "Wait! Your backup plan is:"
+                children: "Wait! Your If-Then plan is:"
               }
             ),
             planText ? /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -69811,21 +69910,27 @@ function parseTimeToday(timeStr) {
   d2.setHours(h2, m2, 0, 0);
   return d2;
 }
-function getLockInState(startTime, endTime, todayCheckIn) {
+function getLockInState(startTime, endTime, todayCheckIn, createdAt) {
   const now2 = Date.now();
   const start = parseTimeToday(startTime).getTime();
   const end = parseTimeToday(endTime).getTime();
   const WINDOW = 5 * 60 * 1e3;
   if ((todayCheckIn == null ? void 0 : todayCheckIn.type) === "success") return "completed";
-  if ((todayCheckIn == null ? void 0 : todayCheckIn.type) === "failedLockIn") return "failed-finalized";
+  if ((todayCheckIn == null ? void 0 : todayCheckIn.type) === "missedCheckIn" || (todayCheckIn == null ? void 0 : todayCheckIn.type) === "missedCheckOut")
+    return "failed-finalized";
   if ((todayCheckIn == null ? void 0 : todayCheckIn.type) === "inProgress") {
     if (Math.abs(now2 - end) <= WINDOW) return "end-window";
-    if (now2 > end + WINDOW) return "missed";
+    if (now2 > end + WINDOW) return "missed-checkout";
     return "in-progress";
   }
   if (Math.abs(now2 - start) <= WINDOW) return "start-window";
   if (now2 < start - WINDOW) return "waiting";
-  return "missed";
+  if (createdAt !== void 0) {
+    const createdDate = new Date(Number(createdAt / 1000000n)).toDateString();
+    const todayDate = (/* @__PURE__ */ new Date()).toDateString();
+    if (createdDate === todayDate) return "waiting";
+  }
+  return "missed-start";
 }
 function formatTime12h$1(timeStr) {
   const [h2, m2] = timeStr.split(":").map(Number);
@@ -69854,38 +69959,38 @@ function useLockInTimer(isLockIn, startTime, endTime, lockInTodayCheckIn) {
   const startWindowEnd = startMs + WINDOW_MS;
   const endWindowEnd = endMs + WINDOW_MS;
   function fmtCountdown(ms) {
-    const totalSec = Math.max(0, Math.floor(ms / 1e3));
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    const s2 = Math.max(0, Math.floor(ms / 1e3));
+    if (s2 >= 3600) {
+      const h2 = Math.floor(s2 / 3600);
+      const mn = Math.floor(s2 % 3600 / 60);
+      const sec = s2 % 60;
+      return `${String(h2).padStart(2, "0")}:${String(mn).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    }
+    return `${String(Math.floor(s2 / 60)).padStart(2, "0")}:${String(s2 % 60).padStart(2, "0")}`;
   }
   function fmtRemaining(ms) {
-    const totalMin = Math.max(0, Math.floor(ms / 6e4));
-    if (totalMin >= 60) {
-      const h2 = Math.floor(totalMin / 60);
-      const m2 = totalMin % 60;
-      return m2 > 0 ? `${h2}h ${m2}m` : `${h2}h`;
+    const s2 = Math.max(0, Math.floor(ms / 1e3));
+    if (s2 >= 3600) {
+      const h2 = Math.floor(s2 / 3600);
+      const mn = Math.floor(s2 % 3600 / 60);
+      const sec = s2 % 60;
+      return `${String(h2).padStart(2, "0")}:${String(mn).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     }
-    return `${totalMin}m`;
+    return `${String(Math.floor(s2 / 60)).padStart(2, "0")}:${String(s2 % 60).padStart(2, "0")}`;
   }
   const checkInType = lockInTodayCheckIn == null ? void 0 : lockInTodayCheckIn.type;
   if (!checkInType && Math.abs(now2 - startMs) <= WINDOW_MS) {
     return {
       state: "start-window",
-      text: `⏱️ Check-In Window Closes in ${fmtCountdown(startWindowEnd - now2)}`,
+      text: `WINDOW: ${fmtCountdown(startWindowEnd - now2)}`,
       color: "#F97316",
       pulse: true
     };
   }
   if (!checkInType && now2 < startMs - WINDOW_MS) {
-    const minsUntilWindow = Math.max(
-      0,
-      Math.floor((startMs - WINDOW_MS - now2) / 6e4)
-    );
-    const display = minsUntilWindow >= 60 ? `${Math.floor(minsUntilWindow / 60)}h ${minsUntilWindow % 60}m` : `${minsUntilWindow}m`;
     return {
       state: "upcoming",
-      text: `⏳ Starts in ${display}`,
+      text: `STARTS IN ${fmtCountdown(startMs - WINDOW_MS - now2)}`,
       color: "#9CA3AF",
       pulse: false
     };
@@ -69893,7 +69998,7 @@ function useLockInTimer(isLockIn, startTime, endTime, lockInTodayCheckIn) {
   if (checkInType === "inProgress" && Math.abs(now2 - endMs) <= WINDOW_MS) {
     return {
       state: "end-window",
-      text: `⏱️ Check-Out Window Closes in ${fmtCountdown(endWindowEnd - now2)}`,
+      text: `WINDOW: ${fmtCountdown(endWindowEnd - now2)}`,
       color: "#F97316",
       pulse: true
     };
@@ -69901,12 +70006,62 @@ function useLockInTimer(isLockIn, startTime, endTime, lockInTodayCheckIn) {
   if (checkInType === "inProgress") {
     return {
       state: "in-progress",
-      text: `🧠 ${fmtRemaining(endMs - now2)} remaining`,
-      color: "#10B981",
+      text: `REMAINING ${fmtRemaining(endMs - now2)}`,
+      color: "#F59E0B",
       pulse: false
     };
   }
   return null;
+}
+function JustificationBox({
+  failureType,
+  obstacleTemplateId,
+  customObstacleNote
+}) {
+  var _a3;
+  const obstacleLabel2 = obstacleTemplateId !== void 0 ? ((_a3 = OBSTACLE_TEMPLATES[Number(obstacleTemplateId)]) == null ? void 0 : _a3.label) ?? "Custom reason" : void 0;
+  const badgeLabel = failureType === "missedCheckIn" ? "Missed Start" : "Missed Check-Out";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: "rounded-lg p-3 mt-3",
+      style: {
+        background: "#1a1f2e",
+        border: "1px solid rgba(71,85,105,0.4)",
+        boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.03)"
+      },
+      "data-ocid": "goal.justification_box",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "span",
+            {
+              className: "text-xs rounded-full px-2 py-0.5 font-mono",
+              style: {
+                background: "rgba(71,85,105,0.45)",
+                color: "#94a3b8",
+                fontSize: "0.65rem"
+              },
+              children: badgeLabel
+            }
+          ),
+          obstacleLabel2 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm", style: { color: "#cbd5e1" }, children: obstacleLabel2 })
+        ] }),
+        customObstacleNote && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "p",
+          {
+            className: "text-xs italic",
+            style: { color: "#94a3b8", marginTop: "0.25rem" },
+            children: [
+              "“",
+              customObstacleNote,
+              "”"
+            ]
+          }
+        )
+      ]
+    }
+  );
 }
 function GoalCard({
   goal,
@@ -69938,7 +70093,15 @@ function GoalCard({
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
   const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
-  const lockInState = isLockIn && lockInStartTime && lockInEndTime && mode === "active" ? getLockInState(lockInStartTime, lockInEndTime, lockInTodayCheckIn) : null;
+  const [isTapped, setIsTapped] = reactExports.useState(false);
+  const autoMissedTriggeredRef = reactExports.useRef(false);
+  const exitCommittedRef = reactExports.useRef(false);
+  const lockInState = isLockIn && lockInStartTime != null && lockInStartTime !== "" && lockInEndTime != null && lockInEndTime !== "" && mode === "active" ? getLockInState(
+    lockInStartTime,
+    lockInEndTime,
+    lockInTodayCheckIn,
+    goal.createdAt
+  ) : null;
   const lockInTimer = useLockInTimer(
     isLockIn && mode === "active",
     lockInStartTime,
@@ -69946,6 +70109,21 @@ function GoalCard({
     lockInTodayCheckIn
   );
   const lockInSwipeDisabled = lockInState !== null && lockInState !== "start-window" && lockInState !== "end-window";
+  const currentFailureType = lockInState === "missed-checkout" ? "missed-checkout" : "missed-start";
+  reactExports.useEffect(() => {
+    if (exitCommittedRef.current) return;
+    if (lockInState === "missed-start" || lockInState === "missed-checkout") {
+      if (!autoMissedTriggeredRef.current) {
+        autoMissedTriggeredRef.current = true;
+        const t2 = setTimeout(() => {
+          if (!exitCommittedRef.current) setShowMissedSheet(true);
+        }, 550);
+        return () => clearTimeout(t2);
+      }
+    } else {
+      autoMissedTriggeredRef.current = false;
+    }
+  }, [lockInState]);
   const [dragX, setDragX] = reactExports.useState(0);
   const [isDragging2, setIsDragging] = reactExports.useState(false);
   const dragDirection = dragX > 0 ? "right" : dragX < 0 ? "left" : null;
@@ -69957,12 +70135,16 @@ function GoalCard({
   const isHorizontalSwipe = reactExports.useRef(false);
   const dragXRef = reactExports.useRef(0);
   const modalOpenedDuringGestureRef = reactExports.useRef(false);
+  const isVerticalScrollRef = reactExports.useRef(false);
   const isSuccess = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success";
   const isSkipped = (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
-  const isFailedLockIn = (checkInToday == null ? void 0 : checkInToday.checkInType) === "failedLockIn";
+  const isMissedCheckIn = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn";
+  const isMissedCheckOut = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut";
+  const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
   const goalIcon = getGoalIcon(goal.iconName);
   const themeColor = goal.themeColor;
-  const keystoneText = goal.wishDescription || goal.wish;
+  const rawWishDescription = goal.wishDescription || goal.wish;
+  const keystoneText = rawWishDescription.startsWith("Every day, I will ") ? `I will ${rawWishDescription.slice("Every day, I will ".length)}` : rawWishDescription.startsWith("Every day ,") ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}` : rawWishDescription;
   const cardBgIdle = themeColor ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))` : "oklch(var(--card))";
   function getCardStyle() {
     const embossed = isDarkMode ? "-5px -5px 14px rgba(70,70,80,0.55), 8px 8px 20px rgba(0,0,0,0.9)" : "-5px -5px 14px rgba(90,90,100,0.6), 8px 8px 20px rgba(0,0,0,0.75)";
@@ -70001,12 +70183,21 @@ function GoalCard({
         cursor: "pointer"
       };
     }
-    if (lockInState === "missed" || lockInState === "failed-finalized") {
+    if (lockInState === "missed-start" || lockInState === "missed-checkout") {
+      return {
+        background: `color-mix(in srgb, rgba(245,158,11,0.06) 100%, ${cardBgIdle})`,
+        boxShadow: embossed,
+        border: "1px solid rgba(245,158,11,0.5)",
+        opacity: 0.9,
+        cursor: "pointer"
+      };
+    }
+    if (lockInState === "failed-finalized") {
       return {
         background: cardBgIdle,
         boxShadow: embossed,
         border: `1px solid ${MISSED_COLOR$1}`,
-        opacity: 0.75,
+        opacity: 0.65,
         cursor: "pointer"
       };
     }
@@ -70014,8 +70205,8 @@ function GoalCard({
       return {
         background: cardBgIdle,
         boxShadow: embossed,
-        borderTop: `2px solid ${SUCCESS_COLOR$2}`,
-        borderLeft: `2px solid ${SUCCESS_COLOR$2}`,
+        borderTop: "2px solid #F59E0B",
+        borderLeft: "2px solid #F59E0B",
         borderRight: litBorder,
         borderBottom: litBorder
       };
@@ -70023,9 +70214,9 @@ function GoalCard({
     if (lockInState === "start-window" || lockInState === "end-window") {
       return {
         background: cardBgIdle,
-        boxShadow: `${embossed}, 0 0 12px rgba(16,185,129,0.2)`,
+        boxShadow: `${embossed}, 0 0 12px rgba(245,158,11,0.2)`,
         borderTop: litBorder,
-        borderLeft: "4px solid transparent",
+        borderLeft: "4px solid #F59E0B",
         borderRight: "none",
         borderBottom: "none"
       };
@@ -70058,6 +70249,7 @@ function GoalCard({
   }
   function onPointerDown(e3) {
     modalOpenedDuringGestureRef.current = false;
+    isVerticalScrollRef.current = false;
     if (mode === "done") {
       isPointerDown.current = true;
       pointerStartX.current = e3.clientX;
@@ -70067,19 +70259,12 @@ function GoalCard({
     }
     if (mode !== "active" || isExiting) return;
     if (lockInSwipeDisabled) {
-      e3.currentTarget.setPointerCapture(e3.pointerId);
       isPointerDown.current = true;
       pointerStartX.current = e3.clientX;
       pointerStartY.current = e3.clientY;
       dragXRef.current = 0;
-      if (lockInState === "missed" || lockInState === "failed-finalized") {
-        modalOpenedDuringGestureRef.current = true;
-        setShowMissedSheet(true);
-        onMissedWindowTap == null ? void 0 : onMissedWindowTap(goal.id);
-      }
       return;
     }
-    e3.currentTarget.setPointerCapture(e3.pointerId);
     isPointerDown.current = true;
     isHorizontalSwipe.current = false;
     pointerStartX.current = e3.clientX;
@@ -70090,22 +70275,38 @@ function GoalCard({
   }
   function onPointerMove(e3) {
     if (!isPointerDown.current) return;
+    if (isVerticalScrollRef.current) return;
     if (mode !== "active" || isExiting || lockInSwipeDisabled) {
       dragXRef.current = e3.clientX - pointerStartX.current;
       return;
     }
-    e3.preventDefault();
     const dx = e3.clientX - pointerStartX.current;
     const dy = e3.clientY - pointerStartY.current;
-    if (!isHorizontalSwipe.current && Math.abs(dx) > 6) {
-      if (Math.abs(dy) > Math.abs(dx)) {
-        isPointerDown.current = false;
-        return;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (!isHorizontalSwipe.current) {
+      if (dist > 5) {
+        if (Math.abs(dy) > Math.abs(dx)) {
+          isVerticalScrollRef.current = true;
+          isPointerDown.current = false;
+          dragXRef.current = 0;
+          try {
+            e3.currentTarget.releasePointerCapture(e3.pointerId);
+          } catch (_2) {
+          }
+          return;
+        }
       }
-      isHorizontalSwipe.current = true;
-      setIsDragging(true);
+      if (Math.abs(dx) > 12) {
+        isHorizontalSwipe.current = true;
+        setIsDragging(true);
+        try {
+          e3.currentTarget.setPointerCapture(e3.pointerId);
+        } catch (_2) {
+        }
+      }
     }
     if (isHorizontalSwipe.current) {
+      e3.preventDefault();
       const clamped = Math.max(
         -90,
         Math.min(SWIPE_THRESHOLD * 1.5, dx)
@@ -70114,7 +70315,7 @@ function GoalCard({
       setDragX(clamped);
     }
   }
-  const TAP_MAX_DRIFT = 10;
+  const TAP_MAX_DRIFT = 14;
   function onPointerUp() {
     if (!isPointerDown.current) return;
     isPointerDown.current = false;
@@ -70124,9 +70325,6 @@ function GoalCard({
       setDragX(0);
       setIsDragging(false);
       isHorizontalSwipe.current = false;
-      if (!modalOpenedDuringGestureRef.current && Math.abs(finalDragX) < TAP_MAX_DRIFT && onInsightOpen) {
-        onInsightOpen(goal);
-      }
       return;
     }
     if (isExiting) return;
@@ -70136,6 +70334,9 @@ function GoalCard({
     isHorizontalSwipe.current = false;
     if (lockInSwipeDisabled) {
       if (!modalOpenedDuringGestureRef.current && !wasHorizontalSwipe && Math.abs(finalDragX) < TAP_MAX_DRIFT && onInsightOpen) {
+        setIsTapped(true);
+        setTimeout(() => setIsTapped(false), 300);
+        if (navigator.vibrate) navigator.vibrate([8]);
         onInsightOpen(goal);
       }
       return;
@@ -70154,16 +70355,12 @@ function GoalCard({
       if (navigator.vibrate) navigator.vibrate([15]);
       modalOpenedDuringGestureRef.current = true;
       setShowWoopCatch(true);
-    } else if (
-      // ── Clean tap on active card body ──────────────────────────────────────
-      !wasHorizontalSwipe && !modalOpenedDuringGestureRef.current && Math.abs(finalDragX) < TAP_MAX_DRIFT && onInsightOpen
-    ) {
-      onInsightOpen(goal);
     }
   }
   function onPointerCancel() {
     if (mode !== "active") return;
     isPointerDown.current = false;
+    isVerticalScrollRef.current = false;
     dragXRef.current = 0;
     setDragX(0);
     setIsDragging(false);
@@ -70185,9 +70382,18 @@ function GoalCard({
     );
     setShowSkipModal(false);
   }
-  function handleMissedConfirm(obstacleTemplateId) {
-    onCheckIn == null ? void 0 : onCheckIn(goal.id, "inProgress", obstacleTemplateId);
+  function handleMissedConfirm(obstacleTemplateId, customNote) {
+    exitCommittedRef.current = true;
     setShowMissedSheet(false);
+    onCheckIn == null ? void 0 : onCheckIn(
+      goal.id,
+      "inProgress",
+      obstacleTemplateId,
+      void 0,
+      void 0,
+      false,
+      customNote
+    );
   }
   function handleWoopCatchExecutedPlan() {
     setShowWoopCatch(false);
@@ -70326,6 +70532,7 @@ function GoalCard({
         layout: true,
         className: "relative",
         "data-ocid": `goal.card.${index2 + 1}`,
+        style: { touchAction: "pan-y" },
         children: [
           inProgressPulse && lockInState === "in-progress" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
@@ -70342,6 +70549,27 @@ function GoalCard({
                 style: {
                   background: SUCCESS_COLOR$2,
                   animation: "inProgressPulse 0.55s ease-out forwards"
+                },
+                "aria-hidden": "true"
+              }
+            )
+          ] }),
+          lockInState === "end-window" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+              @keyframes checkoutPulse {
+                0%   { box-shadow: 0 0 0 0 rgba(245,158,11,0), inset 0 0 0 2px rgba(245,158,11,0.0); }
+                40%  { box-shadow: 0 0 16px 4px rgba(245,158,11,0.5), inset 0 0 0 2px rgba(245,158,11,0.4); }
+                70%  { box-shadow: 0 0 8px 2px rgba(245,158,11,0.3), inset 0 0 0 2px rgba(245,158,11,0.2); }
+                100% { box-shadow: 0 0 0 0 rgba(245,158,11,0), inset 0 0 0 2px rgba(245,158,11,0.0); }
+              }
+            ` }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "absolute inset-0 rounded-2xl pointer-events-none",
+                style: {
+                  animation: "checkoutPulse 1.8s ease-in-out infinite",
+                  border: "2px solid transparent"
                 },
                 "aria-hidden": "true"
               }
@@ -70419,7 +70647,7 @@ function GoalCard({
               ref: cardRef,
               type: "button",
               tabIndex: 0,
-              "aria-label": mode === "done" ? `${keystoneText} — ${isSuccess ? "completed" : isFailedLockIn ? "missed lock-in" : "skipped"}. Tap to undo.` : lockInState === "completed" ? `${keystoneText} — lock-in completed.` : lockInState === "missed" || lockInState === "failed-finalized" ? `${keystoneText} — time window missed. Tap to log obstacle.` : lockInState === "waiting" ? `${keystoneText} — waiting for time window` : lockInState === "in-progress" ? `${keystoneText} — in progress` : `${keystoneText} — swipe right to complete, left to skip`,
+              "aria-label": mode === "done" ? `${keystoneText} — ${isSuccess ? "completed" : isMissedCheckIn ? "missed start window" : isMissedCheckOut ? "missed check-out" : "skipped"}.` : lockInState === "completed" ? `${keystoneText} — lock-in completed.` : lockInState === "missed-start" ? `${keystoneText} — start window missed. Tap to log obstacle.` : lockInState === "missed-checkout" ? `${keystoneText} — check-out missed. Tap to log obstacle.` : lockInState === "failed-finalized" ? `${keystoneText} — obstacle logged.` : lockInState === "waiting" ? `${keystoneText} — waiting for time window` : lockInState === "in-progress" ? `${keystoneText} — in progress` : `${keystoneText} — swipe right to complete, left to skip`,
               onPointerDown,
               onPointerMove,
               onPointerUp,
@@ -70431,13 +70659,13 @@ function GoalCard({
               },
               className: "relative select-none overflow-hidden rounded-2xl w-full text-left bg-transparent border-0",
               style: {
-                cursor: mode === "done" ? "pointer" : lockInState === "completed" || lockInState === "missed" || lockInState === "failed-finalized" ? "pointer" : lockInState === "waiting" || lockInState === "in-progress" ? "not-allowed" : "grab",
-                transform: mode === "active" && !lockInSwipeDisabled ? `translateX(${dragX}px)` : void 0,
-                transition: mode === "active" && isDragging2 ? "none" : "transform 0.35s cubic-bezier(0.4,0,0.2,1)",
+                cursor: mode === "done" ? "pointer" : lockInState === "completed" || lockInState === "missed-start" || lockInState === "missed-checkout" || lockInState === "failed-finalized" ? "pointer" : lockInState === "waiting" || lockInState === "in-progress" ? "not-allowed" : "grab",
+                transform: isTapped ? "scale(0.98)" : mode === "active" && !lockInSwipeDisabled ? `translateX(${dragX}px)` : void 0,
+                transition: isTapped ? "transform 0.08s ease-out, box-shadow 0.08s ease-out" : mode === "active" && isDragging2 ? "none" : "transform 0.35s cubic-bezier(0.4,0,0.2,1)",
                 padding: "1.25rem 1.25rem 1rem",
                 userSelect: "none",
                 WebkitUserSelect: "none",
-                touchAction: mode === "active" && !lockInSwipeDisabled ? "none" : "pan-y",
+                touchAction: "pan-y",
                 ...getCardStyle()
               },
               children: [
@@ -70467,20 +70695,21 @@ function GoalCard({
                     )
                   }
                 ),
-                isLockIn && lockInStartTime && lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                isLockIn && lockInStartTime != null && lockInStartTime !== "" && lockInEndTime != null && lockInEndTime !== "" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "div",
                   {
                     className: "absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono",
                     style: {
                       background: "rgba(107,114,128,0.15)",
                       border: "1px solid rgba(107,114,128,0.3)",
-                      color: lockInState === "start-window" || lockInState === "end-window" ? SUCCESS_COLOR$2 : lockInState === "completed" ? SUCCESS_COLOR$2 : lockInState === "missed" || lockInState === "failed-finalized" ? MISSED_COLOR$1 : "oklch(var(--muted-foreground))"
+                      color: lockInState === "start-window" || lockInState === "end-window" ? SUCCESS_COLOR$2 : lockInState === "completed" ? SUCCESS_COLOR$2 : lockInState === "missed-start" || lockInState === "missed-checkout" || lockInState === "failed-finalized" ? MISSED_COLOR$1 : "oklch(var(--muted-foreground))"
                     },
                     "aria-label": `Time block: ${lockInStartTime} to ${lockInEndTime}`,
                     children: [
-                      lockInState === "completed" || lockInState === "missed" || lockInState === "failed-finalized" ? /* @__PURE__ */ jsxRuntimeExports.jsx(LockOpen, { size: 10 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 10 }),
+                      lockInState === "completed" || lockInState === "missed-start" || lockInState === "missed-checkout" || lockInState === "failed-finalized" ? /* @__PURE__ */ jsxRuntimeExports.jsx(LockOpen, { size: 10 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 10 }),
                       formatTime12h$1(lockInStartTime),
-                      " – ",
+                      " –",
+                      " ",
                       formatTime12h$1(lockInEndTime)
                     ]
                   }
@@ -70511,15 +70740,17 @@ function GoalCard({
                   {
                     className: "mt-1 mb-0.5 text-xs font-mono",
                     style: {
-                      color: lockInState === "start-window" || lockInState === "end-window" ? SUCCESS_COLOR$2 : lockInState === "completed" ? SUCCESS_COLOR$2 : lockInState === "missed" || lockInState === "failed-finalized" ? MISSED_COLOR$1 : "oklch(var(--muted-foreground))"
+                      color: lockInState === "start-window" || lockInState === "end-window" ? SUCCESS_COLOR$2 : lockInState === "completed" ? SUCCESS_COLOR$2 : lockInState === "missed-start" || lockInState === "missed-checkout" || lockInState === "failed-finalized" ? MISSED_COLOR$1 : "oklch(var(--muted-foreground))"
                     },
                     children: [
-                      lockInState === "waiting" && lockInStartTime && `Window opens at ${formatTime12h$1(lockInStartTime)}`,
-                      lockInState === "start-window" && "✓ Check-in window open — swipe right to start",
-                      lockInState === "in-progress" && lockInEndTime && `⏳ In progress — complete by ${formatTime12h$1(lockInEndTime)}`,
-                      lockInState === "end-window" && "✓ Check-out window — swipe right to complete",
-                      lockInState === "completed" && "✅ Lock-In completed",
-                      (lockInState === "missed" || lockInState === "failed-finalized") && "Time window missed — tap to log obstacle"
+                      lockInState === "waiting" && "",
+                      lockInState === "start-window" && "Check-in window open — swipe right to start",
+                      lockInState === "in-progress" && lockInEndTime && `In progress — complete by ${formatTime12h$1(lockInEndTime)}`,
+                      lockInState === "end-window" && "Check-out window — swipe right to complete",
+                      lockInState === "completed" && "Lock-In completed",
+                      lockInState === "missed-start" && "Missed Start Window. Tap to log reason.",
+                      lockInState === "missed-checkout" && "Missed Check-Out. Tap to log reason.",
+                      lockInState === "failed-finalized" && "Obstacle logged"
                     ]
                   }
                 ),
@@ -70557,7 +70788,50 @@ function GoalCard({
                       children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 shrink-0", style: { color: iconColor }, children: goalIcon.svg })
                     }
                   ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display text-lg font-semibold text-foreground leading-snug line-clamp-2", children: keystoneText }) })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "text-left w-full group",
+                      style: {
+                        touchAction: "none",
+                        cursor: "pointer",
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        margin: 0
+                      },
+                      onPointerDown: (e3) => {
+                        e3.stopPropagation();
+                        e3.preventDefault();
+                      },
+                      onClick: (e3) => {
+                        e3.stopPropagation();
+                        e3.preventDefault();
+                        if (onInsightOpen) {
+                          if (navigator.vibrate) navigator.vibrate([8]);
+                          onInsightOpen(goal);
+                        }
+                      },
+                      "aria-label": `View timeline for ${keystoneText}`,
+                      "data-ocid": `goal.title_button.${index2 + 1}`,
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "font-display text-lg font-semibold text-foreground leading-snug line-clamp-2 active:opacity-70 transition-opacity duration-75 flex items-center gap-1", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1", children: keystoneText }),
+                        mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          ChevronRight,
+                          {
+                            size: 14,
+                            className: "shrink-0 transition-opacity duration-150",
+                            style: {
+                              opacity: 0.35,
+                              color: "oklch(var(--muted-foreground))"
+                            },
+                            "aria-hidden": "true"
+                          }
+                        )
+                      ] })
+                    }
+                  ) })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 flex flex-col items-center gap-1", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: weekHistoryLoading ? WEEK_SLOTS.map((id2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -70593,7 +70867,45 @@ function GoalCard({
                     id2
                   )) })
                 ] }),
-                mode === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                isLockIn && (lockInState === "missed-start" || lockInState === "missed-checkout") && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 flex justify-start", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: (e3) => {
+                      e3.stopPropagation();
+                      setShowMissedSheet(true);
+                      onMissedWindowTap == null ? void 0 : onMissedWindowTap(goal.id);
+                    },
+                    onPointerDown: (e3) => {
+                      e3.stopPropagation();
+                      modalOpenedDuringGestureRef.current = true;
+                    },
+                    onPointerUp: (e3) => e3.stopPropagation(),
+                    onPointerMove: (e3) => e3.stopPropagation(),
+                    className: "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-medium transition-smooth select-none",
+                    style: {
+                      backgroundColor: "rgba(245,158,11,0.15)",
+                      color: "#F59E0B",
+                      border: "1px solid rgba(245,158,11,0.4)",
+                      boxShadow: "-2px -2px 5px rgba(60,60,40,0.25), 3px 3px 7px rgba(0,0,0,0.45)"
+                    },
+                    "aria-label": "Log what happened for this missed Lock-In",
+                    "data-ocid": `goal.log_missed_button.${index2 + 1}`,
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { size: 12, style: { color: "#F59E0B" } }),
+                      "Log What Happened"
+                    ]
+                  }
+                ) }),
+                mode === "done" && isFailedLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  JustificationBox,
+                  {
+                    failureType: isMissedCheckIn ? "missedCheckIn" : "missedCheckOut",
+                    obstacleTemplateId: checkInToday == null ? void 0 : checkInToday.obstacleTemplateId,
+                    customObstacleNote: checkInToday == null ? void 0 : checkInToday.customObstacleNote
+                  }
+                ),
+                mode === "done" && !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
                   {
                     type: "button",
@@ -70639,9 +70951,13 @@ function GoalCard({
       {
         goal,
         open: showMissedSheet,
-        onClose: () => setShowMissedSheet(false),
-        onConfirm: handleMissedConfirm,
-        isLoading: isCheckingIn
+        onClose: () => {
+          setShowMissedSheet(false);
+          autoMissedTriggeredRef.current = false;
+        },
+        onConfirm: (obstacleTemplateId, customNote) => handleMissedConfirm(obstacleTemplateId, customNote),
+        isLoading: isCheckingIn,
+        failureType: currentFailureType
       }
     ),
     mode === "active" && !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -70695,6 +71011,7 @@ function TimelineNodeCircle({
 }) {
   const isSuccess = type === CheckInType.success;
   const isSkip = type === CheckInType.skip;
+  const isMissedLockIn = type === CheckInType.missedCheckIn || type === CheckInType.missedCheckOut;
   if (isSuccess) {
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -70736,7 +71053,7 @@ function TimelineNodeCircle({
       }
     );
   }
-  if (isSkip) {
+  if (isSkip || isMissedLockIn) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
       {
@@ -70773,17 +71090,25 @@ function TimelineNodeCircle({
 function TimelineItem({ checkIn }) {
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
-  checkIn.checkInType === CheckInType.inProgress || checkIn.checkInType === CheckInType.failedLockIn;
+  const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
+  const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
+  const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
+  checkIn.checkInType === CheckInType.inProgress;
   const time2 = formatTime(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
   let primaryText;
   let primaryColor;
   if (isSuccess) {
-    primaryText = isRevival ? `Executed backup plan at ${time2}` : `Executed at ${time2}`;
+    primaryText = isRevival ? `Executed If-Then plan at ${time2}` : `Executed at ${time2}`;
     primaryColor = SUCCESS_COLOR$1;
   } else if (isSkip) {
-    const oLabel = obstacleLabel(checkIn.obstacleTemplateId);
-    primaryText = `Skipped at ${time2} • Obstacle: ${oLabel}`;
+    primaryText = `Skipped at ${time2}`;
+    primaryColor = SKIP_COLOR$1;
+  } else if (isMissedCheckIn) {
+    primaryText = `Missed start window at ${time2}`;
+    primaryColor = SKIP_COLOR$1;
+  } else if (isMissedCheckOut) {
+    primaryText = `Missed check-out at ${time2}`;
     primaryColor = SKIP_COLOR$1;
   } else {
     primaryText = "Missed • No action taken";
@@ -70802,16 +71127,25 @@ function TimelineItem({ checkIn }) {
             "aria-hidden": "true"
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "p",
           {
             className: "text-sm font-display font-medium leading-snug",
             style: { color: primaryColor },
-            children: primaryText
+            children: [
+              primaryText,
+              (isSkip || isMissedLockIn) && (checkIn.obstacleTemplateId !== void 0 && checkIn.obstacleTemplateId !== null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                " • ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F97316" }, children: obstacleLabel(checkIn.obstacleTemplateId) })
+              ] }) : isMissedLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                " • ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
+              ] }) : null)
+            ]
           }
         )
       ] }),
-      isSkip && checkIn.customObstacleNote && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      (isSkip || isMissedLockIn) && checkIn.customObstacleNote && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "div",
         {
           className: "mt-2 rounded-xl px-3 py-2 max-w-xs",
@@ -70914,7 +71248,16 @@ function GoalInsightSheet({
         const sorted = [...data].sort(
           (a2, b2) => a2.timestamp > b2.timestamp ? -1 : a2.timestamp < b2.timestamp ? 1 : 0
         );
-        setCheckIns(sorted);
+        const goalCreatedDateStr = goal.createdAt ? new Date(Number(goal.createdAt / 1000000n)).toDateString() : null;
+        const todayStr = (/* @__PURE__ */ new Date()).toDateString();
+        const filtered = goal.isLockIn && goalCreatedDateStr === todayStr ? sorted.filter((ci) => {
+          const ciDateStr = new Date(
+            Number(ci.timestamp / 1000000n)
+          ).toDateString();
+          const isPhantom = (ci.checkInType === CheckInType.inProgress || ci.checkInType === CheckInType.missedCheckIn || ci.checkInType === CheckInType.missedCheckOut) && ciDateStr === todayStr;
+          return !isPhantom;
+        }) : sorted;
+        setCheckIns(filtered);
       }
     }).catch(() => {
       if (!cancelled) setError("Could not load timeline. Tap to retry.");
@@ -70924,7 +71267,7 @@ function GoalInsightSheet({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, actorReady, actor, goal.id]);
+  }, [isOpen, actorReady, actor, goal.id, goal.createdAt, goal.isLockIn]);
   reactExports.useEffect(() => {
     if (!isOpen) {
       setCheckIns([]);
@@ -70970,7 +71313,7 @@ function GoalInsightSheet({
         initial: { y: "100%" },
         animate: { y: 0 },
         exit: { y: "100%" },
-        transition: { type: "spring", damping: 30, stiffness: 340 },
+        transition: { type: "tween", ease: "easeOut", duration: 0.28 },
         "data-ocid": "goal_insight.dialog",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center pt-3 pb-1 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -71034,7 +71377,7 @@ function GoalInsightSheet({
                               style: {
                                 color: "oklch(var(--muted-foreground) / 0.6)"
                               },
-                              children: "Outcome"
+                              children: "Obstacles"
                             }
                           ),
                           outcome
@@ -71110,7 +71453,7 @@ function GoalInsightSheet({
                           className: "text-sm leading-relaxed max-w-[220px]",
                           style: { color: "oklch(var(--muted-foreground))" },
                           children: [
-                            "No activity in the last 14 days.",
+                            "No check-ins yet. Your timeline will fill as you build your habit.",
                             " ",
                             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--foreground) / 0.5)" }, children: "Start building your timeline." })
                           ]
@@ -71353,6 +71696,8 @@ const EMPTY = {
   isLockIn: false,
   lockInStartTime: "",
   lockInEndTime: "",
+  lockInDurationHours: 0,
+  lockInDurationMinutes: 0,
   selectedObstacles: [],
   customInput: "",
   customChips: [],
@@ -71410,6 +71755,22 @@ function WoopWizard({
   }, [open]);
   const assembledWish = form.goalAction.trim() && form.goalReason.trim() ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}` : "";
   const assembledHabit = form.habitAction.trim() && form.habitMinutes.trim() ? `Every day, I will ${form.habitAction.trim()} for ${form.habitMinutes.trim()} minutes` : "";
+  reactExports.useEffect(() => {
+    if (form.lockInStartTime) {
+      const [h2, m2] = form.lockInStartTime.split(":").map(Number);
+      const totalMinutes = h2 * 60 + m2 + (form.lockInDurationHours || 0) * 60 + (form.lockInDurationMinutes || 0);
+      const endH = Math.floor(totalMinutes / 60) % 24;
+      const endM = totalMinutes % 60;
+      setForm((prev) => ({
+        ...prev,
+        lockInEndTime: `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`
+      }));
+    }
+  }, [
+    form.lockInStartTime,
+    form.lockInDurationHours,
+    form.lockInDurationMinutes
+  ]);
   const assembledObstacles = form.selectedObstacles.map((o2) => o2.label).join(", ");
   const primaryObstacle = ((_a3 = form.selectedObstacles[0]) == null ? void 0 : _a3.label) ?? "";
   const { data: userObstacles = [] } = useQuery({
@@ -71487,6 +71848,9 @@ function WoopWizard({
         if (form.lockInStartTime && form.lockInEndTime && form.lockInStartTime >= form.lockInEndTime)
           e3.lockInEndTime = "End time must be after start time.";
         if (overlapError) e3.lockInEndTime = overlapError;
+        if (form.isLockIn && form.lockInDurationHours === 0 && form.lockInDurationMinutes === 0) {
+          e3.lockInEndTime = "Duration must be at least 1 minute";
+        }
       }
     }
     if (s2 === 2 && form.selectedObstacles.length === 0) {
@@ -71889,7 +72253,7 @@ function WoopWizard({
                         onClick: () => setForm((f2) => ({ ...f2, isLockIn: !f2.isLockIn })),
                         className: "relative shrink-0 w-14 h-7 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         style: {
-                          background: form.isLockIn ? "#10B981" : "oklch(var(--muted))",
+                          background: form.isLockIn ? "#F59E0B" : "oklch(var(--muted))",
                           boxShadow: form.isLockIn ? "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.12)" : "inset 2px 2px 5px rgba(0,0,0,0.45), inset -2px -2px 4px rgba(255,255,255,0.07)"
                         },
                         children: /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -71940,7 +72304,7 @@ function WoopWizard({
                                 editingGoalId
                               );
                               setOverlapError(
-                                conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
+                                conflict ? "Conflict: This time overlaps with an existing Lock-In habit." : null
                               );
                             },
                             className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40",
@@ -71959,50 +72323,110 @@ function WoopWizard({
                           }
                         )
                       ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "label",
-                          {
-                            htmlFor: "lockin-end-time",
-                            className: "text-xs font-mono tracking-widest text-muted-foreground uppercase",
-                            children: "End Time"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            id: "lockin-end-time",
-                            type: "time",
-                            "data-ocid": "woop_wizard.lockin_end_time",
-                            value: form.lockInEndTime,
-                            onChange: (e3) => {
-                              const val = e3.target.value;
-                              setForm((f2) => ({ ...f2, lockInEndTime: val }));
-                              setErrors((er) => ({
-                                ...er,
-                                lockInEndTime: void 0
-                              }));
-                              const conflict = findOverlapGoal$1(
-                                form.lockInStartTime,
-                                val,
-                                existingLockInGoals,
-                                editingGoalId
-                              );
-                              setOverlapError(
-                                conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
-                              );
-                            },
-                            className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40",
-                            style: {
-                              background: "oklch(var(--card))",
-                              boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)"
-                            }
-                          }
-                        ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2", children: "Duration" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "label",
+                              {
+                                htmlFor: "lockin-hours",
+                                className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                                children: "Hours"
+                              }
+                            ),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "select",
+                              {
+                                id: "lockin-hours",
+                                "data-ocid": "woop_wizard.lockin_duration_hours",
+                                value: form.lockInDurationHours,
+                                onChange: (e3) => setForm((prev) => ({
+                                  ...prev,
+                                  lockInDurationHours: Number(
+                                    e3.target.value
+                                  )
+                                })),
+                                size: 5,
+                                className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
+                                style: {
+                                  background: "oklch(var(--card))",
+                                  border: "1px solid rgba(245,158,11,0.25)",
+                                  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                  color: "oklch(var(--foreground))",
+                                  padding: "6px 0",
+                                  outline: "none",
+                                  overflowY: "auto"
+                                },
+                                children: Array.from({ length: 24 }, (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "option",
+                                  {
+                                    value: h2,
+                                    style: {
+                                      background: "oklch(var(--card))",
+                                      color: form.lockInDurationHours === h2 ? "#F59E0B" : "oklch(var(--foreground))",
+                                      fontWeight: form.lockInDurationHours === h2 ? 700 : 400
+                                    },
+                                    children: String(h2).padStart(2, "0")
+                                  },
+                                  h2
+                                ))
+                              }
+                            )
+                          ] }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "label",
+                              {
+                                htmlFor: "lockin-minutes",
+                                className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                                children: "Min"
+                              }
+                            ),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "select",
+                              {
+                                id: "lockin-minutes",
+                                "data-ocid": "woop_wizard.lockin_duration_minutes",
+                                value: form.lockInDurationMinutes,
+                                onChange: (e3) => setForm((prev) => ({
+                                  ...prev,
+                                  lockInDurationMinutes: Number(
+                                    e3.target.value
+                                  )
+                                })),
+                                size: 5,
+                                className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
+                                style: {
+                                  background: "oklch(var(--card))",
+                                  border: "1px solid rgba(245,158,11,0.25)",
+                                  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                  color: "oklch(var(--foreground))",
+                                  padding: "6px 0",
+                                  outline: "none",
+                                  overflowY: "auto"
+                                },
+                                children: Array.from({ length: 60 }, (_2, m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "option",
+                                  {
+                                    value: m2,
+                                    style: {
+                                      background: "oklch(var(--card))",
+                                      color: form.lockInDurationMinutes === m2 ? "#F59E0B" : "oklch(var(--foreground))",
+                                      fontWeight: form.lockInDurationMinutes === m2 ? 700 : 400
+                                    },
+                                    children: String(m2).padStart(2, "0")
+                                  },
+                                  m2
+                                ))
+                              }
+                            )
+                          ] })
+                        ] }),
                         errors.lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
                           "p",
                           {
-                            className: "text-xs text-destructive",
+                            className: "text-xs text-destructive mt-2",
                             "data-ocid": "woop_wizard.lockin_end_time.field_error",
                             children: errors.lockInEndTime
                           }
@@ -72200,7 +72624,7 @@ function WoopWizard({
                           maxLength: 140,
                           rows: 4,
                           className: "w-full bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none",
-                          "aria-label": "Your if-then backup plan"
+                          "aria-label": "Your If-Then plan"
                         }
                       )
                     ] }),
@@ -72445,6 +72869,17 @@ const NEW_HABIT_DURATION_MS = 1e4;
 function goalKey(id2) {
   return String(id2);
 }
+const getTimezoneOffsetMinutes = (tz) => {
+  if (!tz) return -(/* @__PURE__ */ new Date()).getTimezoneOffset();
+  try {
+    const date2 = /* @__PURE__ */ new Date();
+    const utcDate2 = new Date(date2.toLocaleString("en-US", { timeZone: "UTC" }));
+    const tzDate = new Date(date2.toLocaleString("en-US", { timeZone: tz }));
+    return Math.round((tzDate.getTime() - utcDate2.getTime()) / 6e4);
+  } catch {
+    return -(/* @__PURE__ */ new Date()).getTimezoneOffset();
+  }
+};
 function isCheckInToday(ts, tz) {
   const ms = Number(ts / 1000000n);
   const d2 = new Date(ms);
@@ -72933,6 +73368,7 @@ function DashboardPage$1() {
   );
   const [swipeDirectionMap, setSwipeDirectionMap] = reactExports.useState(/* @__PURE__ */ new Map());
   const erroredCardIdsRef = reactExports.useRef(/* @__PURE__ */ new Set());
+  const committedMissedExitsRef = reactExports.useRef(/* @__PURE__ */ new Set());
   const [inProgressPulseMap, setInProgressPulseMap] = reactExports.useState(
     /* @__PURE__ */ new Set()
   );
@@ -72956,6 +73392,7 @@ function DashboardPage$1() {
         setExitingMap(/* @__PURE__ */ new Map());
         setSwipeDirectionMap(/* @__PURE__ */ new Map());
         setOptimisticDoneMap(/* @__PURE__ */ new Map());
+        committedMissedExitsRef.current.clear();
         scheduleReset();
       }, ms + 1e3);
     }
@@ -72998,17 +73435,21 @@ function DashboardPage$1() {
     const map2 = /* @__PURE__ */ new Map();
     for (const c2 of checkIns) {
       if (isCheckInToday(c2.timestamp, userTimezone)) {
-        const checkInType = c2.checkInType === CheckInType.success ? "success" : c2.checkInType === CheckInType.skip ? "skip" : c2.checkInType === CheckInType.inProgress ? "inProgress" : c2.checkInType === CheckInType.failedLockIn ? "failedLockIn" : "skip";
+        const checkInType = c2.checkInType === CheckInType.success ? "success" : c2.checkInType === CheckInType.skip ? "skip" : c2.checkInType === CheckInType.inProgress ? "inProgress" : c2.checkInType === CheckInType.missedCheckIn ? "missedCheckIn" : c2.checkInType === CheckInType.missedCheckOut ? "missedCheckOut" : "skip";
         const executedIfThen = c2.executedIfThen ?? false;
+        const doneGoal = goals.find((g2) => goalKey(g2.id) === goalKey(c2.goalId));
         map2.set(goalKey(c2.goalId), {
           checkInId: c2.id,
           checkInType,
-          executedIfThen
+          executedIfThen,
+          isLockIn: (doneGoal == null ? void 0 : doneGoal.isLockIn) ?? false,
+          obstacleTemplateId: c2.obstacleTemplateId,
+          customObstacleNote: c2.customObstacleNote
         });
       }
     }
     return map2;
-  }, [checkIns, userTimezone]);
+  }, [checkIns, userTimezone, goals]);
   reactExports.useEffect(() => {
     setOptimisticDoneMap((prev) => {
       if (prev.size === 0) return prev;
@@ -73123,7 +73564,10 @@ function DashboardPage$1() {
         lockInStartedAt,
         lockInEndedAt,
         executedIfThen: executedIfThen ?? false,
-        customObstacleNote
+        customObstacleNote,
+        timezoneOffsetMinutes: BigInt(
+          getTimezoneOffsetMinutes(userTimezone ?? "")
+        )
       });
     },
     onSuccess: (_data, _variables) => {
@@ -73133,6 +73577,7 @@ function DashboardPage$1() {
     onError: (_err, variables) => {
       const key = goalKey(variables.goalId);
       erroredCardIdsRef.current.add(key);
+      committedMissedExitsRef.current.delete(key);
       setExitingMap((prev) => {
         const next = new Map(prev);
         next.delete(key);
@@ -73175,18 +73620,23 @@ function DashboardPage$1() {
     if (type === "success") backendType = CheckInType.success;
     else if (type === "skip") backendType = CheckInType.skip;
     else if (
-      // Bug 1/2: when inProgress type is passed from MissedWindowSheet,
-      // obstacleId is now correctly set (not undefined).
-      // The presence of an obstacleId combined with isLockIn means
-      // this is a failed-lock-in report from the missed-window flow.
+      // When inProgress type is passed from MissedWindowSheet,
+      // obstacleId is set. Use lockInState to distinguish missed-start vs missed-checkout.
       type === "inProgress" && obstacleId !== void 0 && (goal == null ? void 0 : goal.isLockIn)
     ) {
-      backendType = CheckInType.failedLockIn;
+      const currentState = goal.isLockIn && goal.startTime != null && goal.startTime !== "" && goal.endTime != null && goal.endTime !== "" ? getLockInState(
+        goal.startTime,
+        goal.endTime,
+        lockInCheckInMap.get(key),
+        goal.createdAt
+      ) : null;
+      backendType = currentState === "missed-checkout" ? CheckInType.missedCheckOut : CheckInType.missedCheckIn;
+      committedMissedExitsRef.current.add(key);
     } else {
       backendType = CheckInType.inProgress;
     }
     const direction = type === "success" ? "right" : "left";
-    const shouldSlide = type === "success" || type === "skip" || backendType === CheckInType.failedLockIn;
+    const shouldSlide = type === "success" || type === "skip" || backendType === CheckInType.missedCheckIn || backendType === CheckInType.missedCheckOut;
     if (shouldSlide) {
       setSwipeDirectionMap((prev) => {
         const next = new Map(prev);
@@ -73198,14 +73648,17 @@ function DashboardPage$1() {
         next.set(key, direction);
         return next;
       });
-      const optimisticCheckInType = backendType === CheckInType.success ? "success" : backendType === CheckInType.failedLockIn ? "failedLockIn" : "skip";
+      const optimisticCheckInType = backendType === CheckInType.success ? "success" : backendType === CheckInType.missedCheckIn ? "missedCheckIn" : backendType === CheckInType.missedCheckOut ? "missedCheckOut" : "skip";
       setOptimisticDoneMap((prev) => {
         const next = new Map(prev);
         next.set(key, {
           checkInId: 0n,
           // placeholder — real id comes from backend
           checkInType: optimisticCheckInType,
-          executedIfThen: executedIfThen ?? false
+          executedIfThen: executedIfThen ?? false,
+          isLockIn: (goal == null ? void 0 : goal.isLockIn) ?? false,
+          obstacleTemplateId: obstacleId,
+          customObstacleNote
         });
         return next;
       });
@@ -73263,6 +73716,8 @@ function DashboardPage$1() {
     cleanupDoneRef.current = false;
   }, [goals, checkIns]);
   function handleDoneCardTap(goalId) {
+    const doneEntry = mergedDoneMap.get(goalKey(goalId));
+    if (doneEntry == null ? void 0 : doneEntry.isLockIn) return;
     const goal = goals.find((g2) => goalKey(g2.id) === goalKey(goalId));
     if (!goal) return;
     setUndoTarget({ goalId, goal });
@@ -73323,8 +73778,10 @@ function DashboardPage$1() {
       const gKey = goalKey(c2.goalId);
       let ciType = null;
       if (c2.checkInType === CheckInType.inProgress) ciType = "inProgress";
-      else if (c2.checkInType === CheckInType.failedLockIn)
-        ciType = "failedLockIn";
+      else if (c2.checkInType === CheckInType.missedCheckIn)
+        ciType = "missedCheckIn";
+      else if (c2.checkInType === CheckInType.missedCheckOut)
+        ciType = "missedCheckOut";
       else if (c2.checkInType === CheckInType.success) ciType = "success";
       if (ciType) {
         map2.set(gKey, {
@@ -73337,9 +73794,11 @@ function DashboardPage$1() {
     return map2;
   }, [checkIns, userTimezone, _lockInStateTick]);
   const unswiped = activeGoals.filter((g2) => {
-    const entry = todayDoneMap.get(goalKey(g2.id));
+    const key = goalKey(g2.id);
+    if (committedMissedExitsRef.current.has(key)) return false;
+    const entry = todayDoneMap.get(key);
     if ((entry == null ? void 0 : entry.checkInType) === "inProgress") return true;
-    return !entry && !exitingMap.has(goalKey(g2.id)) && !optimisticDoneMap.has(goalKey(g2.id));
+    return !entry && !exitingMap.has(key) && !optimisticDoneMap.has(key);
   });
   const mergedDoneMap = reactExports.useMemo(() => {
     if (optimisticDoneMap.size === 0) return todayDoneMap;
@@ -73396,7 +73855,8 @@ function DashboardPage$1() {
     const state = getLockInState(
       g2.startTime,
       g2.endTime,
-      lockInCheckInMap.get(goalKey(g2.id))
+      lockInCheckInMap.get(goalKey(g2.id)),
+      g2.createdAt
     );
     return state === "start-window" || state === "end-window";
   }).length;
@@ -73418,7 +73878,8 @@ function DashboardPage$1() {
           var _a3;
           const t2 = ((_a3 = todayDoneMap.get(goalKey(undoTarget.goalId)) ?? mergedDoneMap.get(goalKey(undoTarget.goalId))) == null ? void 0 : _a3.checkInType) ?? null;
           if (t2 === "success") return t2;
-          if (t2 === "skip" || t2 === "failedLockIn") return "skip";
+          if (t2 === "skip" || t2 === "missedCheckIn" || t2 === "missedCheckOut")
+            return "skip";
           return null;
         })() : null,
         isLoading: isUndoing,
@@ -73713,7 +74174,11 @@ function DashboardPage$1() {
               GoalCard,
               {
                 goal,
-                checkInToday: entry ? { checkInType: entry.checkInType } : void 0,
+                checkInToday: entry ? {
+                  checkInType: entry.checkInType,
+                  obstacleTemplateId: entry.obstacleTemplateId,
+                  customObstacleNote: entry.customObstacleNote
+                } : void 0,
                 analytics: analyticsMap.get(key),
                 index: index2,
                 weekHistory: weekHistoryMap.get(key),
@@ -75162,12 +75627,12 @@ var styleHookSingleton = function() {
 };
 var styleSingleton = function() {
   var useStyle2 = styleHookSingleton();
-  var Sheet = function(_a3) {
+  var Sheet2 = function(_a3) {
     var styles = _a3.styles, dynamic = _a3.dynamic;
     useStyle2(styles, dynamic);
     return null;
   };
-  return Sheet;
+  return Sheet2;
 };
 var zeroGap = {
   left: 0,
@@ -76442,6 +76907,16 @@ function GoalEditForm({
       o2.toLowerCase()
     )
   );
+  const initDuration = (() => {
+    if ((goal.isLockIn ?? false) && goal.startTime && goal.endTime) {
+      const [sh, sm] = goal.startTime.split(":").map(Number);
+      const [eh, em] = goal.endTime.split(":").map(Number);
+      const diffMins = eh * 60 + em - (sh * 60 + sm);
+      const safeDiff = Math.max(0, diffMins);
+      return { hours: Math.floor(safeDiff / 60), minutes: safeDiff % 60 };
+    }
+    return { hours: 0, minutes: 0 };
+  })();
   const [form, setForm] = reactExports.useState({
     wish: goal.wish,
     wishDescription: goal.wishDescription,
@@ -76453,7 +76928,9 @@ function GoalEditForm({
     customObstacles: existingCustom,
     isLockIn: goal.isLockIn ?? false,
     lockInStartTime: goal.startTime ?? "",
-    lockInEndTime: goal.endTime ?? ""
+    lockInEndTime: goal.endTime ?? "",
+    lockInDurationHours: initDuration.hours,
+    lockInDurationMinutes: initDuration.minutes
   });
   const customInputRef = reactExports.useRef(null);
   const [focusedField, setFocusedField] = reactExports.useState(null);
@@ -76485,6 +76962,14 @@ function GoalEditForm({
       customObstacles: f2.customObstacles.filter((o2) => o2 !== label)
     }));
   }
+  function recalcEndTime(startTime, durationHours, durationMinutes) {
+    if (!startTime) return "";
+    const [h2, m2] = startTime.split(":").map(Number);
+    const totalMins = h2 * 60 + m2 + durationHours * 60 + durationMinutes;
+    const endH = Math.floor(totalMins / 60) % 24;
+    const endM = totalMins % 60;
+    return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+  }
   function handleSave() {
     const req = {};
     if (form.wish.trim() !== goal.wish) req.wish = form.wish.trim();
@@ -76505,6 +76990,7 @@ function GoalEditForm({
     onSave(req);
   }
   const all = allObstacles();
+  const isDurationZero = form.isLockIn && form.lockInDurationHours === 0 && form.lockInDurationMinutes === 0;
   const hasChanges = form.wish.trim() !== goal.wish || form.wishDescription.trim() !== goal.wishDescription || form.ifThenPlan.trim() !== goal.ifThenPlan || form.iconName !== (goal.iconName ?? "target") || form.themeColor !== (goal.themeColor ?? "#2563EB") || form.isLockIn !== (goal.isLockIn ?? false) || form.lockInStartTime !== (goal.startTime ?? "") || form.lockInEndTime !== (goal.endTime ?? "");
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     motion.div,
@@ -76831,7 +77317,7 @@ function GoalEditForm({
                     ]
                   }
                 ),
-                form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3 pt-2 border-t border-border/20", children: [
+                form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pt-2 border-t border-border/20", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "label",
@@ -76850,15 +77336,24 @@ function GoalEditForm({
                         value: form.lockInStartTime,
                         onChange: (e3) => {
                           const val = e3.target.value;
-                          setForm((f2) => ({ ...f2, lockInStartTime: val }));
+                          const newEnd = recalcEndTime(
+                            val,
+                            form.lockInDurationHours,
+                            form.lockInDurationMinutes
+                          );
+                          setForm((f2) => ({
+                            ...f2,
+                            lockInStartTime: val,
+                            lockInEndTime: newEnd
+                          }));
                           const conflict = findOverlapGoal(
                             val,
-                            form.lockInEndTime,
+                            newEnd,
                             existingLockInGoals,
                             goal.id
                           );
                           setOverlapError(
-                            conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
+                            conflict ? "Conflict: This time overlaps with an existing Lock-In habit." : null
                           );
                         },
                         className: "w-full rounded-lg px-2.5 py-2 text-sm font-mono text-foreground border border-border/30 focus:outline-none focus:ring-1 focus:ring-primary/40",
@@ -76870,43 +77365,149 @@ function GoalEditForm({
                       }
                     )
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "label",
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2", children: "Duration" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "label",
+                          {
+                            htmlFor: "edit-lockin-hours",
+                            className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                            children: "Hours"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "select",
+                          {
+                            id: "edit-lockin-hours",
+                            "data-ocid": "goals.edit_lockin_duration_hours",
+                            value: form.lockInDurationHours,
+                            onChange: (e3) => {
+                              const h2 = Number(e3.target.value);
+                              const newEnd = recalcEndTime(
+                                form.lockInStartTime,
+                                h2,
+                                form.lockInDurationMinutes
+                              );
+                              setForm((f2) => ({
+                                ...f2,
+                                lockInDurationHours: h2,
+                                lockInEndTime: newEnd
+                              }));
+                              const conflict = findOverlapGoal(
+                                form.lockInStartTime,
+                                newEnd,
+                                existingLockInGoals,
+                                goal.id
+                              );
+                              setOverlapError(
+                                conflict ? "Conflict: This time overlaps with an existing Lock-In habit." : null
+                              );
+                            },
+                            size: 5,
+                            className: "w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer overflow-auto scrollbar-none",
+                            style: {
+                              background: "oklch(var(--card))",
+                              border: "1px solid rgba(245,158,11,0.2)",
+                              boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.12)",
+                              color: "oklch(var(--foreground))",
+                              padding: "4px 0",
+                              outline: "none"
+                            },
+                            children: Array.from({ length: 24 }, (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "option",
+                              {
+                                value: h2,
+                                style: {
+                                  background: "oklch(var(--card))",
+                                  color: form.lockInDurationHours === h2 ? "#F59E0B" : "oklch(var(--foreground))",
+                                  fontWeight: form.lockInDurationHours === h2 ? 700 : 400
+                                },
+                                children: String(h2).padStart(2, "0")
+                              },
+                              h2
+                            ))
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "label",
+                          {
+                            htmlFor: "edit-lockin-minutes",
+                            className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                            children: "Min"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "select",
+                          {
+                            id: "edit-lockin-minutes",
+                            "data-ocid": "goals.edit_lockin_duration_minutes",
+                            value: form.lockInDurationMinutes,
+                            onChange: (e3) => {
+                              const mins = Number(e3.target.value);
+                              const newEnd = recalcEndTime(
+                                form.lockInStartTime,
+                                form.lockInDurationHours,
+                                mins
+                              );
+                              setForm((f2) => ({
+                                ...f2,
+                                lockInDurationMinutes: mins,
+                                lockInEndTime: newEnd
+                              }));
+                              const conflict = findOverlapGoal(
+                                form.lockInStartTime,
+                                newEnd,
+                                existingLockInGoals,
+                                goal.id
+                              );
+                              setOverlapError(
+                                conflict ? "Conflict: This time overlaps with an existing Lock-In habit." : null
+                              );
+                            },
+                            size: 5,
+                            className: "w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer overflow-auto scrollbar-none",
+                            style: {
+                              background: "oklch(var(--card))",
+                              border: "1px solid rgba(245,158,11,0.2)",
+                              boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.12)",
+                              color: "oklch(var(--foreground))",
+                              padding: "4px 0",
+                              outline: "none"
+                            },
+                            children: Array.from({ length: 60 }, (_2, m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "option",
+                              {
+                                value: m2,
+                                style: {
+                                  background: "oklch(var(--card))",
+                                  color: form.lockInDurationMinutes === m2 ? "#F59E0B" : "oklch(var(--foreground))",
+                                  fontWeight: form.lockInDurationMinutes === m2 ? 700 : 400
+                                },
+                                children: String(m2).padStart(2, "0")
+                              },
+                              m2
+                            ))
+                          }
+                        )
+                      ] })
+                    ] }),
+                    isDurationZero && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
                       {
-                        htmlFor: "edit-end-time",
-                        className: "text-xs text-muted-foreground font-mono uppercase",
-                        children: "End Time"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "input",
-                      {
-                        id: "edit-end-time",
-                        type: "time",
-                        "data-ocid": "goals.edit_lockin_end_time",
-                        value: form.lockInEndTime,
-                        onChange: (e3) => {
-                          const val = e3.target.value;
-                          setForm((f2) => ({ ...f2, lockInEndTime: val }));
-                          const conflict = findOverlapGoal(
-                            form.lockInStartTime,
-                            val,
-                            existingLockInGoals,
-                            goal.id
-                          );
-                          setOverlapError(
-                            conflict ? `⚠️ This time overlaps with your existing Lock-In: ${conflict}` : null
-                          );
-                        },
-                        className: "w-full rounded-lg px-2.5 py-2 text-sm font-mono text-foreground border border-border/30 focus:outline-none focus:ring-1 focus:ring-primary/40",
-                        style: {
-                          background: "oklch(var(--card))",
-                          boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
-                          colorScheme: "dark"
-                        }
+                        className: "text-xs text-destructive mt-2",
+                        "data-ocid": "goals.edit_lockin_duration.field_error",
+                        children: "Duration must be at least 1 minute."
                       }
                     )
+                  ] }),
+                  form.lockInStartTime && !isDurationZero && form.lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70", children: [
+                    "Ends at",
+                    " ",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F59E0B" }, children: formatTime12h(form.lockInEndTime) })
                   ] })
                 ] }),
                 overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -76929,7 +77530,7 @@ function GoalEditForm({
               type: "button",
               size: "sm",
               onClick: handleSave,
-              disabled: isSaving || !hasChanges || !form.wish.trim() || !!overlapError,
+              disabled: isSaving || !hasChanges || !form.wish.trim() || !!overlapError || isDurationZero,
               className: "gap-1.5 button-primary-neon flex-1",
               "data-ocid": "goals.edit_save_button",
               children: isSaving ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -78129,124 +78730,275 @@ function OnboardingPage({ onComplete }) {
     )
   ] });
 }
-function CopyPrincipal({ principal }) {
-  const [copied, setCopied] = reactExports.useState(false);
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(principal);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2e3);
-  };
-  const truncated = principal.length > 24 ? `${principal.slice(0, 10)}…${principal.slice(-8)}` : principal;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "button",
+function Sheet({ ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root$1, { "data-slot": "sheet", ...props });
+}
+function SheetPortal({
+  ...props
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Portal, { "data-slot": "sheet-portal", ...props });
+}
+function SheetOverlay({
+  className,
+  ...props
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Overlay,
     {
-      type: "button",
-      onClick: handleCopy,
-      className: "flex items-center gap-2 px-3 py-2 rounded-lg bg-background border border-border/50 transition-smooth hover:border-primary/40 group",
-      "aria-label": "Copy principal to clipboard",
-      "data-ocid": "profile.copy_principal_button",
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono text-xs text-muted-foreground group-hover:text-foreground transition-smooth truncate max-w-[200px]", children: truncated }),
-        copied ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-3.5 h-3.5 text-accent-success flex-shrink-0" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3.5 h-3.5 text-muted-foreground group-hover:text-primary flex-shrink-0 transition-smooth" })
-      ]
+      "data-slot": "sheet-overlay",
+      className: cn(
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        className
+      ),
+      ...props
     }
   );
 }
-function EditProfileSection({ initialDisplayName }) {
+function SheetContent({
+  className,
+  children,
+  side = "right",
+  ...props
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(SheetPortal, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(SheetOverlay, {}),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      Content,
+      {
+        "data-slot": "sheet-content",
+        className: cn(
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          side === "right" && "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
+          side === "left" && "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
+          side === "top" && "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
+          side === "bottom" && "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
+          className
+        ),
+        ...props,
+        children: [
+          children,
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Close, { className: "ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "size-4" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "sr-only", children: "Close" })
+          ] })
+        ]
+      }
+    )
+  ] });
+}
+function SheetHeader({ className, ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      "data-slot": "sheet-header",
+      className: cn("flex flex-col gap-1.5 p-4", className),
+      ...props
+    }
+  );
+}
+function SheetTitle({
+  className,
+  ...props
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Title,
+    {
+      "data-slot": "sheet-title",
+      className: cn("text-foreground font-semibold", className),
+      ...props
+    }
+  );
+}
+function EditProfileSheet({
+  open,
+  onClose,
+  initialDisplayName,
+  initialBio
+}) {
   const { actor } = useBackend();
   const queryClient2 = useQueryClient();
+  const updateBioMutation = useUpdateBio();
   const [displayName, setDisplayName] = reactExports.useState(initialDisplayName);
-  const [saved, setSaved] = reactExports.useState(false);
+  const [bioText, setBioText] = reactExports.useState(initialBio);
+  const [bioFocused, setBioFocused] = reactExports.useState(false);
+  const [bioTyped, setBioTyped] = reactExports.useState(false);
   reactExports.useEffect(() => {
-    setDisplayName(initialDisplayName);
-  }, [initialDisplayName]);
-  const updateMutation = useMutation({
-    mutationFn: async () => {
+    if (open) {
+      setDisplayName(initialDisplayName);
+      setBioText(initialBio);
+      setBioTyped(false);
+      setBioFocused(false);
+    }
+  }, [open, initialDisplayName, initialBio]);
+  const displayNameMutation = useMutation({
+    mutationFn: async (name) => {
       if (!actor) throw new Error("Actor not available");
-      const nameArg = displayName.trim().length > 0 ? displayName.trim() : null;
-      return await actor.updateMyProfile(nameArg, null);
+      const nameArg = name.trim().length > 0 ? name.trim() : null;
+      const result = await actor.updateMyProfile(nameArg, null, null);
+      if ("err" in result) throw new Error(String(result.err));
+      return result;
     },
     onSuccess: () => {
       queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
       queryClient2.refetchQueries({ queryKey: ["userProfile"] });
-      setSaved(true);
-      ue.success("Profile updated.");
-      setTimeout(() => setSaved(false), 3e3);
     },
     onError: (err) => {
-      ue.error(err.message || "Failed to update profile.");
+      ue.error(err.message || "Failed to update display name.");
     }
   });
-  const isDirty = displayName.trim() !== initialDisplayName;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
+  const BIO_MAX = 160;
+  const bioCount = bioText.length;
+  const bioOverLimit = bioCount > BIO_MAX;
+  const showBioCounter = bioFocused || bioTyped;
+  const isSaving = displayNameMutation.isPending || updateBioMutation.isPending;
+  const displayNameChanged = displayName.trim() !== initialDisplayName.trim();
+  const bioChanged = bioText.trim() !== initialBio.trim();
+  const isDirty = displayNameChanged || bioChanged;
+  const handleSave = async () => {
+    if (bioOverLimit) return;
+    try {
+      if (displayNameChanged) {
+        await displayNameMutation.mutateAsync(displayName);
+      }
+      if (bioChanged) {
+        await updateBioMutation.mutateAsync(bioText);
+      }
+      ue.success("Profile updated.");
+      onClose();
+    } catch {
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Sheet, { open, onOpenChange: (v2) => !v2 && onClose(), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    SheetContent,
     {
-      className: "flex flex-col gap-4 p-5 rounded-2xl bg-card card-neumorphic border border-border/40",
-      "data-ocid": "profile.edit_section",
+      side: "bottom",
+      className: "rounded-t-2xl border-t border-border/40 px-0 pb-0",
+      style: {
+        background: "oklch(var(--card))",
+        maxHeight: "90dvh",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column"
+      },
       children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Pencil,
-            {
-              className: "w-4 h-4",
-              style: { color: "oklch(var(--color-accent-success))" }
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-display font-semibold text-foreground", children: "Edit Profile" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "label",
-              {
-                htmlFor: "profile-display-name",
-                className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
-                children: "Display Name"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-medium text-muted-foreground rounded border border-border/50 px-1.5 py-0.5", children: "Optional" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "input",
-            {
-              id: "profile-display-name",
-              type: "text",
-              value: displayName,
-              onChange: (e3) => setDisplayName(e3.target.value),
-              maxLength: 40,
-              placeholder: "e.g. Sarah",
-              className: "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50",
-              "data-ocid": "profile.display_name_input"
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "This is how the dashboard will greet you." })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
+        /* @__PURE__ */ jsxRuntimeExports.jsx(SheetHeader, { className: "px-5 pt-5 pb-4 border-b border-border/30 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SheetTitle, { className: "font-display font-semibold text-base text-foreground", children: "Edit Profile" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: "flex flex-col gap-5 px-5 py-5 overflow-y-auto",
+            style: { flex: 1 },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "label",
+                    {
+                      htmlFor: "edit-display-name",
+                      className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
+                      children: "Display Name"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-medium text-muted-foreground rounded border border-border/50 px-1.5 py-0.5", children: "Optional" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    id: "edit-display-name",
+                    type: "text",
+                    value: displayName,
+                    onChange: (e3) => setDisplayName(e3.target.value),
+                    maxLength: 40,
+                    placeholder: "e.g. Sarah",
+                    className: "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50",
+                    "data-ocid": "profile.edit_sheet.display_name_input"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "How the dashboard will greet you." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "label",
+                  {
+                    htmlFor: "edit-bio",
+                    className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
+                    children: "About Your Journey"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground leading-relaxed", children: "Your Macro Wish — the ultimate outcome that anchors all your habits." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "textarea",
+                    {
+                      id: "edit-bio",
+                      value: bioText,
+                      onChange: (e3) => {
+                        setBioText(e3.target.value);
+                        setBioTyped(true);
+                      },
+                      onFocus: () => setBioFocused(true),
+                      onBlur: () => setBioFocused(false),
+                      rows: 4,
+                      placeholder: "What is the ultimate outcome you are working towards? (e.g., I want to rebuild my fitness to keep up with my kids...)",
+                      className: "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50 resize-none leading-relaxed",
+                      "data-ocid": "profile.edit_sheet.bio_textarea"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "p",
+                    {
+                      className: "text-xs text-right transition-opacity duration-200",
+                      style: {
+                        color: bioOverLimit ? "oklch(0.65 0.2 25)" : "oklch(var(--muted-foreground))",
+                        opacity: showBioCounter ? 1 : 0,
+                        pointerEvents: "none"
+                      },
+                      "data-ocid": "profile.edit_sheet.bio_counter",
+                      children: [
+                        bioCount,
+                        " / ",
+                        BIO_MAX
+                      ]
+                    }
+                  )
+                ] })
+              ] })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-5 py-4 border-t border-border/30 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
             type: "button",
-            onClick: () => updateMutation.mutate(),
-            disabled: !isDirty || updateMutation.isPending,
-            className: "flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-display font-semibold text-sm transition-smooth disabled:opacity-40 disabled:cursor-not-allowed",
+            onClick: handleSave,
+            disabled: !isDirty || bioOverLimit || isSaving,
+            className: "w-full flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-display font-semibold text-sm transition-smooth disabled:opacity-40 disabled:cursor-not-allowed",
             style: {
-              backgroundColor: saved ? "oklch(var(--color-accent-success) / 0.16)" : "oklch(var(--color-accent-success) / 0.14)",
-              color: "oklch(var(--color-accent-success))",
-              boxShadow: isDirty ? "0 0 16px 2px oklch(var(--color-accent-success) / 0.18)" : "none"
+              backgroundColor: "oklch(var(--color-accent-success) / 0.14)",
+              color: "oklch(var(--color-accent-success))"
             },
-            "data-ocid": "profile.save_button",
-            children: updateMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "animate-pulse", children: "Saving…" }) : saved ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4" }),
-              "Saved"
-            ] }) : "Save changes"
+            "data-ocid": "profile.edit_sheet.save_button",
+            children: isSaving ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
+              "Saving…"
+            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Check,
+                {
+                  className: "w-4 h-4",
+                  style: { opacity: isDirty ? 1 : 0.4 }
+                }
+              ),
+              "Save Profile"
+            ] })
           }
-        )
+        ) })
       ]
     }
-  );
+  ) });
 }
 function ProfilePage$1() {
   const { data: profile, isLoading } = useUserProfile();
-  const { principalText } = useAuth();
+  const [editOpen, setEditOpen] = reactExports.useState(false);
   if (isLoading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -78254,83 +79006,162 @@ function ProfilePage$1() {
         className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
         "data-ocid": "profile.loading_state",
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-40 w-full rounded-2xl" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 rounded-xl" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 rounded-xl" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 w-full rounded-xl" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-56 w-full rounded-2xl" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-28 w-full rounded-xl" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-12 w-full rounded-xl" })
         ]
       }
     );
   }
   const avatarInitial = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim()[0].toUpperCase() : (profile == null ? void 0 : profile.username) && profile.username.trim() !== "" ? profile.username.trim()[0].toUpperCase() : null;
   const displayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim() : "";
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
-      "data-ocid": "profile.page",
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex flex-col gap-4 p-5 rounded-2xl bg-card card-neumorphic border border-border/20 overflow-hidden", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl bg-primary" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-2 relative pt-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "div",
-              {
-                className: "flex items-center justify-center w-20 h-20 rounded-full select-none",
-                style: {
-                  background: "oklch(0.22 0.01 260)",
-                  boxShadow: "inset 3px 3px 8px oklch(0.14 0.01 260), inset -3px -3px 8px oklch(0.30 0.01 260)"
-                },
-                "aria-label": "Your avatar",
-                "data-ocid": "profile.avatar",
-                children: avatarInitial ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "span",
+  const hasBio = ((profile == null ? void 0 : profile.bio) ?? "").trim().length > 0;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
+        "data-ocid": "profile.page",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: "relative flex flex-col gap-5 p-6 rounded-2xl bg-card card-neumorphic border border-white/[0.07] overflow-hidden",
+            style: {
+              boxShadow: "6px 6px 16px oklch(0.12 0.01 260), -4px -4px 12px oklch(0.28 0.01 260), inset 0 1px 0 oklch(1 0 0 / 0.06)"
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3 pt-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
                   {
-                    className: "font-display font-bold text-3xl",
-                    style: { color: "oklch(var(--color-accent-success))" },
-                    children: avatarInitial
+                    className: "flex items-center justify-center w-20 h-20 rounded-full select-none",
+                    style: {
+                      background: "oklch(0.22 0.01 260)",
+                      boxShadow: "inset 3px 3px 8px oklch(0.14 0.01 260), inset -3px -3px 8px oklch(0.30 0.01 260)"
+                    },
+                    "aria-label": "Your avatar",
+                    "data-ocid": "profile.avatar",
+                    children: avatarInitial ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: "font-display font-bold text-3xl",
+                        style: { color: "oklch(var(--color-accent-success))" },
+                        children: avatarInitial
+                      }
+                    ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      User,
+                      {
+                        className: "w-9 h-9",
+                        style: { color: "oklch(var(--color-accent-success) / 0.7)" }
+                      }
+                    )
                   }
-                ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  User,
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
+                  displayName ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "font-display text-xl font-bold text-foreground leading-tight",
+                      "data-ocid": "profile.display_name",
+                      children: displayName
+                    }
+                  ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-display font-semibold text-muted-foreground", children: (profile == null ? void 0 : profile.username) ?? "" }),
+                  (profile == null ? void 0 : profile.username) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground mt-0.5", children: [
+                    "@",
+                    profile.username
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-t border-border/30" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-4", children: [
+                (profile == null ? void 0 : profile.timezone) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
                   {
-                    className: "w-9 h-9",
-                    style: { color: "oklch(var(--color-accent-success) / 0.7)" }
+                    className: "flex items-center justify-between",
+                    "data-ocid": "profile.timezone",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-4 h-4 text-muted-foreground flex-shrink-0" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "Timezone" })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground font-mono", children: profile.timezone })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "flex flex-col gap-2",
+                    "data-ocid": "profile.bio_section",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "div",
+                          {
+                            className: "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                            style: {
+                              backgroundColor: "oklch(var(--color-accent-success))"
+                            }
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "About Your Journey" })
+                      ] }),
+                      hasBio ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "div",
+                        {
+                          className: "rounded-xl px-4 py-3 text-sm text-foreground leading-relaxed",
+                          style: {
+                            background: "oklch(var(--color-accent-success) / 0.06)",
+                            borderLeft: "3px solid oklch(var(--color-accent-success) / 0.45)"
+                          },
+                          "data-ocid": "profile.bio_display",
+                          children: profile == null ? void 0 : profile.bio
+                        }
+                      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-sm text-muted-foreground italic px-1",
+                          "data-ocid": "profile.bio_empty_state",
+                          children: "No Macro Wish set yet."
+                        }
+                      )
+                    ]
                   }
                 )
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
-              displayName ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "p",
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
                 {
-                  className: "font-display text-xl font-bold text-foreground",
-                  "data-ocid": "profile.display_name",
-                  children: displayName
+                  type: "button",
+                  onClick: () => setEditOpen(true),
+                  className: "flex items-center justify-center gap-2 w-full rounded-xl px-5 py-3 font-display font-semibold text-sm transition-smooth",
+                  style: {
+                    backgroundColor: "oklch(var(--color-accent-success) / 0.12)",
+                    color: "oklch(var(--color-accent-success))",
+                    border: "1px solid oklch(var(--color-accent-success) / 0.25)"
+                  },
+                  "data-ocid": "profile.edit_profile_button",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Pencil, { className: "w-4 h-4" }),
+                    "Edit Profile"
+                  ]
                 }
-              ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground italic", children: "No display name set" }),
-              (profile == null ? void 0 : profile.role) === "admin" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-primary/20 text-accent-success border-primary/30 text-xs mt-1", children: "Admin" })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-3 border-t border-border/30 pt-3", children: [
-            (profile == null ? void 0 : profile.username) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide", children: "Username" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-foreground font-mono", children: [
-                "@",
-                profile.username
-              ] })
-            ] }),
-            principalText && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wide", children: "Principal ID" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(CopyPrincipal, { principal: principalText })
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(EditProfileSection, { initialDisplayName: displayName })
-      ]
-    }
-  );
+              )
+            ]
+          }
+        )
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      EditProfileSheet,
+      {
+        open: editOpen,
+        onClose: () => setEditOpen(false),
+        initialDisplayName: displayName,
+        initialBio: (profile == null ? void 0 : profile.bio) ?? ""
+      }
+    )
+  ] });
 }
 function SettingsPage$1() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(

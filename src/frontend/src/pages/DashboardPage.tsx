@@ -27,6 +27,22 @@ const NEW_HABIT_DURATION_MS = 10_000;
 function goalKey(id: bigint): string {
   return String(id);
 }
+/**
+ * Returns the UTC offset in minutes for a given IANA timezone string.
+ * e.g. "America/New_York" → -300 (in winter), +330 for "Asia/Kolkata".
+ * Falls back to the browser's own offset if tz is empty or unrecognised.
+ */
+const getTimezoneOffsetMinutes = (tz: string): number => {
+  if (!tz) return -new Date().getTimezoneOffset();
+  try {
+    const date = new Date();
+    const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
+    const tzDate = new Date(date.toLocaleString("en-US", { timeZone: tz }));
+    return Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
+  } catch {
+    return -new Date().getTimezoneOffset();
+  }
+};
 
 /**
  * Returns true if the IC nanosecond timestamp falls on today's calendar day
@@ -121,8 +137,16 @@ function msUntilMidnight(tz?: string): number {
 // ─── Done-tab state type ───────────────────────────────────────────────────────────
 interface DoneEntry {
   checkInId: bigint;
-  checkInType: "success" | "skip" | "inProgress" | "failedLockIn";
+  checkInType:
+    | "success"
+    | "skip"
+    | "inProgress"
+    | "missedCheckIn"
+    | "missedCheckOut";
   executedIfThen?: boolean;
+  isLockIn?: boolean;
+  obstacleTemplateId?: bigint;
+  customObstacleNote?: string;
 }
 
 type DoneMap = Map<string, DoneEntry>;
@@ -634,6 +658,10 @@ export function DashboardPage() {
 
   // ── Bug 7: track cards that had a backend error, so onExitComplete skips them ──
   const erroredCardIdsRef = useRef<Set<string>>(new Set());
+  // ── Committed missed Lock-In exits: once a card's missed justification is
+  // submitted, add its key here so unswiped filter permanently excludes it,
+  // even before lockInCheckInMap updates from the backend refetch.
+  const committedMissedExitsRef = useRef<Set<string>>(new Set());
 
   // ── Bug 3/10: track in-progress pulse animation for Lock-In start-window check-in ──
   const [inProgressPulseMap, setInProgressPulseMap] = useState<Set<string>>(
@@ -686,6 +714,7 @@ export function DashboardPage() {
         setExitingMap(new Map());
         setSwipeDirectionMap(new Map());
         setOptimisticDoneMap(new Map());
+        committedMissedExitsRef.current.clear();
         // Schedule the next reset (for the following day)
         scheduleReset();
       }, ms + 1000); // +1s buffer to land safely past midnight
@@ -750,27 +779,38 @@ export function DashboardPage() {
     const map: DoneMap = new Map();
     for (const c of checkIns) {
       if (isCheckInToday(c.timestamp, userTimezone)) {
-        const checkInType: "success" | "skip" | "inProgress" | "failedLockIn" =
+        const checkInType:
+          | "success"
+          | "skip"
+          | "inProgress"
+          | "missedCheckIn"
+          | "missedCheckOut" =
           c.checkInType === CheckInType.success
             ? "success"
             : c.checkInType === CheckInType.skip
               ? "skip"
               : c.checkInType === CheckInType.inProgress
                 ? "inProgress"
-                : c.checkInType === CheckInType.failedLockIn
-                  ? "failedLockIn"
-                  : "skip";
+                : c.checkInType === CheckInType.missedCheckIn
+                  ? "missedCheckIn"
+                  : c.checkInType === CheckInType.missedCheckOut
+                    ? "missedCheckOut"
+                    : "skip";
         // Read executedIfThen from the check-in record
         const executedIfThen = c.executedIfThen ?? false;
+        const doneGoal = goals.find((g) => goalKey(g.id) === goalKey(c.goalId));
         map.set(goalKey(c.goalId), {
           checkInId: c.id,
           checkInType,
           executedIfThen,
+          isLockIn: doneGoal?.isLockIn ?? false,
+          obstacleTemplateId: c.obstacleTemplateId,
+          customObstacleNote: c.customObstacleNote,
         });
       }
     }
     return map;
-  }, [checkIns, userTimezone]);
+  }, [checkIns, userTimezone, goals]);
 
   // ── Promote optimisticDoneMap entries once todayDoneMap has real backend data ────
   // When the backend query returns, clear any optimistic entries that are now
@@ -919,6 +959,9 @@ export function DashboardPage() {
         lockInEndedAt,
         executedIfThen: executedIfThen ?? false,
         customObstacleNote: customObstacleNote,
+        timezoneOffsetMinutes: BigInt(
+          getTimezoneOffsetMinutes(userTimezone ?? ""),
+        ),
       });
     },
     onSuccess: (_data, _variables) => {
@@ -932,6 +975,8 @@ export function DashboardPage() {
       const key = goalKey(variables.goalId);
       // Bug 7: mark as errored so handleCardExitComplete skips this card
       erroredCardIdsRef.current.add(key);
+      // Also clear from committedMissedExits so the card becomes interactive again
+      committedMissedExitsRef.current.delete(key);
       // Bug 8: if this was a Lock-In end-window checkout (success type with
       // an existing inProgress check-in), keep the card in Active at in-progress
       // state so the user can retry the checkout swipe.
@@ -997,15 +1042,35 @@ export function DashboardPage() {
     if (type === "success") backendType = CheckInType.success;
     else if (type === "skip") backendType = CheckInType.skip;
     else if (
-      // Bug 1/2: when inProgress type is passed from MissedWindowSheet,
-      // obstacleId is now correctly set (not undefined).
-      // The presence of an obstacleId combined with isLockIn means
-      // this is a failed-lock-in report from the missed-window flow.
+      // When inProgress type is passed from MissedWindowSheet,
+      // obstacleId is set. Use lockInState to distinguish missed-start vs missed-checkout.
       type === "inProgress" &&
       obstacleId !== undefined &&
       goal?.isLockIn
     ) {
-      backendType = CheckInType.failedLockIn;
+      // Determine which failure type based on current lockInState.
+      // We intentionally read lockInState at call-time (before exitCommittedRef
+      // blocks further re-renders) so the correct type is captured.
+      const currentState =
+        goal.isLockIn &&
+        goal.startTime != null &&
+        goal.startTime !== "" &&
+        goal.endTime != null &&
+        goal.endTime !== ""
+          ? getLockInState(
+              goal.startTime,
+              goal.endTime,
+              lockInCheckInMap.get(key),
+              goal.createdAt,
+            )
+          : null;
+      backendType =
+        currentState === "missed-checkout"
+          ? CheckInType.missedCheckOut
+          : CheckInType.missedCheckIn;
+      // Immediately register this card as a committed missed exit so the
+      // unswiped filter excludes it permanently — no waiting for backend refetch.
+      committedMissedExitsRef.current.add(key);
     } else {
       // Bug 3: plain inProgress (Lock-In start-window check-in)
       // stays in Active — does NOT exit to Done.
@@ -1014,11 +1079,12 @@ export function DashboardPage() {
 
     const direction: "left" | "right" = type === "success" ? "right" : "left";
     // Bug 3: inProgress Lock-In check-in must NOT trigger slide-to-Done.
-    // Only terminal types (success, skip, failedLockIn) exit the Active list.
+    // Only terminal types (success, skip, missedCheckIn, missedCheckOut) exit the Active list.
     const shouldSlide =
       type === "success" ||
       type === "skip" ||
-      backendType === CheckInType.failedLockIn;
+      backendType === CheckInType.missedCheckIn ||
+      backendType === CheckInType.missedCheckOut;
 
     if (shouldSlide) {
       setSwipeDirectionMap((prev) => {
@@ -1033,18 +1099,27 @@ export function DashboardPage() {
       });
       // Optimistically add to Done map so the card appears immediately after
       // the exit animation, before the backend query refetches.
-      const optimisticCheckInType: "success" | "skip" | "failedLockIn" =
+      const optimisticCheckInType:
+        | "success"
+        | "skip"
+        | "missedCheckIn"
+        | "missedCheckOut" =
         backendType === CheckInType.success
           ? "success"
-          : backendType === CheckInType.failedLockIn
-            ? "failedLockIn"
-            : "skip";
+          : backendType === CheckInType.missedCheckIn
+            ? "missedCheckIn"
+            : backendType === CheckInType.missedCheckOut
+              ? "missedCheckOut"
+              : "skip";
       setOptimisticDoneMap((prev) => {
         const next = new Map(prev);
         next.set(key, {
           checkInId: 0n, // placeholder — real id comes from backend
           checkInType: optimisticCheckInType,
           executedIfThen: executedIfThen ?? false,
+          isLockIn: goal?.isLockIn ?? false,
+          obstacleTemplateId: obstacleId,
+          customObstacleNote: customObstacleNote,
         });
         return next;
       });
@@ -1125,6 +1200,10 @@ export function DashboardPage() {
 
   // ── Undo logic ─────────────────────────────────────────────────────────────
   function handleDoneCardTap(goalId: bigint) {
+    // Block undo for ALL Lock-In cards — once in Done they are permanently sealed.
+    const doneEntry = mergedDoneMap.get(goalKey(goalId));
+    if (doneEntry?.isLockIn) return;
+
     // done goals are in doneMap but also still in activeGoals since
     // activeGoals = goals filtered by GoalState.active (not by doneMap).
     // We need to search the full goals list, not just unswiped ones.
@@ -1192,7 +1271,6 @@ export function DashboardPage() {
   }
 
   // ── Lock-In today check-in map ────────────────────────────────────────────────────────
-  // biome-ignore lint/correctness/useExhaustiveDependencies: _lockInStateTick is a counter that intentionally triggers re-derivation every 30 s
   const lockInCheckInMap = useMemo(() => {
     void _lockInStateTick; // ensures memo re-runs on 30s tick
     const map = new Map<string, LockInCheckIn>();
@@ -1201,8 +1279,10 @@ export function DashboardPage() {
       const gKey = goalKey(c.goalId);
       let ciType: LockInCheckIn["type"] | null = null;
       if (c.checkInType === CheckInType.inProgress) ciType = "inProgress";
-      else if (c.checkInType === CheckInType.failedLockIn)
-        ciType = "failedLockIn";
+      else if (c.checkInType === CheckInType.missedCheckIn)
+        ciType = "missedCheckIn";
+      else if (c.checkInType === CheckInType.missedCheckOut)
+        ciType = "missedCheckOut";
       else if (c.checkInType === CheckInType.success) ciType = "success";
       if (ciType) {
         map.set(gKey, {
@@ -1224,13 +1304,14 @@ export function DashboardPage() {
   // unswiped: goals not in todayDoneMap AND not currently exiting
   // Lock-In inProgress goals stay in active tab
   const unswiped = activeGoals.filter((g) => {
-    const entry = todayDoneMap.get(goalKey(g.id));
+    const key = goalKey(g.id);
+    // Once a missed Lock-In justification has been submitted, permanently
+    // exclude this card from the active list — even before the backend refetch
+    // updates lockInCheckInMap (which is the race condition we are fixing).
+    if (committedMissedExitsRef.current.has(key)) return false;
+    const entry = todayDoneMap.get(key);
     if (entry?.checkInType === "inProgress") return true;
-    return (
-      !entry &&
-      !exitingMap.has(goalKey(g.id)) &&
-      !optimisticDoneMap.has(goalKey(g.id))
-    );
+    return !entry && !exitingMap.has(key) && !optimisticDoneMap.has(key);
   });
   // Merged done map: real backend data takes priority; optimistic fills the gap
   // while the backend query refetches after a swipe.
@@ -1242,7 +1323,7 @@ export function DashboardPage() {
     }
     return merged;
   }, [todayDoneMap, optimisticDoneMap]);
-  // done: goals with final check-ins (success, skip, failedLockIn) — from merged map
+  // done: goals with final check-ins (success, skip, missedCheckIn, missedCheckOut) — from merged map
   const done = activeGoals.filter((g) => {
     const entry = mergedDoneMap.get(goalKey(g.id));
     return entry && entry.checkInType !== "inProgress";
@@ -1302,6 +1383,7 @@ export function DashboardPage() {
       g.startTime,
       g.endTime,
       lockInCheckInMap.get(goalKey(g.id)),
+      g.createdAt,
     );
     return state === "start-window" || state === "end-window";
   }).length;
@@ -1333,7 +1415,12 @@ export function DashboardPage() {
                     mergedDoneMap.get(goalKey(undoTarget.goalId))
                   )?.checkInType ?? null;
                 if (t === "success") return t;
-                if (t === "skip" || t === "failedLockIn") return "skip";
+                if (
+                  t === "skip" ||
+                  t === "missedCheckIn" ||
+                  t === "missedCheckOut"
+                )
+                  return "skip";
                 return null; // inProgress maps to null (not a Done-tab terminal state)
               })()
             : null
@@ -1650,7 +1737,13 @@ export function DashboardPage() {
                     key={key}
                     goal={goal}
                     checkInToday={
-                      entry ? { checkInType: entry.checkInType } : undefined
+                      entry
+                        ? {
+                            checkInType: entry.checkInType,
+                            obstacleTemplateId: entry.obstacleTemplateId,
+                            customObstacleNote: entry.customObstacleNote,
+                          }
+                        : undefined
                     }
                     analytics={analyticsMap.get(key)}
                     index={index}

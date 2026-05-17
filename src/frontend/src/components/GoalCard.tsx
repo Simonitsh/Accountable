@@ -1,8 +1,17 @@
-import { Check, Lock, LockOpen, Pause, Zap } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Lock,
+  LockOpen,
+  Pause,
+  TriangleAlert,
+  Zap,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { GoalPublic } from "../backend.d.ts";
 import type { GoalAnalytics } from "../types";
+import { OBSTACLE_TEMPLATES } from "../types";
 import { getGoalIcon } from "../utils/goalIcons";
 import { MissedWindowSheet } from "./MissedWindowSheet";
 import { SkipModal } from "./SkipModal";
@@ -24,12 +33,13 @@ export type LockInState =
   | "start-window" // within ±5min of startTime
   | "in-progress" // checked-in but not checked out
   | "end-window" // in-progress + within ±5min of endTime
-  | "missed" // past endTime window, no success
+  | "missed-start" // past startTime window, unstarted
+  | "missed-checkout" // in-progress, past endTime window
   | "completed" // success check-in recorded — Lock-In done
-  | "failed-finalized"; // failedLockIn recorded
+  | "failed-finalized"; // missedCheckIn or missedCheckOut recorded
 
 export interface LockInCheckIn {
-  type: "inProgress" | "failedLockIn" | "success";
+  type: "inProgress" | "missedCheckIn" | "missedCheckOut" | "success";
   startedAt?: number;
   endedAt?: number;
 }
@@ -45,24 +55,35 @@ export function getLockInState(
   startTime: string,
   endTime: string,
   todayCheckIn: LockInCheckIn | undefined,
+  createdAt?: bigint,
 ): LockInState {
   const now = Date.now();
   const start = parseTimeToday(startTime).getTime();
   const end = parseTimeToday(endTime).getTime();
   const WINDOW = 5 * 60 * 1000;
 
-  if (todayCheckIn?.type === "success") return "completed"; // Lock-In successfully completed
-  if (todayCheckIn?.type === "failedLockIn") return "failed-finalized";
+  if (todayCheckIn?.type === "success") return "completed";
+  if (
+    todayCheckIn?.type === "missedCheckIn" ||
+    todayCheckIn?.type === "missedCheckOut"
+  )
+    return "failed-finalized";
 
   if (todayCheckIn?.type === "inProgress") {
     if (Math.abs(now - end) <= WINDOW) return "end-window";
-    if (now > end + WINDOW) return "missed";
+    if (now > end + WINDOW) return "missed-checkout";
     return "in-progress";
   }
 
   if (Math.abs(now - start) <= WINDOW) return "start-window";
   if (now < start - WINDOW) return "waiting";
-  return "missed";
+  // Do not mark as missed on the habit's creation day — the window hasn't been missed yet
+  if (createdAt !== undefined) {
+    const createdDate = new Date(Number(createdAt / 1_000_000n)).toDateString();
+    const todayDate = new Date().toDateString();
+    if (createdDate === todayDate) return "waiting";
+  }
+  return "missed-start";
 }
 
 function formatTime12h(timeStr: string): string {
@@ -106,20 +127,25 @@ function useLockInTimer(
   const endWindowEnd = endMs + WINDOW_MS;
 
   function fmtCountdown(ms: number): string {
-    const totalSec = Math.max(0, Math.floor(ms / 1000));
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    const s = Math.max(0, Math.floor(ms / 1000));
+    if (s >= 3600) {
+      const h = Math.floor(s / 3600);
+      const mn = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return `${String(h).padStart(2, "0")}:${String(mn).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    }
+    return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   }
 
   function fmtRemaining(ms: number): string {
-    const totalMin = Math.max(0, Math.floor(ms / 60000));
-    if (totalMin >= 60) {
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    const s = Math.max(0, Math.floor(ms / 1000));
+    if (s >= 3600) {
+      const h = Math.floor(s / 3600);
+      const mn = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return `${String(h).padStart(2, "0")}:${String(mn).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     }
-    return `${totalMin}m`;
+    return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   }
 
   const checkInType = lockInTodayCheckIn?.type;
@@ -127,23 +153,15 @@ function useLockInTimer(
   if (!checkInType && Math.abs(now - startMs) <= WINDOW_MS) {
     return {
       state: "start-window" as const,
-      text: `⏱️ Check-In Window Closes in ${fmtCountdown(startWindowEnd - now)}`,
+      text: `WINDOW: ${fmtCountdown(startWindowEnd - now)}`,
       color: "#F97316",
       pulse: true,
     };
   }
   if (!checkInType && now < startMs - WINDOW_MS) {
-    const minsUntilWindow = Math.max(
-      0,
-      Math.floor((startMs - WINDOW_MS - now) / 60000),
-    );
-    const display =
-      minsUntilWindow >= 60
-        ? `${Math.floor(minsUntilWindow / 60)}h ${minsUntilWindow % 60}m`
-        : `${minsUntilWindow}m`;
     return {
       state: "upcoming" as const,
-      text: `⏳ Starts in ${display}`,
+      text: `STARTS IN ${fmtCountdown(startMs - WINDOW_MS - now)}`,
       color: "#9CA3AF",
       pulse: false,
     };
@@ -151,7 +169,7 @@ function useLockInTimer(
   if (checkInType === "inProgress" && Math.abs(now - endMs) <= WINDOW_MS) {
     return {
       state: "end-window" as const,
-      text: `⏱️ Check-Out Window Closes in ${fmtCountdown(endWindowEnd - now)}`,
+      text: `WINDOW: ${fmtCountdown(endWindowEnd - now)}`,
       color: "#F97316",
       pulse: true,
     };
@@ -159,19 +177,89 @@ function useLockInTimer(
   if (checkInType === "inProgress") {
     return {
       state: "in-progress" as const,
-      text: `🧠 ${fmtRemaining(endMs - now)} remaining`,
-      color: "#10B981",
+      text: `REMAINING ${fmtRemaining(endMs - now)}`,
+      color: "#F59E0B",
       pulse: false,
     };
   }
   return null;
 }
 
+// ─── Done tab inset justification box ────────────────────────────────────────
+interface JustificationBoxProps {
+  failureType: "missedCheckIn" | "missedCheckOut";
+  obstacleTemplateId?: bigint;
+  customObstacleNote?: string;
+}
+
+function JustificationBox({
+  failureType,
+  obstacleTemplateId,
+  customObstacleNote,
+}: JustificationBoxProps) {
+  const obstacleLabel =
+    obstacleTemplateId !== undefined
+      ? (OBSTACLE_TEMPLATES[Number(obstacleTemplateId)]?.label ??
+        "Custom reason")
+      : undefined;
+
+  const badgeLabel =
+    failureType === "missedCheckIn" ? "Missed Start" : "Missed Check-Out";
+
+  return (
+    <div
+      className="rounded-lg p-3 mt-3"
+      style={{
+        background: "#1a1f2e",
+        border: "1px solid rgba(71,85,105,0.4)",
+        boxShadow:
+          "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.03)",
+      }}
+      data-ocid="goal.justification_box"
+    >
+      <div className="flex items-center gap-2 mb-1.5">
+        <span
+          className="text-xs rounded-full px-2 py-0.5 font-mono"
+          style={{
+            background: "rgba(71,85,105,0.45)",
+            color: "#94a3b8",
+            fontSize: "0.65rem",
+          }}
+        >
+          {badgeLabel}
+        </span>
+        {obstacleLabel && (
+          <span className="text-sm" style={{ color: "#cbd5e1" }}>
+            {obstacleLabel}
+          </span>
+        )}
+      </div>
+      {customObstacleNote && (
+        <p
+          className="text-xs italic"
+          style={{ color: "#94a3b8", marginTop: "0.25rem" }}
+        >
+          &ldquo;{customObstacleNote}&rdquo;
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface GoalCardProps {
   goal: GoalPublic;
   checkInToday?:
-    | { checkInType: "success" | "skip" | "inProgress" | "failedLockIn" }
+    | {
+        checkInType:
+          | "success"
+          | "skip"
+          | "inProgress"
+          | "missedCheckIn"
+          | "missedCheckOut";
+        obstacleTemplateId?: bigint;
+        customObstacleNote?: string;
+      }
     | undefined;
   analytics?: GoalAnalytics;
   index: number;
@@ -240,11 +328,28 @@ export function GoalCard({
   const [showMissedSheet, setShowMissedSheet] = useState(false);
   // WOOP Catch sheet — shown on left swipe for normal (non-LockIn) habits
   const [showWoopCatch, setShowWoopCatch] = useState(false);
+  // Press feedback: brief scale-down + inward shadow on clean tap
+  const [isTapped, setIsTapped] = useState(false);
+  // Auto-trigger missed sheet once per transition to a missed state
+  const autoMissedTriggeredRef = useRef(false);
+  // exitCommittedRef: once set to true, no re-render can revert this card
+  // to a missed/active state or re-trigger the justification sheet.
+  const exitCommittedRef = useRef(false);
 
   // ── Lock-In state ─────────────────────────────────────────────────────────────
   const lockInState =
-    isLockIn && lockInStartTime && lockInEndTime && mode === "active"
-      ? getLockInState(lockInStartTime, lockInEndTime, lockInTodayCheckIn)
+    isLockIn &&
+    lockInStartTime != null &&
+    lockInStartTime !== "" &&
+    lockInEndTime != null &&
+    lockInEndTime !== "" &&
+    mode === "active"
+      ? getLockInState(
+          lockInStartTime,
+          lockInEndTime,
+          lockInTodayCheckIn,
+          goal.createdAt,
+        )
       : null;
 
   // Live countdown timer for Lock-In cards
@@ -259,6 +364,29 @@ export function GoalCard({
     lockInState !== null &&
     lockInState !== "start-window" &&
     lockInState !== "end-window";
+
+  // ── Current failure type for MissedWindowSheet ────────────────────────────────
+  const currentFailureType: "missed-start" | "missed-checkout" =
+    lockInState === "missed-checkout" ? "missed-checkout" : "missed-start";
+
+  // ── Auto-trigger missed sheet once when lockInState becomes a missed state ─────
+  // exitCommittedRef guards against re-fire after the user submitted the sheet
+  // and the card is animating out (before lockInCheckInMap updates from backend).
+  useEffect(() => {
+    if (exitCommittedRef.current) return; // card already committed to exit — never re-trigger
+    if (lockInState === "missed-start" || lockInState === "missed-checkout") {
+      if (!autoMissedTriggeredRef.current) {
+        autoMissedTriggeredRef.current = true;
+        const t = setTimeout(() => {
+          if (!exitCommittedRef.current) setShowMissedSheet(true);
+        }, 550);
+        return () => clearTimeout(t);
+      }
+    } else {
+      // Reset the ref when leaving missed state so a future transition can re-trigger
+      autoMissedTriggeredRef.current = false;
+    }
+  }, [lockInState]);
 
   // ── Drag state ───────────────────────────────────────────────────────────────
   const [dragX, setDragX] = useState(0);
@@ -276,14 +404,24 @@ export function GoalCard({
   // Tracks whether a modal/sheet was opened during the current pointer gesture.
   // When true, onInsightOpen must NOT fire on pointerUp.
   const modalOpenedDuringGestureRef = useRef(false);
+  // Set to true when the user's first motion is primarily vertical — allows native scroll.
+  const isVerticalScrollRef = useRef(false);
 
   // ── Derived ──────────────────────────────────────────────────────────────────
   const isSuccess = checkInToday?.checkInType === "success";
   const isSkipped = checkInToday?.checkInType === "skip";
-  const isFailedLockIn = checkInToday?.checkInType === "failedLockIn";
+  const isMissedCheckIn = checkInToday?.checkInType === "missedCheckIn";
+  const isMissedCheckOut = checkInToday?.checkInType === "missedCheckOut";
+  const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
   const goalIcon = getGoalIcon(goal.iconName);
   const themeColor = goal.themeColor;
-  const keystoneText = goal.wishDescription || goal.wish;
+  const rawWishDescription = goal.wishDescription || goal.wish;
+  // Strip the wizard-assembled prefix "Every day, I will " → display "I will …"
+  const keystoneText = rawWishDescription.startsWith("Every day, I will ")
+    ? `I will ${rawWishDescription.slice("Every day, I will ".length)}`
+    : rawWishDescription.startsWith("Every day ,")
+      ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}`
+      : rawWishDescription;
 
   const cardBgIdle = themeColor
     ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))`
@@ -333,12 +471,21 @@ export function GoalCard({
         cursor: "pointer",
       };
     }
-    if (lockInState === "missed" || lockInState === "failed-finalized") {
+    if (lockInState === "missed-start" || lockInState === "missed-checkout") {
+      return {
+        background: `color-mix(in srgb, rgba(245,158,11,0.06) 100%, ${cardBgIdle})`,
+        boxShadow: embossed,
+        border: "1px solid rgba(245,158,11,0.5)",
+        opacity: 0.9,
+        cursor: "pointer",
+      };
+    }
+    if (lockInState === "failed-finalized") {
       return {
         background: cardBgIdle,
         boxShadow: embossed,
         border: `1px solid ${MISSED_COLOR}`,
-        opacity: 0.75,
+        opacity: 0.65,
         cursor: "pointer",
       };
     }
@@ -346,8 +493,8 @@ export function GoalCard({
       return {
         background: cardBgIdle,
         boxShadow: embossed,
-        borderTop: `2px solid ${SUCCESS_COLOR}`,
-        borderLeft: `2px solid ${SUCCESS_COLOR}`,
+        borderTop: "2px solid #F59E0B",
+        borderLeft: "2px solid #F59E0B",
         borderRight: litBorder,
         borderBottom: litBorder,
       };
@@ -355,9 +502,9 @@ export function GoalCard({
     if (lockInState === "start-window" || lockInState === "end-window") {
       return {
         background: cardBgIdle,
-        boxShadow: `${embossed}, 0 0 12px rgba(16,185,129,0.2)`,
+        boxShadow: `${embossed}, 0 0 12px rgba(245,158,11,0.2)`,
         borderTop: litBorder,
-        borderLeft: "4px solid transparent",
+        borderLeft: "4px solid #F59E0B",
         borderRight: "none",
         borderBottom: "none",
       };
@@ -399,6 +546,7 @@ export function GoalCard({
   // ── Pointer handlers ──────────────────────────────────────────────────────────
   function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
     modalOpenedDuringGestureRef.current = false;
+    isVerticalScrollRef.current = false;
     // Done-mode: record start position for clean-tap detection
     if (mode === "done") {
       isPointerDown.current = true;
@@ -410,22 +558,18 @@ export function GoalCard({
     if (mode !== "active" || isExiting) return;
     if (lockInSwipeDisabled) {
       // Always record pointer start so a clean tap can be detected in onPointerUp.
-      // Capture the pointer so onPointerUp fires even if the finger drifts slightly.
-      e.currentTarget.setPointerCapture(e.pointerId);
+      // Do NOT capture pointer yet — let native scroll handle vertical drags.
       isPointerDown.current = true;
       pointerStartX.current = e.clientX;
       pointerStartY.current = e.clientY;
       dragXRef.current = 0;
-      // missed / failed-finalized: immediately open the missed-window sheet;
+      // missed / failed-finalized: sheet is opened via the amber button or auto-trigger;
       // waiting / in-progress / completed: just record start (tap → insight).
-      if (lockInState === "missed" || lockInState === "failed-finalized") {
-        modalOpenedDuringGestureRef.current = true;
-        setShowMissedSheet(true);
-        onMissedWindowTap?.(goal.id);
-      }
       return;
     }
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // Do NOT capture pointer on pointerdown — only capture after confirming
+    // horizontal intent (12px threshold). This lets vertical swipes pass to
+    // native page scroll without any interference.
     isPointerDown.current = true;
     isHorizontalSwipe.current = false;
     pointerStartX.current = e.clientX;
@@ -437,23 +581,47 @@ export function GoalCard({
 
   function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
     if (!isPointerDown.current) return;
+    // If we already determined this is a vertical scroll, do nothing.
+    if (isVerticalScrollRef.current) return;
     // Done mode or lock-in-disabled: just track horizontal drift for tap detection
     if (mode !== "active" || isExiting || lockInSwipeDisabled) {
       dragXRef.current = e.clientX - pointerStartX.current;
       return;
     }
-    e.preventDefault();
     const dx = e.clientX - pointerStartX.current;
     const dy = e.clientY - pointerStartY.current;
-    if (!isHorizontalSwipe.current && Math.abs(dx) > 6) {
-      if (Math.abs(dy) > Math.abs(dx)) {
-        isPointerDown.current = false;
-        return;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (!isHorizontalSwipe.current) {
+      // Once 5px of total movement: check direction.
+      if (dist > 5) {
+        if (Math.abs(dy) > Math.abs(dx)) {
+          // Vertical-first — release pointer capture & hand off to native scroll.
+          isVerticalScrollRef.current = true;
+          isPointerDown.current = false;
+          dragXRef.current = 0;
+          try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          } catch (_) {
+            // Not captured yet — ignore.
+          }
+          return;
+        }
       }
-      isHorizontalSwipe.current = true;
-      setIsDragging(true);
+      // Confirm horizontal intent after 12px horizontal threshold.
+      if (Math.abs(dx) > 12) {
+        isHorizontalSwipe.current = true;
+        setIsDragging(true);
+        // Capture pointer now that we are certain of horizontal intent.
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (_) {
+          // Already captured or unavailable — ignore.
+        }
+      }
     }
     if (isHorizontalSwipe.current) {
+      e.preventDefault();
       const clamped = Math.max(
         -(SWIPE_THRESHOLD * 1.5),
         Math.min(SWIPE_THRESHOLD * 1.5, dx),
@@ -464,7 +632,7 @@ export function GoalCard({
   }
 
   // Maximum horizontal drift still considered a "tap" (well below the 60px swipe threshold)
-  const TAP_MAX_DRIFT = 10;
+  const TAP_MAX_DRIFT = 14;
 
   function onPointerUp() {
     if (!isPointerDown.current) return;
@@ -478,14 +646,7 @@ export function GoalCard({
       setDragX(0);
       setIsDragging(false);
       isHorizontalSwipe.current = false;
-      // Clean tap on done card body → open insight (Undo button stops propagation)
-      if (
-        !modalOpenedDuringGestureRef.current &&
-        Math.abs(finalDragX) < TAP_MAX_DRIFT &&
-        onInsightOpen
-      ) {
-        onInsightOpen(goal);
-      }
+      // Done card body tap intentionally does nothing — use the habit name button to open timeline.
       return;
     }
 
@@ -505,6 +666,9 @@ export function GoalCard({
         Math.abs(finalDragX) < TAP_MAX_DRIFT &&
         onInsightOpen
       ) {
+        setIsTapped(true);
+        setTimeout(() => setIsTapped(false), 300);
+        if (navigator.vibrate) navigator.vibrate([8]);
         onInsightOpen(goal);
       }
       return;
@@ -526,20 +690,14 @@ export function GoalCard({
       modalOpenedDuringGestureRef.current = true;
       // WOOP Catch: snap card back to center, open sheet over dashboard
       setShowWoopCatch(true);
-    } else if (
-      // ── Clean tap on active card body ──────────────────────────────────────
-      !wasHorizontalSwipe &&
-      !modalOpenedDuringGestureRef.current &&
-      Math.abs(finalDragX) < TAP_MAX_DRIFT &&
-      onInsightOpen
-    ) {
-      onInsightOpen(goal);
     }
+    // Active card body tap intentionally does nothing — use the habit name button to open timeline.
   }
 
   function onPointerCancel() {
     if (mode !== "active") return;
     isPointerDown.current = false;
+    isVerticalScrollRef.current = false;
     dragXRef.current = 0;
     setDragX(0);
     setIsDragging(false);
@@ -564,10 +722,25 @@ export function GoalCard({
     setShowSkipModal(false);
   }
 
-  function handleMissedConfirm(obstacleTemplateId?: bigint) {
-    // Fire as inProgress; DashboardPage checks lockInState and maps to failedLockIn
-    onCheckIn?.(goal.id, "inProgress", obstacleTemplateId);
+  function handleMissedConfirm(
+    obstacleTemplateId?: bigint,
+    customNote?: string,
+  ) {
+    // Commit exit immediately — prevents any subsequent re-render from
+    // re-triggering the justification sheet or reverting the card to Active.
+    exitCommittedRef.current = true;
     setShowMissedSheet(false);
+    // Fire as inProgress; DashboardPage checks lockInState and maps to
+    // missedCheckIn or missedCheckOut based on current lockInState.
+    onCheckIn?.(
+      goal.id,
+      "inProgress",
+      obstacleTemplateId,
+      undefined,
+      undefined,
+      false,
+      customNote,
+    );
   }
 
   // WOOP Catch handlers
@@ -640,14 +813,8 @@ export function GoalCard({
   });
 
   // We intentionally only depend on isExiting and goal.id here.
-  // The timer must NOT be cancelled on re-renders caused by prop changes
-  // (e.g. onExitComplete reference changing due to invalidateQueries refetch).
-  // Using onExitCompleteRef ensures we always call the latest callback.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — onExitCompleteRef used instead of direct callback to survive prop-change re-renders
   useEffect(() => {
     if (isExiting) {
-      // Only start a new timer if one isn't already running.
-      // This prevents re-renders from resetting the countdown.
       if (exitTimerRef.current !== null) return;
       exitFiredRef.current = false;
       exitTimerRef.current = setTimeout(() => {
@@ -658,18 +825,13 @@ export function GoalCard({
         }
       }, EXIT_DURATION_MS);
     } else {
-      // isExiting turned false — cancel any pending timer and reset state
       if (exitTimerRef.current) {
         clearTimeout(exitTimerRef.current);
         exitTimerRef.current = null;
       }
       exitFiredRef.current = false;
     }
-    return () => {
-      // Cleanup only on unmount or when isExiting flips back to false.
-      // We do NOT clear the timer here on every render — that's the bug.
-      // The effect only re-runs when isExiting or goal.id changes.
-    };
+    return () => {};
   }, [isExiting, goal.id]);
 
   // Separate cleanup effect: clear timer on unmount only
@@ -747,6 +909,7 @@ export function GoalCard({
         layout
         className="relative"
         data-ocid={`goal.card.${index + 1}`}
+        style={{ touchAction: "pan-y" }}
       >
         {/* Bug 3/4: in-progress pulse animation overlay */}
         {inProgressPulse && lockInState === "in-progress" && (
@@ -763,6 +926,28 @@ export function GoalCard({
               style={{
                 background: SUCCESS_COLOR,
                 animation: "inProgressPulse 0.55s ease-out forwards",
+              }}
+              aria-hidden="true"
+            />
+          </>
+        )}
+
+        {/* Checkout window pulse — amber border glow on end-window state */}
+        {lockInState === "end-window" && (
+          <>
+            <style>{`
+              @keyframes checkoutPulse {
+                0%   { box-shadow: 0 0 0 0 rgba(245,158,11,0), inset 0 0 0 2px rgba(245,158,11,0.0); }
+                40%  { box-shadow: 0 0 16px 4px rgba(245,158,11,0.5), inset 0 0 0 2px rgba(245,158,11,0.4); }
+                70%  { box-shadow: 0 0 8px 2px rgba(245,158,11,0.3), inset 0 0 0 2px rgba(245,158,11,0.2); }
+                100% { box-shadow: 0 0 0 0 rgba(245,158,11,0), inset 0 0 0 2px rgba(245,158,11,0.0); }
+              }
+            `}</style>
+            <div
+              className="absolute inset-0 rounded-2xl pointer-events-none"
+              style={{
+                animation: "checkoutPulse 1.8s ease-in-out infinite",
+                border: "2px solid transparent",
               }}
               aria-hidden="true"
             />
@@ -840,16 +1025,28 @@ export function GoalCard({
           tabIndex={0}
           aria-label={
             mode === "done"
-              ? `${keystoneText} — ${isSuccess ? "completed" : isFailedLockIn ? "missed lock-in" : "skipped"}. Tap to undo.`
+              ? `${keystoneText} — ${
+                  isSuccess
+                    ? "completed"
+                    : isMissedCheckIn
+                      ? "missed start window"
+                      : isMissedCheckOut
+                        ? "missed check-out"
+                        : "skipped"
+                }.`
               : lockInState === "completed"
                 ? `${keystoneText} — lock-in completed.`
-                : lockInState === "missed" || lockInState === "failed-finalized"
-                  ? `${keystoneText} — time window missed. Tap to log obstacle.`
-                  : lockInState === "waiting"
-                    ? `${keystoneText} — waiting for time window`
-                    : lockInState === "in-progress"
-                      ? `${keystoneText} — in progress`
-                      : `${keystoneText} — swipe right to complete, left to skip`
+                : lockInState === "missed-start"
+                  ? `${keystoneText} — start window missed. Tap to log obstacle.`
+                  : lockInState === "missed-checkout"
+                    ? `${keystoneText} — check-out missed. Tap to log obstacle.`
+                    : lockInState === "failed-finalized"
+                      ? `${keystoneText} — obstacle logged.`
+                      : lockInState === "waiting"
+                        ? `${keystoneText} — waiting for time window`
+                        : lockInState === "in-progress"
+                          ? `${keystoneText} — in progress`
+                          : `${keystoneText} — swipe right to complete, left to skip`
           }
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -866,29 +1063,31 @@ export function GoalCard({
               mode === "done"
                 ? "pointer"
                 : lockInState === "completed" ||
-                    lockInState === "missed" ||
+                    lockInState === "missed-start" ||
+                    lockInState === "missed-checkout" ||
                     lockInState === "failed-finalized"
                   ? "pointer"
                   : lockInState === "waiting" || lockInState === "in-progress"
                     ? "not-allowed"
                     : "grab",
-            transform:
-              mode === "active" && !lockInSwipeDisabled
+            transform: isTapped
+              ? "scale(0.98)"
+              : mode === "active" && !lockInSwipeDisabled
                 ? `translateX(${dragX}px)`
                 : undefined,
-            transition:
-              mode === "active" && isDragging
+            transition: isTapped
+              ? "transform 0.08s ease-out, box-shadow 0.08s ease-out"
+              : mode === "active" && isDragging
                 ? "none"
                 : "transform 0.35s cubic-bezier(0.4,0,0.2,1)",
             padding: "1.25rem 1.25rem 1rem",
             userSelect: "none",
             WebkitUserSelect: "none",
-            touchAction:
-              mode === "active" && !lockInSwipeDisabled ? "none" : "pan-y",
+            touchAction: "pan-y",
             ...getCardStyle(),
           }}
         >
-          {/* Revival Grit icon — absolutely positioned at the left border edge, only on if-then plan wins */}
+          {/* Revival Grit icon — absolutely positioned at the left border edge */}
           {executedIfThen && (
             <span
               className="absolute"
@@ -914,34 +1113,42 @@ export function GoalCard({
           )}
 
           {/* Lock-In time block badge */}
-          {isLockIn && lockInStartTime && lockInEndTime && (
-            <div
-              className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono"
-              style={{
-                background: "rgba(107,114,128,0.15)",
-                border: "1px solid rgba(107,114,128,0.3)",
-                color:
-                  lockInState === "start-window" || lockInState === "end-window"
-                    ? SUCCESS_COLOR
-                    : lockInState === "completed"
+          {isLockIn &&
+            lockInStartTime != null &&
+            lockInStartTime !== "" &&
+            lockInEndTime != null &&
+            lockInEndTime !== "" && (
+              <div
+                className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono"
+                style={{
+                  background: "rgba(107,114,128,0.15)",
+                  border: "1px solid rgba(107,114,128,0.3)",
+                  color:
+                    lockInState === "start-window" ||
+                    lockInState === "end-window"
                       ? SUCCESS_COLOR
-                      : lockInState === "missed" ||
-                          lockInState === "failed-finalized"
-                        ? MISSED_COLOR
-                        : "oklch(var(--muted-foreground))",
-              }}
-              aria-label={`Time block: ${lockInStartTime} to ${lockInEndTime}`}
-            >
-              {lockInState === "completed" ||
-              lockInState === "missed" ||
-              lockInState === "failed-finalized" ? (
-                <LockOpen size={10} />
-              ) : (
-                <Lock size={10} />
-              )}
-              {formatTime12h(lockInStartTime)} – {formatTime12h(lockInEndTime)}
-            </div>
-          )}
+                      : lockInState === "completed"
+                        ? SUCCESS_COLOR
+                        : lockInState === "missed-start" ||
+                            lockInState === "missed-checkout" ||
+                            lockInState === "failed-finalized"
+                          ? MISSED_COLOR
+                          : "oklch(var(--muted-foreground))",
+                }}
+                aria-label={`Time block: ${lockInStartTime} to ${lockInEndTime}`}
+              >
+                {lockInState === "completed" ||
+                lockInState === "missed-start" ||
+                lockInState === "missed-checkout" ||
+                lockInState === "failed-finalized" ? (
+                  <LockOpen size={10} />
+                ) : (
+                  <Lock size={10} />
+                )}
+                {formatTime12h(lockInStartTime)} –{" "}
+                {formatTime12h(lockInEndTime)}
+              </div>
+            )}
 
           {/* Lock-In live timer */}
           {isLockIn && lockInTimer && mode === "active" && (
@@ -978,26 +1185,27 @@ export function GoalCard({
                     ? SUCCESS_COLOR
                     : lockInState === "completed"
                       ? SUCCESS_COLOR
-                      : lockInState === "missed" ||
+                      : lockInState === "missed-start" ||
+                          lockInState === "missed-checkout" ||
                           lockInState === "failed-finalized"
                         ? MISSED_COLOR
                         : "oklch(var(--muted-foreground))",
               }}
             >
-              {lockInState === "waiting" &&
-                lockInStartTime &&
-                `Window opens at ${formatTime12h(lockInStartTime)}`}
+              {lockInState === "waiting" && ""}
               {lockInState === "start-window" &&
-                "✓ Check-in window open — swipe right to start"}
+                "Check-in window open — swipe right to start"}
               {lockInState === "in-progress" &&
                 lockInEndTime &&
-                `⏳ In progress — complete by ${formatTime12h(lockInEndTime)}`}
+                `In progress — complete by ${formatTime12h(lockInEndTime)}`}
               {lockInState === "end-window" &&
-                "✓ Check-out window — swipe right to complete"}
-              {lockInState === "completed" && "✅ Lock-In completed"}
-              {(lockInState === "missed" ||
-                lockInState === "failed-finalized") &&
-                "Time window missed — tap to log obstacle"}
+                "Check-out window — swipe right to complete"}
+              {lockInState === "completed" && "Lock-In completed"}
+              {lockInState === "missed-start" &&
+                "Missed Start Window. Tap to log reason."}
+              {lockInState === "missed-checkout" &&
+                "Missed Check-Out. Tap to log reason."}
+              {lockInState === "failed-finalized" && "Obstacle logged"}
             </div>
           )}
 
@@ -1047,9 +1255,48 @@ export function GoalCard({
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="font-display text-lg font-semibold text-foreground leading-snug line-clamp-2">
-                {keystoneText}
-              </h3>
+              {/* Habit title as direct tap target for timeline */}
+              <button
+                type="button"
+                className="text-left w-full group"
+                style={{
+                  touchAction: "none",
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  margin: 0,
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (onInsightOpen) {
+                    if (navigator.vibrate) navigator.vibrate([8]);
+                    onInsightOpen(goal);
+                  }
+                }}
+                aria-label={`View timeline for ${keystoneText}`}
+                data-ocid={`goal.title_button.${index + 1}`}
+              >
+                <h3 className="font-display text-lg font-semibold text-foreground leading-snug line-clamp-2 active:opacity-70 transition-opacity duration-75 flex items-center gap-1">
+                  <span className="flex-1">{keystoneText}</span>
+                  {mode === "active" && (
+                    <ChevronRight
+                      size={14}
+                      className="shrink-0 transition-opacity duration-150"
+                      style={{
+                        opacity: 0.35,
+                        color: "oklch(var(--muted-foreground))",
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
+                </h3>
+              </button>
             </div>
           </div>
 
@@ -1093,8 +1340,53 @@ export function GoalCard({
             </div>
           </div>
 
-          {/* Done tab: yellow Undo button */}
-          {mode === "done" && (
+          {/* Log What Happened button — amber CTA for missed Lock-In windows */}
+          {isLockIn &&
+            (lockInState === "missed-start" ||
+              lockInState === "missed-checkout") &&
+            mode === "active" && (
+              <div className="mt-3 flex justify-start">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMissedSheet(true);
+                    onMissedWindowTap?.(goal.id);
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    modalOpenedDuringGestureRef.current = true;
+                  }}
+                  onPointerUp={(e) => e.stopPropagation()}
+                  onPointerMove={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-medium transition-smooth select-none"
+                  style={{
+                    backgroundColor: "rgba(245,158,11,0.15)",
+                    color: "#F59E0B",
+                    border: "1px solid rgba(245,158,11,0.4)",
+                    boxShadow:
+                      "-2px -2px 5px rgba(60,60,40,0.25), 3px 3px 7px rgba(0,0,0,0.45)",
+                  }}
+                  aria-label="Log what happened for this missed Lock-In"
+                  data-ocid={`goal.log_missed_button.${index + 1}`}
+                >
+                  <TriangleAlert size={12} style={{ color: "#F59E0B" }} />
+                  Log What Happened
+                </button>
+              </div>
+            )}
+
+          {/* Done tab: inset justification box for failed Lock-In habits */}
+          {mode === "done" && isFailedLockIn && (
+            <JustificationBox
+              failureType={isMissedCheckIn ? "missedCheckIn" : "missedCheckOut"}
+              obstacleTemplateId={checkInToday?.obstacleTemplateId}
+              customObstacleNote={checkInToday?.customObstacleNote}
+            />
+          )}
+
+          {/* Done tab: yellow Undo button — hidden for ALL Lock-In cards (immutable once done) */}
+          {mode === "done" && !isLockIn && (
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
@@ -1103,7 +1395,6 @@ export function GoalCard({
                   onDoneCardTap?.(goal.id);
                 }}
                 onPointerDown={(e) => {
-                  // Prevent card's onPointerDown so Undo tap never triggers insight.
                   e.stopPropagation();
                   modalOpenedDuringGestureRef.current = true;
                 }}
@@ -1140,9 +1431,15 @@ export function GoalCard({
         <MissedWindowSheet
           goal={goal}
           open={showMissedSheet}
-          onClose={() => setShowMissedSheet(false)}
-          onConfirm={handleMissedConfirm}
+          onClose={() => {
+            setShowMissedSheet(false);
+            autoMissedTriggeredRef.current = false; // allow re-trigger if user dismisses without submitting
+          }}
+          onConfirm={(obstacleTemplateId, customNote) =>
+            handleMissedConfirm(obstacleTemplateId, customNote)
+          }
           isLoading={isCheckingIn}
+          failureType={currentFailureType}
         />
       )}
 

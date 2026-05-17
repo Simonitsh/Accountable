@@ -61,6 +61,8 @@ function TimelineNodeCircle({
 }) {
   const isSuccess = type === CheckInType.success;
   const isSkip = type === CheckInType.skip;
+  const isMissedLockIn =
+    type === CheckInType.missedCheckIn || type === CheckInType.missedCheckOut;
 
   if (isSuccess) {
     return (
@@ -96,7 +98,7 @@ function TimelineNodeCircle({
     );
   }
 
-  if (isSkip) {
+  if (isSkip || isMissedLockIn) {
     return (
       <div
         className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
@@ -115,7 +117,7 @@ function TimelineNodeCircle({
     );
   }
 
-  // inProgress / failedLockIn → hollow grey
+  // inProgress → hollow grey
   return (
     <div
       className="flex-shrink-0 w-8 h-8 rounded-full"
@@ -132,9 +134,10 @@ function TimelineNodeCircle({
 function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
-  const _isMissed =
-    checkIn.checkInType === CheckInType.inProgress ||
-    checkIn.checkInType === CheckInType.failedLockIn;
+  const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
+  const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
+  const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
+  const _isMissed = checkIn.checkInType === CheckInType.inProgress;
 
   const time = formatTime(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
@@ -144,15 +147,20 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
 
   if (isSuccess) {
     primaryText = isRevival
-      ? `Executed backup plan at ${time}`
+      ? `Executed If-Then plan at ${time}`
       : `Executed at ${time}`;
     primaryColor = SUCCESS_COLOR;
   } else if (isSkip) {
-    const oLabel = obstacleLabel(checkIn.obstacleTemplateId);
-    primaryText = `Skipped at ${time} • Obstacle: ${oLabel}`;
+    primaryText = `Skipped at ${time}`;
+    primaryColor = SKIP_COLOR;
+  } else if (isMissedCheckIn) {
+    primaryText = `Missed start window at ${time}`;
+    primaryColor = SKIP_COLOR;
+  } else if (isMissedCheckOut) {
+    primaryText = `Missed check-out at ${time}`;
     primaryColor = SKIP_COLOR;
   } else {
-    primaryText = "Missed • No action taken";
+    primaryText = "Missed \u2022 No action taken";
     primaryColor = MISSED_COLOR;
   }
 
@@ -177,11 +185,28 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
             style={{ color: primaryColor }}
           >
             {primaryText}
+            {(isSkip || isMissedLockIn) &&
+              (checkIn.obstacleTemplateId !== undefined &&
+              checkIn.obstacleTemplateId !== null ? (
+                <>
+                  {" \u2022 "}
+                  <span style={{ color: "#F97316" }}>
+                    {obstacleLabel(checkIn.obstacleTemplateId)}
+                  </span>
+                </>
+              ) : isMissedLockIn ? (
+                <>
+                  {" \u2022 "}
+                  <span style={{ color: "oklch(var(--muted-foreground))" }}>
+                    No reason logged
+                  </span>
+                </>
+              ) : null)}
           </p>
         </div>
 
-        {/* Sub-bubble for custom obstacle note (skip only) */}
-        {isSkip && checkIn.customObstacleNote && (
+        {/* Sub-bubble for custom obstacle note (skip or missed lock-in) */}
+        {(isSkip || isMissedLockIn) && checkIn.customObstacleNote && (
           <div
             className="mt-2 rounded-xl px-3 py-2 max-w-xs"
             style={{
@@ -301,7 +326,25 @@ export function GoalInsightSheet({
           const sorted = [...data].sort((a, b) =>
             a.timestamp > b.timestamp ? -1 : a.timestamp < b.timestamp ? 1 : 0,
           );
-          setCheckIns(sorted);
+          const goalCreatedDateStr = goal.createdAt
+            ? new Date(Number(goal.createdAt / 1_000_000n)).toDateString()
+            : null;
+          const todayStr = new Date().toDateString();
+          const filtered =
+            goal.isLockIn && goalCreatedDateStr === todayStr
+              ? sorted.filter((ci) => {
+                  const ciDateStr = new Date(
+                    Number(ci.timestamp / 1_000_000n),
+                  ).toDateString();
+                  const isPhantom =
+                    (ci.checkInType === CheckInType.inProgress ||
+                      ci.checkInType === CheckInType.missedCheckIn ||
+                      ci.checkInType === CheckInType.missedCheckOut) &&
+                    ciDateStr === todayStr;
+                  return !isPhantom;
+                })
+              : sorted;
+          setCheckIns(filtered);
         }
       })
       .catch(() => {
@@ -314,7 +357,7 @@ export function GoalInsightSheet({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, actorReady, actor, goal.id]);
+  }, [isOpen, actorReady, actor, goal.id, goal.createdAt, goal.isLockIn]);
 
   // Reset state when sheet is closed so it re-fetches on next open
   useEffect(() => {
@@ -370,7 +413,7 @@ export function GoalInsightSheet({
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 340 }}
+            transition={{ type: "tween", ease: "easeOut", duration: 0.28 }}
             data-ocid="goal_insight.dialog"
           >
             {/* Drag handle pill */}
@@ -431,7 +474,7 @@ export function GoalInsightSheet({
                             color: "oklch(var(--muted-foreground) / 0.6)",
                           }}
                         >
-                          Outcome
+                          Obstacles
                         </span>
                         {outcome}
                       </p>
@@ -500,7 +543,8 @@ export function GoalInsightSheet({
                     className="text-sm leading-relaxed max-w-[220px]"
                     style={{ color: "oklch(var(--muted-foreground))" }}
                   >
-                    No activity in the last 14 days.{" "}
+                    No check-ins yet. Your timeline will fill as you build your
+                    habit.{" "}
                     <span style={{ color: "oklch(var(--foreground) / 0.5)" }}>
                       Start building your timeline.
                     </span>

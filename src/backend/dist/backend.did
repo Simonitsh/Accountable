@@ -6,6 +6,7 @@ type UserRole =
 type UserProfilePublic = 
  record {
    avatarEmoji: text;
+   bio: opt text;
    displayName: text;
    id: UserId;
    role: UserRole;
@@ -34,6 +35,7 @@ type RecordCheckInRequest =
    lockInEndedAt: opt int;
    lockInStartedAt: opt int;
    obstacleTemplateId: opt ObstacleTemplateId;
+   timezoneOffsetMinutes: int;
  };
 type ObstacleTemplateId = nat;
 type ObstacleTemplate = 
@@ -132,8 +134,9 @@ type ConnectionPublic =
 type ConnectionId = nat;
 type CheckInType = 
  variant {
-   failedLockIn;
    inProgress;
+   missedCheckIn;
+   missedCheckOut;
    skip;
    success;
  };
@@ -168,6 +171,7 @@ service : {
    (variant {
       err: variant {
              notFound;
+             sealed: text;
              unauthorized;
            };
       ok;
@@ -204,6 +208,9 @@ service : {
       ok: GoalPublic;
     });
   updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
-  updateMyProfile: (displayName: opt text, avatarEmoji: opt text) ->
-   (UserProfilePublic);
+  updateMyProfile: (displayName: opt text, avatarEmoji: opt text, bio:
+   opt text) -> (variant {
+                   err: text;
+                   ok: UserProfilePublic;
+                 });
 }

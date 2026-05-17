@@ -1,6 +1,11 @@
 export type UserRole = "user" | "admin";
 export type GoalState = "active" | "completed" | "archived";
-export type CheckInType = "success" | "skip" | "inProgress" | "failedLockIn";
+export type CheckInType =
+  | "success"
+  | "skip"
+  | "inProgress"
+  | "missedCheckIn"
+  | "missedCheckOut";
 export type ConnectionStatus = "pending" | "accepted" | "rejected";
 
 export interface UserProfile {
