@@ -68997,38 +68997,6 @@ reactExports.forwardRef(function(e3, t2) {
     })) : null;
   }));
 });
-const OBSTACLE_TEMPLATES = [
-  {
-    id: "low_energy",
-    label: "Low Energy",
-    description: "I feel tired or lack motivation"
-  },
-  {
-    id: "time_crunch",
-    label: "Time Crunch",
-    description: "I ran out of time or had competing priorities"
-  },
-  {
-    id: "distraction",
-    label: "Distraction",
-    description: "I got pulled away by distractions"
-  },
-  {
-    id: "social_pressure",
-    label: "Social Pressure",
-    description: "External demands took over"
-  },
-  {
-    id: "environment",
-    label: "Environment",
-    description: "My environment wasn't set up for success"
-  },
-  {
-    id: "health",
-    label: "Health",
-    description: "Physical or mental health issues got in the way"
-  }
-];
 const GOAL_ICONS = [
   {
     id: "target",
@@ -69309,6 +69277,38 @@ const GOAL_ICONS = [
 function getGoalIcon(iconId) {
   return GOAL_ICONS.find((i) => i.id === iconId) ?? GOAL_ICONS[0];
 }
+const OBSTACLE_TEMPLATES = [
+  {
+    id: "low_energy",
+    label: "Low Energy",
+    description: "I feel tired or lack motivation"
+  },
+  {
+    id: "time_crunch",
+    label: "Time Crunch",
+    description: "I ran out of time or had competing priorities"
+  },
+  {
+    id: "distraction",
+    label: "Distraction",
+    description: "I got pulled away by distractions"
+  },
+  {
+    id: "social_pressure",
+    label: "Social Pressure",
+    description: "External demands took over"
+  },
+  {
+    id: "environment",
+    label: "Environment",
+    description: "My environment wasn't set up for success"
+  },
+  {
+    id: "health",
+    label: "Health",
+    description: "Physical or mental health issues got in the way"
+  }
+];
 const OCEAN_BLUE = "#0369A1";
 const NOTE_MAX$1 = 140;
 function MissedWindowSheet({
@@ -69926,9 +69926,12 @@ function getLockInState(startTime, endTime, todayCheckIn, createdAt) {
   if (Math.abs(now2 - start) <= WINDOW) return "start-window";
   if (now2 < start - WINDOW) return "waiting";
   if (createdAt !== void 0) {
-    const createdDate = new Date(Number(createdAt / 1000000n)).toDateString();
-    const todayDate = (/* @__PURE__ */ new Date()).toDateString();
-    if (createdDate === todayDate) return "waiting";
+    const createdMs = Number(createdAt / 1000000n);
+    if (createdMs > start + WINDOW) {
+      const createdDate = new Date(createdMs).toDateString();
+      const todayDate = (/* @__PURE__ */ new Date()).toDateString();
+      if (createdDate === todayDate) return "waiting";
+    }
   }
   return "missed-start";
 }
@@ -70013,56 +70016,6 @@ function useLockInTimer(isLockIn, startTime, endTime, lockInTodayCheckIn) {
   }
   return null;
 }
-function JustificationBox({
-  failureType,
-  obstacleTemplateId,
-  customObstacleNote
-}) {
-  var _a3;
-  const obstacleLabel2 = obstacleTemplateId !== void 0 ? ((_a3 = OBSTACLE_TEMPLATES[Number(obstacleTemplateId)]) == null ? void 0 : _a3.label) ?? "Custom reason" : void 0;
-  const badgeLabel = failureType === "missedCheckIn" ? "Missed Start" : "Missed Check-Out";
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: "rounded-lg p-3 mt-3",
-      style: {
-        background: "#1a1f2e",
-        border: "1px solid rgba(71,85,105,0.4)",
-        boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.03)"
-      },
-      "data-ocid": "goal.justification_box",
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1.5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "span",
-            {
-              className: "text-xs rounded-full px-2 py-0.5 font-mono",
-              style: {
-                background: "rgba(71,85,105,0.45)",
-                color: "#94a3b8",
-                fontSize: "0.65rem"
-              },
-              children: badgeLabel
-            }
-          ),
-          obstacleLabel2 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm", style: { color: "#cbd5e1" }, children: obstacleLabel2 })
-        ] }),
-        customObstacleNote && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "p",
-          {
-            className: "text-xs italic",
-            style: { color: "#94a3b8", marginTop: "0.25rem" },
-            children: [
-              "“",
-              customObstacleNote,
-              "”"
-            ]
-          }
-        )
-      ]
-    }
-  );
-}
 function GoalCard({
   goal,
   checkInToday,
@@ -70093,7 +70046,7 @@ function GoalCard({
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
   const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
-  const [isTapped, setIsTapped] = reactExports.useState(false);
+  const [isTapped, _setIsTapped] = reactExports.useState(false);
   const autoMissedTriggeredRef = reactExports.useRef(false);
   const exitCommittedRef = reactExports.useRef(false);
   const lockInState = isLockIn && lockInStartTime != null && lockInStartTime !== "" && lockInEndTime != null && lockInEndTime !== "" && mode === "active" ? getLockInState(
@@ -70315,7 +70268,6 @@ function GoalCard({
       setDragX(clamped);
     }
   }
-  const TAP_MAX_DRIFT = 14;
   function onPointerUp() {
     if (!isPointerDown.current) return;
     isPointerDown.current = false;
@@ -70328,17 +70280,10 @@ function GoalCard({
       return;
     }
     if (isExiting) return;
-    const wasHorizontalSwipe = isHorizontalSwipe.current;
     setDragX(0);
     setIsDragging(false);
     isHorizontalSwipe.current = false;
     if (lockInSwipeDisabled) {
-      if (!modalOpenedDuringGestureRef.current && !wasHorizontalSwipe && Math.abs(finalDragX) < TAP_MAX_DRIFT && onInsightOpen) {
-        setIsTapped(true);
-        setTimeout(() => setIsTapped(false), 300);
-        if (navigator.vibrate) navigator.vibrate([8]);
-        onInsightOpen(goal);
-      }
       return;
     }
     if (finalDragX >= SWIPE_THRESHOLD) {
@@ -70897,14 +70842,6 @@ function GoalCard({
                     ]
                   }
                 ) }),
-                mode === "done" && isFailedLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  JustificationBox,
-                  {
-                    failureType: isMissedCheckIn ? "missedCheckIn" : "missedCheckOut",
-                    obstacleTemplateId: checkInToday == null ? void 0 : checkInToday.obstacleTemplateId,
-                    customObstacleNote: checkInToday == null ? void 0 : checkInToday.customObstacleNote
-                  }
-                ),
                 mode === "done" && !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
                   {
@@ -71254,7 +71191,7 @@ function GoalInsightSheet({
           const ciDateStr = new Date(
             Number(ci.timestamp / 1000000n)
           ).toDateString();
-          const isPhantom = (ci.checkInType === CheckInType.inProgress || ci.checkInType === CheckInType.missedCheckIn || ci.checkInType === CheckInType.missedCheckOut) && ciDateStr === todayStr;
+          const isPhantom = ci.checkInType === CheckInType.inProgress && ciDateStr === todayStr;
           return !isPhantom;
         }) : sorted;
         setCheckIns(filtered);
@@ -71705,13 +71642,21 @@ const EMPTY = {
   iconName: "target",
   themeColor: "#2563EB"
 };
-function findOverlapGoal$1(newStart, newEnd, existing, excludeId) {
-  if (!newStart || !newEnd || newStart >= newEnd) return null;
-  for (const g2 of existing) {
-    if (excludeId !== void 0 && g2.id === excludeId) continue;
+function findOverlapGoal$1(goals, newStartTime, newEndTime, editingGoalId) {
+  if (!newStartTime) return null;
+  for (const g2 of goals) {
+    if (editingGoalId !== void 0 && editingGoalId !== null && g2.id === editingGoalId)
+      continue;
     if (!g2.startTime || !g2.endTime) continue;
-    if (newStart < g2.endTime && newEnd > g2.startTime) {
-      return g2.wishDescription || "an existing Lock-In";
+    const isPointInTime = newStartTime === newEndTime;
+    if (isPointInTime) {
+      if (g2.startTime < newStartTime && newStartTime < g2.endTime) {
+        return g2.wishDescription || "an existing Lock-In";
+      }
+    } else {
+      if (newStartTime < g2.endTime && newEndTime > g2.startTime) {
+        return g2.wishDescription || "an existing Lock-In";
+      }
     }
   }
   return null;
@@ -71754,11 +71699,34 @@ function WoopWizard({
     }
   }, [open]);
   const assembledWish = form.goalAction.trim() && form.goalReason.trim() ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}` : "";
-  const assembledHabit = form.habitAction.trim() && form.habitMinutes.trim() ? `Every day, I will ${form.habitAction.trim()} for ${form.habitMinutes.trim()} minutes` : "";
+  const effectiveHabitMinutes = form.isLockIn ? form.lockInDurationHours * 60 + form.lockInDurationMinutes : Number(form.habitMinutes) || 0;
+  const assembledHabit = form.habitAction.trim() && effectiveHabitMinutes > 0 ? `I will ${form.habitAction.trim()} for ${effectiveHabitMinutes} minutes` : "";
+  const maxLockInMinutes = reactExports.useMemo(() => {
+    if (!form.lockInStartTime) return 0;
+    const [h2, m2] = form.lockInStartTime.split(":").map(Number);
+    const startTotal = h2 * 60 + m2;
+    return Math.max(0, 1435 - startTotal);
+  }, [form.lockInStartTime]);
+  const maxLockInHours = Math.floor(maxLockInMinutes / 60);
+  const maxLockInMinutesAtMaxHour = form.lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
   reactExports.useEffect(() => {
     if (form.lockInStartTime) {
       const [h2, m2] = form.lockInStartTime.split(":").map(Number);
-      const totalMinutes = h2 * 60 + m2 + (form.lockInDurationHours || 0) * 60 + (form.lockInDurationMinutes || 0);
+      const startTotal = h2 * 60 + m2;
+      const maxMins = Math.max(0, 1435 - startTotal);
+      const currentDuration = (form.lockInDurationHours || 0) * 60 + (form.lockInDurationMinutes || 0);
+      if (currentDuration > maxMins) {
+        const clampedHours = Math.floor(maxMins / 60);
+        const clampedMinutes = maxMins % 60;
+        setForm((prev) => ({
+          ...prev,
+          lockInDurationHours: clampedHours,
+          lockInDurationMinutes: clampedMinutes,
+          lockInEndTime: `${String(h2 + Math.floor((m2 + maxMins) / 60) % 24).padStart(2, "0")}:${String((m2 + maxMins) % 60).padStart(2, "0")}`
+        }));
+        return;
+      }
+      const totalMinutes = startTotal + currentDuration;
       const endH = Math.floor(totalMinutes / 60) % 24;
       const endM = totalMinutes % 60;
       setForm((prev) => ({
@@ -71770,6 +71738,31 @@ function WoopWizard({
     form.lockInStartTime,
     form.lockInDurationHours,
     form.lockInDurationMinutes
+  ]);
+  reactExports.useEffect(() => {
+    if (!form.isLockIn || !form.lockInStartTime) {
+      setOverlapError(null);
+      return;
+    }
+    const newDurationMinutes = (form.lockInDurationHours || 0) * 60 + (form.lockInDurationMinutes || 0);
+    const endTimeArg = newDurationMinutes === 0 ? form.lockInStartTime : form.lockInEndTime;
+    const conflict = findOverlapGoal$1(
+      existingLockInGoals,
+      form.lockInStartTime,
+      endTimeArg,
+      editingGoalId
+    );
+    setOverlapError(
+      conflict ? `Conflict: This overlaps with ${conflict}.` : null
+    );
+  }, [
+    form.isLockIn,
+    form.lockInStartTime,
+    form.lockInEndTime,
+    form.lockInDurationHours,
+    form.lockInDurationMinutes,
+    existingLockInGoals,
+    editingGoalId
   ]);
   const assembledObstacles = form.selectedObstacles.map((o2) => o2.label).join(", ");
   const primaryObstacle = ((_a3 = form.selectedObstacles[0]) == null ? void 0 : _a3.label) ?? "";
@@ -71841,7 +71834,7 @@ function WoopWizard({
         e3.goalAction = "Tell us what you want to achieve.";
       if (!form.goalReason.trim()) e3.goalReason = "What's your deeper reason?";
       if (!form.habitAction.trim()) e3.habitAction = "Name the daily action.";
-      if (!form.habitMinutes.trim()) e3.habitMinutes = "How many minutes?";
+      if (!effectiveHabitMinutes) e3.habitMinutes = "How many minutes?";
       if (form.isLockIn) {
         if (!form.lockInStartTime) e3.lockInStartTime = "Pick a start time.";
         if (!form.lockInEndTime) e3.lockInEndTime = "Pick an end time.";
@@ -72194,8 +72187,10 @@ function WoopWizard({
                         "input",
                         {
                           "data-ocid": "woop_wizard.habit_minutes_input",
-                          value: form.habitMinutes,
+                          value: effectiveHabitMinutes > 0 ? String(effectiveHabitMinutes) : form.habitMinutes,
+                          readOnly: form.isLockIn,
                           onChange: (e3) => {
+                            if (form.isLockIn) return;
                             const raw = e3.target.value.replace(/[^0-9]/g, "");
                             const num = Number.parseInt(raw, 10);
                             const capped = Number.isNaN(num) ? "" : String(Math.min(num, 1440));
@@ -72207,6 +72202,10 @@ function WoopWizard({
                           },
                           placeholder: "15",
                           inputMode: "numeric",
+                          style: {
+                            opacity: form.isLockIn ? 0.5 : 1,
+                            cursor: form.isLockIn ? "not-allowed" : "auto"
+                          },
                           className: "input-neumorphic w-20 text-foreground text-xl font-medium text-center",
                           "aria-label": "Minutes per day"
                         }
@@ -72241,7 +72240,8 @@ function WoopWizard({
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-display font-semibold text-foreground", children: "Enable Lock-In Mode" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-0.5", children: "Strict time block — check in & out within a defined window" })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-0.5", children: "Strict time block — check in & out within a defined window" }),
+                      form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-1", children: "Lock-In Mode overrides your standard habit time. It must finish by 23:55 to log correctly today. Your max duration is calculated based on your start time." })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "button",
@@ -72269,96 +72269,88 @@ function WoopWizard({
                       }
                     )
                   ] }),
-                  form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pt-2 border-t border-border/20", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "label",
-                          {
-                            htmlFor: "lockin-start-time",
-                            className: "text-xs font-mono tracking-widest text-muted-foreground uppercase",
-                            children: "Start Time"
+                  form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2 border-t border-border/20", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "label",
+                        {
+                          htmlFor: "lockin-start-time",
+                          className: "text-xs font-mono tracking-widest text-muted-foreground uppercase",
+                          children: "Start Time"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          id: "lockin-start-time",
+                          type: "time",
+                          "data-ocid": "woop_wizard.lockin_start_time",
+                          value: form.lockInStartTime,
+                          onChange: (e3) => {
+                            const val = e3.target.value;
+                            setForm((f2) => ({
+                              ...f2,
+                              lockInStartTime: val
+                            }));
+                            setErrors((er) => ({
+                              ...er,
+                              lockInStartTime: void 0
+                            }));
+                          },
+                          className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40",
+                          style: {
+                            background: "oklch(var(--card))",
+                            boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)"
                           }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            id: "lockin-start-time",
-                            type: "time",
-                            "data-ocid": "woop_wizard.lockin_start_time",
-                            value: form.lockInStartTime,
-                            onChange: (e3) => {
-                              const val = e3.target.value;
-                              setForm((f2) => ({
-                                ...f2,
-                                lockInStartTime: val
-                              }));
-                              setErrors((er) => ({
-                                ...er,
-                                lockInStartTime: void 0
-                              }));
-                              const conflict = findOverlapGoal$1(
-                                val,
-                                form.lockInEndTime,
-                                existingLockInGoals,
-                                editingGoalId
-                              );
-                              setOverlapError(
-                                conflict ? "Conflict: This time overlaps with an existing Lock-In habit." : null
-                              );
-                            },
-                            className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40",
-                            style: {
-                              background: "oklch(var(--card))",
-                              boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)"
+                        }
+                      ),
+                      errors.lockInStartTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-xs text-destructive",
+                          "data-ocid": "woop_wizard.lockin_start_time.field_error",
+                          children: errors.lockInStartTime
+                        }
+                      )
+                    ] }),
+                    !form.lockInStartTime ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Please select a start time first to calculate your available lock-in window." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2", children: "Duration" }),
+                      maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — the chosen start time leaves no room before the 23:55 daily cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "label",
+                            {
+                              htmlFor: "lockin-hours",
+                              className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                              children: "Hours"
                             }
-                          }
-                        ),
-                        errors.lockInStartTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "p",
-                          {
-                            className: "text-xs text-destructive",
-                            "data-ocid": "woop_wizard.lockin_start_time.field_error",
-                            children: errors.lockInStartTime
-                          }
-                        )
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2", children: "Duration" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "label",
-                              {
-                                htmlFor: "lockin-hours",
-                                className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                                children: "Hours"
-                              }
-                            ),
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "select",
-                              {
-                                id: "lockin-hours",
-                                "data-ocid": "woop_wizard.lockin_duration_hours",
-                                value: form.lockInDurationHours,
-                                onChange: (e3) => setForm((prev) => ({
-                                  ...prev,
-                                  lockInDurationHours: Number(
-                                    e3.target.value
-                                  )
-                                })),
-                                size: 5,
-                                className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                style: {
-                                  background: "oklch(var(--card))",
-                                  border: "1px solid rgba(245,158,11,0.25)",
-                                  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                  color: "oklch(var(--foreground))",
-                                  padding: "6px 0",
-                                  outline: "none",
-                                  overflowY: "auto"
-                                },
-                                children: Array.from({ length: 24 }, (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "select",
+                            {
+                              id: "lockin-hours",
+                              "data-ocid": "woop_wizard.lockin_duration_hours",
+                              value: form.lockInDurationHours,
+                              onChange: (e3) => setForm((prev) => ({
+                                ...prev,
+                                lockInDurationHours: Number(
+                                  e3.target.value
+                                )
+                              })),
+                              size: 5,
+                              className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
+                              style: {
+                                background: "oklch(var(--card))",
+                                border: "1px solid rgba(245,158,11,0.25)",
+                                boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                color: "oklch(var(--foreground))",
+                                padding: "6px 0",
+                                outline: "none",
+                                overflowY: "auto"
+                              },
+                              children: Array.from(
+                                { length: maxLockInHours + 1 },
+                                (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                                   "option",
                                   {
                                     value: h2,
@@ -72370,43 +72362,46 @@ function WoopWizard({
                                     children: String(h2).padStart(2, "0")
                                   },
                                   h2
-                                ))
-                              }
-                            )
-                          ] }),
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "label",
-                              {
-                                htmlFor: "lockin-minutes",
-                                className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                                children: "Min"
-                              }
-                            ),
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "select",
-                              {
-                                id: "lockin-minutes",
-                                "data-ocid": "woop_wizard.lockin_duration_minutes",
-                                value: form.lockInDurationMinutes,
-                                onChange: (e3) => setForm((prev) => ({
-                                  ...prev,
-                                  lockInDurationMinutes: Number(
-                                    e3.target.value
-                                  )
-                                })),
-                                size: 5,
-                                className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                style: {
-                                  background: "oklch(var(--card))",
-                                  border: "1px solid rgba(245,158,11,0.25)",
-                                  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                  color: "oklch(var(--foreground))",
-                                  padding: "6px 0",
-                                  outline: "none",
-                                  overflowY: "auto"
-                                },
-                                children: Array.from({ length: 60 }, (_2, m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                )
+                              )
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "label",
+                            {
+                              htmlFor: "lockin-minutes",
+                              className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                              children: "Min"
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "select",
+                            {
+                              id: "lockin-minutes",
+                              "data-ocid": "woop_wizard.lockin_duration_minutes",
+                              value: form.lockInDurationMinutes,
+                              onChange: (e3) => setForm((prev) => ({
+                                ...prev,
+                                lockInDurationMinutes: Number(
+                                  e3.target.value
+                                )
+                              })),
+                              size: 5,
+                              className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
+                              style: {
+                                background: "oklch(var(--card))",
+                                border: "1px solid rgba(245,158,11,0.25)",
+                                boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                color: "oklch(var(--foreground))",
+                                padding: "6px 0",
+                                outline: "none",
+                                overflowY: "auto"
+                              },
+                              children: Array.from(
+                                { length: maxLockInMinutesAtMaxHour + 1 },
+                                (_2, m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                                   "option",
                                   {
                                     value: m2,
@@ -72418,21 +72413,137 @@ function WoopWizard({
                                     children: String(m2).padStart(2, "0")
                                   },
                                   m2
-                                ))
-                              }
-                            )
-                          ] })
-                        ] }),
-                        errors.lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                )
+                              )
+                            }
+                          )
+                        ] })
+                      ] }),
+                      errors.lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-xs text-destructive mt-2",
+                          "data-ocid": "woop_wizard.lockin_end_time.field_error",
+                          children: errors.lockInEndTime
+                        }
+                      )
+                    ] }),
+                    (() => {
+                      const otherLockInHabits = (existingLockInGoals ?? []).filter(
+                        (g2) => !editingGoalId || String(g2.id) !== String(editingGoalId)
+                      ).sort((a2, b2) => {
+                        const aT = a2.startTime ?? "";
+                        const bT = b2.startTime ?? "";
+                        return aT.localeCompare(bT);
+                      });
+                      if (otherLockInHabits.length === 0) return null;
+                      const toMins = (t2) => {
+                        const [h2, m2] = t2.split(":").map(Number);
+                        return h2 * 60 + m2;
+                      };
+                      const newStart = form.lockInStartTime ? toMins(form.lockInStartTime) : null;
+                      const newEnd = form.lockInEndTime ? toMins(form.lockInEndTime) : null;
+                      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { marginTop: "1rem" }, children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
                           "p",
                           {
-                            className: "text-xs text-destructive mt-2",
-                            "data-ocid": "woop_wizard.lockin_end_time.field_error",
-                            children: errors.lockInEndTime
+                            style: {
+                              fontSize: "0.65rem",
+                              fontWeight: 500,
+                              color: "rgba(253,230,138,0.45)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                              marginBottom: "0.5rem"
+                            },
+                            children: "Current Lock-In Habits"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "div",
+                          {
+                            style: {
+                              maxHeight: "10rem",
+                              overflowY: "auto",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "0.5rem",
+                              paddingRight: "4px"
+                            },
+                            children: otherLockInHabits.map((habit) => {
+                              const hStart = habit.startTime ? toMins(habit.startTime) : null;
+                              const hEnd = habit.endTime ? toMins(habit.endTime) : null;
+                              const isConflicting = newStart !== null && newEnd !== null && newEnd > newStart && hStart !== null && hEnd !== null && newStart < hEnd && newEnd > hStart;
+                              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                                "div",
+                                {
+                                  style: {
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    padding: "0.375rem 0.75rem",
+                                    borderRadius: "0.75rem",
+                                    border: isConflicting ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.06)",
+                                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 3px rgba(255,255,255,0.03)",
+                                    transition: "all 0.2s ease"
+                                  },
+                                  children: [
+                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                      "span",
+                                      {
+                                        style: {
+                                          width: "0.5rem",
+                                          height: "0.5rem",
+                                          borderRadius: "50%",
+                                          flexShrink: 0,
+                                          backgroundColor: isConflicting ? "#ef4444" : "rgba(245,158,11,0.6)",
+                                          boxShadow: isConflicting ? "0 0 6px rgba(239,68,68,0.7)" : "none",
+                                          transition: "all 0.2s ease"
+                                        }
+                                      }
+                                    ),
+                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                      "span",
+                                      {
+                                        style: {
+                                          fontSize: "0.75rem",
+                                          fontWeight: 500,
+                                          color: isConflicting ? "#f87171" : "rgba(254,243,199,0.7)",
+                                          overflow: "hidden",
+                                          textOverflow: "ellipsis",
+                                          whiteSpace: "nowrap",
+                                          flex: 1,
+                                          transition: "color 0.2s ease"
+                                        },
+                                        children: habit.wishDescription
+                                      }
+                                    ),
+                                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                                      "span",
+                                      {
+                                        style: {
+                                          fontSize: "0.7rem",
+                                          color: isConflicting ? "rgba(248,113,113,0.7)" : "rgba(254,243,199,0.35)",
+                                          whiteSpace: "nowrap",
+                                          flexShrink: 0,
+                                          transition: "color 0.2s ease"
+                                        },
+                                        children: [
+                                          habit.startTime ?? "??:??",
+                                          " –",
+                                          " ",
+                                          habit.endTime ?? "??:??"
+                                        ]
+                                      }
+                                    )
+                                  ]
+                                },
+                                String(habit.id)
+                              );
+                            })
                           }
                         )
-                      ] })
-                    ] }),
+                      ] });
+                    })(),
                     overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "p",
                       {

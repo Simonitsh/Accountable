@@ -336,10 +336,12 @@ export function GoalInsightSheet({
                   const ciDateStr = new Date(
                     Number(ci.timestamp / 1_000_000n),
                   ).toDateString();
+                  // Only suppress today's inProgress entries (mid-session phantom nodes).
+                  // Real missedCheckIn / missedCheckOut records that have been logged by
+                  // the user (with an obstacle/note) must always appear in the timeline,
+                  // even when the habit was created on the same day.
                   const isPhantom =
-                    (ci.checkInType === CheckInType.inProgress ||
-                      ci.checkInType === CheckInType.missedCheckIn ||
-                      ci.checkInType === CheckInType.missedCheckOut) &&
+                    ci.checkInType === CheckInType.inProgress &&
                     ciDateStr === todayStr;
                   return !isPhantom;
                 })

@@ -11,7 +11,6 @@ import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { GoalPublic } from "../backend.d.ts";
 import type { GoalAnalytics } from "../types";
-import { OBSTACLE_TEMPLATES } from "../types";
 import { getGoalIcon } from "../utils/goalIcons";
 import { MissedWindowSheet } from "./MissedWindowSheet";
 import { SkipModal } from "./SkipModal";
@@ -77,11 +76,14 @@ export function getLockInState(
 
   if (Math.abs(now - start) <= WINDOW) return "start-window";
   if (now < start - WINDOW) return "waiting";
-  // Do not mark as missed on the habit's creation day — the window hasn't been missed yet
   if (createdAt !== undefined) {
-    const createdDate = new Date(Number(createdAt / 1_000_000n)).toDateString();
-    const todayDate = new Date().toDateString();
-    if (createdDate === todayDate) return "waiting";
+    const createdMs = Number(createdAt / 1_000_000n);
+    // Only suppress the missed state if the habit was created AFTER the window expired today
+    if (createdMs > start + WINDOW) {
+      const createdDate = new Date(createdMs).toDateString();
+      const todayDate = new Date().toDateString();
+      if (createdDate === todayDate) return "waiting";
+    }
   }
   return "missed-start";
 }
@@ -185,67 +187,6 @@ function useLockInTimer(
   return null;
 }
 
-// ─── Done tab inset justification box ────────────────────────────────────────
-interface JustificationBoxProps {
-  failureType: "missedCheckIn" | "missedCheckOut";
-  obstacleTemplateId?: bigint;
-  customObstacleNote?: string;
-}
-
-function JustificationBox({
-  failureType,
-  obstacleTemplateId,
-  customObstacleNote,
-}: JustificationBoxProps) {
-  const obstacleLabel =
-    obstacleTemplateId !== undefined
-      ? (OBSTACLE_TEMPLATES[Number(obstacleTemplateId)]?.label ??
-        "Custom reason")
-      : undefined;
-
-  const badgeLabel =
-    failureType === "missedCheckIn" ? "Missed Start" : "Missed Check-Out";
-
-  return (
-    <div
-      className="rounded-lg p-3 mt-3"
-      style={{
-        background: "#1a1f2e",
-        border: "1px solid rgba(71,85,105,0.4)",
-        boxShadow:
-          "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.03)",
-      }}
-      data-ocid="goal.justification_box"
-    >
-      <div className="flex items-center gap-2 mb-1.5">
-        <span
-          className="text-xs rounded-full px-2 py-0.5 font-mono"
-          style={{
-            background: "rgba(71,85,105,0.45)",
-            color: "#94a3b8",
-            fontSize: "0.65rem",
-          }}
-        >
-          {badgeLabel}
-        </span>
-        {obstacleLabel && (
-          <span className="text-sm" style={{ color: "#cbd5e1" }}>
-            {obstacleLabel}
-          </span>
-        )}
-      </div>
-      {customObstacleNote && (
-        <p
-          className="text-xs italic"
-          style={{ color: "#94a3b8", marginTop: "0.25rem" }}
-        >
-          &ldquo;{customObstacleNote}&rdquo;
-        </p>
-      )}
-    </div>
-  );
-}
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface GoalCardProps {
   goal: GoalPublic;
@@ -329,7 +270,7 @@ export function GoalCard({
   // WOOP Catch sheet — shown on left swipe for normal (non-LockIn) habits
   const [showWoopCatch, setShowWoopCatch] = useState(false);
   // Press feedback: brief scale-down + inward shadow on clean tap
-  const [isTapped, setIsTapped] = useState(false);
+  const [isTapped, _setIsTapped] = useState(false);
   // Auto-trigger missed sheet once per transition to a missed state
   const autoMissedTriggeredRef = useRef(false);
   // exitCommittedRef: once set to true, no re-render can revert this card
@@ -631,9 +572,6 @@ export function GoalCard({
     }
   }
 
-  // Maximum horizontal drift still considered a "tap" (well below the 60px swipe threshold)
-  const TAP_MAX_DRIFT = 14;
-
   function onPointerUp() {
     if (!isPointerDown.current) return;
     isPointerDown.current = false;
@@ -652,25 +590,13 @@ export function GoalCard({
 
     if (isExiting) return;
 
-    const wasHorizontalSwipe = isHorizontalSwipe.current;
     setDragX(0);
     setIsDragging(false);
     isHorizontalSwipe.current = false;
 
     // ── Lock-In swipe-disabled states ─────────────────────────────────────────
     if (lockInSwipeDisabled) {
-      // Clean tap → open insight (missed/failed states already opened a modal)
-      if (
-        !modalOpenedDuringGestureRef.current &&
-        !wasHorizontalSwipe &&
-        Math.abs(finalDragX) < TAP_MAX_DRIFT &&
-        onInsightOpen
-      ) {
-        setIsTapped(true);
-        setTimeout(() => setIsTapped(false), 300);
-        if (navigator.vibrate) navigator.vibrate([8]);
-        onInsightOpen(goal);
-      }
+      // Card body tap does nothing — use the habit name button to open timeline.
       return;
     }
 
@@ -1375,15 +1301,6 @@ export function GoalCard({
                 </button>
               </div>
             )}
-
-          {/* Done tab: inset justification box for failed Lock-In habits */}
-          {mode === "done" && isFailedLockIn && (
-            <JustificationBox
-              failureType={isMissedCheckIn ? "missedCheckIn" : "missedCheckOut"}
-              obstacleTemplateId={checkInToday?.obstacleTemplateId}
-              customObstacleNote={checkInToday?.customObstacleNote}
-            />
-          )}
 
           {/* Done tab: yellow Undo button — hidden for ALL Lock-In cards (immutable once done) */}
           {mode === "done" && !isLockIn && (
