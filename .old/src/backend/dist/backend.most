@@ -32,14 +32,18 @@ type GoalState__810211879 = {#abandoned; #active; #completed; #paused};
 type Goal__520167328 =
   {
     createdAt : Timestamp__301639476;
+    var emailNotifications : Bool;
     var endTime : ?Text;
     var iconName : ?Text;
     id : GoalId__1036611184;
     var ifThenPlan : Text;
+    var intentTime : ?Text;
     var isLockIn : Bool;
+    var lastEditedAt : ?Timestamp__301639476;
     obstacleTemplateId : ?ObstacleTemplateId__228170292;
     outcome : Text;
     owner : UserId__158757552;
+    var reminderOffset : ?Int;
     var startTime : ?Text;
     var state : GoalState__810211879;
     var themeColor : ?Text;
@@ -80,6 +84,7 @@ type UserProfile__775633023 =
     var bio : ?Text;
     var createdAt : Timestamp__301639476;
     var displayName : Text;
+    var email : ?Text;
     id : UserId__158757552;
     var role : UserRole__451090586;
     var timezone : Text;
@@ -99,6 +104,8 @@ actor {
       var blocks : [var [var ?Connection__54064141]];
       var elementIndex : Nat__490723111
     };
+  stable emailSentLog :
+    {var root : Node__46230540<Text, Bool>; var size : Nat__490723111};
   stable goals :
     {
       var blockIndex : Nat__490723111;

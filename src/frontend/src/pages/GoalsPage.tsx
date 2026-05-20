@@ -362,7 +362,9 @@ function GoalEditForm({
   }
 
   function handleSave() {
-    const req: UpdateGoalRequest = {};
+    const req: UpdateGoalRequest = {
+      timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
+    };
     if (form.wish.trim() !== goal.wish) req.wish = form.wish.trim();
     if (form.wishDescription.trim() !== goal.wishDescription)
       req.wishDescription = form.wishDescription.trim();
@@ -1004,6 +1006,7 @@ interface GoalDetailProps {
   onDeleteGoal: (goalId: bigint) => void;
   isDeleting: boolean;
   existingLockInGoals?: LockInGoalRef[];
+  onEditNavigate: (id: bigint) => void;
 }
 
 function GoalDetailPanel({
@@ -1016,6 +1019,7 @@ function GoalDetailPanel({
   onDeleteGoal,
   isDeleting,
   existingLockInGoals = [],
+  onEditNavigate,
 }: GoalDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1137,7 +1141,7 @@ function GoalDetailPanel({
                 /* ── Normal Edit Button ───────────────────────────────────────── */
                 <button
                   type="button"
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => onEditNavigate(goal.id)}
                   className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
                   aria-label="Edit goal"
                   data-ocid="goals.detail_edit_button"
@@ -1646,6 +1650,9 @@ export function GoalsPage() {
                 endTime: g.endTime,
                 wishDescription: g.wishDescription,
               }))}
+            onEditNavigate={(id) =>
+              navigate({ to: "/edit-habit/$id", params: { id: String(id) } })
+            }
           />
         )}
       </AnimatePresence>

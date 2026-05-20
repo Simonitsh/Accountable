@@ -99,6 +99,10 @@ module {
       isLockIn = goal.isLockIn;
       startTime = goal.startTime;
       endTime = goal.endTime;
+      lastEditedAt = goal.lastEditedAt;
+      emailNotifications = goal.emailNotifications;
+      intentTime = goal.intentTime;
+      reminderOffset = goal.reminderOffset;
     };
   };
 
@@ -139,6 +143,10 @@ module {
       var isLockIn = request.isLockIn;
       var startTime = request.startTime;
       var endTime = request.endTime;
+      var lastEditedAt = null;
+      var emailNotifications = false;
+      var intentTime = null;
+      var reminderOffset = null;
     };
     goals.add(goal);
     #ok(toPublic(goal));
@@ -191,6 +199,22 @@ module {
       case null { #err(#goalNotFound) };
       case (?g) {
         if (g.owner != caller) return #err(#notOwner);
+        // Daily edit lockout: each goal can only be edited once per calendar day (user's local timezone).
+        // First edit (lastEditedAt == null) is always allowed.
+        switch (g.lastEditedAt) {
+          case (?lea) {
+            let nowMs : Int = Time.now() / 1_000_000;
+            let tzOffsetMs : Int = request.timezoneOffsetMinutes * 60 * 1000;
+            let lastEditedAdjusted : Int = (lea / 1_000_000) + tzOffsetMs;
+            let nowAdjusted : Int = nowMs + tzOffsetMs;
+            let lastEditedDay : Int = lastEditedAdjusted / 86_400_000;
+            let todayDay : Int = nowAdjusted / 86_400_000;
+            if (lastEditedDay == todayDay) {
+              return #err(#dailyEditLockout);
+            };
+          };
+          case null {};
+        };
         // Strict Lock-In edit lockout: reject any edit while the active window is open
         if (g.isLockIn) {
           switch (g.startTime, g.endTime) {
@@ -255,7 +279,21 @@ module {
           case (?t) { g.endTime := ?t };
           case null {};
         };
-        g.updatedAt := Time.now();
+        switch (request.emailNotifications) {
+          case (?v) { g.emailNotifications := v };
+          case null {};
+        };
+        switch (request.intentTime) {
+          case (?t) { g.intentTime := ?t };
+          case null {};
+        };
+        switch (request.reminderOffset) {
+          case (?o) { g.reminderOffset := ?o };
+          case null {};
+        };
+        let now = Time.now();
+        g.updatedAt := now;
+        g.lastEditedAt := ?now;
         #ok(toPublic(g));
       };
     };

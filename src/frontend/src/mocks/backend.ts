@@ -33,6 +33,10 @@ const sampleGoal1 = {
   isLockIn: false,
   themeColor: "#10B981",
   iconName: "running",
+  emailNotifications: false,
+  lastEditedAt: undefined,
+  intentTime: undefined,
+  reminderOffset: undefined,
 };
 
 const sampleGoal2 = {
@@ -47,6 +51,10 @@ const sampleGoal2 = {
   obstacleTemplateId: undefined,
   state: GoalState.paused,
   isLockIn: false,
+  emailNotifications: false,
+  lastEditedAt: undefined,
+  intentTime: undefined,
+  reminderOffset: undefined,
 };
 
 const sampleCheckIn = {
@@ -183,6 +191,10 @@ export const mockBackend: backendInterface = {
       endTime: request.endTime,
       themeColor: request.themeColor,
       iconName: request.iconName,
+      emailNotifications: false,
+      lastEditedAt: undefined,
+      intentTime: undefined,
+      reminderOffset: undefined,
     },
   }),
 
@@ -317,6 +329,10 @@ export const mockBackend: backendInterface = {
       wish: request.wish ?? sampleGoal1.wish,
       wishDescription: request.wishDescription ?? sampleGoal1.wishDescription,
       ifThenPlan: request.ifThenPlan ?? sampleGoal1.ifThenPlan,
+      emailNotifications: false,
+      lastEditedAt: undefined,
+      intentTime: undefined,
+      reminderOffset: undefined,
     },
   }),
 

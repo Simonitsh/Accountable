@@ -13,6 +13,7 @@ module {
       avatarEmoji = profile.avatarEmoji;
       timezone = profile.timezone;
       bio = profile.bio;
+      email = profile.email;
       role = profile.role;
     };
   };
@@ -31,6 +32,7 @@ module {
           var avatarEmoji = "";
           var timezone = "";
           var bio = null;
+          var email = null;
           var role = #user;
           var createdAt = Time.now();
         };
@@ -74,6 +76,7 @@ module {
     displayName : ?Text,
     avatarEmoji : ?Text,
     bio : ?Text,
+    email : ?Text,
   ) : { #ok : AuthTypes.UserProfilePublic; #err : Text } {
     let profile = getOrCreateProfile(profiles, caller);
     switch (displayName) {
@@ -88,6 +91,13 @@ module {
       case (?b) {
         if (b.size() > 160) return #err("Bio cannot exceed 160 characters");
         profile.bio := ?b;
+      };
+      case null {};
+    };
+    switch (email) {
+      case (?e) {
+        if (e.size() > 254) return #err("Email cannot exceed 254 characters");
+        profile.email := ?e;
       };
       case null {};
     };

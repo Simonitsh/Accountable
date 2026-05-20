@@ -54,6 +54,7 @@ mixin (
       case (#err (#invalidInput)) #err "invalidInput";
       case (#err (#lockInOverlap msg)) #err msg;
       case (#err (#strictLockActive)) #err "Strict Lock Active: You cannot edit this habit while its time window is currently active.";
+      case (#err (#dailyEditLockout)) #err "dailyEditLockout";
     };
   };
 

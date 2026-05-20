@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { ObstacleTemplate as BackendObstacleTemplate } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
+import { useUserProfile } from "../hooks/useUserProfile";
 import { OBSTACLE_TEMPLATES } from "../types/index";
 import { GOAL_ICONS } from "../utils/goalIcons";
 
@@ -53,6 +54,10 @@ interface FormState {
   // Step 4 — Icon + Color
   iconName: string;
   themeColor: string;
+  // Email Notifications
+  emailNotifications: boolean;
+  intentTime: string;
+  reminderOffset: number;
 }
 
 type StepError = Partial<Record<string, string>>;
@@ -91,6 +96,9 @@ const EMPTY: FormState = {
   ifThenPlan: "",
   iconName: "target",
   themeColor: "#2563EB",
+  emailNotifications: false,
+  intentTime: "",
+  reminderOffset: 0,
 };
 
 /** Returns the conflicting Lock-In goal name if newStart/newEnd overlaps any existing block. */
@@ -153,6 +161,10 @@ export default function WoopWizard({
 
   const { actor, isFetching } = useBackend();
   const queryClient = useQueryClient();
+  const { data: userProfile } = useUserProfile();
+  const hasEmail = Boolean(
+    (userProfile as unknown as { email?: string })?.email,
+  );
 
   // Slide-up entrance animation + full reset on open
   useEffect(() => {
@@ -202,6 +214,14 @@ export default function WoopWizard({
 
   // Derived caps for the wheels
   const maxLockInHours = Math.floor(maxLockInMinutes / 60);
+
+  // Max positive reminder offset so intentTime + reminderOffset never exceeds 23:55
+  const maxPositiveOffset = useMemo(() => {
+    if (!form.intentTime) return 60;
+    const [h, m] = form.intentTime.split(":").map(Number);
+    const intentMins = h * 60 + m;
+    return Math.max(0, 1435 - intentMins);
+  }, [form.intentTime]);
   const maxLockInMinutesAtMaxHour =
     form.lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
 
@@ -385,6 +405,14 @@ export default function WoopWizard({
     }
     if (s === 3 && !form.ifThenPlan.trim()) {
       e.ifThenPlan = "Write your backup plan.";
+    }
+    if (
+      s === 4 &&
+      form.emailNotifications &&
+      !form.isLockIn &&
+      !form.intentTime
+    ) {
+      e.intentTime = "Please set your intended time for the reminder";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -1630,6 +1658,151 @@ export default function WoopWizard({
                       );
                     })}
                   </div>
+                </div>
+
+                {/* Email Notifications - Step 4 */}
+                <div
+                  className="rounded-2xl p-5 space-y-4"
+                  style={{
+                    background: "oklch(var(--card))",
+                    boxShadow:
+                      "inset 2px 2px 6px rgba(0,0,0,0.4), inset -2px -2px 6px rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Enable Email Reminders
+                      </p>
+                      {!hasEmail && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Requires an email address.{" "}
+                          <a
+                            href="/profile"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-400 underline hover:text-emerald-300"
+                          >
+                            Update Profile
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!hasEmail}
+                      onClick={() =>
+                        hasEmail &&
+                        setForm((f) => ({
+                          ...f,
+                          emailNotifications: !f.emailNotifications,
+                        }))
+                      }
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                        form.emailNotifications && hasEmail
+                          ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                          : "bg-muted shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]"
+                      } ${!hasEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      aria-label="Toggle email reminders"
+                      data-ocid="woop_wizard.email_notifications.toggle"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                          form.emailNotifications && hasEmail
+                            ? "translate-x-6"
+                            : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${form.emailNotifications && hasEmail ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}
+                  >
+                    {!form.isLockIn && (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="intent-time-step4"
+                          className="block text-xs text-muted-foreground uppercase tracking-wide"
+                        >
+                          When do you plan to do this?
+                        </label>
+                        <input
+                          id="intent-time-step4"
+                          type="time"
+                          value={form.intentTime}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              intentTime: e.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl px-4 py-3 text-foreground bg-muted/30 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.4),inset_-2px_-2px_5px_rgba(255,255,255,0.04)] border-none outline-none focus:ring-1 focus:ring-emerald-500/50 text-sm"
+                          data-ocid="woop_wizard.intent_time.input"
+                        />
+                        {(errors as Record<string, string>).intentTime && (
+                          <p
+                            className="text-xs text-red-400"
+                            data-ocid="woop_wizard.intent_time.field_error"
+                          >
+                            {(errors as Record<string, string>).intentTime}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label
+                          htmlFor="reminder-offset-step4"
+                          className="block text-xs text-muted-foreground uppercase tracking-wide"
+                        >
+                          Send reminder
+                        </label>
+                        <span
+                          className="text-sm text-emerald-400 font-mono"
+                          data-ocid="woop_wizard.reminder_offset.display"
+                        >
+                          {form.reminderOffset < 0
+                            ? `${Math.abs(form.reminderOffset)} min before`
+                            : form.reminderOffset === 0
+                              ? "At start time"
+                              : `${form.reminderOffset} min after`}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        id="reminder-offset-step4"
+                        min={-60}
+                        max={form.isLockIn ? 0 : maxPositiveOffset}
+                        value={form.reminderOffset}
+                        onChange={(e) => {
+                          const val = Number.parseInt(e.target.value, 10);
+                          const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
+                          setForm((f) => ({
+                            ...f,
+                            reminderOffset: Math.min(val, maxVal),
+                          }));
+                        }}
+                        className="w-full h-2 rounded-full accent-emerald-500 cursor-pointer"
+                        data-ocid="woop_wizard.reminder_offset.input"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>-60 min</span>
+                        <span>0</span>
+                        {form.isLockIn ? (
+                          <span>0 max</span>
+                        ) : (
+                          <span>+{maxPositiveOffset} min</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Note: You can only adjust your intent-time and email
+                    reminders once per day after creation.
+                  </p>
                 </div>
 
                 {createGoalMutation.isError &&

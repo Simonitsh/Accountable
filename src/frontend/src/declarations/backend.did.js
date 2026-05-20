@@ -33,8 +33,10 @@ export const GoalState = IDL.Variant({
 export const GoalPublic = IDL.Record({
   'id' : GoalId,
   'startTime' : IDL.Opt(IDL.Text),
+  'emailNotifications' : IDL.Bool,
   'endTime' : IDL.Opt(IDL.Text),
   'owner' : UserId,
+  'lastEditedAt' : IDL.Opt(Timestamp),
   'createdAt' : Timestamp,
   'wish' : IDL.Text,
   'themeColor' : IDL.Opt(IDL.Text),
@@ -45,6 +47,8 @@ export const GoalPublic = IDL.Record({
   'state' : GoalState,
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'isLockIn' : IDL.Bool,
+  'reminderOffset' : IDL.Opt(IDL.Int),
+  'intentTime' : IDL.Opt(IDL.Text),
   'outcome' : IDL.Text,
 });
 export const CreateObstacleRequest = IDL.Record({
@@ -99,6 +103,7 @@ export const UserProfilePublic = IDL.Record({
   'username' : IDL.Text,
   'displayName' : IDL.Text,
   'role' : UserRole,
+  'email' : IDL.Opt(IDL.Text),
   'avatarEmoji' : IDL.Text,
 });
 export const FeedItem = IDL.Record({
@@ -141,13 +146,18 @@ export const Interaction = IDL.Record({
 });
 export const UpdateGoalRequest = IDL.Record({
   'startTime' : IDL.Opt(IDL.Text),
+  'emailNotifications' : IDL.Opt(IDL.Bool),
   'endTime' : IDL.Opt(IDL.Text),
+  'timezoneOffsetMinutes' : IDL.Int,
   'wish' : IDL.Opt(IDL.Text),
   'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Opt(IDL.Text),
   'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Opt(IDL.Text),
   'isLockIn' : IDL.Opt(IDL.Bool),
+  'reminderOffset' : IDL.Opt(IDL.Int),
+  'intentTime' : IDL.Opt(IDL.Text),
+  'outcome' : IDL.Opt(IDL.Text),
 });
 
 export const idlService = IDL.Service({
@@ -225,7 +235,12 @@ export const idlService = IDL.Service({
     ),
   'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
   'updateMyProfile' : IDL.Func(
-      [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+      [
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
+      ],
       [IDL.Variant({ 'ok' : UserProfilePublic, 'err' : IDL.Text })],
       [],
     ),
@@ -259,8 +274,10 @@ export const idlFactory = ({ IDL }) => {
   const GoalPublic = IDL.Record({
     'id' : GoalId,
     'startTime' : IDL.Opt(IDL.Text),
+    'emailNotifications' : IDL.Bool,
     'endTime' : IDL.Opt(IDL.Text),
     'owner' : UserId,
+    'lastEditedAt' : IDL.Opt(Timestamp),
     'createdAt' : Timestamp,
     'wish' : IDL.Text,
     'themeColor' : IDL.Opt(IDL.Text),
@@ -271,6 +288,8 @@ export const idlFactory = ({ IDL }) => {
     'state' : GoalState,
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'isLockIn' : IDL.Bool,
+    'reminderOffset' : IDL.Opt(IDL.Int),
+    'intentTime' : IDL.Opt(IDL.Text),
     'outcome' : IDL.Text,
   });
   const CreateObstacleRequest = IDL.Record({
@@ -325,6 +344,7 @@ export const idlFactory = ({ IDL }) => {
     'username' : IDL.Text,
     'displayName' : IDL.Text,
     'role' : UserRole,
+    'email' : IDL.Opt(IDL.Text),
     'avatarEmoji' : IDL.Text,
   });
   const FeedItem = IDL.Record({
@@ -367,13 +387,18 @@ export const idlFactory = ({ IDL }) => {
   });
   const UpdateGoalRequest = IDL.Record({
     'startTime' : IDL.Opt(IDL.Text),
+    'emailNotifications' : IDL.Opt(IDL.Bool),
     'endTime' : IDL.Opt(IDL.Text),
+    'timezoneOffsetMinutes' : IDL.Int,
     'wish' : IDL.Opt(IDL.Text),
     'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Opt(IDL.Text),
     'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Opt(IDL.Text),
     'isLockIn' : IDL.Opt(IDL.Bool),
+    'reminderOffset' : IDL.Opt(IDL.Int),
+    'intentTime' : IDL.Opt(IDL.Text),
+    'outcome' : IDL.Opt(IDL.Text),
   });
   
   return IDL.Service({
@@ -455,7 +480,12 @@ export const idlFactory = ({ IDL }) => {
       ),
     'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
     'updateMyProfile' : IDL.Func(
-        [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+        [
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
+        ],
         [IDL.Variant({ 'ok' : UserProfilePublic, 'err' : IDL.Text })],
         [],
       ),

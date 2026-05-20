@@ -94,17 +94,48 @@ export function useUserProfile() {
  * Returns a mutation to update the user's bio.
  * Only updates the displayed bio after the backend confirms success.
  */
+/**
+ * Returns a mutation to update the user's profile (displayName, bio, email).
+ * Only updates the UI after the backend confirms success.
+ */
 export function useUpdateBio() {
   const { actor } = useBackend();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (bio: string) => {
+    mutationFn: async ({
+      bio,
+      displayName,
+      email,
+    }: {
+      bio?: string;
+      displayName?: string;
+      email?: string;
+    }) => {
       if (!actor) throw new Error("Actor not available");
-      const bioArg = bio.trim().length > 0 ? bio.trim() : null;
-      const result = await actor.updateMyProfile(null, null, bioArg);
-      if (result.__kind__ === "err") throw new Error(result.err);
-      return result.ok;
+      const nameArg =
+        displayName !== undefined
+          ? displayName.trim().length > 0
+            ? displayName.trim()
+            : null
+          : null;
+      const bioArg =
+        bio !== undefined ? (bio.trim().length > 0 ? bio.trim() : null) : null;
+      const emailArg =
+        email !== undefined
+          ? email.trim().length > 0
+            ? email.trim()
+            : null
+          : null;
+      const result = await actor.updateMyProfile(
+        nameArg,
+        null,
+        bioArg,
+        emailArg,
+      );
+      if ("err" in result)
+        throw new Error(String((result as { err: unknown }).err));
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });

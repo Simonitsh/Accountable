@@ -1,3 +1,4 @@
+
 import Map "mo:core/Map";
 import List "mo:core/List";
 import Common "types/common";
@@ -12,6 +13,10 @@ import CheckInsApi "mixins/checkins-api";
 import ConnectionsApi "mixins/connections-api";
 import FeedApi "mixins/feed-api";
 import AnalyticsApi "mixins/analytics-api";
+import EmailNotificationsApi "mixins/email-notifications-api";
+
+
+
 
 
 
@@ -61,6 +66,11 @@ actor {
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
   include AnalyticsApi(goals, checkIns);
+  include EmailNotificationsApi(goals, profiles);
+
+  system func heartbeat() : async () {
+    await processEmailReminders();
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
   // DEV-ONLY: Full data reset — wipes all canister state so the app behaves

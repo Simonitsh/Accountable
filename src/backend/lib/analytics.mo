@@ -173,6 +173,10 @@ module {
         isLockIn = g.isLockIn;
         startTime = g.startTime;
         endTime = g.endTime;
+        lastEditedAt = g.lastEditedAt;
+        emailNotifications = g.emailNotifications;
+        intentTime = g.intentTime;
+        reminderOffset = g.reminderOffset;
       };
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);

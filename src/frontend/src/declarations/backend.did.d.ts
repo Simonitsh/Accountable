@@ -79,8 +79,10 @@ export type GoalId = bigint;
 export interface GoalPublic {
   'id' : GoalId,
   'startTime' : [] | [string],
+  'emailNotifications' : boolean,
   'endTime' : [] | [string],
   'owner' : UserId,
+  'lastEditedAt' : [] | [Timestamp],
   'createdAt' : Timestamp,
   'wish' : string,
   'themeColor' : [] | [string],
@@ -91,6 +93,8 @@ export interface GoalPublic {
   'state' : GoalState,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'isLockIn' : boolean,
+  'reminderOffset' : [] | [bigint],
+  'intentTime' : [] | [string],
   'outcome' : string,
 }
 export type GoalState = { 'active' : null } |
@@ -126,13 +130,18 @@ export interface RecordCheckInRequest {
 export type Timestamp = bigint;
 export interface UpdateGoalRequest {
   'startTime' : [] | [string],
+  'emailNotifications' : [] | [boolean],
   'endTime' : [] | [string],
+  'timezoneOffsetMinutes' : bigint,
   'wish' : [] | [string],
   'themeColor' : [] | [string],
   'wishDescription' : [] | [string],
   'iconName' : [] | [string],
   'ifThenPlan' : [] | [string],
   'isLockIn' : [] | [boolean],
+  'reminderOffset' : [] | [bigint],
+  'intentTime' : [] | [string],
+  'outcome' : [] | [string],
 }
 export type UserId = Principal;
 export interface UserProfilePublic {
@@ -142,6 +151,7 @@ export interface UserProfilePublic {
   'username' : string,
   'displayName' : string,
   'role' : UserRole,
+  'email' : [] | [string],
   'avatarEmoji' : string,
 }
 export type UserRole = { 'admin' : null } |
@@ -198,7 +208,7 @@ export interface _SERVICE {
   >,
   'updateGoalState' : ActorMethod<[GoalId, GoalState], boolean>,
   'updateMyProfile' : ActorMethod<
-    [[] | [string], [] | [string], [] | [string]],
+    [[] | [string], [] | [string], [] | [string], [] | [string]],
     { 'ok' : UserProfilePublic } |
       { 'err' : string }
   >,

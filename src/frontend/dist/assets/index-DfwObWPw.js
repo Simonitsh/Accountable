@@ -32789,8 +32789,10 @@ const GoalState$1 = Variant({
 const GoalPublic = Record({
   "id": GoalId,
   "startTime": Opt(Text$1),
+  "emailNotifications": Bool,
   "endTime": Opt(Text$1),
   "owner": UserId,
+  "lastEditedAt": Opt(Timestamp),
   "createdAt": Timestamp,
   "wish": Text$1,
   "themeColor": Opt(Text$1),
@@ -32801,6 +32803,8 @@ const GoalPublic = Record({
   "state": GoalState$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
   "isLockIn": Bool,
+  "reminderOffset": Opt(Int),
+  "intentTime": Opt(Text$1),
   "outcome": Text$1
 });
 const CreateObstacleRequest = Record({
@@ -32855,6 +32859,7 @@ const UserProfilePublic = Record({
   "username": Text$1,
   "displayName": Text$1,
   "role": UserRole$1,
+  "email": Opt(Text$1),
   "avatarEmoji": Text$1
 });
 const FeedItem$1 = Record({
@@ -32897,13 +32902,18 @@ const Interaction = Record({
 });
 const UpdateGoalRequest = Record({
   "startTime": Opt(Text$1),
+  "emailNotifications": Opt(Bool),
   "endTime": Opt(Text$1),
+  "timezoneOffsetMinutes": Int,
   "wish": Opt(Text$1),
   "themeColor": Opt(Text$1),
   "wishDescription": Opt(Text$1),
   "iconName": Opt(Text$1),
   "ifThenPlan": Opt(Text$1),
-  "isLockIn": Opt(Bool)
+  "isLockIn": Opt(Bool),
+  "reminderOffset": Opt(Int),
+  "intentTime": Opt(Text$1),
+  "outcome": Opt(Text$1)
 });
 Service({
   "createGoal": Func(
@@ -32980,7 +32990,12 @@ Service({
   ),
   "updateGoalState": Func([GoalId, GoalState$1], [Bool], []),
   "updateMyProfile": Func(
-    [Opt(Text$1), Opt(Text$1), Opt(Text$1)],
+    [
+      Opt(Text$1),
+      Opt(Text$1),
+      Opt(Text$1),
+      Opt(Text$1)
+    ],
     [Variant({ "ok": UserProfilePublic, "err": Text$1 })],
     []
   )
@@ -33011,8 +33026,10 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const GoalPublic2 = IDL2.Record({
     "id": GoalId2,
     "startTime": IDL2.Opt(IDL2.Text),
+    "emailNotifications": IDL2.Bool,
     "endTime": IDL2.Opt(IDL2.Text),
     "owner": UserId2,
+    "lastEditedAt": IDL2.Opt(Timestamp2),
     "createdAt": Timestamp2,
     "wish": IDL2.Text,
     "themeColor": IDL2.Opt(IDL2.Text),
@@ -33023,6 +33040,8 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "state": GoalState2,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
     "isLockIn": IDL2.Bool,
+    "reminderOffset": IDL2.Opt(IDL2.Int),
+    "intentTime": IDL2.Opt(IDL2.Text),
     "outcome": IDL2.Text
   });
   const CreateObstacleRequest2 = IDL2.Record({
@@ -33077,6 +33096,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "username": IDL2.Text,
     "displayName": IDL2.Text,
     "role": UserRole2,
+    "email": IDL2.Opt(IDL2.Text),
     "avatarEmoji": IDL2.Text
   });
   const FeedItem2 = IDL2.Record({
@@ -33119,13 +33139,18 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const UpdateGoalRequest2 = IDL2.Record({
     "startTime": IDL2.Opt(IDL2.Text),
+    "emailNotifications": IDL2.Opt(IDL2.Bool),
     "endTime": IDL2.Opt(IDL2.Text),
+    "timezoneOffsetMinutes": IDL2.Int,
     "wish": IDL2.Opt(IDL2.Text),
     "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Opt(IDL2.Text),
     "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Opt(IDL2.Text),
-    "isLockIn": IDL2.Opt(IDL2.Bool)
+    "isLockIn": IDL2.Opt(IDL2.Bool),
+    "reminderOffset": IDL2.Opt(IDL2.Int),
+    "intentTime": IDL2.Opt(IDL2.Text),
+    "outcome": IDL2.Opt(IDL2.Text)
   });
   return IDL2.Service({
     "createGoal": IDL2.Func(
@@ -33206,7 +33231,12 @@ const idlFactory = ({ IDL: IDL2 }) => {
     ),
     "updateGoalState": IDL2.Func([GoalId2, GoalState2], [IDL2.Bool], []),
     "updateMyProfile": IDL2.Func(
-      [IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text)],
+      [
+        IDL2.Opt(IDL2.Text),
+        IDL2.Opt(IDL2.Text),
+        IDL2.Opt(IDL2.Text),
+        IDL2.Opt(IDL2.Text)
+      ],
       [IDL2.Variant({ "ok": UserProfilePublic2, "err": IDL2.Text })],
       []
     )
@@ -33330,14 +33360,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.deleteCheckIn(arg0);
-        return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.deleteCheckIn(arg0);
-      return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
     }
   }
   async devReset() {
@@ -33372,56 +33402,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoal(arg0);
-        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoal(arg0);
-      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForGoalTimeline(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForPeriod(arg0, arg1, arg2) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
     }
   }
   async getGoal(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getGoal(arg0);
-        return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getGoal(arg0);
-      return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
     }
   }
   async getInteractionCount(arg0) {
@@ -33442,42 +33472,42 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getMyProfile();
-        return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyProfile();
-      return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerFeed() {
     if (this.processError) {
       try {
         const result = await this.actor.getPartnerFeed();
-        return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n24(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getPartnerFeed();
-      return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n24(this._uploadFile, this._downloadFile, result);
     }
   }
   async getUserProfile(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getUserProfile(arg0);
-        return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n27(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getUserProfile(arg0);
-      return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n27(this._uploadFile, this._downloadFile, result);
     }
   }
   async isUsernameAvailable(arg0) {
@@ -33498,56 +33528,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listAllUsers();
-        return from_candid_vec_n27(this._uploadFile, this._downloadFile, result);
-      } catch (e3) {
-        this.processError(e3);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.listAllUsers();
-      return from_candid_vec_n27(this._uploadFile, this._downloadFile, result);
-    }
-  }
-  async listConnections() {
-    if (this.processError) {
-      try {
-        const result = await this.actor.listConnections();
         return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.listConnections();
+      const result = await this.actor.listAllUsers();
       return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async listConnections() {
+    if (this.processError) {
+      try {
+        const result = await this.actor.listConnections();
+        return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.listConnections();
+      return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyCheckIns() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyCheckIns();
-        return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyCheckIns();
-      return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyGoals() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyGoals();
-        return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n34(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyGoals();
-      return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n34(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyObstacleTemplates() {
@@ -33568,56 +33598,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listPendingRequests();
-        return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listPendingRequests();
-      return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordCheckIn(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n34(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_CheckIn_n13(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n35(this._uploadFile, this._downloadFile, arg0));
+        return from_candid_CheckIn_n15(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n34(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_CheckIn_n13(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n35(this._uploadFile, this._downloadFile, arg0));
+      return from_candid_CheckIn_n15(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordInteraction(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n38(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_Interaction_n40(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n39(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_Interaction_n41(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n38(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_Interaction_n40(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n39(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_Interaction_n41(this._uploadFile, this._downloadFile, result);
     }
   }
   async register(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.register(arg0);
-        return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.register(arg0);
-      return from_candid_UserProfilePublic_n19(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
     }
   }
   async respondToConnection(arg0, arg1) {
@@ -33638,14 +33668,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.sendConnectionRequest(arg0);
-        return from_candid_ConnectionPublic_n29(this._uploadFile, this._downloadFile, result);
+        return from_candid_ConnectionPublic_n30(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.sendConnectionRequest(arg0);
-      return from_candid_ConnectionPublic_n29(this._uploadFile, this._downloadFile, result);
+      return from_candid_ConnectionPublic_n30(this._uploadFile, this._downloadFile, result);
     }
   }
   async setTimezone(arg0) {
@@ -33665,140 +33695,144 @@ class Backend {
   async updateGoal(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n44(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n45(this._uploadFile, this._downloadFile, arg1));
         return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n44(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n45(this._uploadFile, this._downloadFile, arg1));
       return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n46(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n46(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
-  async updateMyProfile(arg0, arg1, arg2) {
+  async updateMyProfile(arg0, arg1, arg2, arg3) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg2));
-        return from_candid_variant_n49(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3));
+        return from_candid_variant_n50(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n48(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n48(this._uploadFile, this._downloadFile, arg2));
-      return from_candid_variant_n49(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3));
+      return from_candid_variant_n50(this._uploadFile, this._downloadFile, result);
     }
   }
 }
-function from_candid_CheckInType_n15(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n16(_uploadFile, _downloadFile, value);
+function from_candid_CheckInType_n17(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n18(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckIn_n13(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n14(_uploadFile, _downloadFile, value);
+function from_candid_CheckIn_n15(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n16(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionPublic_n29(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n30(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionPublic_n30(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n31(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionStatus_n31(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n32(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionStatus_n32(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n33(_uploadFile, _downloadFile, value);
 }
-function from_candid_FeedItem_n24(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n25(_uploadFile, _downloadFile, value);
+function from_candid_FeedItem_n25(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n26(_uploadFile, _downloadFile, value);
 }
 function from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value) {
   return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalState_n7(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n8(_uploadFile, _downloadFile, value);
+function from_candid_GoalState_n8(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n9(_uploadFile, _downloadFile, value);
 }
-function from_candid_InteractionType_n42(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n43(_uploadFile, _downloadFile, value);
+function from_candid_InteractionType_n43(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n44(_uploadFile, _downloadFile, value);
 }
-function from_candid_Interaction_n40(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n41(_uploadFile, _downloadFile, value);
+function from_candid_Interaction_n41(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n42(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n20(_uploadFile, _downloadFile, value);
+function from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n21(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n21(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n22(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n22(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n23(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n17(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n10(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n18(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n11(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n19(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n26(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n27(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n6(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n9(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n7(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n14(_uploadFile, _downloadFile, value) {
+function from_candid_record_n16(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
     goalId: value.goalId,
-    checkInType: from_candid_CheckInType_n15(_uploadFile, _downloadFile, value.checkInType),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    checkInType: from_candid_CheckInType_n17(_uploadFile, _downloadFile, value.checkInType),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     timestamp: value.timestamp,
     executedIfThen: value.executedIfThen,
-    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.lockInStartedAt)),
-    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.lockInEndedAt)),
+    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.lockInStartedAt)),
+    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.lockInEndedAt)),
     customObstacleNote: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customObstacleNote))
   };
 }
-function from_candid_record_n20(_uploadFile, _downloadFile, value) {
+function from_candid_record_n21(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
     timezone: value.timezone,
     username: value.username,
     displayName: value.displayName,
-    role: from_candid_UserRole_n21(_uploadFile, _downloadFile, value.role),
+    role: from_candid_UserRole_n22(_uploadFile, _downloadFile, value.role),
+    email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
     avatarEmoji: value.avatarEmoji
   };
 }
-function from_candid_record_n25(_uploadFile, _downloadFile, value) {
+function from_candid_record_n26(_uploadFile, _downloadFile, value) {
   return {
-    checkIn: from_candid_CheckIn_n13(_uploadFile, _downloadFile, value.checkIn),
+    checkIn: from_candid_CheckIn_n15(_uploadFile, _downloadFile, value.checkIn),
     goalName: value.goalName,
     partnerDisplayName: value.partnerDisplayName,
     highFiveCount: value.highFiveCount
   };
 }
-function from_candid_record_n30(_uploadFile, _downloadFile, value) {
+function from_candid_record_n31(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_ConnectionStatus_n31(_uploadFile, _downloadFile, value.status),
+    status: from_candid_ConnectionStatus_n32(_uploadFile, _downloadFile, value.status),
     createdAt: value.createdAt,
     toPrincipal: value.toPrincipal,
     fromPrincipal: value.fromPrincipal
   };
 }
-function from_candid_record_n41(_uploadFile, _downloadFile, value) {
+function from_candid_record_n42(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    interactionType: from_candid_InteractionType_n42(_uploadFile, _downloadFile, value.interactionType),
+    interactionType: from_candid_InteractionType_n43(_uploadFile, _downloadFile, value.interactionType),
     fromPrincipal: value.fromPrincipal,
     checkInId: value.checkInId,
     timestamp: value.timestamp
@@ -33808,8 +33842,10 @@ function from_candid_record_n5(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     startTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.startTime)),
+    emailNotifications: value.emailNotifications,
     endTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.endTime)),
     owner: value.owner,
+    lastEditedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.lastEditedAt)),
     createdAt: value.createdAt,
     wish: value.wish,
     themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
@@ -33817,22 +33853,24 @@ function from_candid_record_n5(_uploadFile, _downloadFile, value) {
     iconName: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.iconName)),
     ifThenPlan: value.ifThenPlan,
     updatedAt: value.updatedAt,
-    state: from_candid_GoalState_n7(_uploadFile, _downloadFile, value.state),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    state: from_candid_GoalState_n8(_uploadFile, _downloadFile, value.state),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     isLockIn: value.isLockIn,
+    reminderOffset: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.reminderOffset)),
+    intentTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.intentTime)),
     outcome: value.outcome
   };
 }
-function from_candid_variant_n10(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n12(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: value.ok
   } : "err" in value ? {
     __kind__: "err",
-    err: from_candid_variant_n11(_uploadFile, _downloadFile, value.err)
+    err: from_candid_variant_n13(_uploadFile, _downloadFile, value.err)
   } : value;
 }
-function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n13(_uploadFile, _downloadFile, value) {
   return "sealed" in value ? {
     __kind__: "sealed",
     sealed: value.sealed
@@ -33844,10 +33882,10 @@ function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
     unauthorized: value.unauthorized
   } : value;
 }
-function from_candid_variant_n16(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n18(_uploadFile, _downloadFile, value) {
   return "skip" in value ? "skip" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
-function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n23(_uploadFile, _downloadFile, value) {
   return "admin" in value ? "admin" : "user" in value ? "user" : value;
 }
 function from_candid_variant_n3(_uploadFile, _downloadFile, value) {
@@ -33859,58 +33897,58 @@ function from_candid_variant_n3(_uploadFile, _downloadFile, value) {
     err: value.err
   } : value;
 }
-function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n33(_uploadFile, _downloadFile, value) {
   return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
 }
-function from_candid_variant_n43(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n44(_uploadFile, _downloadFile, value) {
   return "highFive" in value ? "highFive" : value;
 }
-function from_candid_variant_n49(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n50(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
-    ok: from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, value.ok)
+    ok: from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, value.ok)
   } : "err" in value ? {
     __kind__: "err",
     err: value.err
   } : value;
 }
-function from_candid_variant_n8(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
   return "active" in value ? "active" : "completed" in value ? "completed" : "abandoned" in value ? "abandoned" : "paused" in value ? "paused" : value;
 }
-function from_candid_vec_n12(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_CheckIn_n13(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n14(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_CheckIn_n15(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n23(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_FeedItem_n24(_uploadFile, _downloadFile, x3));
-}
-function from_candid_vec_n27(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_UserProfilePublic_n19(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n24(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_FeedItem_n25(_uploadFile, _downloadFile, x3));
 }
 function from_candid_vec_n28(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_ConnectionPublic_n29(_uploadFile, _downloadFile, x3));
+  return value.map((x3) => from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n33(_uploadFile, _downloadFile, value) {
+function from_candid_vec_n29(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_ConnectionPublic_n30(_uploadFile, _downloadFile, x3));
+}
+function from_candid_vec_n34(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_GoalPublic_n4(_uploadFile, _downloadFile, x3));
 }
-function to_candid_CheckInType_n36(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n37(_uploadFile, _downloadFile, value);
+function to_candid_CheckInType_n37(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n38(_uploadFile, _downloadFile, value);
 }
 function to_candid_CreateGoalRequest_n1(_uploadFile, _downloadFile, value) {
   return to_candid_record_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_GoalState_n46(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n47(_uploadFile, _downloadFile, value);
+function to_candid_GoalState_n47(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n48(_uploadFile, _downloadFile, value);
 }
-function to_candid_InteractionType_n38(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n39(_uploadFile, _downloadFile, value);
+function to_candid_InteractionType_n39(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n40(_uploadFile, _downloadFile, value);
 }
-function to_candid_RecordCheckInRequest_n34(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n35(_uploadFile, _downloadFile, value);
+function to_candid_RecordCheckInRequest_n35(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n36(_uploadFile, _downloadFile, value);
 }
-function to_candid_UpdateGoalRequest_n44(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n45(_uploadFile, _downloadFile, value);
+function to_candid_UpdateGoalRequest_n45(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n46(_uploadFile, _downloadFile, value);
 }
-function to_candid_opt_n48(_uploadFile, _downloadFile, value) {
+function to_candid_opt_n49(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_record_n2(_uploadFile, _downloadFile, value) {
@@ -33927,11 +33965,11 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     outcome: value.outcome
   };
 }
-function to_candid_record_n35(_uploadFile, _downloadFile, value) {
+function to_candid_record_n36(_uploadFile, _downloadFile, value) {
   return {
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     goalId: value.goalId,
-    checkInType: to_candid_CheckInType_n36(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: to_candid_CheckInType_n37(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     executedIfThen: value.executedIfThen,
     lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
@@ -33939,19 +33977,24 @@ function to_candid_record_n35(_uploadFile, _downloadFile, value) {
     customObstacleNote: value.customObstacleNote ? candid_some(value.customObstacleNote) : candid_none()
   };
 }
-function to_candid_record_n45(_uploadFile, _downloadFile, value) {
+function to_candid_record_n46(_uploadFile, _downloadFile, value) {
   return {
     startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+    emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
     endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     wish: value.wish ? candid_some(value.wish) : candid_none(),
     themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     wishDescription: value.wishDescription ? candid_some(value.wishDescription) : candid_none(),
     iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
-    isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none()
+    isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
+    reminderOffset: value.reminderOffset ? candid_some(value.reminderOffset) : candid_none(),
+    intentTime: value.intentTime ? candid_some(value.intentTime) : candid_none(),
+    outcome: value.outcome ? candid_some(value.outcome) : candid_none()
   };
 }
-function to_candid_variant_n37(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n38(_uploadFile, _downloadFile, value) {
   return value == "skip" ? {
     skip: null
   } : value == "missedCheckIn" ? {
@@ -33964,12 +34007,12 @@ function to_candid_variant_n37(_uploadFile, _downloadFile, value) {
     inProgress: null
   } : value;
 }
-function to_candid_variant_n39(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n40(_uploadFile, _downloadFile, value) {
   return value == "highFive" ? {
     highFive: null
   } : value;
 }
-function to_candid_variant_n47(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n48(_uploadFile, _downloadFile, value) {
   return value == "active" ? {
     active: null
   } : value == "completed" ? {
@@ -34072,12 +34115,24 @@ function useUpdateBio() {
   const { actor } = useBackend();
   const queryClient2 = useQueryClient();
   return useMutation({
-    mutationFn: async (bio) => {
+    mutationFn: async ({
+      bio,
+      displayName,
+      email
+    }) => {
       if (!actor) throw new Error("Actor not available");
-      const bioArg = bio.trim().length > 0 ? bio.trim() : null;
-      const result = await actor.updateMyProfile(null, null, bioArg);
-      if (result.__kind__ === "err") throw new Error(result.err);
-      return result.ok;
+      const nameArg = displayName !== void 0 ? displayName.trim().length > 0 ? displayName.trim() : null : null;
+      const bioArg = bio !== void 0 ? bio.trim().length > 0 ? bio.trim() : null : null;
+      const emailArg = email !== void 0 ? email.trim().length > 0 ? email.trim() : null : null;
+      const result = await actor.updateMyProfile(
+        nameArg,
+        null,
+        bioArg,
+        emailArg
+      );
+      if ("err" in result)
+        throw new Error(String(result.err));
+      return result;
     },
     onSuccess: () => {
       queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
@@ -36665,53 +36720,65 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$F = [
+const __iconNode$G = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$F);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$G);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$E = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$E);
+const __iconNode$F = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$F);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$D = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$D);
+const __iconNode$E = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$E);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$C = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$C);
+const __iconNode$D = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$B = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-const ChevronRight = createLucideIcon("chevron-right", __iconNode$B);
+const __iconNode$C = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$C);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$A = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
-const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
+const __iconNode$B = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+const ChevronUp = createLucideIcon("chevron-up", __iconNode$B);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$A = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+];
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$A);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36720,10 +36787,9 @@ const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
  */
 const __iconNode$z = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$z);
+const CircleCheck = createLucideIcon("circle-check", __iconNode$z);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36732,9 +36798,9 @@ const CircleAlert = createLucideIcon("circle-alert", __iconNode$z);
  */
 const __iconNode$y = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
 ];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$y);
+const Clock = createLucideIcon("clock", __iconNode$y);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36742,17 +36808,6 @@ const CircleCheck = createLucideIcon("circle-check", __iconNode$y);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$x = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
-];
-const Clock = createLucideIcon("clock", __iconNode$x);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$w = [
   [
     "path",
     {
@@ -36761,7 +36816,19 @@ const __iconNode$w = [
     }
   ]
 ];
-const Flame = createLucideIcon("flame", __iconNode$w);
+const Flame = createLucideIcon("flame", __iconNode$x);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$w = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", key: "13o1zl" }],
+  ["path", { d: "M2 12h20", key: "9i4pu4" }]
+];
+const Globe = createLucideIcon("globe", __iconNode$w);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36769,18 +36836,6 @@ const Flame = createLucideIcon("flame", __iconNode$w);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$v = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", key: "13o1zl" }],
-  ["path", { d: "M2 12h20", key: "9i4pu4" }]
-];
-const Globe = createLucideIcon("globe", __iconNode$v);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$u = [
   ["path", { d: "M18 12.5V10a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1.4", key: "wc6myp" }],
   ["path", { d: "M14 11V9a2 2 0 1 0-4 0v2", key: "94qvcw" }],
   ["path", { d: "M10 10.5V5a2 2 0 1 0-4 0v9", key: "m1ah89" }],
@@ -36792,14 +36847,14 @@ const __iconNode$u = [
     }
   ]
 ];
-const HandMetal = createLucideIcon("hand-metal", __iconNode$u);
+const HandMetal = createLucideIcon("hand-metal", __iconNode$v);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$t = [
+const __iconNode$u = [
   ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8", key: "5wwlr5" }],
   [
     "path",
@@ -36809,27 +36864,38 @@ const __iconNode$t = [
     }
   ]
 ];
-const House = createLucideIcon("house", __iconNode$t);
+const House = createLucideIcon("house", __iconNode$u);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$s = [
+const __iconNode$t = [
   ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
   ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
   ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
 ];
-const Link2 = createLucideIcon("link-2", __iconNode$s);
+const Link2 = createLucideIcon("link-2", __iconNode$t);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$r = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-const LoaderCircle = createLucideIcon("loader-circle", __iconNode$r);
+const __iconNode$s = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+const LoaderCircle = createLucideIcon("loader-circle", __iconNode$s);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$r = [
+  ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
+  ["path", { d: "M7 11V7a5 5 0 0 1 9.9-1", key: "1mm8w8" }]
+];
+const LockOpen = createLucideIcon("lock-open", __iconNode$r);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36838,9 +36904,9 @@ const LoaderCircle = createLucideIcon("loader-circle", __iconNode$r);
  */
 const __iconNode$q = [
   ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
-  ["path", { d: "M7 11V7a5 5 0 0 1 9.9-1", key: "1mm8w8" }]
+  ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
 ];
-const LockOpen = createLucideIcon("lock-open", __iconNode$q);
+const Lock = createLucideIcon("lock", __iconNode$q);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36848,10 +36914,11 @@ const LockOpen = createLucideIcon("lock-open", __iconNode$q);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$p = [
-  ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
-  ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
+  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
+  ["path", { d: "M21 12H9", key: "dn1m92" }],
+  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
 ];
-const Lock = createLucideIcon("lock", __iconNode$p);
+const LogOut = createLucideIcon("log-out", __iconNode$p);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36859,11 +36926,10 @@ const Lock = createLucideIcon("lock", __iconNode$p);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$o = [
-  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
-  ["path", { d: "M21 12H9", key: "dn1m92" }],
-  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
+  ["path", { d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7", key: "132q7q" }],
+  ["rect", { x: "2", y: "4", width: "20", height: "16", rx: "2", key: "izxlao" }]
 ];
-const LogOut = createLucideIcon("log-out", __iconNode$o);
+const Mail = createLucideIcon("mail", __iconNode$o);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -69935,7 +70001,7 @@ function getLockInState(startTime, endTime, todayCheckIn, createdAt) {
   }
   return "missed-start";
 }
-function formatTime12h$1(timeStr) {
+function formatTime12h$2(timeStr) {
   const [h2, m2] = timeStr.split(":").map(Number);
   const suffix2 = h2 >= 12 ? "PM" : "AM";
   const h12 = h2 % 12 || 12;
@@ -70532,7 +70598,7 @@ function GoalCard({
               "aria-live": "polite",
               children: [
                 "In progress • check out at ",
-                formatTime12h$1(lockInEndTime)
+                formatTime12h$2(lockInEndTime)
               ]
             }
           ),
@@ -70652,10 +70718,10 @@ function GoalCard({
                     "aria-label": `Time block: ${lockInStartTime} to ${lockInEndTime}`,
                     children: [
                       lockInState === "completed" || lockInState === "missed-start" || lockInState === "missed-checkout" || lockInState === "failed-finalized" ? /* @__PURE__ */ jsxRuntimeExports.jsx(LockOpen, { size: 10 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 10 }),
-                      formatTime12h$1(lockInStartTime),
+                      formatTime12h$2(lockInStartTime),
                       " –",
                       " ",
-                      formatTime12h$1(lockInEndTime)
+                      formatTime12h$2(lockInEndTime)
                     ]
                   }
                 ),
@@ -70690,7 +70756,7 @@ function GoalCard({
                     children: [
                       lockInState === "waiting" && "",
                       lockInState === "start-window" && "Check-in window open — swipe right to start",
-                      lockInState === "in-progress" && lockInEndTime && `In progress — complete by ${formatTime12h$1(lockInEndTime)}`,
+                      lockInState === "in-progress" && lockInEndTime && `In progress — complete by ${formatTime12h$2(lockInEndTime)}`,
                       lockInState === "end-window" && "Check-out window — swipe right to complete",
                       lockInState === "completed" && "Lock-In completed",
                       lockInState === "missed-start" && "Missed Start Window. Tap to log reason.",
@@ -71609,7 +71675,7 @@ function Textarea({ className, ...props }) {
     }
   );
 }
-const THEME_COLORS = [
+const THEME_COLORS$1 = [
   { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
   { id: "sapphire", label: "Sapphire", value: "#2563EB" },
   { id: "emerald", label: "Emerald", value: "#059669" },
@@ -71640,7 +71706,10 @@ const EMPTY = {
   customChips: [],
   ifThenPlan: "",
   iconName: "target",
-  themeColor: "#2563EB"
+  themeColor: "#2563EB",
+  emailNotifications: false,
+  intentTime: "",
+  reminderOffset: 0
 };
 function findOverlapGoal$1(goals, newStartTime, newEndTime, editingGoalId) {
   if (!newStartTime) return null;
@@ -71679,6 +71748,10 @@ function WoopWizard({
   const [overlapError, setOverlapError] = reactExports.useState(null);
   const { actor, isFetching } = useBackend();
   const queryClient2 = useQueryClient();
+  const { data: userProfile } = useUserProfile();
+  const hasEmail = Boolean(
+    userProfile == null ? void 0 : userProfile.email
+  );
   reactExports.useEffect(() => {
     if (!open) {
       setMounted(false);
@@ -71708,6 +71781,12 @@ function WoopWizard({
     return Math.max(0, 1435 - startTotal);
   }, [form.lockInStartTime]);
   const maxLockInHours = Math.floor(maxLockInMinutes / 60);
+  const maxPositiveOffset = reactExports.useMemo(() => {
+    if (!form.intentTime) return 60;
+    const [h2, m2] = form.intentTime.split(":").map(Number);
+    const intentMins = h2 * 60 + m2;
+    return Math.max(0, 1435 - intentMins);
+  }, [form.intentTime]);
   const maxLockInMinutesAtMaxHour = form.lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
   reactExports.useEffect(() => {
     if (form.lockInStartTime) {
@@ -71851,6 +71930,9 @@ function WoopWizard({
     }
     if (s2 === 3 && !form.ifThenPlan.trim()) {
       e3.ifThenPlan = "Write your backup plan.";
+    }
+    if (s2 === 4 && form.emailNotifications && !form.isLockIn && !form.intentTime) {
+      e3.intentTime = "Please set your intended time for the reminder";
     }
     setErrors(e3);
     return Object.keys(e3).length === 0;
@@ -72881,7 +72963,7 @@ function WoopWizard({
                     {
                       className: "flex flex-wrap gap-4",
                       "data-ocid": "woop_wizard.color_selector",
-                      children: THEME_COLORS.map((color2) => {
+                      children: THEME_COLORS$1.map((color2) => {
                         const isColorSelected = form.themeColor === color2.value;
                         return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                           "div",
@@ -72916,6 +72998,147 @@ function WoopWizard({
                     }
                   )
                 ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "rounded-2xl p-5 space-y-4",
+                    style: {
+                      background: "oklch(var(--card))",
+                      boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.4), inset -2px -2px 6px rgba(255,255,255,0.04)"
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium text-foreground", children: "Enable Email Reminders" }),
+                          !hasEmail && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5", children: [
+                            "Requires an email address.",
+                            " ",
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "a",
+                              {
+                                href: "/profile",
+                                target: "_blank",
+                                rel: "noopener noreferrer",
+                                className: "text-emerald-400 underline hover:text-emerald-300",
+                                children: "Update Profile"
+                              }
+                            )
+                          ] })
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "button",
+                          {
+                            type: "button",
+                            disabled: !hasEmail,
+                            onClick: () => hasEmail && setForm((f2) => ({
+                              ...f2,
+                              emailNotifications: !f2.emailNotifications
+                            })),
+                            className: `relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none ${form.emailNotifications && hasEmail ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" : "bg-muted shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]"} ${!hasEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`,
+                            "aria-label": "Toggle email reminders",
+                            "data-ocid": "woop_wizard.email_notifications.toggle",
+                            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "span",
+                              {
+                                className: `inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${form.emailNotifications && hasEmail ? "translate-x-6" : "translate-x-1"}`
+                              }
+                            )
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: `overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${form.emailNotifications && hasEmail ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`,
+                          children: [
+                            !form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "label",
+                                {
+                                  htmlFor: "intent-time-step4",
+                                  className: "block text-xs text-muted-foreground uppercase tracking-wide",
+                                  children: "When do you plan to do this?"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "input",
+                                {
+                                  id: "intent-time-step4",
+                                  type: "time",
+                                  value: form.intentTime,
+                                  onChange: (e3) => setForm((f2) => ({
+                                    ...f2,
+                                    intentTime: e3.target.value
+                                  })),
+                                  className: "w-full rounded-xl px-4 py-3 text-foreground bg-muted/30 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.4),inset_-2px_-2px_5px_rgba(255,255,255,0.04)] border-none outline-none focus:ring-1 focus:ring-emerald-500/50 text-sm",
+                                  "data-ocid": "woop_wizard.intent_time.input"
+                                }
+                              ),
+                              errors.intentTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "p",
+                                {
+                                  className: "text-xs text-red-400",
+                                  "data-ocid": "woop_wizard.intent_time.field_error",
+                                  children: errors.intentTime
+                                }
+                              )
+                            ] }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "label",
+                                  {
+                                    htmlFor: "reminder-offset-step4",
+                                    className: "block text-xs text-muted-foreground uppercase tracking-wide",
+                                    children: "Send reminder"
+                                  }
+                                ),
+                                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "span",
+                                  {
+                                    className: "text-sm text-emerald-400 font-mono",
+                                    "data-ocid": "woop_wizard.reminder_offset.display",
+                                    children: form.reminderOffset < 0 ? `${Math.abs(form.reminderOffset)} min before` : form.reminderOffset === 0 ? "At start time" : `${form.reminderOffset} min after`
+                                  }
+                                )
+                              ] }),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "input",
+                                {
+                                  type: "range",
+                                  id: "reminder-offset-step4",
+                                  min: -60,
+                                  max: form.isLockIn ? 0 : maxPositiveOffset,
+                                  value: form.reminderOffset,
+                                  onChange: (e3) => {
+                                    const val = Number.parseInt(e3.target.value, 10);
+                                    const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
+                                    setForm((f2) => ({
+                                      ...f2,
+                                      reminderOffset: Math.min(val, maxVal)
+                                    }));
+                                  },
+                                  className: "w-full h-2 rounded-full accent-emerald-500 cursor-pointer",
+                                  "data-ocid": "woop_wizard.reminder_offset.input"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs text-muted-foreground", children: [
+                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "-60 min" }),
+                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "0" }),
+                                form.isLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "0 max" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                                  "+",
+                                  maxPositiveOffset,
+                                  " min"
+                                ] })
+                              ] })
+                            ] })
+                          ]
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Note: You can only adjust your intent-time and email reminders once per day after creation." })
+                    ]
+                  }
+                ),
                 createGoalMutation.isError && !((_e2 = (_d2 = createGoalMutation.error) == null ? void 0 : _d2.message) == null ? void 0 : _e2.includes("limit")) && /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "p",
                   {
@@ -74342,6 +74565,1038 @@ function DashboardPage$1() {
         }
       }
     )
+  ] });
+}
+const THEME_COLORS = [
+  { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
+  { id: "sapphire", label: "Sapphire", value: "#2563EB" },
+  { id: "emerald", label: "Emerald", value: "#059669" },
+  { id: "amber", label: "Amber", value: "#D97706" },
+  { id: "rose", label: "Rose", value: "#E11D48" },
+  { id: "slate", label: "Slate", value: "#475569" },
+  { id: "copper", label: "Copper", value: "#C2410C" },
+  { id: "teal", label: "Teal", value: "#0D9488" }
+];
+const BLOCKED_LABELS = /* @__PURE__ */ new Set(["my brain", "drugs", "drug", "brain"]);
+function buildOffsetOptions(min2, max2) {
+  const opts = [];
+  for (let v2 = min2; v2 <= max2; v2 += 5) opts.push(v2);
+  return opts;
+}
+function formatOffsetLabel(v2) {
+  if (v2 === 0) return "0 min (at time)";
+  if (v2 < 0) return `${Math.abs(v2)} min before`;
+  return `+${v2} min after`;
+}
+function isLockInActiveWindow$1(startTime, endTime) {
+  const now2 = Date.now();
+  const today = /* @__PURE__ */ new Date();
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const windowStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    sh,
+    sm
+  ).getTime() - 5 * 60 * 1e3;
+  const windowEnd = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    eh,
+    em
+  ).getTime() + 5 * 60 * 1e3;
+  return now2 >= windowStart && now2 <= windowEnd;
+}
+function recalcEndTime(startTime, durationHours, durationMinutes) {
+  if (!startTime) return "";
+  const [h2, m2] = startTime.split(":").map(Number);
+  const totalMins = h2 * 60 + m2 + durationHours * 60 + durationMinutes;
+  const endH = Math.floor(totalMins / 60) % 24;
+  const endM = totalMins % 60;
+  return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+}
+function formatTime12h$1(t2) {
+  const [h2, m2] = t2.split(":").map(Number);
+  const suffix2 = h2 >= 12 ? "PM" : "AM";
+  return `${h2 % 12 || 12}:${String(m2).padStart(2, "0")} ${suffix2}`;
+}
+const wheelStyle = {
+  background: "oklch(var(--card))",
+  border: "1px solid rgba(255,255,255,0.08)",
+  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+  color: "oklch(var(--foreground))",
+  padding: "6px 0",
+  outline: "none",
+  overflowY: "auto"
+};
+const amberWheelStyle = {
+  ...wheelStyle,
+  border: "1px solid rgba(245,158,11,0.25)"
+};
+const sectionLabel = "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
+const insetCard = {
+  background: "oklch(var(--card))",
+  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.4), inset -2px -2px 6px rgba(255,255,255,0.04)",
+  borderRadius: "1rem",
+  padding: "1.25rem"
+};
+function EditHabitPage$1() {
+  const { id: id2 } = useParams({ strict: false });
+  const navigate = useNavigate();
+  const { actor } = useBackend();
+  const queryClient2 = useQueryClient();
+  const { data: userProfile } = useUserProfile();
+  const hasEmail = Boolean(
+    userProfile == null ? void 0 : userProfile.email
+  );
+  const { data: goals, isLoading } = useQuery({
+    queryKey: ["myGoals"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listMyGoals();
+    },
+    enabled: !!actor
+  });
+  const habit = reactExports.useMemo(
+    () => goals == null ? void 0 : goals.find((g2) => g2.id === BigInt(id2)),
+    [goals, id2]
+  );
+  const [wish, setWish] = reactExports.useState("");
+  const [wishDescription, setWishDescription] = reactExports.useState("");
+  const [ifThenPlan, setIfThenPlan] = reactExports.useState("");
+  const [iconName, setIconName] = reactExports.useState("target");
+  const [themeColor, setThemeColor] = reactExports.useState("#2563EB");
+  const [obstacles, setObstacles] = reactExports.useState([]);
+  const [customInput, setCustomInput] = reactExports.useState("");
+  const [customChips, setCustomChips] = reactExports.useState([]);
+  const [focusedField, setFocusedField] = reactExports.useState(null);
+  const [customError, setCustomError] = reactExports.useState("");
+  const [isLockIn, setIsLockIn] = reactExports.useState(false);
+  const [lockInStartTime, setLockInStartTime] = reactExports.useState("");
+  const [lockInEndTime, setLockInEndTime] = reactExports.useState("");
+  const [lockInDurationHours, setLockInDurationHours] = reactExports.useState(0);
+  const [lockInDurationMinutes, setLockInDurationMinutes] = reactExports.useState(0);
+  const [overlapError, setOverlapError] = reactExports.useState(null);
+  const [emailNotifications, setEmailNotifications] = reactExports.useState(false);
+  const [intentTime, setIntentTime] = reactExports.useState("");
+  const [reminderOffset, setReminderOffset] = reactExports.useState(0);
+  reactExports.useEffect(() => {
+    if (!habit) return;
+    setWish(habit.wish ?? "");
+    setWishDescription(habit.wishDescription ?? "");
+    setIfThenPlan(habit.ifThenPlan ?? "");
+    setIconName(habit.iconName ?? "target");
+    setThemeColor(habit.themeColor ?? "#2563EB");
+    setIsLockIn(habit.isLockIn ?? false);
+    setLockInStartTime(habit.startTime ?? "");
+    setLockInEndTime(habit.endTime ?? "");
+    if ((habit.isLockIn ?? false) && habit.startTime && habit.endTime) {
+      const [sh, sm] = habit.startTime.split(":").map(Number);
+      const [eh, em] = habit.endTime.split(":").map(Number);
+      const diff = Math.max(0, eh * 60 + em - (sh * 60 + sm));
+      setLockInDurationHours(Math.floor(diff / 60));
+      setLockInDurationMinutes(diff % 60);
+    } else {
+      setLockInDurationHours(0);
+      setLockInDurationMinutes(0);
+    }
+    const existingLabels = (habit.outcome ?? "").split(",").map((s2) => s2.trim()).filter(Boolean);
+    const builtinChips = [];
+    const customFromBackend = [];
+    for (const label of existingLabels) {
+      const preset = OBSTACLE_TEMPLATES.find(
+        (t2) => t2.label.toLowerCase() === label.toLowerCase()
+      );
+      if (preset) {
+        builtinChips.push({
+          id: preset.id,
+          label: preset.label,
+          kind: "builtin"
+        });
+      } else if (!BLOCKED_LABELS.has(label.toLowerCase())) {
+        const chip = {
+          id: `custom_${label}`,
+          label,
+          kind: "custom"
+        };
+        customFromBackend.push(chip);
+      }
+    }
+    setObstacles([...builtinChips, ...customFromBackend]);
+    setCustomChips(customFromBackend);
+    setEmailNotifications(habit.emailNotifications ?? false);
+    setIntentTime(habit.intentTime ?? "");
+    setReminderOffset(
+      habit.reminderOffset !== void 0 ? Number(habit.reminderOffset) : 0
+    );
+  }, [habit]);
+  reactExports.useEffect(() => {
+    if (!lockInStartTime) return;
+    const [h2, m2] = lockInStartTime.split(":").map(Number);
+    const startTotal = h2 * 60 + m2;
+    const maxMins = Math.max(0, 1435 - startTotal);
+    const currentDuration = lockInDurationHours * 60 + lockInDurationMinutes;
+    if (currentDuration > maxMins) {
+      const clampedH = Math.floor(maxMins / 60);
+      const clampedM = maxMins % 60;
+      setLockInDurationHours(clampedH);
+      setLockInDurationMinutes(clampedM);
+      setLockInEndTime(recalcEndTime(lockInStartTime, clampedH, clampedM));
+      return;
+    }
+    setLockInEndTime(
+      recalcEndTime(
+        lockInStartTime,
+        lockInDurationHours,
+        lockInDurationMinutes
+      )
+    );
+  }, [lockInStartTime, lockInDurationHours, lockInDurationMinutes]);
+  reactExports.useEffect(() => {
+    if (!isLockIn || !lockInStartTime || !lockInEndTime || !goals) {
+      setOverlapError(null);
+      return;
+    }
+    const conflict = (goals ?? []).find((g2) => {
+      if (g2.id === BigInt(id2)) return false;
+      if (!g2.isLockIn || !g2.startTime || !g2.endTime) return false;
+      return lockInStartTime < g2.endTime && lockInEndTime > g2.startTime;
+    });
+    setOverlapError(
+      conflict ? `Conflict: This overlaps with "${conflict.wishDescription || "an existing Lock-In"}".` : null
+    );
+  }, [isLockIn, lockInStartTime, lockInEndTime, goals, id2]);
+  const isLockedForToday = reactExports.useMemo(() => {
+    if (!(habit == null ? void 0 : habit.lastEditedAt)) return false;
+    const tzOffsetMs = (/* @__PURE__ */ new Date()).getTimezoneOffset() * 60 * 1e3 * -1;
+    const lastEditedMs = Number(habit.lastEditedAt / 1000000n);
+    const nowMs = Date.now();
+    const lastDay = Math.floor((lastEditedMs + tzOffsetMs) / 864e5);
+    const today = Math.floor((nowMs + tzOffsetMs) / 864e5);
+    return lastDay === today;
+  }, [habit == null ? void 0 : habit.lastEditedAt]);
+  const isLockInWindowActive = reactExports.useMemo(() => {
+    if (!isLockIn || !lockInStartTime || !lockInEndTime) return false;
+    return isLockInActiveWindow$1(lockInStartTime, lockInEndTime);
+  }, [isLockIn, lockInStartTime, lockInEndTime]);
+  const maxLockInMinutes = reactExports.useMemo(() => {
+    if (!lockInStartTime) return 0;
+    const [h2, m2] = lockInStartTime.split(":").map(Number);
+    return Math.max(0, 1435 - (h2 * 60 + m2));
+  }, [lockInStartTime]);
+  const maxLockInHours = Math.floor(maxLockInMinutes / 60);
+  const maxLockInMinAtMaxHour = lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
+  const maxPositiveOffset = reactExports.useMemo(() => {
+    if (!intentTime) return 60;
+    const [h2, m2] = intentTime.split(":").map(Number);
+    return Math.min(60, Math.max(0, 1435 - (h2 * 60 + m2)));
+  }, [intentTime]);
+  const offsetMin = -60;
+  const offsetMax = isLockIn ? 0 : maxPositiveOffset;
+  const clampedOffset = Math.min(
+    offsetMax,
+    Math.max(offsetMin, reminderOffset)
+  );
+  const offsetOptions = buildOffsetOptions(offsetMin, offsetMax);
+  const allObstacleChips = [
+    ...OBSTACLE_TEMPLATES.map((o2) => ({
+      id: o2.id,
+      label: o2.label,
+      kind: "builtin"
+    })),
+    ...customChips
+  ];
+  function toggleObstacle(chip) {
+    setObstacles((prev) => {
+      const exists = prev.find((o2) => o2.id === chip.id);
+      return exists ? prev.filter((o2) => o2.id !== chip.id) : [...prev, chip];
+    });
+  }
+  function addCustomChip() {
+    const label = customInput.trim();
+    if (!label) return;
+    const norm = label.toLowerCase();
+    if (BLOCKED_LABELS.has(norm)) {
+      setCustomError("That obstacle is not allowed.");
+      return;
+    }
+    const alreadyExists = customChips.some((c2) => c2.label.toLowerCase() === norm) || OBSTACLE_TEMPLATES.some((t2) => t2.label.toLowerCase() === norm);
+    if (alreadyExists) {
+      setCustomError("That obstacle is already listed.");
+      return;
+    }
+    const chip = {
+      id: `custom_${Date.now()}`,
+      label,
+      kind: "custom"
+    };
+    setCustomChips((prev) => [...prev, chip]);
+    setObstacles((prev) => [...prev, chip]);
+    setCustomInput("");
+    setCustomError("");
+  }
+  function removeCustomChip(chipId) {
+    setCustomChips((prev) => prev.filter((c2) => c2.id !== chipId));
+    setObstacles((prev) => prev.filter((o2) => o2.id !== chipId));
+  }
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      obstacles.map((o2) => o2.label).join(", ");
+      const req = {
+        timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
+        wish: wish.trim(),
+        wishDescription: wishDescription.trim(),
+        ifThenPlan: ifThenPlan.trim(),
+        iconName,
+        themeColor,
+        isLockIn,
+        startTime: isLockIn && lockInStartTime ? lockInStartTime : void 0,
+        endTime: isLockIn && lockInEndTime ? lockInEndTime : void 0,
+        emailNotifications,
+        intentTime: emailNotifications && intentTime ? intentTime : void 0,
+        reminderOffset: emailNotifications ? BigInt(clampedOffset) : void 0
+      };
+      const result = await actor.updateGoal(BigInt(id2), req);
+      if ("err" in result) {
+        throw new Error(
+          typeof result.err === "string" ? result.err : "Failed to save"
+        );
+      }
+      return result;
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
+      ue.success("Habit updated!");
+      navigate({ to: "/goals" });
+    }
+  });
+  function canSave() {
+    if (!wish.trim()) return false;
+    if (isLockIn && !lockInStartTime) return false;
+    if (isLockIn && lockInDurationHours === 0 && lockInDurationMinutes === 0)
+      return false;
+    if (overlapError) return false;
+    if (emailNotifications && !isLockIn && !intentTime) return false;
+    return true;
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-background text-foreground", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "sticky top-0 z-20 flex items-center px-4 py-3 border-b border-border",
+        style: {
+          background: "oklch(var(--card))",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.4)"
+        },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => navigate({ to: "/goals" }),
+              className: "p-2 rounded-xl mr-2 text-foreground",
+              style: {
+                boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+              },
+              "aria-label": "Go back",
+              "data-ocid": "edit_habit.back_button",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { className: "h-5 w-5" })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-lg font-semibold flex-1 text-center pr-9", children: "Edit Habit" })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-lg mx-auto px-4 py-6 space-y-8 pb-24", children: [
+      isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-muted-foreground py-8", children: "Loading…" }),
+      !isLoading && !habit && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center space-y-3 py-8", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-muted-foreground", children: "Habit not found." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => navigate({ to: "/goals" }),
+            className: "text-sm",
+            style: { color: "#10B981" },
+            children: "Back to My Habits"
+          }
+        )
+      ] }),
+      habit && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5", children: "General" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-wish", className: sectionLabel, children: "Macro Goal" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  id: "edit-wish",
+                  "data-ocid": "edit_habit.wish_input",
+                  value: wish,
+                  maxLength: 140,
+                  onChange: (e3) => setWish(e3.target.value.slice(0, 140)),
+                  onFocus: () => setFocusedField("wish"),
+                  onBlur: () => setFocusedField(null),
+                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  style: {
+                    background: "oklch(var(--muted) / 0.4)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)"
+                  },
+                  placeholder: "I want to run a marathon so that I can…"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "p",
+                {
+                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`,
+                  children: [
+                    wish.length,
+                    "/140"
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-desc", className: sectionLabel, children: "Keystone Habit" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "textarea",
+                {
+                  id: "edit-desc",
+                  "data-ocid": "edit_habit.wish_description_input",
+                  value: wishDescription,
+                  maxLength: 140,
+                  rows: 2,
+                  onChange: (e3) => setWishDescription(e3.target.value.slice(0, 140)),
+                  onFocus: () => setFocusedField("wishDescription"),
+                  onBlur: () => setFocusedField(null),
+                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  style: {
+                    background: "oklch(var(--muted) / 0.4)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)"
+                  },
+                  placeholder: "I will run for X minutes"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "p",
+                {
+                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`,
+                  children: [
+                    wishDescription.length,
+                    "/140"
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-ifthen", className: sectionLabel, children: "If-Then Plan" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "textarea",
+                {
+                  id: "edit-ifthen",
+                  "data-ocid": "edit_habit.if_then_plan_input",
+                  value: ifThenPlan,
+                  maxLength: 140,
+                  rows: 2,
+                  onChange: (e3) => setIfThenPlan(e3.target.value.slice(0, 140)),
+                  onFocus: () => setFocusedField("ifThenPlan"),
+                  onBlur: () => setFocusedField(null),
+                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  style: {
+                    background: "oklch(var(--muted) / 0.4)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)"
+                  },
+                  placeholder: "If [obstacle], then I will…"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "p",
+                {
+                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
+                  children: [
+                    ifThenPlan.length,
+                    "/140"
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Obstacles" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "flex flex-wrap gap-2",
+                  "data-ocid": "edit_habit.obstacle_list",
+                  children: allObstacleChips.map((chip, idx) => {
+                    const selected = obstacles.some((o2) => o2.id === chip.id);
+                    const isCustom = chip.kind === "custom";
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        className: "relative inline-flex items-center",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                            "button",
+                            {
+                              type: "button",
+                              "data-ocid": `edit_habit.obstacle.${idx + 1}`,
+                              onClick: () => toggleObstacle(chip),
+                              "aria-pressed": selected,
+                              className: "text-sm px-3 py-2 rounded-full border transition-all duration-200",
+                              style: selected ? {
+                                backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
+                                borderColor: "oklch(var(--color-accent-social))",
+                                color: "oklch(var(--color-accent-social))",
+                                boxShadow: "0 0 10px oklch(var(--color-accent-social) / 0.35)"
+                              } : {
+                                backgroundColor: "oklch(var(--muted) / 0.35)",
+                                borderColor: "oklch(var(--border) / 0.5)",
+                                color: "oklch(var(--muted-foreground))"
+                              },
+                              children: [
+                                selected && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  Check,
+                                  {
+                                    size: 11,
+                                    className: "inline mr-1.5 shrink-0"
+                                  }
+                                ),
+                                chip.label
+                              ]
+                            }
+                          ),
+                          isCustom && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "button",
+                            {
+                              type: "button",
+                              "aria-label": `Remove ${chip.label}`,
+                              "data-ocid": `edit_habit.remove_custom_obstacle.${idx + 1}`,
+                              onClick: (e3) => {
+                                e3.stopPropagation();
+                                removeCustomChip(chip.id);
+                              },
+                              style: {
+                                position: "absolute",
+                                top: "-8px",
+                                right: "-8px",
+                                width: "18px",
+                                height: "18px",
+                                borderRadius: "50%",
+                                background: "#2a2a3a",
+                                border: "1.5px solid rgba(255,255,255,0.18)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                                zIndex: 10
+                              },
+                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 9, color: "#fff" })
+                            }
+                          )
+                        ]
+                      },
+                      chip.id
+                    );
+                  })
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    "data-ocid": "edit_habit.custom_obstacle_input",
+                    value: customInput,
+                    onChange: (e3) => {
+                      setCustomInput(e3.target.value);
+                      setCustomError("");
+                    },
+                    onKeyDown: (e3) => {
+                      if (e3.key === "Enter") {
+                        e3.preventDefault();
+                        addCustomChip();
+                      }
+                    },
+                    maxLength: 60,
+                    placeholder: "Add custom obstacle…",
+                    className: "flex-1 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40",
+                    style: {
+                      background: "oklch(var(--muted) / 0.4)",
+                      boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                      border: "1px solid rgba(255,255,255,0.07)"
+                    }
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: addCustomChip,
+                    disabled: !customInput.trim(),
+                    "data-ocid": "edit_habit.add_custom_obstacle_button",
+                    className: "flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium disabled:opacity-40 transition-smooth",
+                    style: {
+                      background: "oklch(var(--color-accent-success) / 0.15)",
+                      border: "1px solid oklch(var(--color-accent-success) / 0.4)",
+                      color: "oklch(var(--color-accent-success))"
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 13 }),
+                      " Add"
+                    ]
+                  }
+                )
+              ] }),
+              customError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: customError })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Icon" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "grid grid-cols-7 gap-2",
+                  "data-ocid": "edit_habit.icon_selector",
+                  children: GOAL_ICONS.map((icon) => {
+                    const isSelected = iconName === icon.id;
+                    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => setIconName(icon.id),
+                        "aria-label": `Select ${icon.label} icon`,
+                        "aria-pressed": isSelected,
+                        "data-ocid": `edit_habit.icon.${icon.id}`,
+                        className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2",
+                        style: isSelected ? {
+                          backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                          border: "2px solid oklch(var(--color-accent-success))",
+                          color: "oklch(var(--color-accent-success))",
+                          boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.3)"
+                        } : {
+                          backgroundColor: "oklch(var(--muted) / 0.35)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          color: "oklch(var(--muted-foreground))",
+                          boxShadow: "2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.03)"
+                        },
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 block", children: icon.svg })
+                      },
+                      icon.id
+                    );
+                  })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Theme Color" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "flex flex-wrap gap-3",
+                  "data-ocid": "edit_habit.color_selector",
+                  children: THEME_COLORS.map((color2) => {
+                    const isSelected = themeColor === color2.value;
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        className: "flex flex-col items-center gap-1",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "button",
+                            {
+                              type: "button",
+                              onClick: () => setThemeColor(color2.value),
+                              "aria-label": color2.label,
+                              "aria-pressed": isSelected,
+                              "data-ocid": `edit_habit.color.${color2.id}`,
+                              className: "w-10 h-10 rounded-full transition-all duration-200",
+                              style: {
+                                backgroundColor: color2.value,
+                                boxShadow: isSelected ? `0 0 0 2.5px oklch(var(--card)), 0 0 0 4.5px ${color2.value}, 0 0 14px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                                transform: isSelected ? "scale(1.2)" : "scale(1)"
+                              }
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground font-mono", children: color2.label })
+                        ]
+                      },
+                      color2.id
+                    );
+                  })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-semibold text-foreground", children: "Lock-In Mode" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-0.5", children: "Strict time block with check-in & check-out" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    role: "switch",
+                    "aria-checked": isLockIn,
+                    "data-ocid": "edit_habit.lockin_toggle",
+                    onClick: () => setIsLockIn((v2) => !v2),
+                    className: "relative shrink-0 w-14 h-7 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    style: {
+                      background: isLockIn ? "#F59E0B" : "oklch(var(--muted))",
+                      boxShadow: isLockIn ? "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.12)" : "inset 2px 2px 5px rgba(0,0,0,0.45), inset -2px -2px 4px rgba(255,255,255,0.07)"
+                    },
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: "absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300",
+                        style: {
+                          left: isLockIn ? "calc(100% - 24px)" : "4px",
+                          boxShadow: "1px 1px 4px rgba(0,0,0,0.4)"
+                        }
+                      }
+                    )
+                  }
+                )
+              ] }),
+              isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-snug",
+                    style: {
+                      background: "rgba(245,158,11,0.08)",
+                      borderLeft: "3px solid rgba(245,158,11,0.7)"
+                    },
+                    "data-ocid": "edit_habit.lockin_commitment_banner",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Lock,
+                        {
+                          size: 12,
+                          className: "shrink-0 mt-0.5",
+                          style: { color: "#F59E0B" }
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { style: { color: "rgba(251,191,36,0.9)" }, children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Lock-In time blocks are a strict commitment." }),
+                        " ",
+                        "You can only change these times outside your active window.",
+                        isLockInWindowActive && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block mt-1 font-semibold", children: "Active window is open — time fields are locked." })
+                      ] })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "label",
+                    {
+                      htmlFor: "edit-lockin-start",
+                      className: sectionLabel,
+                      children: "Start Time"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "input",
+                    {
+                      id: "edit-lockin-start",
+                      type: "time",
+                      "data-ocid": "edit_habit.lockin_start_time",
+                      value: lockInStartTime,
+                      disabled: isLockInWindowActive,
+                      onChange: (e3) => setLockInStartTime(e3.target.value),
+                      className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50",
+                      style: {
+                        background: "oklch(var(--card))",
+                        boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                        colorScheme: "dark"
+                      }
+                    }
+                  )
+                ] }),
+                lockInStartTime ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: sectionLabel, children: "Duration" }),
+                  maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — start time leaves no room before 23:55 cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "label",
+                        {
+                          htmlFor: "edit-lockin-hours",
+                          className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                          children: "Hours"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "select",
+                        {
+                          id: "edit-lockin-hours",
+                          "data-ocid": "edit_habit.lockin_duration_hours",
+                          value: lockInDurationHours,
+                          disabled: isLockInWindowActive,
+                          onChange: (e3) => setLockInDurationHours(
+                            Number(e3.target.value)
+                          ),
+                          size: 5,
+                          className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50",
+                          style: amberWheelStyle,
+                          children: Array.from(
+                            { length: maxLockInHours + 1 },
+                            (_2, i) => i
+                          ).map((h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "option",
+                            {
+                              value: h2,
+                              style: {
+                                background: "oklch(var(--card))",
+                                color: lockInDurationHours === h2 ? "#F59E0B" : "oklch(var(--foreground))",
+                                fontWeight: lockInDurationHours === h2 ? 700 : 400
+                              },
+                              children: String(h2).padStart(2, "0")
+                            },
+                            h2
+                          ))
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "label",
+                        {
+                          htmlFor: "edit-lockin-mins",
+                          className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                          children: "Min"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "select",
+                        {
+                          id: "edit-lockin-mins",
+                          "data-ocid": "edit_habit.lockin_duration_minutes",
+                          value: lockInDurationMinutes,
+                          disabled: isLockInWindowActive,
+                          onChange: (e3) => setLockInDurationMinutes(
+                            Number(e3.target.value)
+                          ),
+                          size: 5,
+                          className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50",
+                          style: amberWheelStyle,
+                          children: Array.from(
+                            { length: maxLockInMinAtMaxHour + 1 },
+                            (_2, i) => i
+                          ).map((m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "option",
+                            {
+                              value: m2,
+                              style: {
+                                background: "oklch(var(--card))",
+                                color: lockInDurationMinutes === m2 ? "#F59E0B" : "oklch(var(--foreground))",
+                                fontWeight: lockInDurationMinutes === m2 ? 700 : 400
+                              },
+                              children: String(m2).padStart(2, "0")
+                            },
+                            m2
+                          ))
+                        }
+                      )
+                    ] })
+                  ] }),
+                  lockInEndTime && !(lockInDurationHours === 0 && lockInDurationMinutes === 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70 mt-2", children: [
+                    "Ends at",
+                    " ",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F59E0B" }, children: formatTime12h$1(lockInEndTime) })
+                  ] })
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/60 italic", children: "Select a start time first to set the duration." }),
+                overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-xs font-medium",
+                    style: { color: "#EF4444" },
+                    "data-ocid": "edit_habit.lockin_overlap.field_error",
+                    children: overlapError
+                  }
+                )
+              ] })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5", children: "Email Reminders" }),
+          isLockedForToday && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "rounded-xl p-4 mb-4 text-sm flex items-start gap-2.5",
+              style: {
+                background: "rgba(245,158,11,0.08)",
+                border: "1px solid rgba(245,158,11,0.3)",
+                color: "#F59E0B"
+              },
+              "data-ocid": "edit_habit.reminder_lock_banner",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 15, className: "shrink-0 mt-0.5" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "You have already updated reminders today. To build consistency, further edits are locked until tomorrow." })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium text-foreground", children: "Enable Email Reminders" }),
+                !hasEmail && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5", children: [
+                  "Requires an email address.",
+                  " ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "a",
+                    {
+                      href: "/profile",
+                      target: "_blank",
+                      rel: "noopener noreferrer",
+                      className: "underline",
+                      style: { color: "#10B981" },
+                      children: "Update Profile"
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  role: "switch",
+                  "aria-checked": emailNotifications,
+                  "data-ocid": "edit_habit.email_notifications_toggle",
+                  disabled: !hasEmail || isLockedForToday,
+                  onClick: () => {
+                    if (!hasEmail || isLockedForToday) return;
+                    setEmailNotifications((v2) => !v2);
+                  },
+                  className: "relative shrink-0 w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
+                  style: {
+                    background: emailNotifications && hasEmail ? "#10B981" : "oklch(var(--muted))",
+                    boxShadow: emailNotifications && hasEmail ? "0 0 10px rgba(16,185,129,0.4)" : "inset 2px 2px 5px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)"
+                  },
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "span",
+                    {
+                      className: "inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-all duration-200",
+                      style: {
+                        marginLeft: emailNotifications && hasEmail ? "calc(100% - 20px)" : "4px"
+                      }
+                    }
+                  )
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                className: `overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${emailNotifications && hasEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`,
+                children: [
+                  !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "label",
+                      {
+                        htmlFor: "edit-intent-time",
+                        className: sectionLabel,
+                        children: "When do you plan to do this?"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        id: "edit-intent-time",
+                        type: "time",
+                        "data-ocid": "edit_habit.intent_time_input",
+                        value: intentTime,
+                        disabled: isLockedForToday,
+                        onChange: (e3) => setIntentTime(e3.target.value),
+                        className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50",
+                        style: {
+                          background: "oklch(var(--card))",
+                          boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                          colorScheme: "dark"
+                        }
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, style: { marginBottom: 0 }, children: "Reminder Offset" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "text-sm font-mono",
+                          style: { color: "#10B981" },
+                          "data-ocid": "edit_habit.reminder_offset_display",
+                          children: formatOffsetLabel(clampedOffset)
+                        }
+                      )
+                    ] }),
+                    isLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Lock-In reminders can only be sent before the start time (up to 60 min before)." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Normal habits: −60 to +60 min relative to intent time (capped at 23:55)." }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "select",
+                      {
+                        "data-ocid": "edit_habit.reminder_offset_wheel",
+                        value: clampedOffset,
+                        disabled: isLockedForToday,
+                        onChange: (e3) => setReminderOffset(Number(e3.target.value)),
+                        size: 5,
+                        className: "w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer disabled:opacity-50",
+                        style: wheelStyle,
+                        children: offsetOptions.map((v2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "option",
+                          {
+                            value: v2,
+                            style: {
+                              background: "oklch(var(--card))",
+                              color: clampedOffset === v2 ? "#10B981" : "oklch(var(--foreground))",
+                              fontWeight: clampedOffset === v2 ? 700 : 400
+                            },
+                            children: formatOffsetLabel(v2)
+                          },
+                          v2
+                        ))
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70", children: "Note: You can only adjust intent-time and email reminders once per day after creation." })
+                ]
+              }
+            )
+          ] })
+        ] }),
+        saveMutation.isError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "p",
+          {
+            className: "text-sm text-destructive px-1",
+            "data-ocid": "edit_habit.error_state",
+            children: saveMutation.error instanceof Error ? saveMutation.error.message : "Failed to save changes"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => saveMutation.mutate(),
+            disabled: !canSave() || saveMutation.isPending,
+            "data-ocid": "edit_habit.save_button",
+            className: "w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2",
+            style: {
+              background: "#10B981",
+              boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+            },
+            children: saveMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
+              "Saving…"
+            ] }) : "Save Changes"
+          }
+        )
+      ] })
+    ] })
   ] });
 }
 function formatRelativeTime(timestamp) {
@@ -77073,7 +78328,7 @@ function GoalEditForm({
       customObstacles: f2.customObstacles.filter((o2) => o2 !== label)
     }));
   }
-  function recalcEndTime(startTime, durationHours, durationMinutes) {
+  function recalcEndTime2(startTime, durationHours, durationMinutes) {
     if (!startTime) return "";
     const [h2, m2] = startTime.split(":").map(Number);
     const totalMins = h2 * 60 + m2 + durationHours * 60 + durationMinutes;
@@ -77082,7 +78337,9 @@ function GoalEditForm({
     return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
   }
   function handleSave() {
-    const req = {};
+    const req = {
+      timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset())
+    };
     if (form.wish.trim() !== goal.wish) req.wish = form.wish.trim();
     if (form.wishDescription.trim() !== goal.wishDescription)
       req.wishDescription = form.wishDescription.trim();
@@ -77447,7 +78704,7 @@ function GoalEditForm({
                         value: form.lockInStartTime,
                         onChange: (e3) => {
                           const val = e3.target.value;
-                          const newEnd = recalcEndTime(
+                          const newEnd = recalcEndTime2(
                             val,
                             form.lockInDurationHours,
                             form.lockInDurationMinutes
@@ -77496,7 +78753,7 @@ function GoalEditForm({
                             value: form.lockInDurationHours,
                             onChange: (e3) => {
                               const h2 = Number(e3.target.value);
-                              const newEnd = recalcEndTime(
+                              const newEnd = recalcEndTime2(
                                 form.lockInStartTime,
                                 h2,
                                 form.lockInDurationMinutes
@@ -77559,7 +78816,7 @@ function GoalEditForm({
                             value: form.lockInDurationMinutes,
                             onChange: (e3) => {
                               const mins = Number(e3.target.value);
-                              const newEnd = recalcEndTime(
+                              const newEnd = recalcEndTime2(
                                 form.lockInStartTime,
                                 form.lockInDurationHours,
                                 mins
@@ -77683,7 +78940,8 @@ function GoalDetailPanel({
   isUpdating,
   onDeleteGoal,
   isDeleting,
-  existingLockInGoals = []
+  existingLockInGoals = [],
+  onEditNavigate
 }) {
   const [isEditing, setIsEditing] = reactExports.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = reactExports.useState(false);
@@ -77791,7 +79049,7 @@ function GoalDetailPanel({
                   "button",
                   {
                     type: "button",
-                    onClick: () => setIsEditing(true),
+                    onClick: () => onEditNavigate(goal.id),
                     className: "w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth",
                     "aria-label": "Edit goal",
                     "data-ocid": "goals.detail_edit_button",
@@ -78262,7 +79520,8 @@ function GoalsPage$1() {
           startTime: g2.startTime,
           endTime: g2.endTime,
           wishDescription: g2.wishDescription
-        }))
+        })),
+        onEditNavigate: (id2) => navigate({ to: "/edit-habit/$id", params: { id: String(id2) } })
       },
       String(selectedGoal.id)
     ) }),
@@ -78924,59 +80183,49 @@ function EditProfileSheet({
   open,
   onClose,
   initialDisplayName,
-  initialBio
+  initialBio,
+  initialEmail
 }) {
-  const { actor } = useBackend();
-  const queryClient2 = useQueryClient();
-  const updateBioMutation = useUpdateBio();
+  const updateProfileMutation = useUpdateBio();
   const [displayName, setDisplayName] = reactExports.useState(initialDisplayName);
   const [bioText, setBioText] = reactExports.useState(initialBio);
+  const [email, setEmail] = reactExports.useState(initialEmail);
   const [bioFocused, setBioFocused] = reactExports.useState(false);
   const [bioTyped, setBioTyped] = reactExports.useState(false);
   reactExports.useEffect(() => {
     if (open) {
       setDisplayName(initialDisplayName);
       setBioText(initialBio);
+      setEmail(initialEmail);
       setBioTyped(false);
       setBioFocused(false);
     }
-  }, [open, initialDisplayName, initialBio]);
-  const displayNameMutation = useMutation({
-    mutationFn: async (name) => {
-      if (!actor) throw new Error("Actor not available");
-      const nameArg = name.trim().length > 0 ? name.trim() : null;
-      const result = await actor.updateMyProfile(nameArg, null, null);
-      if ("err" in result) throw new Error(String(result.err));
-      return result;
-    },
-    onSuccess: () => {
-      queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
-      queryClient2.refetchQueries({ queryKey: ["userProfile"] });
-    },
-    onError: (err) => {
-      ue.error(err.message || "Failed to update display name.");
-    }
-  });
+  }, [open, initialDisplayName, initialBio, initialEmail]);
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isValidEmail = email.trim() === "" || EMAIL_REGEX.test(email.trim());
   const BIO_MAX = 160;
   const bioCount = bioText.length;
   const bioOverLimit = bioCount > BIO_MAX;
   const showBioCounter = bioFocused || bioTyped;
-  const isSaving = displayNameMutation.isPending || updateBioMutation.isPending;
+  const isSaving = updateProfileMutation.isPending;
   const displayNameChanged = displayName.trim() !== initialDisplayName.trim();
   const bioChanged = bioText.trim() !== initialBio.trim();
-  const isDirty = displayNameChanged || bioChanged;
+  const emailChanged = email.trim() !== initialEmail.trim();
+  const isDirty = displayNameChanged || bioChanged || emailChanged;
   const handleSave = async () => {
-    if (bioOverLimit) return;
+    if (bioOverLimit || !isValidEmail) return;
     try {
-      if (displayNameChanged) {
-        await displayNameMutation.mutateAsync(displayName);
-      }
-      if (bioChanged) {
-        await updateBioMutation.mutateAsync(bioText);
-      }
+      await updateProfileMutation.mutateAsync({
+        displayName,
+        bio: bioText,
+        email
+      });
       ue.success("Profile updated.");
       onClose();
-    } catch {
+    } catch (err) {
+      ue.error(
+        err instanceof Error ? err.message : "Failed to update profile."
+      );
     }
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsx(Sheet, { open, onOpenChange: (v2) => !v2 && onClose(), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -79025,6 +80274,32 @@ function EditProfileSheet({
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "How the dashboard will greet you." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "label",
+                  {
+                    htmlFor: "edit-email",
+                    className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
+                    children: "Email Address"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    id: "edit-email",
+                    type: "email",
+                    value: email,
+                    onChange: (e3) => setEmail(e3.target.value),
+                    placeholder: "e.g. you@example.com",
+                    className: [
+                      "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border outline-none transition-smooth placeholder:text-muted-foreground/50",
+                      !isValidEmail ? "border-destructive/60 focus:border-destructive/80" : "border-border/50 focus:border-primary/60"
+                    ].join(" "),
+                    "data-ocid": "profile.edit_sheet.email_input"
+                  }
+                ),
+                !isValidEmail && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "Please enter a valid email address." })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -79081,7 +80356,7 @@ function EditProfileSheet({
           {
             type: "button",
             onClick: handleSave,
-            disabled: !isDirty || bioOverLimit || isSaving,
+            disabled: !isDirty || bioOverLimit || !isValidEmail || isSaving,
             className: "w-full flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-display font-semibold text-sm transition-smooth disabled:opacity-40 disabled:cursor-not-allowed",
             style: {
               backgroundColor: "oklch(var(--color-accent-success) / 0.14)",
@@ -79202,6 +80477,20 @@ function ProfilePage$1() {
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "div",
                   {
+                    className: "flex items-center justify-between",
+                    "data-ocid": "profile.email",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-4 h-4 text-muted-foreground flex-shrink-0" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "Email" })
+                      ] }),
+                      (profile == null ? void 0 : profile.email) ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground font-mono", children: profile.email }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground italic", children: "No email set" })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
                     className: "flex flex-col gap-2",
                     "data-ocid": "profile.bio_section",
                     children: [
@@ -79269,7 +80558,8 @@ function ProfilePage$1() {
         open: editOpen,
         onClose: () => setEditOpen(false),
         initialDisplayName: displayName,
-        initialBio: (profile == null ? void 0 : profile.bio) ?? ""
+        initialBio: (profile == null ? void 0 : profile.bio) ?? "",
+        initialEmail: (profile == null ? void 0 : profile.email) ?? ""
       }
     )
   ] });
@@ -79313,6 +80603,9 @@ function AdminPage() {
 }
 function GoalsPage() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(GoalsPage$1, {});
+}
+function EditHabitPage() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(EditHabitPage$1, {});
 }
 function AppSpinner({ ocid, label }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -79429,6 +80722,11 @@ const goalsRoute = createRoute({
   path: "/goals",
   component: GoalsPage
 });
+const editHabitRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/edit-habit/$id",
+  component: EditHabitPage
+});
 const catchAllRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "*",
@@ -79443,6 +80741,7 @@ const routeTree = rootRoute.addChildren([
   settingsRoute,
   adminRoute,
   goalsRoute,
+  editHabitRoute,
   catchAllRoute
 ]);
 const router = createRouter({ routeTree });

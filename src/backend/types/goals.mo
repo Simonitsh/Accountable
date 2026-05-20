@@ -24,6 +24,10 @@ module {
     var isLockIn : Bool;
     var startTime : ?Text;
     var endTime : ?Text;
+    var lastEditedAt : ?Common.Timestamp;
+    var emailNotifications : Bool;
+    var intentTime : ?Text;
+    var reminderOffset : ?Int;
   };
 
   public type GoalPublic = {
@@ -42,6 +46,10 @@ module {
     isLockIn : Bool;
     startTime : ?Text;
     endTime : ?Text;
+    lastEditedAt : ?Common.Timestamp;
+    emailNotifications : Bool;
+    intentTime : ?Text;
+    reminderOffset : ?Int;
   };
 
   public type CreateGoalRequest = {
@@ -65,12 +73,17 @@ module {
   public type UpdateGoalRequest = {
     wish : ?Text;
     wishDescription : ?Text;
+    outcome : ?Text;
     ifThenPlan : ?Text;
     iconName : ?Text;
     themeColor : ?Text;
     isLockIn : ?Bool;
     startTime : ?Text;
     endTime : ?Text;
+    emailNotifications : ?Bool;
+    intentTime : ?Text;
+    reminderOffset : ?Int;
+    timezoneOffsetMinutes : Int;
   };
 
   /// Typed error variants for goal operations.
@@ -82,5 +95,6 @@ module {
     #invalidInput;
     #lockInOverlap : Text;
     #strictLockActive;
+    #dailyEditLockout;
   };
 };

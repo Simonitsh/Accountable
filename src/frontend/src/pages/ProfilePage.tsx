@@ -5,11 +5,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Globe, Loader2, Pencil, User } from "lucide-react";
+import { Check, Globe, Loader2, Mail, Pencil, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useBackend } from "../hooks/useBackend";
 import { useUpdateBio, useUserProfile } from "../hooks/useUserProfile";
 
 // ─── EditProfileSheet ─────────────────────────────────────────────────────────
@@ -18,6 +16,7 @@ interface EditProfileSheetProps {
   onClose: () => void;
   initialDisplayName: string;
   initialBio: string;
+  initialEmail: string;
 }
 
 function EditProfileSheet({
@@ -25,13 +24,13 @@ function EditProfileSheet({
   onClose,
   initialDisplayName,
   initialBio,
+  initialEmail,
 }: EditProfileSheetProps) {
-  const { actor } = useBackend();
-  const queryClient = useQueryClient();
-  const updateBioMutation = useUpdateBio();
+  const updateProfileMutation = useUpdateBio();
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [bioText, setBioText] = useState(initialBio);
+  const [email, setEmail] = useState(initialEmail);
   const [bioFocused, setBioFocused] = useState(false);
   const [bioTyped, setBioTyped] = useState(false);
 
@@ -40,52 +39,41 @@ function EditProfileSheet({
     if (open) {
       setDisplayName(initialDisplayName);
       setBioText(initialBio);
+      setEmail(initialEmail);
       setBioTyped(false);
       setBioFocused(false);
     }
-  }, [open, initialDisplayName, initialBio]);
+  }, [open, initialDisplayName, initialBio, initialEmail]);
 
-  const displayNameMutation = useMutation({
-    mutationFn: async (name: string) => {
-      if (!actor) throw new Error("Actor not available");
-      const nameArg = name.trim().length > 0 ? name.trim() : null;
-      const result = await actor.updateMyProfile(nameArg, null, null);
-      if ("err" in result) throw new Error(String(result.err));
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-      queryClient.refetchQueries({ queryKey: ["userProfile"] });
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || "Failed to update display name.");
-    },
-  });
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isValidEmail = email.trim() === "" || EMAIL_REGEX.test(email.trim());
 
   const BIO_MAX = 160;
   const bioCount = bioText.length;
   const bioOverLimit = bioCount > BIO_MAX;
   const showBioCounter = bioFocused || bioTyped;
 
-  const isSaving = displayNameMutation.isPending || updateBioMutation.isPending;
+  const isSaving = updateProfileMutation.isPending;
 
   const displayNameChanged = displayName.trim() !== initialDisplayName.trim();
   const bioChanged = bioText.trim() !== initialBio.trim();
-  const isDirty = displayNameChanged || bioChanged;
+  const emailChanged = email.trim() !== initialEmail.trim();
+  const isDirty = displayNameChanged || bioChanged || emailChanged;
 
   const handleSave = async () => {
-    if (bioOverLimit) return;
+    if (bioOverLimit || !isValidEmail) return;
     try {
-      if (displayNameChanged) {
-        await displayNameMutation.mutateAsync(displayName);
-      }
-      if (bioChanged) {
-        await updateBioMutation.mutateAsync(bioText);
-      }
+      await updateProfileMutation.mutateAsync({
+        displayName,
+        bio: bioText,
+        email,
+      });
       toast.success("Profile updated.");
       onClose();
-    } catch {
-      // errors are handled per-mutation above
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update profile.",
+      );
     }
   };
 
@@ -142,6 +130,35 @@ function EditProfileSheet({
             </p>
           </div>
 
+          {/* Email Address */}
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="edit-email"
+              className="text-xs text-muted-foreground uppercase tracking-wide font-medium"
+            >
+              Email Address
+            </label>
+            <input
+              id="edit-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. you@example.com"
+              className={[
+                "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border outline-none transition-smooth placeholder:text-muted-foreground/50",
+                !isValidEmail
+                  ? "border-destructive/60 focus:border-destructive/80"
+                  : "border-border/50 focus:border-primary/60",
+              ].join(" ")}
+              data-ocid="profile.edit_sheet.email_input"
+            />
+            {!isValidEmail && (
+              <p className="text-xs text-destructive">
+                Please enter a valid email address.
+              </p>
+            )}
+          </div>
+
           {/* Macro Wish / Bio */}
           <div className="flex flex-col gap-1.5">
             <label
@@ -191,7 +208,7 @@ function EditProfileSheet({
           <button
             type="button"
             onClick={handleSave}
-            disabled={!isDirty || bioOverLimit || isSaving}
+            disabled={!isDirty || bioOverLimit || !isValidEmail || isSaving}
             className="w-full flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-display font-semibold text-sm transition-smooth disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               backgroundColor: "oklch(var(--color-accent-success) / 0.14)",
@@ -337,6 +354,28 @@ export function ProfilePage() {
               </div>
             )}
 
+            {/* Email */}
+            <div
+              className="flex items-center justify-between"
+              data-ocid="profile.email"
+            >
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
+                  Email
+                </span>
+              </div>
+              {profile?.email ? (
+                <span className="text-sm text-foreground font-mono">
+                  {profile.email}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground italic">
+                  No email set
+                </span>
+              )}
+            </div>
+
             {/* Bio / Macro Wish */}
             <div
               className="flex flex-col gap-2"
@@ -401,6 +440,7 @@ export function ProfilePage() {
         onClose={() => setEditOpen(false)}
         initialDisplayName={displayName}
         initialBio={profile?.bio ?? ""}
+        initialEmail={profile?.email ?? ""}
       />
     </>
   );

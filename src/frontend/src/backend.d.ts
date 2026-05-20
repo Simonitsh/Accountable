@@ -9,13 +9,18 @@ export interface None {
 export type Option<T> = Some<T> | None;
 export interface UpdateGoalRequest {
     startTime?: string;
+    emailNotifications?: boolean;
     endTime?: string;
+    timezoneOffsetMinutes: bigint;
     wish?: string;
     themeColor?: string;
     wishDescription?: string;
     iconName?: string;
     ifThenPlan?: string;
     isLockIn?: boolean;
+    reminderOffset?: bigint;
+    intentTime?: string;
+    outcome?: string;
 }
 export type Timestamp = bigint;
 export interface RecordCheckInRequest {
@@ -59,8 +64,10 @@ export interface AnalyticsSummary {
 export interface GoalPublic {
     id: GoalId;
     startTime?: string;
+    emailNotifications: boolean;
     endTime?: string;
     owner: UserId;
+    lastEditedAt?: Timestamp;
     createdAt: Timestamp;
     wish: string;
     themeColor?: string;
@@ -71,6 +78,8 @@ export interface GoalPublic {
     state: GoalState;
     obstacleTemplateId?: ObstacleTemplateId;
     isLockIn: boolean;
+    reminderOffset?: bigint;
+    intentTime?: string;
     outcome: string;
 }
 export interface UserProfilePublic {
@@ -80,6 +89,7 @@ export interface UserProfilePublic {
     username: string;
     displayName: string;
     role: UserRole;
+    email?: string;
     avatarEmoji: string;
 }
 export interface CreateObstacleRequest {
@@ -209,7 +219,7 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
-    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null): Promise<{
+    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null, email: string | null): Promise<{
         __kind__: "ok";
         ok: UserProfilePublic;
     } | {
