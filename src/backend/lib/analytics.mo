@@ -177,6 +177,7 @@ module {
         emailNotifications = g.emailNotifications;
         intentTime = g.intentTime;
         reminderOffset = g.reminderOffset;
+        lastEmailSentAt = g.lastEmailSentAt;
       };
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);

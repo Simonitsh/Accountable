@@ -14,6 +14,7 @@ module {
       timezone = profile.timezone;
       bio = profile.bio;
       email = profile.email;
+      timezoneOffsetMinutes = profile.timezoneOffsetMinutes;
       role = profile.role;
     };
   };
@@ -33,6 +34,7 @@ module {
           var timezone = "";
           var bio = null;
           var email = null;
+          var timezoneOffsetMinutes = 0;
           var role = #user;
           var createdAt = Time.now();
         };
@@ -77,6 +79,7 @@ module {
     avatarEmoji : ?Text,
     bio : ?Text,
     email : ?Text,
+    timezoneOffsetMinutes : ?Int,
   ) : { #ok : AuthTypes.UserProfilePublic; #err : Text } {
     let profile = getOrCreateProfile(profiles, caller);
     switch (displayName) {
@@ -99,6 +102,10 @@ module {
         if (e.size() > 254) return #err("Email cannot exceed 254 characters");
         profile.email := ?e;
       };
+      case null {};
+    };
+    switch (timezoneOffsetMinutes) {
+      case (?tz) { profile.timezoneOffsetMinutes := tz };
       case null {};
     };
     #ok(toPublic(profile));

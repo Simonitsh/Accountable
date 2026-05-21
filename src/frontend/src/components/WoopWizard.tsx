@@ -323,7 +323,7 @@ export default function WoopWizard({
       );
       const obstacleTemplateId = primaryUserObs?.backendId;
 
-      const created = (await actor.createGoal({
+      const created = (await (actor as any).createGoal({
         wish: assembledWish,
         wishDescription: assembledHabit,
         outcome: assembledObstacles,
@@ -338,6 +338,15 @@ export default function WoopWizard({
             : undefined,
         endTime:
           form.isLockIn && form.lockInEndTime ? form.lockInEndTime : undefined,
+        timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
+        emailNotifications: form.emailNotifications,
+        intentTime:
+          form.emailNotifications && !form.isLockIn
+            ? form.intentTime
+            : undefined,
+        reminderOffset: form.emailNotifications
+          ? form.reminderOffset
+          : undefined,
       })) as unknown as
         | { __kind__: "ok"; ok: { id: bigint } }
         | { __kind__: "err"; err: string };
@@ -1721,25 +1730,147 @@ export default function WoopWizard({
                   >
                     {!form.isLockIn && (
                       <div className="space-y-2">
-                        <label
-                          htmlFor="intent-time-step4"
-                          className="block text-xs text-muted-foreground uppercase tracking-wide"
-                        >
+                        <p className="block text-xs text-muted-foreground uppercase tracking-wide">
                           When do you plan to do this?
-                        </label>
-                        <input
-                          id="intent-time-step4"
-                          type="time"
-                          value={form.intentTime}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              intentTime: e.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl px-4 py-3 text-foreground bg-muted/30 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.4),inset_-2px_-2px_5px_rgba(255,255,255,0.04)] border-none outline-none focus:ring-1 focus:ring-emerald-500/50 text-sm"
-                          data-ocid="woop_wizard.intent_time.input"
-                        />
+                        </p>
+                        <div className="flex gap-3">
+                          {/* Hours wheel */}
+                          <div className="flex-1">
+                            <label
+                              htmlFor="intent-time-hours"
+                              className="block text-[11px] text-muted-foreground/60 mb-1.5"
+                            >
+                              Hours
+                            </label>
+                            <select
+                              id="intent-time-hours"
+                              data-ocid="woop_wizard.intent_time.hours"
+                              value={
+                                form.intentTime
+                                  ? Number(form.intentTime.split(":")[0])
+                                  : 0
+                              }
+                              onChange={(e) => {
+                                const hours = Number(e.target.value);
+                                const mins = form.intentTime
+                                  ? Number(form.intentTime.split(":")[1])
+                                  : 0;
+                                setForm((f) => ({
+                                  ...f,
+                                  intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`,
+                                }));
+                              }}
+                              size={5}
+                              className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer"
+                              style={{
+                                background: "oklch(var(--card))",
+                                border: "1px solid rgba(16,185,129,0.25)",
+                                boxShadow:
+                                  "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                color: "oklch(var(--foreground))",
+                                padding: "6px 0",
+                                outline: "none",
+                                overflowY: "auto",
+                              }}
+                            >
+                              {Array.from({ length: 24 }, (_, h) => (
+                                <option
+                                  // biome-ignore lint/suspicious/noArrayIndexKey: hours 0-23 are semantically stable
+                                  key={`intent-hour-${h}`}
+                                  value={h}
+                                  style={{
+                                    background: "oklch(var(--card))",
+                                    color:
+                                      (form.intentTime
+                                        ? Number(form.intentTime.split(":")[0])
+                                        : 0) === h
+                                        ? "#10B981"
+                                        : "oklch(var(--foreground))",
+                                    fontWeight:
+                                      (form.intentTime
+                                        ? Number(form.intentTime.split(":")[0])
+                                        : 0) === h
+                                        ? 700
+                                        : 400,
+                                  }}
+                                >
+                                  {String(h).padStart(2, "0")}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {/* Minutes wheel — 5-min increments */}
+                          <div className="flex-1">
+                            <label
+                              htmlFor="intent-time-minutes"
+                              className="block text-[11px] text-muted-foreground/60 mb-1.5"
+                            >
+                              Minutes
+                            </label>
+                            <select
+                              id="intent-time-minutes"
+                              data-ocid="woop_wizard.intent_time.minutes"
+                              value={
+                                form.intentTime
+                                  ? Number(form.intentTime.split(":")[1])
+                                  : 0
+                              }
+                              onChange={(e) => {
+                                const mins = Number(e.target.value);
+                                const hours = form.intentTime
+                                  ? Number(form.intentTime.split(":")[0])
+                                  : 0;
+                                setForm((f) => ({
+                                  ...f,
+                                  intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`,
+                                }));
+                              }}
+                              size={5}
+                              className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer"
+                              style={{
+                                background: "oklch(var(--card))",
+                                border: "1px solid rgba(16,185,129,0.25)",
+                                boxShadow:
+                                  "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                color: "oklch(var(--foreground))",
+                                padding: "6px 0",
+                                outline: "none",
+                                overflowY: "auto",
+                              }}
+                            >
+                              {Array.from({ length: 12 }, (_, i) => {
+                                const m = i * 5;
+                                return (
+                                  <option
+                                    key={m}
+                                    value={m}
+                                    style={{
+                                      background: "oklch(var(--card))",
+                                      color:
+                                        (form.intentTime
+                                          ? Number(
+                                              form.intentTime.split(":")[1],
+                                            )
+                                          : 0) === m
+                                          ? "#10B981"
+                                          : "oklch(var(--foreground))",
+                                      fontWeight:
+                                        (form.intentTime
+                                          ? Number(
+                                              form.intentTime.split(":")[1],
+                                            )
+                                          : 0) === m
+                                          ? 700
+                                          : 400,
+                                    }}
+                                  >
+                                    {String(m).padStart(2, "0")}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        </div>
                         {(errors as Record<string, string>).intentTime && (
                           <p
                             className="text-xs text-red-400"
@@ -1754,7 +1885,7 @@ export default function WoopWizard({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label
-                          htmlFor="reminder-offset-step4"
+                          htmlFor="reminder-offset"
                           className="block text-xs text-muted-foreground uppercase tracking-wide"
                         >
                           Send reminder
@@ -1770,32 +1901,61 @@ export default function WoopWizard({
                               : `${form.reminderOffset} min after`}
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        id="reminder-offset-step4"
-                        min={-60}
-                        max={form.isLockIn ? 0 : maxPositiveOffset}
+                      {/* Scroll wheel for reminder offset — 5-min increments */}
+                      <select
+                        id="reminder-offset"
+                        data-ocid="woop_wizard.reminder_offset.input"
                         value={form.reminderOffset}
                         onChange={(e) => {
-                          const val = Number.parseInt(e.target.value, 10);
-                          const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
                           setForm((f) => ({
                             ...f,
-                            reminderOffset: Math.min(val, maxVal),
+                            reminderOffset: Number(e.target.value),
                           }));
                         }}
-                        className="w-full h-2 rounded-full accent-emerald-500 cursor-pointer"
-                        data-ocid="woop_wizard.reminder_offset.input"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>-60 min</span>
-                        <span>0</span>
-                        {form.isLockIn ? (
-                          <span>0 max</span>
-                        ) : (
-                          <span>+{maxPositiveOffset} min</span>
-                        )}
-                      </div>
+                        size={5}
+                        className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer"
+                        style={{
+                          background: "oklch(var(--card))",
+                          border: "1px solid rgba(16,185,129,0.25)",
+                          boxShadow:
+                            "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                          color: "oklch(var(--foreground))",
+                          padding: "6px 0",
+                          outline: "none",
+                          overflowY: "auto",
+                        }}
+                      >
+                        {(() => {
+                          const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
+                          const items: React.ReactNode[] = [];
+                          for (let v = -60; v <= maxVal; v += 5) {
+                            const label =
+                              v < 0
+                                ? `${Math.abs(v)} min before`
+                                : v === 0
+                                  ? "At start time"
+                                  : `${v} min after`;
+                            items.push(
+                              <option
+                                key={v}
+                                value={v}
+                                style={{
+                                  background: "oklch(var(--card))",
+                                  color:
+                                    form.reminderOffset === v
+                                      ? "#10B981"
+                                      : "oklch(var(--foreground))",
+                                  fontWeight:
+                                    form.reminderOffset === v ? 700 : 400,
+                                }}
+                              >
+                                {label}
+                              </option>,
+                            );
+                          }
+                          return items;
+                        })()}
+                      </select>
                     </div>
                   </div>
 

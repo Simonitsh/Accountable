@@ -45,6 +45,7 @@ export interface GoalAnalytics {
 }
 export interface CreateGoalRequest {
     startTime?: string;
+    emailNotifications?: boolean;
     endTime?: string;
     wish: string;
     themeColor?: string;
@@ -53,6 +54,8 @@ export interface CreateGoalRequest {
     ifThenPlan: string;
     obstacleTemplateId?: ObstacleTemplateId;
     isLockIn: boolean;
+    reminderOffset?: bigint;
+    intentTime?: string;
     outcome: string;
 }
 export type ObstacleTemplateId = bigint;
@@ -81,6 +84,7 @@ export interface GoalPublic {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lastEmailSentAt: bigint;
 }
 export interface UserProfilePublic {
     id: UserId;
@@ -88,6 +92,7 @@ export interface UserProfilePublic {
     timezone: string;
     username: string;
     displayName: string;
+    timezoneOffsetMinutes: bigint;
     role: UserRole;
     email?: string;
     avatarEmoji: string;
@@ -219,7 +224,7 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
-    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null, email: string | null): Promise<{
+    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null, email: string | null, timezoneOffsetMinutes: bigint | null): Promise<{
         __kind__: "ok";
         ok: UserProfilePublic;
     } | {

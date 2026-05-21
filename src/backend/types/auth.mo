@@ -9,6 +9,7 @@ module {
     var timezone : Text;
     var bio : ?Text;
     var email : ?Text;
+    var timezoneOffsetMinutes : Int;
     var role : Common.UserRole;
     var createdAt : Common.Timestamp;
   };
@@ -21,6 +22,7 @@ module {
     timezone : Text;
     bio : ?Text;
     email : ?Text;
+    timezoneOffsetMinutes : Int;
     role : Common.UserRole;
   };
 

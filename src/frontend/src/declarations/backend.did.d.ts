@@ -45,6 +45,7 @@ export type ConnectionStatus = { 'pending' : null } |
   { 'accepted' : null };
 export interface CreateGoalRequest {
   'startTime' : [] | [string],
+  'emailNotifications' : [] | [boolean],
   'endTime' : [] | [string],
   'wish' : string,
   'themeColor' : [] | [string],
@@ -53,6 +54,8 @@ export interface CreateGoalRequest {
   'ifThenPlan' : string,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'isLockIn' : boolean,
+  'reminderOffset' : [] | [bigint],
+  'intentTime' : [] | [string],
   'outcome' : string,
 }
 export interface CreateObstacleRequest {
@@ -96,6 +99,7 @@ export interface GoalPublic {
   'reminderOffset' : [] | [bigint],
   'intentTime' : [] | [string],
   'outcome' : string,
+  'lastEmailSentAt' : bigint,
 }
 export type GoalState = { 'active' : null } |
   { 'completed' : null } |
@@ -150,6 +154,7 @@ export interface UserProfilePublic {
   'timezone' : string,
   'username' : string,
   'displayName' : string,
+  'timezoneOffsetMinutes' : bigint,
   'role' : UserRole,
   'email' : [] | [string],
   'avatarEmoji' : string,
@@ -208,7 +213,7 @@ export interface _SERVICE {
   >,
   'updateGoalState' : ActorMethod<[GoalId, GoalState], boolean>,
   'updateMyProfile' : ActorMethod<
-    [[] | [string], [] | [string], [] | [string], [] | [string]],
+    [[] | [string], [] | [string], [] | [string], [] | [string], [] | [bigint]],
     { 'ok' : UserProfilePublic } |
       { 'err' : string }
   >,

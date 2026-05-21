@@ -12,6 +12,7 @@ type UserProfilePublic =
    id: UserId;
    role: UserRole;
    timezone: text;
+   timezoneOffsetMinutes: int;
    username: text;
  };
 type UserId = principal;
@@ -79,6 +80,7 @@ type GoalPublic =
    intentTime: opt text;
    isLockIn: bool;
    lastEditedAt: opt Timestamp;
+   lastEmailSentAt: int;
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
    owner: UserId;
@@ -116,12 +118,15 @@ type CreateObstacleRequest =
  };
 type CreateGoalRequest = 
  record {
+   emailNotifications: opt bool;
    endTime: opt text;
    iconName: opt text;
    ifThenPlan: text;
+   intentTime: opt text;
    isLockIn: bool;
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
+   reminderOffset: opt int;
    startTime: opt text;
    themeColor: opt text;
    wish: text;
@@ -219,8 +224,9 @@ service : {
     });
   updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
   updateMyProfile: (displayName: opt text, avatarEmoji: opt text, bio:
-   opt text, email: opt text) -> (variant {
-                                    err: text;
-                                    ok: UserProfilePublic;
-                                  });
+   opt text, email: opt text, timezoneOffsetMinutes: opt int) ->
+   (variant {
+      err: text;
+      ok: UserProfilePublic;
+    });
 }

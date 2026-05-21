@@ -127,11 +127,12 @@ export function useUpdateBio() {
             ? email.trim()
             : null
           : null;
-      const result = await actor.updateMyProfile(
+      const result = await (actor as any).updateMyProfile(
         nameArg,
         null,
         bioArg,
         emailArg,
+        BigInt(-new Date().getTimezoneOffset()),
       );
       if ("err" in result)
         throw new Error(String((result as { err: unknown }).err));

@@ -127,6 +127,7 @@ export interface GoalAnalytics {
 }
 export interface CreateGoalRequest {
     startTime?: string;
+    emailNotifications?: boolean;
     endTime?: string;
     wish: string;
     themeColor?: string;
@@ -135,6 +136,8 @@ export interface CreateGoalRequest {
     ifThenPlan: string;
     obstacleTemplateId?: ObstacleTemplateId;
     isLockIn: boolean;
+    reminderOffset?: bigint;
+    intentTime?: string;
     outcome: string;
 }
 export type ObstacleTemplateId = bigint;
@@ -163,6 +166,7 @@ export interface GoalPublic {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lastEmailSentAt: bigint;
 }
 export interface UserProfilePublic {
     id: UserId;
@@ -170,6 +174,7 @@ export interface UserProfilePublic {
     timezone: string;
     username: string;
     displayName: string;
+    timezoneOffsetMinutes: bigint;
     role: UserRole;
     email?: string;
     avatarEmoji: string;
@@ -301,7 +306,7 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
-    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null, email: string | null): Promise<{
+    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null, email: string | null, timezoneOffsetMinutes: bigint | null): Promise<{
         __kind__: "ok";
         ok: UserProfilePublic;
     } | {
@@ -731,7 +736,7 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateMyProfile(arg0: string | null, arg1: string | null, arg2: string | null, arg3: string | null): Promise<{
+    async updateMyProfile(arg0: string | null, arg1: string | null, arg2: string | null, arg3: string | null, arg4: bigint | null): Promise<{
         __kind__: "ok";
         ok: UserProfilePublic;
     } | {
@@ -740,15 +745,15 @@ export class Backend implements backendInterface {
     }> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3));
-                return from_candid_variant_n50(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n50(this._uploadFile, this._downloadFile, arg4));
+                return from_candid_variant_n51(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3));
-            return from_candid_variant_n50(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n50(this._uploadFile, this._downloadFile, arg4));
+            return from_candid_variant_n51(this._uploadFile, this._downloadFile, result);
         }
     }
 }
@@ -845,6 +850,7 @@ function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uin
     timezone: string;
     username: string;
     displayName: string;
+    timezoneOffsetMinutes: bigint;
     role: _UserRole;
     email: [] | [string];
     avatarEmoji: string;
@@ -854,6 +860,7 @@ function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uin
     timezone: string;
     username: string;
     displayName: string;
+    timezoneOffsetMinutes: bigint;
     role: UserRole;
     email?: string;
     avatarEmoji: string;
@@ -864,6 +871,7 @@ function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uin
         timezone: value.timezone,
         username: value.username,
         displayName: value.displayName,
+        timezoneOffsetMinutes: value.timezoneOffsetMinutes,
         role: from_candid_UserRole_n22(_uploadFile, _downloadFile, value.role),
         email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
         avatarEmoji: value.avatarEmoji
@@ -949,6 +957,7 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     reminderOffset: [] | [bigint];
     intentTime: [] | [string];
     outcome: string;
+    lastEmailSentAt: bigint;
 }): {
     id: GoalId;
     startTime?: string;
@@ -969,6 +978,7 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lastEmailSentAt: bigint;
 } {
     return {
         id: value.id,
@@ -989,7 +999,8 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         isLockIn: value.isLockIn,
         reminderOffset: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.reminderOffset)),
         intentTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.intentTime)),
-        outcome: value.outcome
+        outcome: value.outcome,
+        lastEmailSentAt: value.lastEmailSentAt
     };
 }
 function from_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -1106,7 +1117,7 @@ function from_candid_variant_n44(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): InteractionType {
     return "highFive" in value ? InteractionType.highFive : value;
 }
-function from_candid_variant_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n51(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     ok: _UserProfilePublic;
 } | {
     err: string;
@@ -1172,8 +1183,12 @@ function to_candid_UpdateGoalRequest_n45(_uploadFile: (file: ExternalBlob) => Pr
 function to_candid_opt_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
     return value === null ? candid_none() : candid_some(value);
 }
+function to_candid_opt_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: bigint | null): [] | [bigint] {
+    return value === null ? candid_none() : candid_some(value);
+}
 function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     startTime?: string;
+    emailNotifications?: boolean;
     endTime?: string;
     wish: string;
     themeColor?: string;
@@ -1182,9 +1197,12 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     ifThenPlan: string;
     obstacleTemplateId?: ObstacleTemplateId;
     isLockIn: boolean;
+    reminderOffset?: bigint;
+    intentTime?: string;
     outcome: string;
 }): {
     startTime: [] | [string];
+    emailNotifications: [] | [boolean];
     endTime: [] | [string];
     wish: string;
     themeColor: [] | [string];
@@ -1193,10 +1211,13 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     ifThenPlan: string;
     obstacleTemplateId: [] | [_ObstacleTemplateId];
     isLockIn: boolean;
+    reminderOffset: [] | [bigint];
+    intentTime: [] | [string];
     outcome: string;
 } {
     return {
         startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+        emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
         endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
         wish: value.wish,
         themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
@@ -1205,6 +1226,8 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
         ifThenPlan: value.ifThenPlan,
         obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
         isLockIn: value.isLockIn,
+        reminderOffset: value.reminderOffset ? candid_some(value.reminderOffset) : candid_none(),
+        intentTime: value.intentTime ? candid_some(value.intentTime) : candid_none(),
         outcome: value.outcome
     };
 }

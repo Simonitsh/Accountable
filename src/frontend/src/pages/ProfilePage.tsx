@@ -5,7 +5,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Globe, Loader2, Mail, Pencil, User } from "lucide-react";
+import { Check, Loader2, Mail, Pencil, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUpdateBio, useUserProfile } from "../hooks/useUserProfile";
@@ -336,24 +336,6 @@ export function ProfilePage() {
 
           {/* Meta fields */}
           <div className="flex flex-col gap-4">
-            {/* Timezone */}
-            {profile?.timezone && (
-              <div
-                className="flex items-center justify-between"
-                data-ocid="profile.timezone"
-              >
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-                    Timezone
-                  </span>
-                </div>
-                <span className="text-sm text-foreground font-mono">
-                  {profile.timezone}
-                </span>
-              </div>
-            )}
-
             {/* Email */}
             <div
               className="flex items-center justify-between"

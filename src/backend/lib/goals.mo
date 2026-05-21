@@ -103,6 +103,7 @@ module {
       emailNotifications = goal.emailNotifications;
       intentTime = goal.intentTime;
       reminderOffset = goal.reminderOffset;
+      lastEmailSentAt = goal.lastEmailSentAt;
     };
   };
 
@@ -144,9 +145,10 @@ module {
       var startTime = request.startTime;
       var endTime = request.endTime;
       var lastEditedAt = null;
-      var emailNotifications = false;
-      var intentTime = null;
-      var reminderOffset = null;
+      var emailNotifications = switch (request.emailNotifications) { case (?v) v; case null false };
+      var intentTime = switch (request.intentTime) { case (?t) ?t; case null null };
+      var reminderOffset = switch (request.reminderOffset) { case (?o) ?o; case null null };
+      var lastEmailSentAt = 0;
     };
     goals.add(goal);
     #ok(toPublic(goal));

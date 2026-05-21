@@ -37,6 +37,7 @@ const sampleGoal1 = {
   lastEditedAt: undefined,
   intentTime: undefined,
   reminderOffset: undefined,
+  lastEmailSentAt: 0n,
 };
 
 const sampleGoal2 = {
@@ -55,6 +56,7 @@ const sampleGoal2 = {
   lastEditedAt: undefined,
   intentTime: undefined,
   reminderOffset: undefined,
+  lastEmailSentAt: 0n,
 };
 
 const sampleCheckIn = {
@@ -195,6 +197,7 @@ export const mockBackend: backendInterface = {
       lastEditedAt: undefined,
       intentTime: undefined,
       reminderOffset: undefined,
+      lastEmailSentAt: 0n,
     },
   }),
 
@@ -241,6 +244,7 @@ export const mockBackend: backendInterface = {
     avatarEmoji: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
+    timezoneOffsetMinutes: 0n,
   }),
 
   getPartnerFeed: async () => [
@@ -259,6 +263,7 @@ export const mockBackend: backendInterface = {
     avatarEmoji: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
+    timezoneOffsetMinutes: 0n,
   }),
 
   listAllUsers: async () => [],
@@ -304,6 +309,7 @@ export const mockBackend: backendInterface = {
     avatarEmoji: "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
+    timezoneOffsetMinutes: 0n,
   }),
 
   respondToConnection: async () => true,
@@ -333,6 +339,7 @@ export const mockBackend: backendInterface = {
       lastEditedAt: undefined,
       intentTime: undefined,
       reminderOffset: undefined,
+      lastEmailSentAt: 0n,
     },
   }),
 
@@ -366,6 +373,7 @@ export const mockBackend: backendInterface = {
       bio: bio ?? undefined,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       role: UserRole.user,
+      timezoneOffsetMinutes: 0n,
     },
   }),
 };

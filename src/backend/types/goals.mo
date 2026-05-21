@@ -28,6 +28,7 @@ module {
     var emailNotifications : Bool;
     var intentTime : ?Text;
     var reminderOffset : ?Int;
+    var lastEmailSentAt : Int;
   };
 
   public type GoalPublic = {
@@ -50,6 +51,7 @@ module {
     emailNotifications : Bool;
     intentTime : ?Text;
     reminderOffset : ?Int;
+    lastEmailSentAt : Int;
   };
 
   public type CreateGoalRequest = {
@@ -63,6 +65,9 @@ module {
     isLockIn : Bool;
     startTime : ?Text;
     endTime : ?Text;
+    emailNotifications : ?Bool;
+    intentTime : ?Text;
+    reminderOffset : ?Int;
   };
 
   public type CreateObstacleRequest = {

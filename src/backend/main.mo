@@ -28,6 +28,10 @@ import EmailNotificationsApi "mixins/email-notifications-api";
 
 
 
+
+
+
+
 actor {
   // Auth & user state
   let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
@@ -66,7 +70,7 @@ actor {
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
   include AnalyticsApi(goals, checkIns);
-  include EmailNotificationsApi(goals, profiles);
+  include EmailNotificationsApi(goals, profiles, checkIns, obstacleTemplates);
 
   system func heartbeat() : async () {
     await processEmailReminders();

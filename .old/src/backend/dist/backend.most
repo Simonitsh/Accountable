@@ -40,6 +40,7 @@ type Goal__520167328 =
     var intentTime : ?Text;
     var isLockIn : Bool;
     var lastEditedAt : ?Timestamp__301639476;
+    var lastEmailSentAt : Int;
     obstacleTemplateId : ?ObstacleTemplateId__228170292;
     outcome : Text;
     owner : UserId__158757552;
@@ -88,6 +89,7 @@ type UserProfile__775633023 =
     id : UserId__158757552;
     var role : UserRole__451090586;
     var timezone : Text;
+    var timezoneOffsetMinutes : Int;
     var username : Text
   };
 type UserRole__451090586 = {#admin; #user};
@@ -104,8 +106,6 @@ actor {
       var blocks : [var [var ?Connection__54064141]];
       var elementIndex : Nat__490723111
     };
-  stable emailSentLog :
-    {var root : Node__46230540<Text, Bool>; var size : Nat__490723111};
   stable goals :
     {
       var blockIndex : Nat__490723111;

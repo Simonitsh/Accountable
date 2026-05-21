@@ -32767,6 +32767,7 @@ function useAuth() {
 const ObstacleTemplateId = Nat;
 const CreateGoalRequest = Record({
   "startTime": Opt(Text$1),
+  "emailNotifications": Opt(Bool),
   "endTime": Opt(Text$1),
   "wish": Text$1,
   "themeColor": Opt(Text$1),
@@ -32775,6 +32776,8 @@ const CreateGoalRequest = Record({
   "ifThenPlan": Text$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
   "isLockIn": Bool,
+  "reminderOffset": Opt(Int),
+  "intentTime": Opt(Text$1),
   "outcome": Text$1
 });
 const GoalId = Nat;
@@ -32805,7 +32808,8 @@ const GoalPublic = Record({
   "isLockIn": Bool,
   "reminderOffset": Opt(Int),
   "intentTime": Opt(Text$1),
-  "outcome": Text$1
+  "outcome": Text$1,
+  "lastEmailSentAt": Int
 });
 const CreateObstacleRequest = Record({
   "title": Text$1,
@@ -32858,6 +32862,7 @@ const UserProfilePublic = Record({
   "timezone": Text$1,
   "username": Text$1,
   "displayName": Text$1,
+  "timezoneOffsetMinutes": Int,
   "role": UserRole$1,
   "email": Opt(Text$1),
   "avatarEmoji": Text$1
@@ -32994,7 +32999,8 @@ Service({
       Opt(Text$1),
       Opt(Text$1),
       Opt(Text$1),
-      Opt(Text$1)
+      Opt(Text$1),
+      Opt(Int)
     ],
     [Variant({ "ok": UserProfilePublic, "err": Text$1 })],
     []
@@ -33004,6 +33010,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const ObstacleTemplateId2 = IDL2.Nat;
   const CreateGoalRequest2 = IDL2.Record({
     "startTime": IDL2.Opt(IDL2.Text),
+    "emailNotifications": IDL2.Opt(IDL2.Bool),
     "endTime": IDL2.Opt(IDL2.Text),
     "wish": IDL2.Text,
     "themeColor": IDL2.Opt(IDL2.Text),
@@ -33012,6 +33019,8 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "ifThenPlan": IDL2.Text,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
     "isLockIn": IDL2.Bool,
+    "reminderOffset": IDL2.Opt(IDL2.Int),
+    "intentTime": IDL2.Opt(IDL2.Text),
     "outcome": IDL2.Text
   });
   const GoalId2 = IDL2.Nat;
@@ -33042,7 +33051,8 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "isLockIn": IDL2.Bool,
     "reminderOffset": IDL2.Opt(IDL2.Int),
     "intentTime": IDL2.Opt(IDL2.Text),
-    "outcome": IDL2.Text
+    "outcome": IDL2.Text,
+    "lastEmailSentAt": IDL2.Int
   });
   const CreateObstacleRequest2 = IDL2.Record({
     "title": IDL2.Text,
@@ -33095,6 +33105,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "timezone": IDL2.Text,
     "username": IDL2.Text,
     "displayName": IDL2.Text,
+    "timezoneOffsetMinutes": IDL2.Int,
     "role": UserRole2,
     "email": IDL2.Opt(IDL2.Text),
     "avatarEmoji": IDL2.Text
@@ -33235,7 +33246,8 @@ const idlFactory = ({ IDL: IDL2 }) => {
         IDL2.Opt(IDL2.Text),
         IDL2.Opt(IDL2.Text),
         IDL2.Opt(IDL2.Text),
-        IDL2.Opt(IDL2.Text)
+        IDL2.Opt(IDL2.Text),
+        IDL2.Opt(IDL2.Int)
       ],
       [IDL2.Variant({ "ok": UserProfilePublic2, "err": IDL2.Text })],
       []
@@ -33720,18 +33732,18 @@ class Backend {
       return result;
     }
   }
-  async updateMyProfile(arg0, arg1, arg2, arg3) {
+  async updateMyProfile(arg0, arg1, arg2, arg3, arg4) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3));
-        return from_candid_variant_n50(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n50(this._uploadFile, this._downloadFile, arg4));
+        return from_candid_variant_n51(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3));
-      return from_candid_variant_n50(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n50(this._uploadFile, this._downloadFile, arg4));
+      return from_candid_variant_n51(this._uploadFile, this._downloadFile, result);
     }
   }
 }
@@ -33807,6 +33819,7 @@ function from_candid_record_n21(_uploadFile, _downloadFile, value) {
     timezone: value.timezone,
     username: value.username,
     displayName: value.displayName,
+    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     role: from_candid_UserRole_n22(_uploadFile, _downloadFile, value.role),
     email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
     avatarEmoji: value.avatarEmoji
@@ -33858,7 +33871,8 @@ function from_candid_record_n5(_uploadFile, _downloadFile, value) {
     isLockIn: value.isLockIn,
     reminderOffset: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.reminderOffset)),
     intentTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.intentTime)),
-    outcome: value.outcome
+    outcome: value.outcome,
+    lastEmailSentAt: value.lastEmailSentAt
   };
 }
 function from_candid_variant_n12(_uploadFile, _downloadFile, value) {
@@ -33903,7 +33917,7 @@ function from_candid_variant_n33(_uploadFile, _downloadFile, value) {
 function from_candid_variant_n44(_uploadFile, _downloadFile, value) {
   return "highFive" in value ? "highFive" : value;
 }
-function from_candid_variant_n50(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n51(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, value.ok)
@@ -33951,9 +33965,13 @@ function to_candid_UpdateGoalRequest_n45(_uploadFile, _downloadFile, value) {
 function to_candid_opt_n49(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
+function to_candid_opt_n50(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(value);
+}
 function to_candid_record_n2(_uploadFile, _downloadFile, value) {
   return {
     startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+    emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
     endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
     wish: value.wish,
     themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
@@ -33962,6 +33980,8 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     ifThenPlan: value.ifThenPlan,
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     isLockIn: value.isLockIn,
+    reminderOffset: value.reminderOffset ? candid_some(value.reminderOffset) : candid_none(),
+    intentTime: value.intentTime ? candid_some(value.intentTime) : candid_none(),
     outcome: value.outcome
   };
 }
@@ -34128,7 +34148,8 @@ function useUpdateBio() {
         nameArg,
         null,
         bioArg,
-        emailArg
+        emailArg,
+        BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset())
       );
       if ("err" in result)
         throw new Error(String(result.err));
@@ -36720,65 +36741,53 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$G = [
+const __iconNode$F = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$G);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$F);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$F = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$F);
+const __iconNode$E = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$E);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$E = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$E);
+const __iconNode$D = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$D = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$D);
+const __iconNode$C = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$C);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$C = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-const ChevronRight = createLucideIcon("chevron-right", __iconNode$C);
+const __iconNode$B = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$B);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$B = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
-const ChevronUp = createLucideIcon("chevron-up", __iconNode$B);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$A = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
-];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$A);
+const __iconNode$A = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36787,9 +36796,10 @@ const CircleAlert = createLucideIcon("circle-alert", __iconNode$A);
  */
 const __iconNode$z = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
 ];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$z);
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$z);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36798,9 +36808,9 @@ const CircleCheck = createLucideIcon("circle-check", __iconNode$z);
  */
 const __iconNode$y = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const Clock = createLucideIcon("clock", __iconNode$y);
+const CircleCheck = createLucideIcon("circle-check", __iconNode$y);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36808,6 +36818,17 @@ const Clock = createLucideIcon("clock", __iconNode$y);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$x = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
+];
+const Clock = createLucideIcon("clock", __iconNode$x);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$w = [
   [
     "path",
     {
@@ -36816,19 +36837,7 @@ const __iconNode$x = [
     }
   ]
 ];
-const Flame = createLucideIcon("flame", __iconNode$x);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$w = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", key: "13o1zl" }],
-  ["path", { d: "M2 12h20", key: "9i4pu4" }]
-];
-const Globe = createLucideIcon("globe", __iconNode$w);
+const Flame = createLucideIcon("flame", __iconNode$w);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -71874,7 +71883,11 @@ function WoopWizard({
         themeColor: form.themeColor || void 0,
         isLockIn: form.isLockIn,
         startTime: form.isLockIn && form.lockInStartTime ? form.lockInStartTime : void 0,
-        endTime: form.isLockIn && form.lockInEndTime ? form.lockInEndTime : void 0
+        endTime: form.isLockIn && form.lockInEndTime ? form.lockInEndTime : void 0,
+        timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
+        emailNotifications: form.emailNotifications,
+        intentTime: form.emailNotifications && !form.isLockIn ? form.intentTime : void 0,
+        reminderOffset: form.emailNotifications ? form.reminderOffset : void 0
       });
       if (created.__kind__ === "err") throw new Error(created.err);
       return created.ok;
@@ -73052,28 +73065,116 @@ function WoopWizard({
                           className: `overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${form.emailNotifications && hasEmail ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`,
                           children: [
                             !form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "label",
-                                {
-                                  htmlFor: "intent-time-step4",
-                                  className: "block text-xs text-muted-foreground uppercase tracking-wide",
-                                  children: "When do you plan to do this?"
-                                }
-                              ),
-                              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "input",
-                                {
-                                  id: "intent-time-step4",
-                                  type: "time",
-                                  value: form.intentTime,
-                                  onChange: (e3) => setForm((f2) => ({
-                                    ...f2,
-                                    intentTime: e3.target.value
-                                  })),
-                                  className: "w-full rounded-xl px-4 py-3 text-foreground bg-muted/30 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.4),inset_-2px_-2px_5px_rgba(255,255,255,0.04)] border-none outline-none focus:ring-1 focus:ring-emerald-500/50 text-sm",
-                                  "data-ocid": "woop_wizard.intent_time.input"
-                                }
-                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "block text-xs text-muted-foreground uppercase tracking-wide", children: "When do you plan to do this?" }),
+                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                    "label",
+                                    {
+                                      htmlFor: "intent-time-hours",
+                                      className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                                      children: "Hours"
+                                    }
+                                  ),
+                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                    "select",
+                                    {
+                                      id: "intent-time-hours",
+                                      "data-ocid": "woop_wizard.intent_time.hours",
+                                      value: form.intentTime ? Number(form.intentTime.split(":")[0]) : 0,
+                                      onChange: (e3) => {
+                                        const hours = Number(e3.target.value);
+                                        const mins = form.intentTime ? Number(form.intentTime.split(":")[1]) : 0;
+                                        setForm((f2) => ({
+                                          ...f2,
+                                          intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`
+                                        }));
+                                      },
+                                      size: 5,
+                                      className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
+                                      style: {
+                                        background: "oklch(var(--card))",
+                                        border: "1px solid rgba(16,185,129,0.25)",
+                                        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                        color: "oklch(var(--foreground))",
+                                        padding: "6px 0",
+                                        outline: "none",
+                                        overflowY: "auto"
+                                      },
+                                      children: Array.from({ length: 24 }, (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                        "option",
+                                        {
+                                          value: h2,
+                                          style: {
+                                            background: "oklch(var(--card))",
+                                            color: (form.intentTime ? Number(form.intentTime.split(":")[0]) : 0) === h2 ? "#10B981" : "oklch(var(--foreground))",
+                                            fontWeight: (form.intentTime ? Number(form.intentTime.split(":")[0]) : 0) === h2 ? 700 : 400
+                                          },
+                                          children: String(h2).padStart(2, "0")
+                                        },
+                                        `intent-hour-${h2}`
+                                      ))
+                                    }
+                                  )
+                                ] }),
+                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                    "label",
+                                    {
+                                      htmlFor: "intent-time-minutes",
+                                      className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                                      children: "Minutes"
+                                    }
+                                  ),
+                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                    "select",
+                                    {
+                                      id: "intent-time-minutes",
+                                      "data-ocid": "woop_wizard.intent_time.minutes",
+                                      value: form.intentTime ? Number(form.intentTime.split(":")[1]) : 0,
+                                      onChange: (e3) => {
+                                        const mins = Number(e3.target.value);
+                                        const hours = form.intentTime ? Number(form.intentTime.split(":")[0]) : 0;
+                                        setForm((f2) => ({
+                                          ...f2,
+                                          intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`
+                                        }));
+                                      },
+                                      size: 5,
+                                      className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
+                                      style: {
+                                        background: "oklch(var(--card))",
+                                        border: "1px solid rgba(16,185,129,0.25)",
+                                        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                        color: "oklch(var(--foreground))",
+                                        padding: "6px 0",
+                                        outline: "none",
+                                        overflowY: "auto"
+                                      },
+                                      children: Array.from({ length: 12 }, (_2, i) => {
+                                        const m2 = i * 5;
+                                        return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                          "option",
+                                          {
+                                            value: m2,
+                                            style: {
+                                              background: "oklch(var(--card))",
+                                              color: (form.intentTime ? Number(
+                                                form.intentTime.split(":")[1]
+                                              ) : 0) === m2 ? "#10B981" : "oklch(var(--foreground))",
+                                              fontWeight: (form.intentTime ? Number(
+                                                form.intentTime.split(":")[1]
+                                              ) : 0) === m2 ? 700 : 400
+                                            },
+                                            children: String(m2).padStart(2, "0")
+                                          },
+                                          m2
+                                        );
+                                      })
+                                    }
+                                  )
+                                ] })
+                              ] }),
                               errors.intentTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
                                 "p",
                                 {
@@ -73088,7 +73189,7 @@ function WoopWizard({
                                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                                   "label",
                                   {
-                                    htmlFor: "reminder-offset-step4",
+                                    htmlFor: "reminder-offset",
                                     className: "block text-xs text-muted-foreground uppercase tracking-wide",
                                     children: "Send reminder"
                                   }
@@ -73103,34 +73204,53 @@ function WoopWizard({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "input",
+                                "select",
                                 {
-                                  type: "range",
-                                  id: "reminder-offset-step4",
-                                  min: -60,
-                                  max: form.isLockIn ? 0 : maxPositiveOffset,
+                                  id: "reminder-offset",
+                                  "data-ocid": "woop_wizard.reminder_offset.input",
                                   value: form.reminderOffset,
                                   onChange: (e3) => {
-                                    const val = Number.parseInt(e3.target.value, 10);
-                                    const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
                                     setForm((f2) => ({
                                       ...f2,
-                                      reminderOffset: Math.min(val, maxVal)
+                                      reminderOffset: Number(e3.target.value)
                                     }));
                                   },
-                                  className: "w-full h-2 rounded-full accent-emerald-500 cursor-pointer",
-                                  "data-ocid": "woop_wizard.reminder_offset.input"
+                                  size: 5,
+                                  className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
+                                  style: {
+                                    background: "oklch(var(--card))",
+                                    border: "1px solid rgba(16,185,129,0.25)",
+                                    boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                    color: "oklch(var(--foreground))",
+                                    padding: "6px 0",
+                                    outline: "none",
+                                    overflowY: "auto"
+                                  },
+                                  children: (() => {
+                                    const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
+                                    const items = [];
+                                    for (let v2 = -60; v2 <= maxVal; v2 += 5) {
+                                      const label = v2 < 0 ? `${Math.abs(v2)} min before` : v2 === 0 ? "At start time" : `${v2} min after`;
+                                      items.push(
+                                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                          "option",
+                                          {
+                                            value: v2,
+                                            style: {
+                                              background: "oklch(var(--card))",
+                                              color: form.reminderOffset === v2 ? "#10B981" : "oklch(var(--foreground))",
+                                              fontWeight: form.reminderOffset === v2 ? 700 : 400
+                                            },
+                                            children: label
+                                          },
+                                          v2
+                                        )
+                                      );
+                                    }
+                                    return items;
+                                  })()
                                 }
-                              ),
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs text-muted-foreground", children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "-60 min" }),
-                                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "0" }),
-                                form.isLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "0 max" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                                  "+",
-                                  maxPositiveOffset,
-                                  " min"
-                                ] })
-                              ] })
+                              )
                             ] })
                           ]
                         }
@@ -80460,20 +80580,6 @@ function ProfilePage$1() {
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-t border-border/30" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-4", children: [
-                (profile == null ? void 0 : profile.timezone) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
-                  {
-                    className: "flex items-center justify-between",
-                    "data-ocid": "profile.timezone",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-4 h-4 text-muted-foreground flex-shrink-0" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "Timezone" })
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground font-mono", children: profile.timezone })
-                    ]
-                  }
-                ),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "div",
                   {
