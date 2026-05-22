@@ -36741,53 +36741,65 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$F = [
+const __iconNode$G = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$F);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$G);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$E = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$E);
+const __iconNode$F = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$F);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$D = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$D);
+const __iconNode$E = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$E);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$C = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$C);
+const __iconNode$D = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$B = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-const ChevronRight = createLucideIcon("chevron-right", __iconNode$B);
+const __iconNode$C = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$C);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$A = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
-const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
+const __iconNode$B = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+const ChevronUp = createLucideIcon("chevron-up", __iconNode$B);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$A = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+];
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$A);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36795,11 +36807,10 @@ const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$z = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+  ["path", { d: "M21.801 10A10 10 0 1 1 17 3.335", key: "yps3ct" }],
+  ["path", { d: "m9 11 3 3L22 4", key: "1pflzl" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$z);
+const CircleCheckBig = createLucideIcon("circle-check-big", __iconNode$z);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -71524,6 +71535,130 @@ function GoalInsightSheet({
     )
   ] }) });
 }
+function HabitTypeChooser({
+  open,
+  onClose,
+  onSelect
+}) {
+  const [hoveredCard, setHoveredCard] = reactExports.useState(
+    null
+  );
+  if (!open) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm",
+      role: "presentation",
+      onClick: (e3) => {
+        if (e3.target === e3.currentTarget) onClose();
+      },
+      onKeyDown: (e3) => {
+        if (e3.key === "Escape" && e3.target === e3.currentTarget) onClose();
+      },
+      children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "div",
+        {
+          className: "relative mx-4 w-full max-w-sm rounded-2xl border border-white/5 p-6",
+          style: {
+            background: "#141414",
+            boxShadow: "8px 8px 16px rgba(0,0,0,0.5), -4px -4px 8px rgba(255,255,255,0.03)"
+          },
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: onClose,
+                className: "absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:text-zinc-300",
+                style: {
+                  background: "#1e1e1e",
+                  boxShadow: "inset 2px 2px 4px rgba(0,0,0,0.4), inset -2px -2px 4px rgba(255,255,255,0.03)"
+                },
+                "aria-label": "Close",
+                "data-ocid": "habit_type_chooser.close_button",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-2 text-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-semibold text-white", children: "What kind of habit?" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mb-6 text-center text-sm text-zinc-400", children: "Choose your habit type — this cannot be changed later." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  type: "button",
+                  "data-ocid": "habit_type_chooser.regular_habit",
+                  className: "flex w-full cursor-pointer items-center gap-4 rounded-xl p-4 text-left transition-all",
+                  style: {
+                    background: "#1e1e1e",
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.03)",
+                    border: hoveredCard === "regular" ? "1px solid rgba(16,185,129,0.5)" : "1px solid rgba(255,255,255,0.05)",
+                    outline: "none"
+                  },
+                  onClick: () => onSelect(false),
+                  onMouseEnter: () => setHoveredCard("regular"),
+                  onMouseLeave: () => setHoveredCard(null),
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full",
+                        style: {
+                          background: "rgba(16,185,129,0.1)",
+                          boxShadow: hoveredCard === "regular" ? "0 0 10px rgba(16,185,129,0.25)" : "none",
+                          transition: "box-shadow 0.2s"
+                        },
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheckBig, { size: 20, color: "#10B981" })
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-semibold text-white", children: "Regular Habit" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-zinc-400", children: "Track daily habits with flexible swipe gestures" })
+                    ] })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  type: "button",
+                  "data-ocid": "habit_type_chooser.lockin_habit",
+                  className: "flex w-full cursor-pointer items-center gap-4 rounded-xl p-4 text-left transition-all",
+                  style: {
+                    background: "#1e1e1e",
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.03)",
+                    border: hoveredCard === "lockin" ? "1px solid rgba(245,158,11,0.5)" : "1px solid rgba(255,255,255,0.05)",
+                    outline: "none"
+                  },
+                  onClick: () => onSelect(true),
+                  onMouseEnter: () => setHoveredCard("lockin"),
+                  onMouseLeave: () => setHoveredCard(null),
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full",
+                        style: {
+                          background: "rgba(245,158,11,0.1)",
+                          boxShadow: hoveredCard === "lockin" ? "0 0 10px rgba(245,158,11,0.25)" : "none",
+                          transition: "box-shadow 0.2s"
+                        },
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 20, color: "#F59E0B" })
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-semibold text-white", children: "Lock-In Habit" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-zinc-400", children: "Strict time blocks with check-in and check-out" })
+                    ] })
+                  ]
+                }
+              )
+            ] })
+          ]
+        }
+      )
+    }
+  );
+}
 const SUCCESS_COLOR = "#10B981";
 const SKIP_COLOR = "#0369A1";
 function UndoPopup({
@@ -71684,6 +71819,284 @@ function Textarea({ className, ...props }) {
     }
   );
 }
+function hexToRgba(hex2, alpha3) {
+  const clean2 = hex2.replace("#", "");
+  const full = clean2.length === 3 ? clean2.split("").map((c2) => c2 + c2).join("") : clean2;
+  const r2 = Number.parseInt(full.slice(0, 2), 16);
+  const g2 = Number.parseInt(full.slice(2, 4), 16);
+  const b2 = Number.parseInt(full.slice(4, 6), 16);
+  if (Number.isNaN(r2) || Number.isNaN(g2) || Number.isNaN(b2)) {
+    return `rgba(16,185,129,${alpha3})`;
+  }
+  return `rgba(${r2},${g2},${b2},${alpha3})`;
+}
+function ScrollWheelPicker({
+  items,
+  value,
+  onChange,
+  accentColor = "#10B981",
+  height = 44,
+  visibleCount = 5,
+  className = ""
+}) {
+  const totalHeight = height * visibleCount;
+  const centerIndex = Math.floor(visibleCount / 2);
+  const selectedIndex = items.findIndex((item) => item.value === value);
+  const clampedSelected = selectedIndex < 0 ? 0 : selectedIndex;
+  const indexToOffset = reactExports.useCallback(
+    (idx) => centerIndex * height - idx * height,
+    [centerIndex, height]
+  );
+  const [snapOffset, setSnapOffset] = reactExports.useState(
+    () => indexToOffset(clampedSelected)
+  );
+  const [isDragging2, setIsDragging] = reactExports.useState(false);
+  const [isFocused, setIsFocused] = reactExports.useState(false);
+  const liveOffset = reactExports.useRef(snapOffset);
+  const dragStartY = reactExports.useRef(0);
+  const dragStartOffset = reactExports.useRef(0);
+  const containerRef = reactExports.useRef(null);
+  const animationRef = reactExports.useRef(null);
+  const pendingOffset = reactExports.useRef(snapOffset);
+  reactExports.useEffect(() => {
+    const idx = items.findIndex((item) => item.value === value);
+    if (idx >= 0) {
+      const newOffset = indexToOffset(idx);
+      liveOffset.current = newOffset;
+      pendingOffset.current = newOffset;
+      setSnapOffset(newOffset);
+    }
+  }, [value, items, indexToOffset]);
+  const offsetToIndex = reactExports.useCallback(
+    (offset) => {
+      const raw = (centerIndex * height - offset) / height;
+      return Math.round(Math.max(0, Math.min(items.length - 1, raw)));
+    },
+    [centerIndex, height, items.length]
+  );
+  const commitIndex = reactExports.useCallback(
+    (idx) => {
+      const clamped = Math.max(0, Math.min(items.length - 1, idx));
+      const finalOffset = indexToOffset(clamped);
+      liveOffset.current = finalOffset;
+      pendingOffset.current = finalOffset;
+      setSnapOffset(finalOffset);
+      if (items[clamped].value !== value) {
+        onChange(items[clamped].value);
+      }
+    },
+    [items, indexToOffset, onChange, value]
+  );
+  const handleTouchStart = reactExports.useCallback((e3) => {
+    dragStartY.current = e3.touches[0].clientY;
+    dragStartOffset.current = liveOffset.current;
+    setIsDragging(true);
+  }, []);
+  const handleTouchMove = reactExports.useCallback((e3) => {
+    e3.preventDefault();
+    const deltaY = e3.touches[0].clientY - dragStartY.current;
+    liveOffset.current = dragStartOffset.current + deltaY;
+    pendingOffset.current = liveOffset.current;
+    if (animationRef.current !== null)
+      cancelAnimationFrame(animationRef.current);
+    animationRef.current = requestAnimationFrame(() => {
+      setSnapOffset(pendingOffset.current);
+    });
+  }, []);
+  const handleTouchEnd = reactExports.useCallback(() => {
+    setIsDragging(false);
+    const idx = offsetToIndex(liveOffset.current);
+    commitIndex(idx);
+  }, [offsetToIndex, commitIndex]);
+  const handleMouseDown = reactExports.useCallback((e3) => {
+    e3.preventDefault();
+    dragStartY.current = e3.clientY;
+    dragStartOffset.current = liveOffset.current;
+    setIsDragging(true);
+  }, []);
+  reactExports.useEffect(() => {
+    if (!isDragging2) return;
+    const handleMouseMove = (e3) => {
+      const deltaY = e3.clientY - dragStartY.current;
+      liveOffset.current = dragStartOffset.current + deltaY;
+      pendingOffset.current = liveOffset.current;
+      if (animationRef.current !== null)
+        cancelAnimationFrame(animationRef.current);
+      animationRef.current = requestAnimationFrame(() => {
+        setSnapOffset(pendingOffset.current);
+      });
+    };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      const idx = offsetToIndex(liveOffset.current);
+      commitIndex(idx);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging2, offsetToIndex, commitIndex]);
+  reactExports.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handleWheel = (e3) => {
+      e3.preventDefault();
+      const currentIdx = offsetToIndex(liveOffset.current);
+      const direction = e3.deltaY > 0 ? 1 : -1;
+      commitIndex(currentIdx + direction);
+    };
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [offsetToIndex, commitIndex]);
+  const handleKeyDown = reactExports.useCallback(
+    (e3) => {
+      if (e3.key === "ArrowDown") {
+        e3.preventDefault();
+        const idx = offsetToIndex(liveOffset.current);
+        commitIndex(idx + 1);
+      } else if (e3.key === "ArrowUp") {
+        e3.preventDefault();
+        const idx = offsetToIndex(liveOffset.current);
+        commitIndex(idx - 1);
+      }
+    },
+    [offsetToIndex, commitIndex]
+  );
+  const minOffset = indexToOffset(items.length - 1);
+  const maxOffset = indexToOffset(0);
+  const displayOffset = Math.max(minOffset, Math.min(maxOffset, snapOffset));
+  const accentBand = hexToRgba(accentColor, 0.12);
+  const accentBorder = hexToRgba(accentColor, 0.25);
+  const accentFocus = hexToRgba(accentColor, 0.5);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      ref: containerRef,
+      className: `relative select-none overflow-hidden rounded-xl ${className}`,
+      style: {
+        height: totalHeight,
+        background: "oklch(var(--card))",
+        boxShadow: "inset 2px 2px 8px rgba(0,0,0,0.55), inset -1px -1px 4px rgba(80,80,85,0.12)",
+        cursor: isDragging2 ? "grabbing" : "grab",
+        outline: isFocused ? `2px solid ${accentFocus}` : "none",
+        outlineOffset: 2,
+        touchAction: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none"
+      },
+      onMouseDown: handleMouseDown,
+      onTouchStart: handleTouchStart,
+      onTouchMove: handleTouchMove,
+      onTouchEnd: handleTouchEnd,
+      onKeyDown: handleKeyDown,
+      onFocus: () => setIsFocused(true),
+      onBlur: () => setIsFocused(false),
+      "aria-label": "Scroll wheel picker",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            style: {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              transform: `translateY(${displayOffset}px)`,
+              transition: isDragging2 ? "none" : "transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+              willChange: "transform"
+            },
+            children: items.map((item, idx) => {
+              const currentCenterIdx = offsetToIndex(displayOffset);
+              const distance2 = Math.abs(idx - currentCenterIdx);
+              const opacity = distance2 === 0 ? 1 : distance2 === 1 ? 0.55 : 0.25;
+              const isSelected = distance2 === 0;
+              return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  style: {
+                    height,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 18,
+                    fontFamily: "monospace",
+                    color: "white",
+                    fontWeight: isSelected ? 600 : 400,
+                    opacity,
+                    transition: isDragging2 ? "none" : "opacity 0.15s ease, font-weight 0.15s ease",
+                    pointerEvents: "none"
+                  },
+                  children: item.label
+                },
+                item.value
+              );
+            })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            style: {
+              position: "absolute",
+              top: centerIndex * height,
+              left: 0,
+              right: 0,
+              height,
+              background: accentBand,
+              borderTop: `1px solid ${accentBorder}`,
+              borderBottom: `1px solid ${accentBorder}`,
+              pointerEvents: "none",
+              zIndex: 2
+            }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            style: {
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(to bottom, oklch(var(--card)) 0%, transparent 28%, transparent 72%, oklch(var(--card)) 100%)",
+              pointerEvents: "none",
+              zIndex: 3
+            }
+          }
+        )
+      ]
+    }
+  );
+}
+function padTwo(n2) {
+  return n2.toString().padStart(2, "0");
+}
+function wHourItems() {
+  return Array.from({ length: 24 }, (_2, i) => ({ value: i, label: padTwo(i) }));
+}
+function wMinuteItemsStep5(max2 = 55) {
+  const items = [];
+  for (let m2 = 0; m2 <= max2; m2 += 5) items.push({ value: m2, label: padTwo(m2) });
+  return items;
+}
+function wLockInHourItems(maxH) {
+  return Array.from({ length: maxH + 1 }, (_2, i) => ({
+    value: i,
+    label: String(i)
+  }));
+}
+function wLockInMinuteItems(maxM) {
+  const items = [];
+  for (let m2 = 0; m2 <= maxM; m2 += 5) items.push({ value: m2, label: padTwo(m2) });
+  return items;
+}
+function wOffsetItems(min2, max2) {
+  const items = [];
+  for (let v2 = min2; v2 <= max2; v2 += 5) {
+    items.push({ value: v2, label: v2 > 0 ? `+${v2}` : String(v2) });
+  }
+  return items;
+}
 const THEME_COLORS$1 = [
   { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
   { id: "sapphire", label: "Sapphire", value: "#2563EB" },
@@ -71744,7 +72157,8 @@ function WoopWizard({
   onClose,
   onGoalCreated,
   existingLockInGoals = [],
-  editingGoalId
+  editingGoalId,
+  isLockIn
 }) {
   var _a3, _b3, _c2, _d2, _e2;
   const [step, setStep] = reactExports.useState(1);
@@ -71767,11 +72181,12 @@ function WoopWizard({
       return;
     }
     setForm(EMPTY);
+    setForm((prev) => ({ ...prev, isLockIn: isLockIn ?? false }));
     setStep(1);
     setErrors({});
     const t2 = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(t2);
-  }, [open]);
+  }, [open, isLockIn]);
   reactExports.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -71790,13 +72205,13 @@ function WoopWizard({
     return Math.max(0, 1435 - startTotal);
   }, [form.lockInStartTime]);
   const maxLockInHours = Math.floor(maxLockInMinutes / 60);
-  const maxPositiveOffset = reactExports.useMemo(() => {
+  reactExports.useMemo(() => {
     if (!form.intentTime) return 60;
     const [h2, m2] = form.intentTime.split(":").map(Number);
     const intentMins = h2 * 60 + m2;
     return Math.max(0, 1435 - intentMins);
   }, [form.intentTime]);
-  const maxLockInMinutesAtMaxHour = form.lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
+  form.lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
   reactExports.useEffect(() => {
     if (form.lockInStartTime) {
       const [h2, m2] = form.lockInStartTime.split(":").map(Number);
@@ -72331,39 +72746,19 @@ function WoopWizard({
                     assembledHabit && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledHabit })
                   ] })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-display font-semibold text-foreground", children: "Enable Lock-In Mode" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-0.5", children: "Strict time block — check in & out within a defined window" }),
-                      form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-1", children: "Lock-In Mode overrides your standard habit time. It must finish by 23:55 to log correctly today. Your max duration is calculated based on your start time." })
-                    ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-amber-500/30 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F59E0B", fontSize: "18px" }, children: "🔒" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "button",
+                      "p",
                       {
-                        type: "button",
-                        role: "switch",
-                        "aria-checked": form.isLockIn,
-                        "data-ocid": "woop_wizard.lockin_toggle",
-                        onClick: () => setForm((f2) => ({ ...f2, isLockIn: !f2.isLockIn })),
-                        className: "relative shrink-0 w-14 h-7 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        style: {
-                          background: form.isLockIn ? "#F59E0B" : "oklch(var(--muted))",
-                          boxShadow: form.isLockIn ? "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.12)" : "inset 2px 2px 5px rgba(0,0,0,0.45), inset -2px -2px 4px rgba(255,255,255,0.07)"
-                        },
-                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "span",
-                          {
-                            className: "absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300",
-                            style: {
-                              left: form.isLockIn ? "calc(100% - 24px)" : "4px",
-                              boxShadow: "1px 1px 4px rgba(0,0,0,0.4)"
-                            }
-                          }
-                        )
+                        className: "text-base font-display font-semibold",
+                        style: { color: "#F59E0B" },
+                        children: "Lock-In Mode"
                       }
                     )
                   ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Lock-In Mode overrides your standard habit time. It must finish by 23:55 to log correctly today. Your max duration is calculated based on your start time." }),
                   form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2 border-t border-border/20", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -72374,29 +72769,80 @@ function WoopWizard({
                           children: "Start Time"
                         }
                       ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "input",
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
                         {
-                          id: "lockin-start-time",
-                          type: "time",
-                          "data-ocid": "woop_wizard.lockin_start_time",
-                          value: form.lockInStartTime,
-                          onChange: (e3) => {
-                            const val = e3.target.value;
-                            setForm((f2) => ({
-                              ...f2,
-                              lockInStartTime: val
-                            }));
-                            setErrors((er) => ({
-                              ...er,
-                              lockInStartTime: void 0
-                            }));
-                          },
-                          className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/40",
+                          className: "bg-[#1a1a1a] border border-amber-500/30 rounded-xl p-4",
                           style: {
-                            background: "oklch(var(--card))",
-                            boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)"
-                          }
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "8px",
+                            minHeight: "220px"
+                          },
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              ScrollWheelPicker,
+                              {
+                                items: wHourItems(),
+                                value: form.lockInStartTime ? Number.parseInt(
+                                  form.lockInStartTime.split(":")[0],
+                                  10
+                                ) : 0,
+                                onChange: (v2) => {
+                                  const h2 = v2;
+                                  const m2 = form.lockInStartTime ? Math.round(
+                                    Number.parseInt(
+                                      form.lockInStartTime.split(":")[1],
+                                      10
+                                    ) / 5
+                                  ) * 5 : 0;
+                                  setForm((f2) => ({
+                                    ...f2,
+                                    lockInStartTime: `${padTwo(h2)}:${padTwo(m2)}`
+                                  }));
+                                },
+                                accentColor: "#F59E0B",
+                                visibleCount: 5
+                              }
+                            ),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "span",
+                              {
+                                style: {
+                                  color: "#F59E0B",
+                                  fontSize: "24px",
+                                  fontWeight: 700,
+                                  fontFamily: "monospace"
+                                },
+                                children: ":"
+                              }
+                            ),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              ScrollWheelPicker,
+                              {
+                                items: wMinuteItemsStep5(),
+                                value: form.lockInStartTime ? Math.round(
+                                  Number.parseInt(
+                                    form.lockInStartTime.split(":")[1],
+                                    10
+                                  ) / 5
+                                ) * 5 : 0,
+                                onChange: (v2) => {
+                                  const m2 = v2;
+                                  const h2 = form.lockInStartTime ? Number.parseInt(
+                                    form.lockInStartTime.split(":")[0],
+                                    10
+                                  ) : 0;
+                                  setForm((f2) => ({
+                                    ...f2,
+                                    lockInStartTime: `${padTwo(h2)}:${padTwo(m2)}`
+                                  }));
+                                },
+                                accentColor: "#F59E0B",
+                                visibleCount: 5
+                              }
+                            )
+                          ]
                         }
                       ),
                       errors.lockInStartTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -72410,110 +72856,66 @@ function WoopWizard({
                     ] }),
                     !form.lockInStartTime ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Please select a start time first to calculate your available lock-in window." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2", children: "Duration" }),
-                      maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — the chosen start time leaves no room before the 23:55 daily cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "label",
-                            {
-                              htmlFor: "lockin-hours",
-                              className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                              children: "Hours"
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "select",
-                            {
-                              id: "lockin-hours",
-                              "data-ocid": "woop_wizard.lockin_duration_hours",
-                              value: form.lockInDurationHours,
-                              onChange: (e3) => setForm((prev) => ({
-                                ...prev,
-                                lockInDurationHours: Number(
-                                  e3.target.value
-                                )
-                              })),
-                              size: 5,
-                              className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                              style: {
-                                background: "oklch(var(--card))",
-                                border: "1px solid rgba(245,158,11,0.25)",
-                                boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                color: "oklch(var(--foreground))",
-                                padding: "6px 0",
-                                outline: "none",
-                                overflowY: "auto"
-                              },
-                              children: Array.from(
-                                { length: maxLockInHours + 1 },
-                                (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "option",
-                                  {
-                                    value: h2,
-                                    style: {
-                                      background: "oklch(var(--card))",
-                                      color: form.lockInDurationHours === h2 ? "#F59E0B" : "oklch(var(--foreground))",
-                                      fontWeight: form.lockInDurationHours === h2 ? 700 : 400
-                                    },
-                                    children: String(h2).padStart(2, "0")
-                                  },
-                                  h2
-                                )
+                      maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — the chosen start time leaves no room before the 23:55 daily cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: "flex gap-3 bg-[#1a1a1a] border border-amber-500/30 rounded-xl p-4",
+                          style: {
+                            minHeight: "220px",
+                            alignItems: "flex-start"
+                          },
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "label",
+                                {
+                                  htmlFor: "lockin-hours",
+                                  className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                                  children: "Hours"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                ScrollWheelPicker,
+                                {
+                                  items: wLockInHourItems(maxLockInHours),
+                                  value: form.lockInDurationHours,
+                                  onChange: (v2) => setForm((f2) => ({
+                                    ...f2,
+                                    lockInDurationHours: v2
+                                  })),
+                                  accentColor: "#F59E0B",
+                                  visibleCount: 5
+                                }
                               )
-                            }
-                          )
-                        ] }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "label",
-                            {
-                              htmlFor: "lockin-minutes",
-                              className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                              children: "Min"
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "select",
-                            {
-                              id: "lockin-minutes",
-                              "data-ocid": "woop_wizard.lockin_duration_minutes",
-                              value: form.lockInDurationMinutes,
-                              onChange: (e3) => setForm((prev) => ({
-                                ...prev,
-                                lockInDurationMinutes: Number(
-                                  e3.target.value
-                                )
-                              })),
-                              size: 5,
-                              className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                              style: {
-                                background: "oklch(var(--card))",
-                                border: "1px solid rgba(245,158,11,0.25)",
-                                boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                color: "oklch(var(--foreground))",
-                                padding: "6px 0",
-                                outline: "none",
-                                overflowY: "auto"
-                              },
-                              children: Array.from(
-                                { length: maxLockInMinutesAtMaxHour + 1 },
-                                (_2, m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "option",
-                                  {
-                                    value: m2,
-                                    style: {
-                                      background: "oklch(var(--card))",
-                                      color: form.lockInDurationMinutes === m2 ? "#F59E0B" : "oklch(var(--foreground))",
-                                      fontWeight: form.lockInDurationMinutes === m2 ? 700 : 400
-                                    },
-                                    children: String(m2).padStart(2, "0")
-                                  },
-                                  m2
-                                )
+                            ] }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "label",
+                                {
+                                  htmlFor: "lockin-minutes",
+                                  className: "block text-[11px] text-muted-foreground/60 mb-1.5",
+                                  children: "Min"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                ScrollWheelPicker,
+                                {
+                                  items: wLockInMinuteItems(
+                                    form.lockInDurationHours >= maxLockInHours ? maxLockInMinutes % 60 : 55
+                                  ),
+                                  value: form.lockInDurationMinutes,
+                                  onChange: (v2) => setForm((f2) => ({
+                                    ...f2,
+                                    lockInDurationMinutes: v2
+                                  })),
+                                  accentColor: "#F59E0B",
+                                  visibleCount: 5
+                                }
                               )
-                            }
-                          )
-                        ] })
-                      ] }),
+                            ] })
+                          ]
+                        }
+                      ),
                       errors.lockInEndTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
                         "p",
                         {
@@ -73077,43 +73479,28 @@ function WoopWizard({
                                     }
                                   ),
                                   /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "select",
+                                    ScrollWheelPicker,
                                     {
-                                      id: "intent-time-hours",
-                                      "data-ocid": "woop_wizard.intent_time.hours",
-                                      value: form.intentTime ? Number(form.intentTime.split(":")[0]) : 0,
-                                      onChange: (e3) => {
-                                        const hours = Number(e3.target.value);
-                                        const mins = form.intentTime ? Number(form.intentTime.split(":")[1]) : 0;
+                                      items: wHourItems(),
+                                      value: form.intentTime ? Number.parseInt(
+                                        form.intentTime.split(":")[0],
+                                        10
+                                      ) : 9,
+                                      onChange: (v2) => {
+                                        const h2 = v2;
+                                        const m2 = form.intentTime ? Math.round(
+                                          Number.parseInt(
+                                            form.intentTime.split(":")[1],
+                                            10
+                                          ) / 5
+                                        ) * 5 : 0;
                                         setForm((f2) => ({
                                           ...f2,
-                                          intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`
+                                          intentTime: `${padTwo(h2)}:${padTwo(m2)}`
                                         }));
                                       },
-                                      size: 5,
-                                      className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                      style: {
-                                        background: "oklch(var(--card))",
-                                        border: "1px solid rgba(16,185,129,0.25)",
-                                        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                        color: "oklch(var(--foreground))",
-                                        padding: "6px 0",
-                                        outline: "none",
-                                        overflowY: "auto"
-                                      },
-                                      children: Array.from({ length: 24 }, (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                        "option",
-                                        {
-                                          value: h2,
-                                          style: {
-                                            background: "oklch(var(--card))",
-                                            color: (form.intentTime ? Number(form.intentTime.split(":")[0]) : 0) === h2 ? "#10B981" : "oklch(var(--foreground))",
-                                            fontWeight: (form.intentTime ? Number(form.intentTime.split(":")[0]) : 0) === h2 ? 700 : 400
-                                          },
-                                          children: String(h2).padStart(2, "0")
-                                        },
-                                        `intent-hour-${h2}`
-                                      ))
+                                      accentColor: "#10B981",
+                                      visibleCount: 5
                                     }
                                   )
                                 ] }),
@@ -73127,50 +73514,28 @@ function WoopWizard({
                                     }
                                   ),
                                   /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "select",
+                                    ScrollWheelPicker,
                                     {
-                                      id: "intent-time-minutes",
-                                      "data-ocid": "woop_wizard.intent_time.minutes",
-                                      value: form.intentTime ? Number(form.intentTime.split(":")[1]) : 0,
-                                      onChange: (e3) => {
-                                        const mins = Number(e3.target.value);
-                                        const hours = form.intentTime ? Number(form.intentTime.split(":")[0]) : 0;
+                                      items: wMinuteItemsStep5(),
+                                      value: form.intentTime ? Math.round(
+                                        Number.parseInt(
+                                          form.intentTime.split(":")[1],
+                                          10
+                                        ) / 5
+                                      ) * 5 : 0,
+                                      onChange: (v2) => {
+                                        const m2 = v2;
+                                        const h2 = form.intentTime ? Number.parseInt(
+                                          form.intentTime.split(":")[0],
+                                          10
+                                        ) : 9;
                                         setForm((f2) => ({
                                           ...f2,
-                                          intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`
+                                          intentTime: `${padTwo(h2)}:${padTwo(m2)}`
                                         }));
                                       },
-                                      size: 5,
-                                      className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                      style: {
-                                        background: "oklch(var(--card))",
-                                        border: "1px solid rgba(16,185,129,0.25)",
-                                        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                        color: "oklch(var(--foreground))",
-                                        padding: "6px 0",
-                                        outline: "none",
-                                        overflowY: "auto"
-                                      },
-                                      children: Array.from({ length: 12 }, (_2, i) => {
-                                        const m2 = i * 5;
-                                        return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                          "option",
-                                          {
-                                            value: m2,
-                                            style: {
-                                              background: "oklch(var(--card))",
-                                              color: (form.intentTime ? Number(
-                                                form.intentTime.split(":")[1]
-                                              ) : 0) === m2 ? "#10B981" : "oklch(var(--foreground))",
-                                              fontWeight: (form.intentTime ? Number(
-                                                form.intentTime.split(":")[1]
-                                              ) : 0) === m2 ? 700 : 400
-                                            },
-                                            children: String(m2).padStart(2, "0")
-                                          },
-                                          m2
-                                        );
-                                      })
+                                      accentColor: "#10B981",
+                                      visibleCount: 5
                                     }
                                   )
                                 ] })
@@ -73204,51 +73569,28 @@ function WoopWizard({
                                 )
                               ] }),
                               /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "select",
+                                ScrollWheelPicker,
                                 {
-                                  id: "reminder-offset",
-                                  "data-ocid": "woop_wizard.reminder_offset.input",
+                                  items: form.isLockIn ? wOffsetItems(-60, 0) : wOffsetItems(
+                                    -60,
+                                    Math.min(
+                                      60,
+                                      1435 - (form.intentTime ? Number.parseInt(
+                                        form.intentTime.split(":")[0],
+                                        10
+                                      ) * 60 + Number.parseInt(
+                                        form.intentTime.split(":")[1],
+                                        10
+                                      ) : 0)
+                                    )
+                                  ),
                                   value: form.reminderOffset,
-                                  onChange: (e3) => {
-                                    setForm((f2) => ({
-                                      ...f2,
-                                      reminderOffset: Number(e3.target.value)
-                                    }));
-                                  },
-                                  size: 5,
-                                  className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                  style: {
-                                    background: "oklch(var(--card))",
-                                    border: "1px solid rgba(16,185,129,0.25)",
-                                    boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                    color: "oklch(var(--foreground))",
-                                    padding: "6px 0",
-                                    outline: "none",
-                                    overflowY: "auto"
-                                  },
-                                  children: (() => {
-                                    const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
-                                    const items = [];
-                                    for (let v2 = -60; v2 <= maxVal; v2 += 5) {
-                                      const label = v2 < 0 ? `${Math.abs(v2)} min before` : v2 === 0 ? "At start time" : `${v2} min after`;
-                                      items.push(
-                                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                          "option",
-                                          {
-                                            value: v2,
-                                            style: {
-                                              background: "oklch(var(--card))",
-                                              color: form.reminderOffset === v2 ? "#10B981" : "oklch(var(--foreground))",
-                                              fontWeight: form.reminderOffset === v2 ? 700 : 400
-                                            },
-                                            children: label
-                                          },
-                                          v2
-                                        )
-                                      );
-                                    }
-                                    return items;
-                                  })()
+                                  onChange: (v2) => setForm((f2) => ({
+                                    ...f2,
+                                    reminderOffset: v2
+                                  })),
+                                  accentColor: form.isLockIn ? "#F59E0B" : "#10B981",
+                                  visibleCount: 5
                                 }
                               )
                             ] })
@@ -73791,6 +74133,8 @@ function NewHabitBadge() {
 function DashboardPage$1() {
   const [usernameModalDismissed, setUsernameModalDismissed] = reactExports.useState(false);
   const [showWoop, setShowWoop] = reactExports.useState(false);
+  const [showTypeChooser, setShowTypeChooser] = reactExports.useState(false);
+  const [selectedIsLockIn, setSelectedIsLockIn] = reactExports.useState(false);
   const { actor, isFetching: actorFetching } = useBackend();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { principalText } = useAuth();
@@ -74406,7 +74750,7 @@ function DashboardPage$1() {
               "button",
               {
                 type: "button",
-                onClick: () => setShowWoop(true),
+                onClick: () => setShowTypeChooser(true),
                 "data-ocid": "dashboard.create_habit_button",
                 "aria-label": "Create a new habit",
                 className: "flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth ml-auto",
@@ -74428,7 +74772,7 @@ function DashboardPage$1() {
             "button",
             {
               type: "button",
-              onClick: () => setShowWoop(true),
+              onClick: () => setShowTypeChooser(true),
               "data-ocid": "dashboard.create_habit_button",
               "aria-label": "Create a new habit",
               className: "flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth",
@@ -74523,7 +74867,7 @@ function DashboardPage$1() {
                   "button",
                   {
                     type: "button",
-                    onClick: () => setShowWoop(true),
+                    onClick: () => setShowTypeChooser(true),
                     "data-ocid": "dashboard.empty_create_habit_button",
                     className: "flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full transition-smooth",
                     style: {
@@ -74663,10 +75007,23 @@ function DashboardPage$1() {
       String(insightGoal.id)
     ) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
+      HabitTypeChooser,
+      {
+        open: showTypeChooser,
+        onClose: () => setShowTypeChooser(false),
+        onSelect: (isLockIn) => {
+          setSelectedIsLockIn(isLockIn);
+          setShowTypeChooser(false);
+          setShowWoop(true);
+        }
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
       WoopWizard,
       {
         open: showWoop,
         onClose: () => setShowWoop(false),
+        isLockIn: selectedIsLockIn,
         existingLockInGoals: activeGoals.filter((g2) => g2.isLockIn && g2.startTime && g2.endTime).map((g2) => ({
           id: g2.id,
           startTime: g2.startTime,
@@ -74698,15 +75055,48 @@ const THEME_COLORS = [
   { id: "teal", label: "Teal", value: "#0D9488" }
 ];
 const BLOCKED_LABELS = /* @__PURE__ */ new Set(["my brain", "drugs", "drug", "brain"]);
-function buildOffsetOptions(min2, max2) {
-  const opts = [];
-  for (let v2 = min2; v2 <= max2; v2 += 5) opts.push(v2);
-  return opts;
-}
 function formatOffsetLabel(v2) {
   if (v2 === 0) return "0 min (at time)";
   if (v2 < 0) return `${Math.abs(v2)} min before`;
   return `+${v2} min after`;
+}
+function hourItems() {
+  return Array.from({ length: 24 }, (_2, i) => ({
+    value: i,
+    label: String(i).padStart(2, "0")
+  }));
+}
+function minuteItems(max2 = 55) {
+  const items = [];
+  for (let m2 = 0; m2 <= max2; m2 += 5) {
+    items.push({ value: m2, label: String(m2).padStart(2, "0") });
+  }
+  return items;
+}
+function lockInHourItems(maxH) {
+  return Array.from({ length: maxH + 1 }, (_2, i) => ({
+    value: i,
+    label: String(i).padStart(2, "0")
+  }));
+}
+function lockInMinuteItems(maxM) {
+  const items = [];
+  const cap = Math.floor(maxM / 5) * 5;
+  for (let m2 = 0; m2 <= cap; m2 += 5) {
+    items.push({ value: m2, label: String(m2).padStart(2, "0") });
+  }
+  return items;
+}
+function offsetItems(min2, max2) {
+  const items = [];
+  for (let v2 = min2; v2 <= max2; v2 += 5) {
+    let label;
+    if (v2 === 0) label = "0";
+    else if (v2 < 0) label = `-${Math.abs(v2)}`;
+    else label = `+${v2}`;
+    items.push({ value: v2, label });
+  }
+  return items;
 }
 function isLockInActiveWindow$1(startTime, endTime) {
   const now2 = Date.now();
@@ -74742,19 +75132,6 @@ function formatTime12h$1(t2) {
   const suffix2 = h2 >= 12 ? "PM" : "AM";
   return `${h2 % 12 || 12}:${String(m2).padStart(2, "0")} ${suffix2}`;
 }
-const wheelStyle = {
-  background: "oklch(var(--card))",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-  color: "oklch(var(--foreground))",
-  padding: "6px 0",
-  outline: "none",
-  overflowY: "auto"
-};
-const amberWheelStyle = {
-  ...wheelStyle,
-  border: "1px solid rgba(245,158,11,0.25)"
-};
 const sectionLabel = "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
 const insetCard = {
   background: "oklch(var(--card))",
@@ -74793,7 +75170,6 @@ function EditHabitPage$1() {
   const [customChips, setCustomChips] = reactExports.useState([]);
   const [focusedField, setFocusedField] = reactExports.useState(null);
   const [customError, setCustomError] = reactExports.useState("");
-  const [isLockIn, setIsLockIn] = reactExports.useState(false);
   const [lockInStartTime, setLockInStartTime] = reactExports.useState("");
   const [lockInEndTime, setLockInEndTime] = reactExports.useState("");
   const [lockInDurationHours, setLockInDurationHours] = reactExports.useState(0);
@@ -74802,6 +75178,8 @@ function EditHabitPage$1() {
   const [emailNotifications, setEmailNotifications] = reactExports.useState(false);
   const [intentTime, setIntentTime] = reactExports.useState("");
   const [reminderOffset, setReminderOffset] = reactExports.useState(0);
+  const [activeTab, setActiveTab] = reactExports.useState("details");
+  const isLockIn = (habit == null ? void 0 : habit.isLockIn) ?? false;
   reactExports.useEffect(() => {
     if (!habit) return;
     setWish(habit.wish ?? "");
@@ -74809,10 +75187,9 @@ function EditHabitPage$1() {
     setIfThenPlan(habit.ifThenPlan ?? "");
     setIconName(habit.iconName ?? "target");
     setThemeColor(habit.themeColor ?? "#2563EB");
-    setIsLockIn(habit.isLockIn ?? false);
     setLockInStartTime(habit.startTime ?? "");
     setLockInEndTime(habit.endTime ?? "");
-    if ((habit.isLockIn ?? false) && habit.startTime && habit.endTime) {
+    if (habit.isLockIn && habit.startTime && habit.endTime) {
       const [sh, sm] = habit.startTime.split(":").map(Number);
       const [eh, em] = habit.endTime.split(":").map(Number);
       const diff = Math.max(0, eh * 60 + em - (sh * 60 + sm));
@@ -74907,7 +75284,6 @@ function EditHabitPage$1() {
     return Math.max(0, 1435 - (h2 * 60 + m2));
   }, [lockInStartTime]);
   const maxLockInHours = Math.floor(maxLockInMinutes / 60);
-  const maxLockInMinAtMaxHour = lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
   const maxPositiveOffset = reactExports.useMemo(() => {
     if (!intentTime) return 60;
     const [h2, m2] = intentTime.split(":").map(Number);
@@ -74919,7 +75295,7 @@ function EditHabitPage$1() {
     offsetMax,
     Math.max(offsetMin, reminderOffset)
   );
-  const offsetOptions = buildOffsetOptions(offsetMin, offsetMax);
+  offsetItems(offsetMin, offsetMax);
   const allObstacleChips = [
     ...OBSTACLE_TEMPLATES.map((o2) => ({
       id: o2.id,
@@ -74961,10 +75337,9 @@ function EditHabitPage$1() {
     setCustomChips((prev) => prev.filter((c2) => c2.id !== chipId));
     setObstacles((prev) => prev.filter((o2) => o2.id !== chipId));
   }
-  const saveMutation = useMutation({
+  const saveDetailsMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Not connected");
-      obstacles.map((o2) => o2.label).join(", ");
       const req = {
         timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
         wish: wish.trim(),
@@ -74980,21 +75355,51 @@ function EditHabitPage$1() {
         reminderOffset: emailNotifications ? BigInt(clampedOffset) : void 0
       };
       const result = await actor.updateGoal(BigInt(id2), req);
-      if ("err" in result) {
+      if ("err" in result)
         throw new Error(
           typeof result.err === "string" ? result.err : "Failed to save"
         );
-      }
       return result;
     },
     onSuccess: () => {
       queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
-      ue.success("Habit updated!");
-      navigate({ to: "/goals" });
+      ue.success("Habit details saved!");
     }
   });
-  function canSave() {
-    if (!wish.trim()) return false;
+  const saveTimeMutation = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      const req = {
+        timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
+        wish: wish.trim(),
+        wishDescription: wishDescription.trim(),
+        ifThenPlan: ifThenPlan.trim(),
+        iconName,
+        themeColor,
+        isLockIn,
+        startTime: isLockIn && lockInStartTime ? lockInStartTime : void 0,
+        endTime: isLockIn && lockInEndTime ? lockInEndTime : void 0,
+        emailNotifications,
+        intentTime: emailNotifications && intentTime ? intentTime : void 0,
+        reminderOffset: emailNotifications ? BigInt(clampedOffset) : void 0
+      };
+      const result = await actor.updateGoal(BigInt(id2), req);
+      if ("err" in result)
+        throw new Error(
+          typeof result.err === "string" ? result.err : "Failed to save"
+        );
+      return result;
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
+      ue.success("Time & reminders saved!");
+    }
+  });
+  function canSaveDetails() {
+    return !!wish.trim();
+  }
+  function canSaveTime() {
+    if (isLockedForToday) return false;
     if (isLockIn && !lockInStartTime) return false;
     if (isLockIn && lockInDurationHours === 0 && lockInDurationMinutes === 0)
       return false;
@@ -75002,6 +75407,30 @@ function EditHabitPage$1() {
     if (emailNotifications && !isLockIn && !intentTime) return false;
     return true;
   }
+  const tabBase = {
+    flex: 1,
+    padding: "10px 0",
+    fontSize: "0.8rem",
+    fontFamily: "monospace",
+    letterSpacing: "0.07em",
+    textTransform: "uppercase",
+    fontWeight: 600,
+    borderRadius: "10px",
+    border: "none",
+    cursor: "pointer",
+    transition: "all 0.2s"
+  };
+  const tabActive = {
+    ...tabBase,
+    background: isLockIn ? "rgba(245,158,11,0.18)" : "rgba(16,185,129,0.18)",
+    color: isLockIn ? "#F59E0B" : "#10B981",
+    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.06)"
+  };
+  const tabInactive = {
+    ...tabBase,
+    background: "transparent",
+    color: "oklch(var(--muted-foreground))"
+  };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-background text-foreground", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -75030,7 +75459,7 @@ function EditHabitPage$1() {
         ]
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-lg mx-auto px-4 py-6 space-y-8 pb-24", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-lg mx-auto px-4 py-6 pb-24", children: [
       isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-muted-foreground py-8", children: "Loading…" }),
       !isLoading && !habit && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center space-y-3 py-8", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-muted-foreground", children: "Habit not found." }),
@@ -75046,510 +75475,409 @@ function EditHabitPage$1() {
         )
       ] }),
       habit && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5", children: "General" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-wish", className: sectionLabel, children: "Macro Goal" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center mb-6", children: isLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "span",
+          {
+            className: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold font-mono",
+            style: {
+              background: "rgba(245,158,11,0.12)",
+              border: "1px solid rgba(245,158,11,0.4)",
+              color: "#F59E0B"
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 11 }),
+              " Lock-In Habit"
+            ]
+          }
+        ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "span",
+          {
+            className: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold font-mono",
+            style: {
+              background: "rgba(16,185,129,0.12)",
+              border: "1px solid rgba(16,185,129,0.4)",
+              color: "#10B981"
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheckBig, { size: 11 }),
+              " Regular Habit"
+            ]
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: "flex gap-1.5 mb-6 p-1.5 rounded-2xl",
+            style: {
+              background: "oklch(var(--card))",
+              boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(255,255,255,0.04)"
+            },
+            role: "tablist",
+            "aria-label": "Edit sections",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  role: "tab",
+                  "aria-selected": activeTab === "details",
+                  "data-ocid": "edit_habit.tab.details",
+                  onClick: () => setActiveTab("details"),
+                  style: activeTab === "details" ? tabActive : tabInactive,
+                  children: "Habit Details"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  role: "tab",
+                  "aria-selected": activeTab === "time",
+                  "data-ocid": "edit_habit.tab.time",
+                  onClick: () => setActiveTab("time"),
+                  style: activeTab === "time" ? tabActive : tabInactive,
+                  children: "Time & Reminders"
+                }
+              )
+            ]
+          }
+        ),
+        activeTab === "details" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-wish", className: sectionLabel, children: "Macro Goal" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                id: "edit-wish",
+                "data-ocid": "edit_habit.wish_input",
+                value: wish,
+                maxLength: 140,
+                onChange: (e3) => setWish(e3.target.value.slice(0, 140)),
+                onFocus: () => setFocusedField("wish"),
+                onBlur: () => setFocusedField(null),
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)"
+                },
+                placeholder: "I want to run a marathon so that I can…"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "p",
+              {
+                className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`,
+                children: [
+                  wish.length,
+                  "/140"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-desc", className: sectionLabel, children: "Keystone Habit" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "textarea",
+              {
+                id: "edit-desc",
+                "data-ocid": "edit_habit.wish_description_input",
+                value: wishDescription,
+                maxLength: 140,
+                rows: 2,
+                onChange: (e3) => setWishDescription(e3.target.value.slice(0, 140)),
+                onFocus: () => setFocusedField("wishDescription"),
+                onBlur: () => setFocusedField(null),
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)"
+                },
+                placeholder: "I will run for X minutes"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "p",
+              {
+                className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`,
+                children: [
+                  wishDescription.length,
+                  "/140"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-ifthen", className: sectionLabel, children: "If-Then Plan" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "textarea",
+              {
+                id: "edit-ifthen",
+                "data-ocid": "edit_habit.if_then_plan_input",
+                value: ifThenPlan,
+                maxLength: 140,
+                rows: 2,
+                onChange: (e3) => setIfThenPlan(e3.target.value.slice(0, 140)),
+                onFocus: () => setFocusedField("ifThenPlan"),
+                onBlur: () => setFocusedField(null),
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)"
+                },
+                placeholder: "If [obstacle], then I will…"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "p",
+              {
+                className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
+                children: [
+                  ifThenPlan.length,
+                  "/140"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Obstacles" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "flex flex-wrap gap-2",
+                "data-ocid": "edit_habit.obstacle_list",
+                children: allObstacleChips.map((chip, idx) => {
+                  const selected = obstacles.some((o2) => o2.id === chip.id);
+                  const isCustom = chip.kind === "custom";
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      className: "relative inline-flex items-center",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                          "button",
+                          {
+                            type: "button",
+                            "data-ocid": `edit_habit.obstacle.${idx + 1}`,
+                            onClick: () => toggleObstacle(chip),
+                            "aria-pressed": selected,
+                            className: "text-sm px-3 py-2 rounded-full border transition-all duration-200",
+                            style: selected ? {
+                              backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
+                              borderColor: "oklch(var(--color-accent-social))",
+                              color: "oklch(var(--color-accent-social))",
+                              boxShadow: "0 0 10px oklch(var(--color-accent-social) / 0.35)"
+                            } : {
+                              backgroundColor: "oklch(var(--muted) / 0.35)",
+                              borderColor: "oklch(var(--border) / 0.5)",
+                              color: "oklch(var(--muted-foreground))"
+                            },
+                            children: [
+                              selected && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                Check,
+                                {
+                                  size: 11,
+                                  className: "inline mr-1.5 shrink-0"
+                                }
+                              ),
+                              chip.label
+                            ]
+                          }
+                        ),
+                        isCustom && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "button",
+                          {
+                            type: "button",
+                            "aria-label": `Remove ${chip.label}`,
+                            "data-ocid": `edit_habit.remove_custom_obstacle.${idx + 1}`,
+                            onClick: (e3) => {
+                              e3.stopPropagation();
+                              removeCustomChip(chip.id);
+                            },
+                            style: {
+                              position: "absolute",
+                              top: "-8px",
+                              right: "-8px",
+                              width: "18px",
+                              height: "18px",
+                              borderRadius: "50%",
+                              background: "#2a2a3a",
+                              border: "1.5px solid rgba(255,255,255,0.18)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                              zIndex: 10
+                            },
+                            children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 9, color: "#fff" })
+                          }
+                        )
+                      ]
+                    },
+                    chip.id
+                  );
+                })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "input",
                 {
-                  id: "edit-wish",
-                  "data-ocid": "edit_habit.wish_input",
-                  value: wish,
-                  maxLength: 140,
-                  onChange: (e3) => setWish(e3.target.value.slice(0, 140)),
-                  onFocus: () => setFocusedField("wish"),
-                  onBlur: () => setFocusedField(null),
-                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
-                  style: {
-                    background: "oklch(var(--muted) / 0.4)",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)"
+                  "data-ocid": "edit_habit.custom_obstacle_input",
+                  value: customInput,
+                  onChange: (e3) => {
+                    setCustomInput(e3.target.value);
+                    setCustomError("");
                   },
-                  placeholder: "I want to run a marathon so that I can…"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`,
-                  children: [
-                    wish.length,
-                    "/140"
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-desc", className: sectionLabel, children: "Keystone Habit" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "textarea",
-                {
-                  id: "edit-desc",
-                  "data-ocid": "edit_habit.wish_description_input",
-                  value: wishDescription,
-                  maxLength: 140,
-                  rows: 2,
-                  onChange: (e3) => setWishDescription(e3.target.value.slice(0, 140)),
-                  onFocus: () => setFocusedField("wishDescription"),
-                  onBlur: () => setFocusedField(null),
-                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
-                  style: {
-                    background: "oklch(var(--muted) / 0.4)",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)"
-                  },
-                  placeholder: "I will run for X minutes"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`,
-                  children: [
-                    wishDescription.length,
-                    "/140"
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-ifthen", className: sectionLabel, children: "If-Then Plan" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "textarea",
-                {
-                  id: "edit-ifthen",
-                  "data-ocid": "edit_habit.if_then_plan_input",
-                  value: ifThenPlan,
-                  maxLength: 140,
-                  rows: 2,
-                  onChange: (e3) => setIfThenPlan(e3.target.value.slice(0, 140)),
-                  onFocus: () => setFocusedField("ifThenPlan"),
-                  onBlur: () => setFocusedField(null),
-                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
-                  style: {
-                    background: "oklch(var(--muted) / 0.4)",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)"
-                  },
-                  placeholder: "If [obstacle], then I will…"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
-                  children: [
-                    ifThenPlan.length,
-                    "/140"
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Obstacles" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "div",
-                {
-                  className: "flex flex-wrap gap-2",
-                  "data-ocid": "edit_habit.obstacle_list",
-                  children: allObstacleChips.map((chip, idx) => {
-                    const selected = obstacles.some((o2) => o2.id === chip.id);
-                    const isCustom = chip.kind === "custom";
-                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "div",
-                      {
-                        className: "relative inline-flex items-center",
-                        children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                            "button",
-                            {
-                              type: "button",
-                              "data-ocid": `edit_habit.obstacle.${idx + 1}`,
-                              onClick: () => toggleObstacle(chip),
-                              "aria-pressed": selected,
-                              className: "text-sm px-3 py-2 rounded-full border transition-all duration-200",
-                              style: selected ? {
-                                backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
-                                borderColor: "oklch(var(--color-accent-social))",
-                                color: "oklch(var(--color-accent-social))",
-                                boxShadow: "0 0 10px oklch(var(--color-accent-social) / 0.35)"
-                              } : {
-                                backgroundColor: "oklch(var(--muted) / 0.35)",
-                                borderColor: "oklch(var(--border) / 0.5)",
-                                color: "oklch(var(--muted-foreground))"
-                              },
-                              children: [
-                                selected && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  Check,
-                                  {
-                                    size: 11,
-                                    className: "inline mr-1.5 shrink-0"
-                                  }
-                                ),
-                                chip.label
-                              ]
-                            }
-                          ),
-                          isCustom && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              type: "button",
-                              "aria-label": `Remove ${chip.label}`,
-                              "data-ocid": `edit_habit.remove_custom_obstacle.${idx + 1}`,
-                              onClick: (e3) => {
-                                e3.stopPropagation();
-                                removeCustomChip(chip.id);
-                              },
-                              style: {
-                                position: "absolute",
-                                top: "-8px",
-                                right: "-8px",
-                                width: "18px",
-                                height: "18px",
-                                borderRadius: "50%",
-                                background: "#2a2a3a",
-                                border: "1.5px solid rgba(255,255,255,0.18)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                cursor: "pointer",
-                                boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
-                                zIndex: 10
-                              },
-                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 9, color: "#fff" })
-                            }
-                          )
-                        ]
-                      },
-                      chip.id
-                    );
-                  })
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "input",
-                  {
-                    "data-ocid": "edit_habit.custom_obstacle_input",
-                    value: customInput,
-                    onChange: (e3) => {
-                      setCustomInput(e3.target.value);
-                      setCustomError("");
-                    },
-                    onKeyDown: (e3) => {
-                      if (e3.key === "Enter") {
-                        e3.preventDefault();
-                        addCustomChip();
-                      }
-                    },
-                    maxLength: 60,
-                    placeholder: "Add custom obstacle…",
-                    className: "flex-1 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40",
-                    style: {
-                      background: "oklch(var(--muted) / 0.4)",
-                      boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
-                      border: "1px solid rgba(255,255,255,0.07)"
+                  onKeyDown: (e3) => {
+                    if (e3.key === "Enter") {
+                      e3.preventDefault();
+                      addCustomChip();
                     }
+                  },
+                  maxLength: 60,
+                  placeholder: "Add custom obstacle…",
+                  className: "flex-1 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40",
+                  style: {
+                    background: "oklch(var(--muted) / 0.4)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                    border: "1px solid rgba(255,255,255,0.07)"
                   }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: addCustomChip,
-                    disabled: !customInput.trim(),
-                    "data-ocid": "edit_habit.add_custom_obstacle_button",
-                    className: "flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium disabled:opacity-40 transition-smooth",
-                    style: {
-                      background: "oklch(var(--color-accent-success) / 0.15)",
-                      border: "1px solid oklch(var(--color-accent-success) / 0.4)",
-                      color: "oklch(var(--color-accent-success))"
-                    },
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 13 }),
-                      " Add"
-                    ]
-                  }
-                )
-              ] }),
-              customError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: customError })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Icon" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "div",
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
                 {
-                  className: "grid grid-cols-7 gap-2",
-                  "data-ocid": "edit_habit.icon_selector",
-                  children: GOAL_ICONS.map((icon) => {
-                    const isSelected = iconName === icon.id;
-                    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "button",
-                      {
-                        type: "button",
-                        onClick: () => setIconName(icon.id),
-                        "aria-label": `Select ${icon.label} icon`,
-                        "aria-pressed": isSelected,
-                        "data-ocid": `edit_habit.icon.${icon.id}`,
-                        className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2",
-                        style: isSelected ? {
-                          backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                          border: "2px solid oklch(var(--color-accent-success))",
-                          color: "oklch(var(--color-accent-success))",
-                          boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.3)"
-                        } : {
-                          backgroundColor: "oklch(var(--muted) / 0.35)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          color: "oklch(var(--muted-foreground))",
-                          boxShadow: "2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.03)"
-                        },
-                        children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 block", children: icon.svg })
-                      },
-                      icon.id
-                    );
-                  })
+                  type: "button",
+                  onClick: addCustomChip,
+                  disabled: !customInput.trim(),
+                  "data-ocid": "edit_habit.add_custom_obstacle_button",
+                  className: "flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium disabled:opacity-40 transition-smooth",
+                  style: {
+                    background: "oklch(var(--color-accent-success) / 0.15)",
+                    border: "1px solid oklch(var(--color-accent-success) / 0.4)",
+                    color: "oklch(var(--color-accent-success))"
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { size: 13 }),
+                    " Add"
+                  ]
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Theme Color" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "div",
-                {
-                  className: "flex flex-wrap gap-3",
-                  "data-ocid": "edit_habit.color_selector",
-                  children: THEME_COLORS.map((color2) => {
-                    const isSelected = themeColor === color2.value;
-                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "div",
-                      {
-                        className: "flex flex-col items-center gap-1",
-                        children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              type: "button",
-                              onClick: () => setThemeColor(color2.value),
-                              "aria-label": color2.label,
-                              "aria-pressed": isSelected,
-                              "data-ocid": `edit_habit.color.${color2.id}`,
-                              className: "w-10 h-10 rounded-full transition-all duration-200",
-                              style: {
-                                backgroundColor: color2.value,
-                                boxShadow: isSelected ? `0 0 0 2.5px oklch(var(--card)), 0 0 0 4.5px ${color2.value}, 0 0 14px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
-                                transform: isSelected ? "scale(1.2)" : "scale(1)"
-                              }
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground font-mono", children: color2.label })
-                        ]
-                      },
-                      color2.id
-                    );
-                  })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-semibold text-foreground", children: "Lock-In Mode" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-0.5", children: "Strict time block with check-in & check-out" })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    type: "button",
-                    role: "switch",
-                    "aria-checked": isLockIn,
-                    "data-ocid": "edit_habit.lockin_toggle",
-                    onClick: () => setIsLockIn((v2) => !v2),
-                    className: "relative shrink-0 w-14 h-7 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    style: {
-                      background: isLockIn ? "#F59E0B" : "oklch(var(--muted))",
-                      boxShadow: isLockIn ? "inset 2px 2px 5px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.12)" : "inset 2px 2px 5px rgba(0,0,0,0.45), inset -2px -2px 4px rgba(255,255,255,0.07)"
-                    },
-                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "span",
-                      {
-                        className: "absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300",
-                        style: {
-                          left: isLockIn ? "calc(100% - 24px)" : "4px",
-                          boxShadow: "1px 1px 4px rgba(0,0,0,0.4)"
-                        }
-                      }
-                    )
-                  }
-                )
-              ] }),
-              isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
-                  {
-                    className: "flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-snug",
-                    style: {
-                      background: "rgba(245,158,11,0.08)",
-                      borderLeft: "3px solid rgba(245,158,11,0.7)"
-                    },
-                    "data-ocid": "edit_habit.lockin_commitment_banner",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        Lock,
-                        {
-                          size: 12,
-                          className: "shrink-0 mt-0.5",
-                          style: { color: "#F59E0B" }
-                        }
-                      ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { style: { color: "rgba(251,191,36,0.9)" }, children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Lock-In time blocks are a strict commitment." }),
-                        " ",
-                        "You can only change these times outside your active window.",
-                        isLockInWindowActive && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block mt-1 font-semibold", children: "Active window is open — time fields are locked." })
-                      ] })
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "label",
+            customError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: customError })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Icon" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "grid grid-cols-7 gap-2",
+                "data-ocid": "edit_habit.icon_selector",
+                children: GOAL_ICONS.map((icon) => {
+                  const isSelected = iconName === icon.id;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
                     {
-                      htmlFor: "edit-lockin-start",
-                      className: sectionLabel,
-                      children: "Start Time"
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "input",
+                      type: "button",
+                      onClick: () => setIconName(icon.id),
+                      "aria-label": `Select ${icon.label} icon`,
+                      "aria-pressed": isSelected,
+                      "data-ocid": `edit_habit.icon.${icon.id}`,
+                      className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2",
+                      style: isSelected ? {
+                        backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                        border: "2px solid oklch(var(--color-accent-success))",
+                        color: "oklch(var(--color-accent-success))",
+                        boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.3)"
+                      } : {
+                        backgroundColor: "oklch(var(--muted) / 0.35)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "oklch(var(--muted-foreground))",
+                        boxShadow: "2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.03)"
+                      },
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 block", children: icon.svg })
+                    },
+                    icon.id
+                  );
+                })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Theme Color" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "flex flex-wrap gap-3",
+                "data-ocid": "edit_habit.color_selector",
+                children: THEME_COLORS.map((color2) => {
+                  const isSelected = themeColor === color2.value;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
                     {
-                      id: "edit-lockin-start",
-                      type: "time",
-                      "data-ocid": "edit_habit.lockin_start_time",
-                      value: lockInStartTime,
-                      disabled: isLockInWindowActive,
-                      onChange: (e3) => setLockInStartTime(e3.target.value),
-                      className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50",
-                      style: {
-                        background: "oklch(var(--card))",
-                        boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                        colorScheme: "dark"
-                      }
-                    }
-                  )
-                ] }),
-                lockInStartTime ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: sectionLabel, children: "Duration" }),
-                  maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — start time leaves no room before 23:55 cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "label",
-                        {
-                          htmlFor: "edit-lockin-hours",
-                          className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                          children: "Hours"
-                        }
-                      ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "select",
-                        {
-                          id: "edit-lockin-hours",
-                          "data-ocid": "edit_habit.lockin_duration_hours",
-                          value: lockInDurationHours,
-                          disabled: isLockInWindowActive,
-                          onChange: (e3) => setLockInDurationHours(
-                            Number(e3.target.value)
-                          ),
-                          size: 5,
-                          className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50",
-                          style: amberWheelStyle,
-                          children: Array.from(
-                            { length: maxLockInHours + 1 },
-                            (_2, i) => i
-                          ).map((h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "option",
-                            {
-                              value: h2,
-                              style: {
-                                background: "oklch(var(--card))",
-                                color: lockInDurationHours === h2 ? "#F59E0B" : "oklch(var(--foreground))",
-                                fontWeight: lockInDurationHours === h2 ? 700 : 400
-                              },
-                              children: String(h2).padStart(2, "0")
-                            },
-                            h2
-                          ))
-                        }
-                      )
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "label",
-                        {
-                          htmlFor: "edit-lockin-mins",
-                          className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                          children: "Min"
-                        }
-                      ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "select",
-                        {
-                          id: "edit-lockin-mins",
-                          "data-ocid": "edit_habit.lockin_duration_minutes",
-                          value: lockInDurationMinutes,
-                          disabled: isLockInWindowActive,
-                          onChange: (e3) => setLockInDurationMinutes(
-                            Number(e3.target.value)
-                          ),
-                          size: 5,
-                          className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50",
-                          style: amberWheelStyle,
-                          children: Array.from(
-                            { length: maxLockInMinAtMaxHour + 1 },
-                            (_2, i) => i
-                          ).map((m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "option",
-                            {
-                              value: m2,
-                              style: {
-                                background: "oklch(var(--card))",
-                                color: lockInDurationMinutes === m2 ? "#F59E0B" : "oklch(var(--foreground))",
-                                fontWeight: lockInDurationMinutes === m2 ? 700 : 400
-                              },
-                              children: String(m2).padStart(2, "0")
-                            },
-                            m2
-                          ))
-                        }
-                      )
-                    ] })
-                  ] }),
-                  lockInEndTime && !(lockInDurationHours === 0 && lockInDurationMinutes === 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70 mt-2", children: [
-                    "Ends at",
-                    " ",
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F59E0B" }, children: formatTime12h$1(lockInEndTime) })
-                  ] })
-                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/60 italic", children: "Select a start time first to set the duration." }),
-                overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "p",
-                  {
-                    className: "text-xs font-medium",
-                    style: { color: "#EF4444" },
-                    "data-ocid": "edit_habit.lockin_overlap.field_error",
-                    children: overlapError
-                  }
-                )
-              ] })
-            ] })
-          ] })
+                      className: "flex flex-col items-center gap-1",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: () => setThemeColor(color2.value),
+                            "aria-label": color2.label,
+                            "aria-pressed": isSelected,
+                            "data-ocid": `edit_habit.color.${color2.id}`,
+                            className: "w-10 h-10 rounded-full transition-all duration-200",
+                            style: {
+                              backgroundColor: color2.value,
+                              boxShadow: isSelected ? `0 0 0 2.5px oklch(var(--card)), 0 0 0 4.5px ${color2.value}, 0 0 14px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                              transform: isSelected ? "scale(1.2)" : "scale(1)"
+                            }
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground font-mono", children: color2.label })
+                      ]
+                    },
+                    color2.id
+                  );
+                })
+              }
+            )
+          ] }),
+          saveDetailsMutation.isError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "p",
+            {
+              className: "text-sm text-destructive px-1",
+              "data-ocid": "edit_habit.details_error_state",
+              children: saveDetailsMutation.error instanceof Error ? saveDetailsMutation.error.message : "Failed to save changes"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => saveDetailsMutation.mutate(),
+              disabled: !canSaveDetails() || saveDetailsMutation.isPending,
+              "data-ocid": "edit_habit.save_details_button",
+              className: "w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 mt-2",
+              style: {
+                background: "#10B981",
+                boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+              },
+              children: saveDetailsMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
+                "Saving…"
+              ] }) : "Save Habit Details"
+            }
+          )
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5", children: "Email Reminders" }),
+        activeTab === "time" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", children: [
           isLockedForToday && /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
             {
-              className: "rounded-xl p-4 mb-4 text-sm flex items-start gap-2.5",
+              className: "rounded-xl p-4 text-sm flex items-start gap-2.5",
               style: {
                 background: "rgba(245,158,11,0.08)",
                 border: "1px solid rgba(245,158,11,0.3)",
@@ -75558,10 +75886,181 @@ function EditHabitPage$1() {
               "data-ocid": "edit_habit.reminder_lock_banner",
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 15, className: "shrink-0 mt-0.5" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "You have already updated reminders today. To build consistency, further edits are locked until tomorrow." })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "You have already updated time & reminders today. Further edits are locked until tomorrow." })
               ]
             }
           ),
+          isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                className: "flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-snug",
+                style: {
+                  background: "rgba(245,158,11,0.08)",
+                  borderLeft: "3px solid rgba(245,158,11,0.7)"
+                },
+                "data-ocid": "edit_habit.lockin_commitment_banner",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Lock,
+                    {
+                      size: 12,
+                      className: "shrink-0 mt-0.5",
+                      style: { color: "#F59E0B" }
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { style: { color: "rgba(251,191,36,0.9)" }, children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Lock-In time blocks are a strict commitment." }),
+                    " ",
+                    "You can only change these times outside your active window.",
+                    isLockInWindowActive && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block mt-1 font-semibold", children: "Active window is open — time fields are locked." })
+                  ] })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                className: "space-y-1.5",
+                style: isLockedForToday || isLockInWindowActive ? { pointerEvents: "none", opacity: 0.5 } : {},
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Start Time" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      className: "flex items-center gap-2",
+                      "data-ocid": "edit_habit.lockin_start_time",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Hours" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            ScrollWheelPicker,
+                            {
+                              items: hourItems(),
+                              value: lockInStartTime ? Number(lockInStartTime.split(":")[0]) : 0,
+                              onChange: (v2) => {
+                                const h2 = String(v2).padStart(2, "0");
+                                const curM = lockInStartTime ? lockInStartTime.split(":")[1] : "00";
+                                setLockInStartTime(`${h2}:${curM}`);
+                              },
+                              accentColor: "#F59E0B",
+                              height: 44,
+                              visibleCount: 5
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "span",
+                          {
+                            className: "text-xl font-mono font-bold shrink-0",
+                            style: { color: "#F59E0B", marginTop: 20 },
+                            children: ":"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Minutes" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            ScrollWheelPicker,
+                            {
+                              items: minuteItems(),
+                              value: lockInStartTime ? Math.round(
+                                Number(lockInStartTime.split(":")[1]) / 5
+                              ) * 5 : 0,
+                              onChange: (v2) => {
+                                const curH = lockInStartTime ? lockInStartTime.split(":")[0] : "00";
+                                const m2 = String(v2).padStart(2, "0");
+                                setLockInStartTime(`${curH}:${m2}`);
+                              },
+                              accentColor: "#F59E0B",
+                              height: 44,
+                              visibleCount: 5
+                            }
+                          )
+                        ] })
+                      ]
+                    }
+                  )
+                ]
+              }
+            ),
+            lockInStartTime ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                style: isLockedForToday || isLockInWindowActive ? { pointerEvents: "none", opacity: 0.5 } : {},
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: sectionLabel, children: "Duration" }),
+                  maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — start time leaves no room before 23:55 cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        className: "flex-1",
+                        "data-ocid": "edit_habit.lockin_duration_hours",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Hours" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            ScrollWheelPicker,
+                            {
+                              items: lockInHourItems(maxLockInHours),
+                              value: lockInDurationHours,
+                              onChange: (v2) => setLockInDurationHours(Number(v2)),
+                              accentColor: "#F59E0B",
+                              height: 44,
+                              visibleCount: 5
+                            }
+                          )
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: "text-xl font-mono font-bold shrink-0",
+                        style: { color: "#F59E0B", marginTop: 20 },
+                        children: ":"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        className: "flex-1",
+                        "data-ocid": "edit_habit.lockin_duration_minutes",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Min" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            ScrollWheelPicker,
+                            {
+                              items: lockInMinuteItems(
+                                lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 55
+                              ),
+                              value: lockInDurationMinutes,
+                              onChange: (v2) => setLockInDurationMinutes(Number(v2)),
+                              accentColor: "#F59E0B",
+                              height: 44,
+                              visibleCount: 5
+                            }
+                          )
+                        ]
+                      }
+                    )
+                  ] }),
+                  lockInEndTime && !(lockInDurationHours === 0 && lockInDurationMinutes === 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70 mt-2", children: [
+                    "Ends at",
+                    " ",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F59E0B" }, children: formatTime12h$1(lockInEndTime) })
+                  ] })
+                ]
+              }
+            ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/60 italic", children: "Select a start time first to set the duration." }),
+            overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "p",
+              {
+                className: "text-xs font-medium",
+                style: { color: "#EF4444" },
+                "data-ocid": "edit_habit.lockin_overlap.field_error",
+                children: overlapError
+              }
+            )
+          ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -75617,29 +76116,60 @@ function EditHabitPage$1() {
                 className: `overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${emailNotifications && hasEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`,
                 children: [
                   !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "When do you plan to do this?" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "label",
+                      "div",
                       {
-                        htmlFor: "edit-intent-time",
-                        className: sectionLabel,
-                        children: "When do you plan to do this?"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "input",
-                      {
-                        id: "edit-intent-time",
-                        type: "time",
                         "data-ocid": "edit_habit.intent_time_input",
-                        value: intentTime,
-                        disabled: isLockedForToday,
-                        onChange: (e3) => setIntentTime(e3.target.value),
-                        className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50",
-                        style: {
-                          background: "oklch(var(--card))",
-                          boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                          colorScheme: "dark"
-                        }
+                        style: isLockedForToday ? { pointerEvents: "none", opacity: 0.5 } : {},
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Hours" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              ScrollWheelPicker,
+                              {
+                                items: hourItems(),
+                                value: intentTime ? Number(intentTime.split(":")[0]) : 0,
+                                onChange: (v2) => {
+                                  const h2 = String(v2).padStart(2, "0");
+                                  const curM = intentTime ? intentTime.split(":")[1] : "00";
+                                  setIntentTime(`${h2}:${curM}`);
+                                },
+                                accentColor: "#10B981",
+                                height: 44,
+                                visibleCount: 5
+                              }
+                            )
+                          ] }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "text-xl font-mono font-bold shrink-0",
+                              style: { color: "#10B981", marginTop: 20 },
+                              children: ":"
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Minutes" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              ScrollWheelPicker,
+                              {
+                                items: minuteItems(),
+                                value: intentTime ? Math.round(
+                                  Number(intentTime.split(":")[1]) / 5
+                                ) * 5 : 0,
+                                onChange: (v2) => {
+                                  const curH = intentTime ? intentTime.split(":")[0] : "00";
+                                  const m2 = String(v2).padStart(2, "0");
+                                  setIntentTime(`${curH}:${m2}`);
+                                },
+                                accentColor: "#10B981",
+                                height: 44,
+                                visibleCount: 5
+                              }
+                            )
+                          ] })
+                        ] })
                       }
                     )
                   ] }),
@@ -75650,7 +76180,7 @@ function EditHabitPage$1() {
                         "span",
                         {
                           className: "text-sm font-mono",
-                          style: { color: "#10B981" },
+                          style: { color: isLockIn ? "#F59E0B" : "#10B981" },
                           "data-ocid": "edit_habit.reminder_offset_display",
                           children: formatOffsetLabel(clampedOffset)
                         }
@@ -75658,28 +76188,21 @@ function EditHabitPage$1() {
                     ] }),
                     isLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Lock-In reminders can only be sent before the start time (up to 60 min before)." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Normal habits: −60 to +60 min relative to intent time (capped at 23:55)." }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "select",
+                      "div",
                       {
                         "data-ocid": "edit_habit.reminder_offset_wheel",
-                        value: clampedOffset,
-                        disabled: isLockedForToday,
-                        onChange: (e3) => setReminderOffset(Number(e3.target.value)),
-                        size: 5,
-                        className: "w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer disabled:opacity-50",
-                        style: wheelStyle,
-                        children: offsetOptions.map((v2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "option",
+                        style: isLockedForToday ? { pointerEvents: "none", opacity: 0.5 } : {},
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          ScrollWheelPicker,
                           {
-                            value: v2,
-                            style: {
-                              background: "oklch(var(--card))",
-                              color: clampedOffset === v2 ? "#10B981" : "oklch(var(--foreground))",
-                              fontWeight: clampedOffset === v2 ? 700 : 400
-                            },
-                            children: formatOffsetLabel(v2)
-                          },
-                          v2
-                        ))
+                            items: offsetItems(offsetMin, offsetMax),
+                            value: clampedOffset,
+                            onChange: (v2) => setReminderOffset(Number(v2)),
+                            accentColor: isLockIn ? "#F59E0B" : "#10B981",
+                            height: 44,
+                            visibleCount: 5
+                          }
+                        )
                       }
                     )
                   ] }),
@@ -75687,34 +76210,46 @@ function EditHabitPage$1() {
                 ]
               }
             )
-          ] })
-        ] }),
-        saveMutation.isError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "p",
-          {
-            className: "text-sm text-destructive px-1",
-            "data-ocid": "edit_habit.error_state",
-            children: saveMutation.error instanceof Error ? saveMutation.error.message : "Failed to save changes"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            type: "button",
-            onClick: () => saveMutation.mutate(),
-            disabled: !canSave() || saveMutation.isPending,
-            "data-ocid": "edit_habit.save_button",
-            className: "w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2",
-            style: {
-              background: "#10B981",
-              boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
-            },
-            children: saveMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
-              "Saving…"
-            ] }) : "Save Changes"
-          }
-        )
+          ] }),
+          saveTimeMutation.isError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "p",
+            {
+              className: "text-sm text-destructive px-1",
+              "data-ocid": "edit_habit.time_error_state",
+              children: saveTimeMutation.error instanceof Error ? saveTimeMutation.error.message : "Failed to save changes"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => saveTimeMutation.mutate(),
+              disabled: !canSaveTime() || saveTimeMutation.isPending,
+              "data-ocid": "edit_habit.save_time_button",
+              className: "w-full py-3.5 rounded-xl font-semibold transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 mt-2",
+              style: {
+                background: isLockIn ? "#F59E0B" : "#10B981",
+                color: isLockIn ? "#000" : "#fff",
+                boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+              },
+              children: saveTimeMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
+                "Saving…"
+              ] }) : "Save Time & Reminders"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "p",
+            {
+              className: "text-center text-xs font-mono mt-2",
+              style: {
+                color: isLockedForToday ? "#F59E0B" : "oklch(var(--muted-foreground))"
+              },
+              "data-ocid": "edit_habit.time_edit_counter",
+              children: isLockedForToday ? "No edits remaining today — resets at midnight" : "1 edit remaining today"
+            }
+          )
+        ] })
       ] })
     ] })
   ] });
@@ -79366,6 +79901,8 @@ function GoalDetailPanel({
 }
 function GoalsPage$1() {
   const [showWoop, setShowWoop] = reactExports.useState(false);
+  const [showTypeChooser, setShowTypeChooser] = reactExports.useState(false);
+  const [selectedIsLockIn, setSelectedIsLockIn] = reactExports.useState(false);
   const [activeFilter, setActiveFilter] = reactExports.useState(GoalState.active);
   const [selectedGoalId, setSelectedGoalId] = reactExports.useState(null);
   const [changingStateId, setChangingStateId] = reactExports.useState(null);
@@ -79473,7 +80010,7 @@ function GoalsPage$1() {
           "button",
           {
             type: "button",
-            onClick: () => setShowWoop(true),
+            onClick: () => setShowTypeChooser(true),
             "data-ocid": "goals.add_goal_button",
             "aria-label": "Create a new habit",
             className: "flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth shrink-0",
@@ -79585,7 +80122,7 @@ function GoalsPage$1() {
             Button,
             {
               type: "button",
-              onClick: () => setShowWoop(true),
+              onClick: () => setShowTypeChooser(true),
               className: "gap-2 button-primary-neon",
               "data-ocid": "goals.create_first_habit_button",
               children: [
@@ -79614,7 +80151,7 @@ function GoalsPage$1() {
             {
               type: "button",
               className: "underline underline-offset-2 hover:text-foreground transition-colors",
-              onClick: () => setShowWoop(true),
+              onClick: () => setShowTypeChooser(true),
               "data-ocid": "goals.filter_empty_create_button",
               children: "Create one now"
             }
@@ -79694,10 +80231,23 @@ function GoalsPage$1() {
       );
     }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
+      HabitTypeChooser,
+      {
+        open: showTypeChooser,
+        onClose: () => setShowTypeChooser(false),
+        onSelect: (isLockIn) => {
+          setSelectedIsLockIn(isLockIn);
+          setShowTypeChooser(false);
+          setShowWoop(true);
+        }
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
       WoopWizard,
       {
         open: showWoop,
         onClose: () => setShowWoop(false),
+        isLockIn: selectedIsLockIn,
         existingLockInGoals: visibleGoals.filter(
           (g2) => g2.isLockIn && g2.startTime && g2.endTime && g2.state === GoalState.active
         ).map((g2) => ({
