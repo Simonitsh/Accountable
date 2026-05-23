@@ -39,7 +39,6 @@ import type {
   GoalState as GoalStateType,
   UpdateGoalRequest,
 } from "../backend.d.ts";
-import HabitTypeChooser from "../components/HabitTypeChooser";
 import WoopWizard from "../components/WoopWizard";
 import { useBackend } from "../hooks/useBackend";
 
@@ -1339,8 +1338,7 @@ function GoalDetailPanel({
 // ─── Goals Page ───────────────────────────────────────────────────────────────
 export function GoalsPage() {
   const [showWoop, setShowWoop] = useState(false);
-  const [showTypeChooser, setShowTypeChooser] = useState(false);
-  const [selectedIsLockIn, setSelectedIsLockIn] = useState(false);
+
   const [activeFilter, setActiveFilter] = useState<FilterTab>(GoalState.active);
   const [selectedGoalId, setSelectedGoalId] = useState<bigint | null>(null);
   const [changingStateId, setChangingStateId] = useState<bigint | null>(null);
@@ -1464,7 +1462,7 @@ export function GoalsPage() {
           </h1>
           <button
             type="button"
-            onClick={() => setShowTypeChooser(true)}
+            onClick={() => setShowWoop(true)}
             data-ocid="goals.add_goal_button"
             aria-label="Create a new habit"
             className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth shrink-0"
@@ -1587,7 +1585,7 @@ export function GoalsPage() {
           </p>
           <Button
             type="button"
-            onClick={() => setShowTypeChooser(true)}
+            onClick={() => setShowWoop(true)}
             className="gap-2 button-primary-neon"
             data-ocid="goals.create_first_habit_button"
           >
@@ -1612,7 +1610,7 @@ export function GoalsPage() {
             <button
               type="button"
               className="underline underline-offset-2 hover:text-foreground transition-colors"
-              onClick={() => setShowTypeChooser(true)}
+              onClick={() => setShowWoop(true)}
               data-ocid="goals.filter_empty_create_button"
             >
               Create one now
@@ -1724,19 +1722,9 @@ export function GoalsPage() {
       )}
 
       {/* WOOP Wizard */}
-      <HabitTypeChooser
-        open={showTypeChooser}
-        onClose={() => setShowTypeChooser(false)}
-        onSelect={(isLockIn) => {
-          setSelectedIsLockIn(isLockIn);
-          setShowTypeChooser(false);
-          setShowWoop(true);
-        }}
-      />
       <WoopWizard
         open={showWoop}
         onClose={() => setShowWoop(false)}
-        isLockIn={selectedIsLockIn}
         existingLockInGoals={visibleGoals
           .filter(
             (g) =>

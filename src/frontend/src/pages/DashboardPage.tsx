@@ -8,7 +8,6 @@ import type { CheckIn as BackendCheckIn, GoalPublic } from "../backend.d.ts";
 import { GoalCard, getLockInState } from "../components/GoalCard";
 import type { DayStatus, LockInCheckIn } from "../components/GoalCard";
 import { GoalInsightSheet } from "../components/GoalInsightSheet";
-import HabitTypeChooser from "../components/HabitTypeChooser";
 import { UndoPopup } from "../components/UndoPopup";
 import WoopWizard from "../components/WoopWizard";
 import { useAuth } from "../hooks/useAuth";
@@ -614,8 +613,7 @@ function NewHabitBadge() {
 export function DashboardPage() {
   const [usernameModalDismissed, setUsernameModalDismissed] = useState(false);
   const [showWoop, setShowWoop] = useState(false);
-  const [showTypeChooser, setShowTypeChooser] = useState(false);
-  const [selectedIsLockIn, setSelectedIsLockIn] = useState(false);
+
   const { actor, isFetching: actorFetching } = useBackend();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { principalText } = useAuth();
@@ -1493,7 +1491,7 @@ export function DashboardPage() {
             />
             <button
               type="button"
-              onClick={() => setShowTypeChooser(true)}
+              onClick={() => setShowWoop(true)}
               data-ocid="dashboard.create_habit_button"
               aria-label="Create a new habit"
               className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth ml-auto"
@@ -1516,7 +1514,7 @@ export function DashboardPage() {
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => setShowTypeChooser(true)}
+              onClick={() => setShowWoop(true)}
               data-ocid="dashboard.create_habit_button"
               aria-label="Create a new habit"
               className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
@@ -1617,7 +1615,7 @@ export function DashboardPage() {
             </p>
             <button
               type="button"
-              onClick={() => setShowTypeChooser(true)}
+              onClick={() => setShowWoop(true)}
               data-ocid="dashboard.empty_create_habit_button"
               className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full transition-smooth"
               style={{
@@ -1782,19 +1780,9 @@ export function DashboardPage() {
       </AnimatePresence>
 
       {/* WOOP Wizard — opened from dashboard Create Habit button */}
-      <HabitTypeChooser
-        open={showTypeChooser}
-        onClose={() => setShowTypeChooser(false)}
-        onSelect={(isLockIn) => {
-          setSelectedIsLockIn(isLockIn);
-          setShowTypeChooser(false);
-          setShowWoop(true);
-        }}
-      />
       <WoopWizard
         open={showWoop}
         onClose={() => setShowWoop(false)}
-        isLockIn={selectedIsLockIn}
         existingLockInGoals={activeGoals
           .filter((g) => g.isLockIn && g.startTime && g.endTime)
           .map((g) => ({

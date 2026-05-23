@@ -836,42 +836,36 @@ export default function WoopWizard({
                         className="input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium"
                         aria-label="Daily habit action"
                       />
-                      <span className="text-muted-foreground shrink-0">
-                        for
-                      </span>
-                      <input
-                        data-ocid="woop_wizard.habit_minutes_input"
-                        value={
-                          effectiveHabitMinutes > 0
-                            ? String(effectiveHabitMinutes)
-                            : form.habitMinutes
-                        }
-                        readOnly={form.isLockIn}
-                        onChange={(e) => {
-                          if (form.isLockIn) return;
-                          const raw = e.target.value.replace(/[^0-9]/g, "");
-                          const num = Number.parseInt(raw, 10);
-                          const capped = Number.isNaN(num)
-                            ? ""
-                            : String(Math.min(num, 1440));
-                          setForm((f) => ({ ...f, habitMinutes: capped }));
-                          setErrors((er) => ({
-                            ...er,
-                            habitMinutes: undefined,
-                          }));
-                        }}
-                        placeholder="15"
-                        inputMode="numeric"
-                        style={{
-                          opacity: form.isLockIn ? 0.5 : 1,
-                          cursor: form.isLockIn ? "not-allowed" : "auto",
-                        }}
-                        className="input-neumorphic w-20 text-foreground text-xl font-medium text-center"
-                        aria-label="Minutes per day"
-                      />
-                      <span className="text-muted-foreground shrink-0">
-                        minutes
-                      </span>
+                      {!form.isLockIn && (
+                        <>
+                          <span className="text-muted-foreground shrink-0">
+                            for
+                          </span>
+                          <input
+                            data-ocid="woop_wizard.habit_minutes_input"
+                            value={form.habitMinutes}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/[^0-9]/g, "");
+                              const num = Number.parseInt(raw, 10);
+                              const capped = Number.isNaN(num)
+                                ? ""
+                                : String(Math.min(num, 1440));
+                              setForm((f) => ({ ...f, habitMinutes: capped }));
+                              setErrors((er) => ({
+                                ...er,
+                                habitMinutes: undefined,
+                              }));
+                            }}
+                            placeholder="15"
+                            inputMode="numeric"
+                            className="input-neumorphic w-20 text-foreground text-xl font-medium text-center"
+                            aria-label="Minutes per day"
+                          />
+                          <span className="text-muted-foreground shrink-0">
+                            minutes
+                          </span>
+                        </>
+                      )}
                     </div>
                     <div className="flex justify-between items-center gap-2 text-xs text-muted-foreground/60 font-mono">
                       <span
@@ -902,26 +896,73 @@ export default function WoopWizard({
                   </div>
                 </div>
 
-                {/* Lock-In Time pickers — shown when Lock-In mode is pre-set */}
+                {/* Habit Mode Selector */}
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-amber-500/30 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span style={{ color: "#F59E0B", fontSize: "18px" }}>
-                        🔒
-                      </span>
-                      <p
-                        className="text-base font-display font-semibold"
-                        style={{ color: "#F59E0B" }}
-                      >
-                        Lock-In Mode
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({ ...f, isLockIn: false }))
+                      }
+                      className={`flex-1 py-4 px-4 rounded-xl text-base font-semibold transition-all duration-200 border-2 ${!form.isLockIn ? "border-[#10B981] text-[#10B981]" : "border-border text-muted-foreground"}`}
+                      style={
+                        !form.isLockIn
+                          ? {
+                              boxShadow:
+                                "inset 3px 3px 6px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)",
+                              backgroundColor: "rgba(16,185,129,0.08)",
+                            }
+                          : {
+                              boxShadow:
+                                "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)",
+                              backgroundColor: "oklch(var(--card))",
+                            }
+                      }
+                      data-ocid="woop_wizard.mode_standard_button"
+                    >
+                      Standard Habit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, isLockIn: true }))}
+                      className={`flex-1 py-4 px-4 rounded-xl text-base font-semibold transition-all duration-200 border-2 ${form.isLockIn ? "border-[#F59E0B] text-[#F59E0B]" : "border-border text-muted-foreground"}`}
+                      style={
+                        form.isLockIn
+                          ? {
+                              boxShadow:
+                                "inset 3px 3px 6px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)",
+                              backgroundColor: "rgba(245,158,11,0.08)",
+                            }
+                          : {
+                              boxShadow:
+                                "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)",
+                              backgroundColor: "oklch(var(--card))",
+                            }
+                      }
+                      data-ocid="woop_wizard.mode_lockin_button"
+                    >
+                      Lock-In Habit
+                    </button>
+                  </div>
+
+                  {form.isLockIn && (
+                    <div className="rounded-2xl border border-amber-500/30 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span style={{ color: "#F59E0B", fontSize: "18px" }}>
+                          🔒
+                        </span>
+                        <p
+                          className="text-base font-display font-semibold"
+                          style={{ color: "#F59E0B" }}
+                        >
+                          Lock-In Mode
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Lock-In Mode overrides your standard habit time. It must
+                        finish by 23:55 to log correctly today. Your max
+                        duration is calculated based on your start time.
                       </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Lock-In Mode overrides your standard habit time. It must
-                      finish by 23:55 to log correctly today. Your max duration
-                      is calculated based on your start time.
-                    </p>
-                    {form.isLockIn && (
                       <div className="space-y-4 pt-2 border-t border-border/20">
                         {/* Start Time — always shown first */}
                         <div className="space-y-2">
@@ -932,80 +973,128 @@ export default function WoopWizard({
                             Start Time
                           </label>
                           <div
-                            className="bg-[#1a1a1a] border border-amber-500/30 rounded-xl p-4"
                             style={{
+                              background: "rgba(15, 10, 0, 0.55)",
+                              border: "1px solid rgba(245, 158, 11, 0.35)",
+                              borderRadius: "16px",
+                              padding: "16px",
+                              minHeight: "260px",
                               display: "flex",
-                              alignItems: "flex-start",
-                              gap: "8px",
-                              minHeight: "220px",
+                              alignItems: "flex-end",
+                              gap: "12px",
                             }}
                           >
-                            <ScrollWheelPicker
-                              items={wHourItems()}
-                              value={
-                                form.lockInStartTime
-                                  ? Number.parseInt(
-                                      form.lockInStartTime.split(":")[0],
-                                      10,
-                                    )
-                                  : 0
-                              }
-                              onChange={(v) => {
-                                const h = v as number;
-                                const m = form.lockInStartTime
-                                  ? Math.round(
-                                      Number.parseInt(
-                                        form.lockInStartTime.split(":")[1],
-                                        10,
-                                      ) / 5,
-                                    ) * 5
-                                  : 0;
-                                setForm((f) => ({
-                                  ...f,
-                                  lockInStartTime: `${padTwo(h)}:${padTwo(m)}`,
-                                }));
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                flex: 1,
+                                gap: "6px",
                               }}
-                              accentColor="#F59E0B"
-                              visibleCount={5}
-                            />
-                            <span
+                            >
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  color: "rgba(245,158,11,0.7)",
+                                  fontWeight: 600,
+                                  letterSpacing: "0.1em",
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                HRS
+                              </span>
+                              <ScrollWheelPicker
+                                items={wHourItems()}
+                                value={
+                                  form.lockInStartTime
+                                    ? Number.parseInt(
+                                        form.lockInStartTime.split(":")[0],
+                                        10,
+                                      )
+                                    : 8
+                                }
+                                onChange={(v) => {
+                                  const h = v as number;
+                                  const m = form.lockInStartTime
+                                    ? Math.round(
+                                        Number.parseInt(
+                                          form.lockInStartTime.split(":")[1],
+                                          10,
+                                        ) / 5,
+                                      ) * 5
+                                    : 0;
+                                  setForm((f) => ({
+                                    ...f,
+                                    lockInStartTime: `${padTwo(h)}:${padTwo(m)}`,
+                                  }));
+                                }}
+                                accentColor="#F59E0B"
+                                visibleCount={5}
+                                height={200}
+                              />
+                            </div>
+                            <div
                               style={{
                                 color: "#F59E0B",
                                 fontSize: "24px",
                                 fontWeight: 700,
                                 fontFamily: "monospace",
+                                paddingBottom: "8px",
                               }}
                             >
                               :
-                            </span>
-                            <ScrollWheelPicker
-                              items={wMinuteItemsStep5()}
-                              value={
-                                form.lockInStartTime
-                                  ? Math.round(
-                                      Number.parseInt(
-                                        form.lockInStartTime.split(":")[1],
-                                        10,
-                                      ) / 5,
-                                    ) * 5
-                                  : 0
-                              }
-                              onChange={(v) => {
-                                const m = v as number;
-                                const h = form.lockInStartTime
-                                  ? Number.parseInt(
-                                      form.lockInStartTime.split(":")[0],
-                                      10,
-                                    )
-                                  : 0;
-                                setForm((f) => ({
-                                  ...f,
-                                  lockInStartTime: `${padTwo(h)}:${padTwo(m)}`,
-                                }));
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                flex: 1,
+                                gap: "6px",
                               }}
-                              accentColor="#F59E0B"
-                              visibleCount={5}
-                            />
+                            >
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  color: "rgba(245,158,11,0.7)",
+                                  fontWeight: 600,
+                                  letterSpacing: "0.1em",
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                MIN
+                              </span>
+                              <ScrollWheelPicker
+                                items={wMinuteItemsStep5()}
+                                value={
+                                  form.lockInStartTime
+                                    ? Math.round(
+                                        Number.parseInt(
+                                          form.lockInStartTime.split(":")[1],
+                                          10,
+                                        ) / 5,
+                                      ) * 5
+                                    : 0
+                                }
+                                onChange={(v) => {
+                                  const m = v as number;
+                                  const h = form.lockInStartTime
+                                    ? Number.parseInt(
+                                        form.lockInStartTime.split(":")[0],
+                                        10,
+                                      )
+                                    : 8;
+                                  setForm((f) => ({
+                                    ...f,
+                                    lockInStartTime: `${padTwo(h)}:${padTwo(m)}`,
+                                  }));
+                                }}
+                                accentColor="#F59E0B"
+                                visibleCount={5}
+                                height={200}
+                              />
+                            </div>
                           </div>
                           {errors.lockInStartTime && (
                             <p
@@ -1035,7 +1124,7 @@ export default function WoopWizard({
                               </p>
                             ) : (
                               <div
-                                className="flex gap-3 bg-[#1a1a1a] border border-amber-500/30 rounded-xl p-4"
+                                className="relative z-10 flex gap-3 bg-[#1a1a1a] border border-amber-500/30 rounded-xl p-4"
                                 style={{
                                   minHeight: "220px",
                                   alignItems: "flex-start",
@@ -1249,8 +1338,8 @@ export default function WoopWizard({
                           </p>
                         )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

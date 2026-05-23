@@ -1751,6 +1751,14 @@ video {
 .border-dashed {
   border-style: dashed;
 }
+.border-\[\#10B981\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(16 185 129 / var(--tw-border-opacity, 1));
+}
+.border-\[\#F59E0B\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(245 158 11 / var(--tw-border-opacity, 1));
+}
 .border-\[rgba\(3\2c 105\2c 161\2c 0\.45\)\] {
   border-color: rgba(3,105,161,0.45);
 }
@@ -2277,6 +2285,10 @@ video {
 .text-\[\#EAB308\] {
   --tw-text-opacity: 1;
   color: rgb(234 179 8 / var(--tw-text-opacity, 1));
+}
+.text-\[\#F59E0B\] {
+  --tw-text-opacity: 1;
+  color: rgb(245 158 11 / var(--tw-text-opacity, 1));
 }
 .text-\[oklch\(var\(--color-accent-skip\)\)\] {
   color: oklch(var(--color-accent-skip));
