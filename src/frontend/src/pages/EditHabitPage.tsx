@@ -93,7 +93,7 @@ const wheelStyle: React.CSSProperties = {
   overflowY: "auto",
 };
 
-const _amberWheelStyle: React.CSSProperties = {
+const amberWheelStyle: React.CSSProperties = {
   ...wheelStyle,
   border: "1px solid rgba(245,158,11,0.25)",
 };
@@ -705,144 +705,27 @@ export function EditHabitPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <span className={sectionLabel}>Start Time</span>
-                      <div className="flex gap-3">
-                        <div className="flex-1">
-                          <label
-                            htmlFor="edit-lockin-start-hours"
-                            className="block text-[11px] text-muted-foreground/60 mb-1.5"
-                          >
-                            Hours
-                          </label>
-                          <div className="scroll-wheel-track scroll-wheel-track--gold">
-                            <select
-                              id="edit-lockin-start-hours"
-                              data-ocid="edit_habit.lockin_start_time.hours"
-                              value={
-                                lockInStartTime
-                                  ? Number(lockInStartTime.split(":")[0])
-                                  : 0
-                              }
-                              disabled={isLockInWindowActive}
-                              onChange={(e) => {
-                                const hours = Number(e.target.value);
-                                const mins = lockInStartTime
-                                  ? Number(lockInStartTime.split(":")[1])
-                                  : 0;
-                                setLockInStartTime(
-                                  `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`,
-                                );
-                              }}
-                              size={5}
-                              className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
-                              style={{
-                                color: "oklch(var(--foreground))",
-                                padding: "6px 0",
-                                outline: "none",
-                                overflowY: "auto",
-                              }}
-                            >
-                              {Array.from({ length: 24 }, (_, i) => i).map(
-                                (hour) => (
-                                  <option
-                                    key={hour}
-                                    value={hour}
-                                    style={{
-                                      background: "oklch(var(--card))",
-                                      color:
-                                        (lockInStartTime
-                                          ? Number(
-                                              lockInStartTime.split(":")[0],
-                                            )
-                                          : 0) === hour
-                                          ? "#F59E0B"
-                                          : "oklch(var(--foreground))",
-                                      fontWeight:
-                                        (lockInStartTime
-                                          ? Number(
-                                              lockInStartTime.split(":")[0],
-                                            )
-                                          : 0) === hour
-                                          ? 700
-                                          : 400,
-                                    }}
-                                  >
-                                    {String(hour).padStart(2, "0")}
-                                  </option>
-                                ),
-                              )}
-                            </select>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <label
-                            htmlFor="edit-lockin-start-minutes"
-                            className="block text-[11px] text-muted-foreground/60 mb-1.5"
-                          >
-                            Minutes
-                          </label>
-                          <div className="scroll-wheel-track scroll-wheel-track--gold">
-                            <select
-                              id="edit-lockin-start-minutes"
-                              data-ocid="edit_habit.lockin_start_time.minutes"
-                              value={
-                                lockInStartTime
-                                  ? Number(lockInStartTime.split(":")[1])
-                                  : 0
-                              }
-                              disabled={isLockInWindowActive}
-                              onChange={(e) => {
-                                const mins = Number(e.target.value);
-                                const hours = lockInStartTime
-                                  ? Number(lockInStartTime.split(":")[0])
-                                  : 0;
-                                setLockInStartTime(
-                                  `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`,
-                                );
-                              }}
-                              size={5}
-                              className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
-                              style={{
-                                color: "oklch(var(--foreground))",
-                                padding: "6px 0",
-                                outline: "none",
-                                overflowY: "auto",
-                              }}
-                            >
-                              {Array.from({ length: 12 }, (_, i) => {
-                                const m = i * 5;
-                                return (
-                                  <option
-                                    key={`edit-lockin-start-m-${m}`}
-                                    value={m}
-                                    style={{
-                                      background: "oklch(var(--card))",
-                                      color:
-                                        (lockInStartTime
-                                          ? Number(
-                                              lockInStartTime.split(":")[1],
-                                            )
-                                          : 0) === m
-                                          ? "#F59E0B"
-                                          : "oklch(var(--foreground))",
-                                      fontWeight:
-                                        (lockInStartTime
-                                          ? Number(
-                                              lockInStartTime.split(":")[1],
-                                            )
-                                          : 0) === m
-                                          ? 700
-                                          : 400,
-                                    }}
-                                  >
-                                    {String(m).padStart(2, "0")}
-                                  </option>
-                                );
-                              })}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
+                      <label
+                        htmlFor="edit-lockin-start"
+                        className={sectionLabel}
+                      >
+                        Start Time
+                      </label>
+                      <input
+                        id="edit-lockin-start"
+                        type="time"
+                        data-ocid="edit_habit.lockin_start_time"
+                        value={lockInStartTime}
+                        disabled={isLockInWindowActive}
+                        onChange={(e) => setLockInStartTime(e.target.value)}
+                        className="w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+                        style={{
+                          background: "oklch(var(--card))",
+                          boxShadow:
+                            "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                          colorScheme: "dark",
+                        }}
+                      />
                     </div>
 
                     {lockInStartTime ? (
@@ -862,42 +745,39 @@ export function EditHabitPage() {
                               >
                                 Hours
                               </label>
-                              <div className="scroll-wheel-track scroll-wheel-track--gold">
-                                <select
-                                  id="edit-lockin-hours"
-                                  data-ocid="edit_habit.lockin_duration_hours"
-                                  value={lockInDurationHours}
-                                  disabled={isLockInWindowActive}
-                                  onChange={(e) =>
-                                    setLockInDurationHours(
-                                      Number(e.target.value),
-                                    )
-                                  }
-                                  size={5}
-                                  className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
-                                >
-                                  {Array.from(
-                                    { length: maxLockInHours + 1 },
-                                    (_, i) => i,
-                                  ).map((h) => (
-                                    <option
-                                      key={h}
-                                      value={h}
-                                      style={{
-                                        background: "oklch(var(--card))",
-                                        color:
-                                          lockInDurationHours === h
-                                            ? "#F59E0B"
-                                            : "oklch(var(--foreground))",
-                                        fontWeight:
-                                          lockInDurationHours === h ? 700 : 400,
-                                      }}
-                                    >
-                                      {String(h).padStart(2, "0")}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
+                              <select
+                                id="edit-lockin-hours"
+                                data-ocid="edit_habit.lockin_duration_hours"
+                                value={lockInDurationHours}
+                                disabled={isLockInWindowActive}
+                                onChange={(e) =>
+                                  setLockInDurationHours(Number(e.target.value))
+                                }
+                                size={5}
+                                className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
+                                style={amberWheelStyle}
+                              >
+                                {Array.from(
+                                  { length: maxLockInHours + 1 },
+                                  (_, i) => i,
+                                ).map((h) => (
+                                  <option
+                                    key={h}
+                                    value={h}
+                                    style={{
+                                      background: "oklch(var(--card))",
+                                      color:
+                                        lockInDurationHours === h
+                                          ? "#F59E0B"
+                                          : "oklch(var(--foreground))",
+                                      fontWeight:
+                                        lockInDurationHours === h ? 700 : 400,
+                                    }}
+                                  >
+                                    {String(h).padStart(2, "0")}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
                             <div className="flex-1">
                               <label
@@ -906,44 +786,41 @@ export function EditHabitPage() {
                               >
                                 Min
                               </label>
-                              <div className="scroll-wheel-track scroll-wheel-track--gold">
-                                <select
-                                  id="edit-lockin-mins"
-                                  data-ocid="edit_habit.lockin_duration_minutes"
-                                  value={lockInDurationMinutes}
-                                  disabled={isLockInWindowActive}
-                                  onChange={(e) =>
-                                    setLockInDurationMinutes(
-                                      Number(e.target.value),
-                                    )
-                                  }
-                                  size={5}
-                                  className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
-                                >
-                                  {Array.from(
-                                    { length: maxLockInMinAtMaxHour + 1 },
-                                    (_, i) => i,
-                                  ).map((m) => (
-                                    <option
-                                      key={m}
-                                      value={m}
-                                      style={{
-                                        background: "oklch(var(--card))",
-                                        color:
-                                          lockInDurationMinutes === m
-                                            ? "#F59E0B"
-                                            : "oklch(var(--foreground))",
-                                        fontWeight:
-                                          lockInDurationMinutes === m
-                                            ? 700
-                                            : 400,
-                                      }}
-                                    >
-                                      {String(m).padStart(2, "0")}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
+                              <select
+                                id="edit-lockin-mins"
+                                data-ocid="edit_habit.lockin_duration_minutes"
+                                value={lockInDurationMinutes}
+                                disabled={isLockInWindowActive}
+                                onChange={(e) =>
+                                  setLockInDurationMinutes(
+                                    Number(e.target.value),
+                                  )
+                                }
+                                size={5}
+                                className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
+                                style={amberWheelStyle}
+                              >
+                                {Array.from(
+                                  { length: maxLockInMinAtMaxHour + 1 },
+                                  (_, i) => i,
+                                ).map((m) => (
+                                  <option
+                                    key={m}
+                                    value={m}
+                                    style={{
+                                      background: "oklch(var(--card))",
+                                      color:
+                                        lockInDurationMinutes === m
+                                          ? "#F59E0B"
+                                          : "oklch(var(--foreground))",
+                                      fontWeight:
+                                        lockInDurationMinutes === m ? 700 : 400,
+                                    }}
+                                  >
+                                    {String(m).padStart(2, "0")}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
                           </div>
                         )}
@@ -1112,35 +989,34 @@ export function EditHabitPage() {
                         (capped at 23:55).
                       </p>
                     )}
-                    <div className="scroll-wheel-track scroll-wheel-track--green">
-                      <select
-                        data-ocid="edit_habit.reminder_offset_wheel"
-                        value={clampedOffset}
-                        disabled={isLockedForToday}
-                        onChange={(e) =>
-                          setReminderOffset(Number(e.target.value))
-                        }
-                        size={5}
-                        className="w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer disabled:opacity-50"
-                      >
-                        {offsetOptions.map((v) => (
-                          <option
-                            key={v}
-                            value={v}
-                            style={{
-                              background: "oklch(var(--card))",
-                              color:
-                                clampedOffset === v
-                                  ? "#10B981"
-                                  : "oklch(var(--foreground))",
-                              fontWeight: clampedOffset === v ? 700 : 400,
-                            }}
-                          >
-                            {formatOffsetLabel(v)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <select
+                      data-ocid="edit_habit.reminder_offset_wheel"
+                      value={clampedOffset}
+                      disabled={isLockedForToday}
+                      onChange={(e) =>
+                        setReminderOffset(Number(e.target.value))
+                      }
+                      size={5}
+                      className="w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer disabled:opacity-50"
+                      style={wheelStyle}
+                    >
+                      {offsetOptions.map((v) => (
+                        <option
+                          key={v}
+                          value={v}
+                          style={{
+                            background: "oklch(var(--card))",
+                            color:
+                              clampedOffset === v
+                                ? "#10B981"
+                                : "oklch(var(--foreground))",
+                            fontWeight: clampedOffset === v ? 700 : 400,
+                          }}
+                        >
+                          {formatOffsetLabel(v)}
+                        </option>
+                      ))}
+                    </select>
                     {emailNotifications &&
                       (() => {
                         const baseTime = habit?.isLockIn
