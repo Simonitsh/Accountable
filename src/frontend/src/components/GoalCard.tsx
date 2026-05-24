@@ -88,11 +88,8 @@ export function getLockInState(
   return "missed-start";
 }
 
-function formatTime12h(timeStr: string): string {
-  const [h, m] = timeStr.split(":").map(Number);
-  const suffix = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
+function formatTime24h(timeStr: string): string {
+  return timeStr;
 }
 
 /** Live 1-second countdown display for Lock-In cards. */
@@ -891,7 +888,7 @@ export function GoalCard({
             }}
             aria-live="polite"
           >
-            In progress • check out at {formatTime12h(lockInEndTime)}
+            In progress • check out at {formatTime24h(lockInEndTime)}
           </div>
         )}
 
@@ -1071,8 +1068,8 @@ export function GoalCard({
                 ) : (
                   <Lock size={10} />
                 )}
-                {formatTime12h(lockInStartTime)} –{" "}
-                {formatTime12h(lockInEndTime)}
+                {formatTime24h(lockInStartTime)} –{" "}
+                {formatTime24h(lockInEndTime)}
               </div>
             )}
 
@@ -1123,7 +1120,7 @@ export function GoalCard({
                 "Check-in window open — swipe right to start"}
               {lockInState === "in-progress" &&
                 lockInEndTime &&
-                `In progress — complete by ${formatTime12h(lockInEndTime)}`}
+                `In progress — complete by ${formatTime24h(lockInEndTime)}`}
               {lockInState === "end-window" &&
                 "Check-out window — swipe right to complete"}
               {lockInState === "completed" && "Lock-In completed"}

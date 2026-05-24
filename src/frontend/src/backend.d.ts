@@ -9,9 +9,12 @@ export interface None {
 export type Option<T> = Some<T> | None;
 export interface UpdateGoalRequest {
     startTime?: string;
+    intentTimeMinutes?: bigint;
+    endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
     timezoneOffsetMinutes: bigint;
+    startTimeMinutes?: bigint;
     wish?: string;
     themeColor?: string;
     wishDescription?: string;
@@ -21,6 +24,7 @@ export interface UpdateGoalRequest {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome?: string;
+    lockInDurationMinutes?: bigint;
 }
 export type Timestamp = bigint;
 export interface RecordCheckInRequest {
@@ -45,8 +49,11 @@ export interface GoalAnalytics {
 }
 export interface CreateGoalRequest {
     startTime?: string;
+    intentTimeMinutes?: bigint;
+    endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    startTimeMinutes?: bigint;
     wish: string;
     themeColor?: string;
     wishDescription: string;
@@ -57,6 +64,7 @@ export interface CreateGoalRequest {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lockInDurationMinutes?: bigint;
 }
 export type ObstacleTemplateId = bigint;
 export type ConnectionId = bigint;
@@ -67,10 +75,13 @@ export interface AnalyticsSummary {
 export interface GoalPublic {
     id: GoalId;
     startTime?: string;
+    intentTimeMinutes: bigint;
+    endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime?: string;
     owner: UserId;
     lastEditedAt?: Timestamp;
+    startTimeMinutes: bigint;
     createdAt: Timestamp;
     wish: string;
     themeColor?: string;
@@ -84,6 +95,7 @@ export interface GoalPublic {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lockInDurationMinutes: bigint;
     lastEmailSentAt: bigint;
 }
 export interface UserProfilePublic {

@@ -29,6 +29,10 @@ module {
     var intentTime : ?Text;
     var reminderOffset : ?Int;
     var lastEmailSentAt : Int;
+    var lockInDurationMinutes : Nat;
+    var startTimeMinutes : Nat;
+    var endTimeMinutes : Nat;
+    var intentTimeMinutes : Nat;
   };
 
   public type GoalPublic = {
@@ -52,6 +56,10 @@ module {
     intentTime : ?Text;
     reminderOffset : ?Int;
     lastEmailSentAt : Int;
+    lockInDurationMinutes : Nat;
+    startTimeMinutes : Nat;
+    endTimeMinutes : Nat;
+    intentTimeMinutes : Nat;
   };
 
   public type CreateGoalRequest = {
@@ -68,6 +76,10 @@ module {
     emailNotifications : ?Bool;
     intentTime : ?Text;
     reminderOffset : ?Int;
+    lockInDurationMinutes : ?Nat;
+    startTimeMinutes : ?Nat;
+    endTimeMinutes : ?Nat;
+    intentTimeMinutes : ?Nat;
   };
 
   public type CreateObstacleRequest = {
@@ -89,6 +101,10 @@ module {
     intentTime : ?Text;
     reminderOffset : ?Int;
     timezoneOffsetMinutes : Int;
+    lockInDurationMinutes : ?Nat;
+    startTimeMinutes : ?Nat;
+    endTimeMinutes : ?Nat;
+    intentTimeMinutes : ?Nat;
   };
 
   /// Typed error variants for goal operations.
@@ -101,5 +117,6 @@ module {
     #lockInOverlap : Text;
     #strictLockActive;
     #dailyEditLockout;
+    #immutableType;
   };
 };

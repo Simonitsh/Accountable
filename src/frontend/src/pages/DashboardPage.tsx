@@ -613,7 +613,6 @@ function NewHabitBadge() {
 export function DashboardPage() {
   const [usernameModalDismissed, setUsernameModalDismissed] = useState(false);
   const [showWoop, setShowWoop] = useState(false);
-
   const { actor, isFetching: actorFetching } = useBackend();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { principalText } = useAuth();
@@ -806,7 +805,6 @@ export function DashboardPage() {
           executedIfThen,
           isLockIn: doneGoal?.isLockIn ?? false,
           obstacleTemplateId: c.obstacleTemplateId,
-          customObstacleNote: c.customObstacleNote,
         });
       }
     }
@@ -959,10 +957,10 @@ export function DashboardPage() {
         lockInStartedAt,
         lockInEndedAt,
         executedIfThen: executedIfThen ?? false,
-        customObstacleNote: customObstacleNote,
         timezoneOffsetMinutes: BigInt(
           getTimezoneOffsetMinutes(userTimezone ?? ""),
         ),
+        customObstacleNote: customObstacleNote || undefined,
       });
     },
     onSuccess: (_data, _variables) => {

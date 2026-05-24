@@ -38,6 +38,10 @@ const sampleGoal1 = {
   intentTime: undefined,
   reminderOffset: undefined,
   lastEmailSentAt: 0n,
+  intentTimeMinutes: 0n,
+  endTimeMinutes: 0n,
+  startTimeMinutes: 0n,
+  lockInDurationMinutes: 0n,
 };
 
 const sampleGoal2 = {
@@ -57,6 +61,10 @@ const sampleGoal2 = {
   intentTime: undefined,
   reminderOffset: undefined,
   lastEmailSentAt: 0n,
+  intentTimeMinutes: 0n,
+  endTimeMinutes: 0n,
+  startTimeMinutes: 0n,
+  lockInDurationMinutes: 0n,
 };
 
 const sampleCheckIn = {
@@ -198,6 +206,10 @@ export const mockBackend: backendInterface = {
       intentTime: undefined,
       reminderOffset: undefined,
       lastEmailSentAt: 0n,
+      intentTimeMinutes: 0n,
+      endTimeMinutes: 0n,
+      startTimeMinutes: 0n,
+      lockInDurationMinutes: 0n,
     },
   }),
 
@@ -291,7 +303,7 @@ export const mockBackend: backendInterface = {
     lockInStartedAt: request.lockInStartedAt,
     lockInEndedAt: request.lockInEndedAt,
     executedIfThen: request.executedIfThen,
-    customObstacleNote: request.customObstacleNote,
+
   }),
 
   recordInteraction: async (checkInId, interactionType) => ({
@@ -340,6 +352,10 @@ export const mockBackend: backendInterface = {
       intentTime: undefined,
       reminderOffset: undefined,
       lastEmailSentAt: 0n,
+      intentTimeMinutes: 0n,
+      endTimeMinutes: 0n,
+      startTimeMinutes: 0n,
+      lockInDurationMinutes: 0n,
     },
   }),
 

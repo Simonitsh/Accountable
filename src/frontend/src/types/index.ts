@@ -30,6 +30,10 @@ export interface Goal {
   isLockIn: boolean;
   startTime?: string;
   endTime?: string;
+  lockInDurationMinutes?: number;
+  startTimeMinutes?: number;
+  endTimeMinutes?: number;
+  intentTimeMinutes?: number;
   createdAt: bigint;
   updatedAt: bigint;
 }

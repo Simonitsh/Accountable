@@ -8,7 +8,6 @@ import { OBSTACLE_TEMPLATES } from "../types";
 
 // Ocean Blue — skip accent
 const SKIP_COLOR = "#0369A1";
-const NOTE_MAX = 140;
 
 interface SkipModalProps {
   goal: GoalPublic;
@@ -27,20 +26,28 @@ export function SkipModal({
 }: SkipModalProps) {
   // Store the numeric INDEX (0-based) so BigInt(index) is always safe
   const [selectedObstacleIndex, setSelectedObstacleIndex] = useState<number>(0);
-  const [customNote, setCustomNote] = useState("");
-  const [noteFocused, setNoteFocused] = useState(false);
+  const [customNote, setCustomNote] = useState<string>("");
+  const [isNoteFocused, setIsNoteFocused] = useState<boolean>(false);
 
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedObstacleIndex];
 
   function handleConfirm() {
-    const trimmedNote = customNote.trim();
     // Pass the numeric index as BigInt — backend accepts any non-null Nat
-    onConfirm(BigInt(selectedObstacleIndex), trimmedNote || undefined);
-    // Reset note state after submission
+    const note = customNote.trim() || undefined;
+    onConfirm(BigInt(selectedObstacleIndex), note);
     setCustomNote("");
+    setIsNoteFocused(false);
     onClose();
   }
+
+  function handleClose() {
+    setCustomNote("");
+    setIsNoteFocused(false);
+    onClose();
+  }
+
+  const showCounter = isNoteFocused && customNote.length > 0;
 
   return (
     <AnimatePresence>
@@ -157,52 +164,41 @@ export function SkipModal({
                 })}
               </div>
 
-              {/* Optional micro-journal note */}
+              {/* Optional note textarea */}
               <div className="mb-4">
                 <label
                   htmlFor="skip-custom-note"
-                  className="block text-xs text-muted-foreground uppercase tracking-wider font-mono mb-2"
+                  className="block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono"
                 >
-                  What specifically stopped you today?{" "}
-                  <span className="normal-case">(Optional)</span>
+                  Add a note (optional)
                 </label>
-                <div className="relative">
-                  <textarea
-                    id="skip-custom-note"
-                    data-ocid="skip_modal.custom_note_textarea"
-                    rows={2}
-                    maxLength={NOTE_MAX}
-                    value={customNote}
-                    onChange={(e) => setCustomNote(e.target.value)}
-                    onFocus={() => setNoteFocused(true)}
-                    onBlur={() => setNoteFocused(false)}
-                    placeholder="Add a specific detail…"
-                    className="w-full resize-none rounded-xl px-3 py-2.5 text-sm font-body text-foreground placeholder:text-muted-foreground/50 outline-none transition-smooth"
-                    style={{
-                      background: "oklch(var(--muted) / 0.35)",
-                      border: noteFocused
-                        ? "1px solid rgba(3,105,161,0.5)"
-                        : "1px solid oklch(var(--border))",
-                      boxShadow: noteFocused
-                        ? "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.04)"
-                        : "inset 1px 1px 4px rgba(0,0,0,0.3)",
-                    }}
-                  />
-                  {/* Character counter — visible only while focused or has content */}
-                  {(noteFocused || customNote.length > 0) && (
-                    <span
-                      className="absolute bottom-2 right-3 text-xs font-mono pointer-events-none"
-                      style={{
-                        color:
-                          customNote.length >= NOTE_MAX
-                            ? "#ef4444"
-                            : "oklch(var(--muted-foreground) / 0.6)",
-                      }}
-                    >
-                      {customNote.length}/{NOTE_MAX}
-                    </span>
-                  )}
-                </div>
+                <textarea
+                  id="skip-custom-note"
+                  value={customNote}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 140) {
+                      setCustomNote(e.target.value);
+                    }
+                  }}
+                  onFocus={() => setIsNoteFocused(true)}
+                  onBlur={() => setIsNoteFocused(false)}
+                  placeholder="Why did this obstacle get in the way today?"
+                  rows={3}
+                  className="w-full rounded-xl bg-muted/30 text-foreground text-sm p-3 resize-none outline-none transition-smooth border border-border focus:border-[rgba(3,105,161,0.5)]"
+                  style={{
+                    boxShadow:
+                      "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.03)",
+                  }}
+                  data-ocid="skip_modal.note_input"
+                />
+                {showCounter && (
+                  <p
+                    className="text-right text-xs mt-1 font-mono"
+                    style={{ color: SKIP_COLOR }}
+                  >
+                    {customNote.length}/140
+                  </p>
+                )}
               </div>
 
               {/* Actions */}
@@ -210,7 +206,7 @@ export function SkipModal({
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={onClose}
+                  onClick={handleClose}
                   disabled={isLoading}
                   data-ocid="skip_modal.cancel_button"
                 >

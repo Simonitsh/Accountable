@@ -178,6 +178,10 @@ module {
         intentTime = g.intentTime;
         reminderOffset = g.reminderOffset;
         lastEmailSentAt = g.lastEmailSentAt;
+        lockInDurationMinutes = g.lockInDurationMinutes;
+        startTimeMinutes = g.startTimeMinutes;
+        endTimeMinutes = g.endTimeMinutes;
+        intentTimeMinutes = g.intentTimeMinutes;
       };
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);

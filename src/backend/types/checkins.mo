@@ -7,21 +7,21 @@ module {
     owner : Common.UserId;
     checkInType : Common.CheckInType;
     obstacleTemplateId : ?Common.ObstacleTemplateId;
+    customObstacleNote : ?Text;
     timestamp : Common.Timestamp;
     lockInStartedAt : ?Int;
     lockInEndedAt : ?Int;
     executedIfThen : Bool;
-    customObstacleNote : ?Text;
   };
 
   public type RecordCheckInRequest = {
     goalId : Common.GoalId;
     checkInType : Common.CheckInType;
     obstacleTemplateId : ?Common.ObstacleTemplateId;
+    customObstacleNote : ?Text;
     lockInStartedAt : ?Int;
     lockInEndedAt : ?Int;
     executedIfThen : Bool;
-    customObstacleNote : ?Text;
     timezoneOffsetMinutes : Int;
   };
 };

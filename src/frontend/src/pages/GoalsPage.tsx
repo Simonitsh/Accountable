@@ -31,7 +31,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GoalState } from "../backend";
 import type {
@@ -236,8 +236,6 @@ interface EditFormData {
   iconName: string;
   themeColor: string;
   obstacles: string[];
-  customObstacleInput: string;
-  customObstacles: string[];
   isLockIn: boolean;
   lockInStartTime: string;
   lockInEndTime: string;
@@ -268,15 +266,9 @@ function GoalEditForm({
         .filter(Boolean)
     : [];
 
-  // Separate into preset vs custom
+  // Keep only preset obstacles (custom obstacles are no longer supported)
   const existingPreset = existingObstacles.filter((o) =>
     EDIT_OBSTACLE_PRESETS.map((p) => p.toLowerCase()).includes(o.toLowerCase()),
-  );
-  const existingCustom = existingObstacles.filter(
-    (o) =>
-      !EDIT_OBSTACLE_PRESETS.map((p) => p.toLowerCase()).includes(
-        o.toLowerCase(),
-      ),
   );
 
   // Pre-populate duration wheels from stored startTime/endTime
@@ -298,8 +290,6 @@ function GoalEditForm({
     iconName: goal.iconName ?? "target",
     themeColor: goal.themeColor ?? "#2563EB",
     obstacles: existingPreset,
-    customObstacleInput: "",
-    customObstacles: existingCustom,
     isLockIn: goal.isLockIn ?? false,
     lockInStartTime: goal.startTime ?? "",
     lockInEndTime: goal.endTime ?? "",
@@ -307,13 +297,8 @@ function GoalEditForm({
     lockInDurationMinutes: initDuration.minutes,
   });
 
-  const customInputRef = useRef<HTMLInputElement>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState<string | null>(null);
-
-  function allObstacles(): string[] {
-    return [...form.obstacles, ...form.customObstacles];
-  }
 
   function togglePreset(label: string) {
     setForm((f) => ({
@@ -321,29 +306,6 @@ function GoalEditForm({
       obstacles: f.obstacles.includes(label)
         ? f.obstacles.filter((o) => o !== label)
         : [...f.obstacles, label],
-    }));
-  }
-
-  function addCustomObstacle() {
-    const val = form.customObstacleInput.trim();
-    if (!val) return;
-    const lower = val.toLowerCase();
-    const alreadyExists =
-      form.customObstacles.some((o) => o.toLowerCase() === lower) ||
-      EDIT_OBSTACLE_PRESETS.some((p) => p.toLowerCase() === lower) ||
-      form.obstacles.some((o) => o.toLowerCase() === lower);
-    if (alreadyExists) return;
-    setForm((f) => ({
-      ...f,
-      customObstacleInput: "",
-      customObstacles: [...f.customObstacles, val],
-    }));
-  }
-
-  function removeCustomObstacle(label: string) {
-    setForm((f) => ({
-      ...f,
-      customObstacles: f.customObstacles.filter((o) => o !== label),
     }));
   }
 
@@ -383,7 +345,6 @@ function GoalEditForm({
     onSave(req);
   }
 
-  const all = allObstacles();
   // Duration validation: if Lock-In is enabled, duration must be > 0
   const isDurationZero =
     form.isLockIn &&
@@ -525,68 +486,10 @@ function GoalEditForm({
             );
           })}
         </div>
-        {/* Custom obstacle chips */}
-        {form.customObstacles.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {form.customObstacles.map((label) => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border"
-                style={{
-                  background: "oklch(var(--color-accent-skip) / 0.1)",
-                  borderColor: "oklch(var(--color-accent-skip) / 0.35)",
-                  color: "oklch(var(--color-accent-skip))",
-                }}
-              >
-                {label}
-                <button
-                  type="button"
-                  aria-label={`Remove ${label}`}
-                  onClick={() => removeCustomObstacle(label)}
-                  className="ml-0.5 opacity-70 hover:opacity-100 transition-smooth"
-                  data-ocid="goals.edit_remove_custom_obstacle"
-                >
-                  <X size={10} />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-        {/* Custom obstacle input */}
-        <div className="flex gap-2">
-          <Input
-            ref={customInputRef}
-            data-ocid="goals.edit_custom_obstacle_input"
-            value={form.customObstacleInput}
-            maxLength={60}
-            placeholder="Add custom obstacle…"
-            onChange={(e) =>
-              setForm((f) => ({ ...f, customObstacleInput: e.target.value }))
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addCustomObstacle();
-              }
-            }}
-            className="bg-muted/60 border-border focus:border-primary text-xs h-8 flex-1"
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={addCustomObstacle}
-            disabled={!form.customObstacleInput.trim()}
-            className="h-8 px-2.5 text-xs gap-1"
-            data-ocid="goals.edit_add_custom_obstacle_button"
-          >
-            <Plus size={11} />
-            Add
-          </Button>
-        </div>
-        {all.length > 0 && (
+        {form.obstacles.length > 0 && (
           <p className="text-[10px] text-muted-foreground/60">
-            {all.length} obstacle{all.length !== 1 ? "s" : ""} selected
+            {form.obstacles.length} obstacle
+            {form.obstacles.length !== 1 ? "s" : ""} selected
           </p>
         )}
       </div>
@@ -1338,7 +1241,6 @@ function GoalDetailPanel({
 // ─── Goals Page ───────────────────────────────────────────────────────────────
 export function GoalsPage() {
   const [showWoop, setShowWoop] = useState(false);
-
   const [activeFilter, setActiveFilter] = useState<FilterTab>(GoalState.active);
   const [selectedGoalId, setSelectedGoalId] = useState<bigint | null>(null);
   const [changingStateId, setChangingStateId] = useState<bigint | null>(null);

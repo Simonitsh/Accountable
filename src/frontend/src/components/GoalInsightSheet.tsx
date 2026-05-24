@@ -204,24 +204,13 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
               ) : null)}
           </p>
         </div>
-
-        {/* Sub-bubble for custom obstacle note (skip or missed lock-in) */}
         {(isSkip || isMissedLockIn) && checkIn.customObstacleNote && (
-          <div
-            className="mt-2 rounded-xl px-3 py-2 max-w-xs"
-            style={{
-              background: "rgba(3,105,161,0.08)",
-              border: "1px solid rgba(3,105,161,0.2)",
-            }}
-            data-ocid="goal_insight.custom_note_bubble"
+          <p
+            className="text-xs italic mt-0.5"
+            style={{ color: "oklch(var(--muted-foreground) / 0.7)" }}
           >
-            <p
-              className="text-xs italic leading-relaxed"
-              style={{ color: "oklch(var(--muted-foreground))" }}
-            >
-              &ldquo;{checkIn.customObstacleNote}&rdquo;
-            </p>
-          </div>
+            {checkIn.customObstacleNote}
+          </p>
         )}
       </div>
     </div>

@@ -5,7 +5,6 @@ import type { GoalPublic } from "../backend.d.ts";
 import { OBSTACLE_TEMPLATES, type ObstacleTemplate } from "../types";
 
 const OCEAN_BLUE = "#0369A1"; // Ocean Blue for Lock-In missed state
-const NOTE_MAX = 140;
 
 interface MissedWindowSheetProps {
   goal: GoalPublic;
@@ -25,8 +24,8 @@ export function MissedWindowSheet({
   failureType = "missed-start",
 }: MissedWindowSheetProps) {
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [customNote, setCustomNote] = useState("");
-  const [noteFocused, setNoteFocused] = useState(false);
+  const [customNote, setCustomNote] = useState<string>("");
+  const [isNoteFocused, setIsNoteFocused] = useState<boolean>(false);
 
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedIndex];
@@ -34,17 +33,21 @@ export function MissedWindowSheet({
   function handleClose() {
     setSelectedIndex(0);
     setCustomNote("");
+    setIsNoteFocused(false);
     onClose();
   }
 
   function handleConfirm() {
-    const trimmedNote = customNote.trim();
-    // Pass BigInt(selectedIndex) and the custom note — same pattern as SkipModal.
-    onConfirm(BigInt(selectedIndex), trimmedNote || undefined);
+    // Pass BigInt(selectedIndex) — same pattern as SkipModal.
+    const note = customNote.trim() || undefined;
+    onConfirm(BigInt(selectedIndex), note);
     setSelectedIndex(0);
     setCustomNote("");
+    setIsNoteFocused(false);
     onClose();
   }
+
+  const showCounter = isNoteFocused && customNote.length > 0;
 
   return (
     <AnimatePresence>
@@ -169,52 +172,41 @@ export function MissedWindowSheet({
                 })}
               </div>
 
-              {/* Optional micro-journal note */}
-              <div className="mb-4">
+              {/* Optional note textarea */}
+              <div className="mb-5">
                 <label
                   htmlFor="missed-custom-note"
-                  className="block text-xs text-muted-foreground uppercase tracking-wider font-mono mb-2"
+                  className="block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono"
                 >
-                  What got in the way today?{" "}
-                  <span className="normal-case">(Optional)</span>
+                  Add a note (optional)
                 </label>
-                <div className="relative">
-                  <textarea
-                    id="missed-custom-note"
-                    data-ocid="missed_window_sheet.custom_note_textarea"
-                    rows={2}
-                    maxLength={NOTE_MAX}
-                    value={customNote}
-                    onChange={(e) => setCustomNote(e.target.value)}
-                    onFocus={() => setNoteFocused(true)}
-                    onBlur={() => setNoteFocused(false)}
-                    placeholder="Write a specific reason for today… (optional)"
-                    className="w-full resize-none rounded-xl px-3 py-2.5 text-sm font-body text-foreground placeholder:text-muted-foreground/50 outline-none transition-smooth"
-                    style={{
-                      background: "oklch(var(--muted) / 0.35)",
-                      border: noteFocused
-                        ? "1px solid rgba(3,105,161,0.6)"
-                        : "1px solid oklch(var(--border))",
-                      boxShadow: noteFocused
-                        ? "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.04), 0 0 8px rgba(3,105,161,0.15)"
-                        : "inset 1px 1px 4px rgba(0,0,0,0.3)",
-                    }}
-                  />
-                  {/* Character counter — visible only while focused or has content */}
-                  {(noteFocused || customNote.length > 0) && (
-                    <span
-                      className="absolute bottom-2 right-3 text-xs font-mono pointer-events-none"
-                      style={{
-                        color:
-                          customNote.length >= NOTE_MAX
-                            ? "#ef4444"
-                            : "oklch(var(--muted-foreground) / 0.6)",
-                      }}
-                    >
-                      {customNote.length}/{NOTE_MAX}
-                    </span>
-                  )}
-                </div>
+                <textarea
+                  id="missed-custom-note"
+                  value={customNote}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 140) {
+                      setCustomNote(e.target.value);
+                    }
+                  }}
+                  onFocus={() => setIsNoteFocused(true)}
+                  onBlur={() => setIsNoteFocused(false)}
+                  placeholder="What happened during this window?"
+                  rows={3}
+                  className="w-full rounded-xl bg-muted/30 text-foreground text-sm p-3 resize-none outline-none transition-smooth border border-border focus:border-[rgba(3,105,161,0.5)]"
+                  style={{
+                    boxShadow:
+                      "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.03)",
+                  }}
+                  data-ocid="missed_window_sheet.note_input"
+                />
+                {showCounter && (
+                  <p
+                    className="text-right text-xs mt-1 font-mono"
+                    style={{ color: OCEAN_BLUE }}
+                  >
+                    {customNote.length}/140
+                  </p>
+                )}
               </div>
 
               {/* Actions */}

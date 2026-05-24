@@ -11,8 +11,11 @@ import { IDL } from '@icp-sdk/core/candid';
 export const ObstacleTemplateId = IDL.Nat;
 export const CreateGoalRequest = IDL.Record({
   'startTime' : IDL.Opt(IDL.Text),
+  'intentTimeMinutes' : IDL.Opt(IDL.Nat),
+  'endTimeMinutes' : IDL.Opt(IDL.Nat),
   'emailNotifications' : IDL.Opt(IDL.Bool),
   'endTime' : IDL.Opt(IDL.Text),
+  'startTimeMinutes' : IDL.Opt(IDL.Nat),
   'wish' : IDL.Text,
   'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Text,
@@ -23,6 +26,7 @@ export const CreateGoalRequest = IDL.Record({
   'reminderOffset' : IDL.Opt(IDL.Int),
   'intentTime' : IDL.Opt(IDL.Text),
   'outcome' : IDL.Text,
+  'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
 });
 export const GoalId = IDL.Nat;
 export const UserId = IDL.Principal;
@@ -36,10 +40,13 @@ export const GoalState = IDL.Variant({
 export const GoalPublic = IDL.Record({
   'id' : GoalId,
   'startTime' : IDL.Opt(IDL.Text),
+  'intentTimeMinutes' : IDL.Nat,
+  'endTimeMinutes' : IDL.Nat,
   'emailNotifications' : IDL.Bool,
   'endTime' : IDL.Opt(IDL.Text),
   'owner' : UserId,
   'lastEditedAt' : IDL.Opt(Timestamp),
+  'startTimeMinutes' : IDL.Nat,
   'createdAt' : Timestamp,
   'wish' : IDL.Text,
   'themeColor' : IDL.Opt(IDL.Text),
@@ -53,6 +60,7 @@ export const GoalPublic = IDL.Record({
   'reminderOffset' : IDL.Opt(IDL.Int),
   'intentTime' : IDL.Opt(IDL.Text),
   'outcome' : IDL.Text,
+  'lockInDurationMinutes' : IDL.Nat,
   'lastEmailSentAt' : IDL.Int,
 });
 export const CreateObstacleRequest = IDL.Record({
@@ -151,9 +159,12 @@ export const Interaction = IDL.Record({
 });
 export const UpdateGoalRequest = IDL.Record({
   'startTime' : IDL.Opt(IDL.Text),
+  'intentTimeMinutes' : IDL.Opt(IDL.Nat),
+  'endTimeMinutes' : IDL.Opt(IDL.Nat),
   'emailNotifications' : IDL.Opt(IDL.Bool),
   'endTime' : IDL.Opt(IDL.Text),
   'timezoneOffsetMinutes' : IDL.Int,
+  'startTimeMinutes' : IDL.Opt(IDL.Nat),
   'wish' : IDL.Opt(IDL.Text),
   'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Opt(IDL.Text),
@@ -163,6 +174,7 @@ export const UpdateGoalRequest = IDL.Record({
   'reminderOffset' : IDL.Opt(IDL.Int),
   'intentTime' : IDL.Opt(IDL.Text),
   'outcome' : IDL.Opt(IDL.Text),
+  'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
 });
 
 export const idlService = IDL.Service({
@@ -258,8 +270,11 @@ export const idlFactory = ({ IDL }) => {
   const ObstacleTemplateId = IDL.Nat;
   const CreateGoalRequest = IDL.Record({
     'startTime' : IDL.Opt(IDL.Text),
+    'intentTimeMinutes' : IDL.Opt(IDL.Nat),
+    'endTimeMinutes' : IDL.Opt(IDL.Nat),
     'emailNotifications' : IDL.Opt(IDL.Bool),
     'endTime' : IDL.Opt(IDL.Text),
+    'startTimeMinutes' : IDL.Opt(IDL.Nat),
     'wish' : IDL.Text,
     'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Text,
@@ -270,6 +285,7 @@ export const idlFactory = ({ IDL }) => {
     'reminderOffset' : IDL.Opt(IDL.Int),
     'intentTime' : IDL.Opt(IDL.Text),
     'outcome' : IDL.Text,
+    'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
   });
   const GoalId = IDL.Nat;
   const UserId = IDL.Principal;
@@ -283,10 +299,13 @@ export const idlFactory = ({ IDL }) => {
   const GoalPublic = IDL.Record({
     'id' : GoalId,
     'startTime' : IDL.Opt(IDL.Text),
+    'intentTimeMinutes' : IDL.Nat,
+    'endTimeMinutes' : IDL.Nat,
     'emailNotifications' : IDL.Bool,
     'endTime' : IDL.Opt(IDL.Text),
     'owner' : UserId,
     'lastEditedAt' : IDL.Opt(Timestamp),
+    'startTimeMinutes' : IDL.Nat,
     'createdAt' : Timestamp,
     'wish' : IDL.Text,
     'themeColor' : IDL.Opt(IDL.Text),
@@ -300,6 +319,7 @@ export const idlFactory = ({ IDL }) => {
     'reminderOffset' : IDL.Opt(IDL.Int),
     'intentTime' : IDL.Opt(IDL.Text),
     'outcome' : IDL.Text,
+    'lockInDurationMinutes' : IDL.Nat,
     'lastEmailSentAt' : IDL.Int,
   });
   const CreateObstacleRequest = IDL.Record({
@@ -398,9 +418,12 @@ export const idlFactory = ({ IDL }) => {
   });
   const UpdateGoalRequest = IDL.Record({
     'startTime' : IDL.Opt(IDL.Text),
+    'intentTimeMinutes' : IDL.Opt(IDL.Nat),
+    'endTimeMinutes' : IDL.Opt(IDL.Nat),
     'emailNotifications' : IDL.Opt(IDL.Bool),
     'endTime' : IDL.Opt(IDL.Text),
     'timezoneOffsetMinutes' : IDL.Int,
+    'startTimeMinutes' : IDL.Opt(IDL.Nat),
     'wish' : IDL.Opt(IDL.Text),
     'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Opt(IDL.Text),
@@ -410,6 +433,7 @@ export const idlFactory = ({ IDL }) => {
     'reminderOffset' : IDL.Opt(IDL.Int),
     'intentTime' : IDL.Opt(IDL.Text),
     'outcome' : IDL.Opt(IDL.Text),
+    'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
   });
   
   return IDL.Service({

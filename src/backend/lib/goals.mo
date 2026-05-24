@@ -104,6 +104,10 @@ module {
       intentTime = goal.intentTime;
       reminderOffset = goal.reminderOffset;
       lastEmailSentAt = goal.lastEmailSentAt;
+      lockInDurationMinutes = goal.lockInDurationMinutes;
+      startTimeMinutes = goal.startTimeMinutes;
+      endTimeMinutes = goal.endTimeMinutes;
+      intentTimeMinutes = goal.intentTimeMinutes;
     };
   };
 
@@ -149,6 +153,19 @@ module {
       var intentTime = switch (request.intentTime) { case (?t) ?t; case null null };
       var reminderOffset = switch (request.reminderOffset) { case (?o) ?o; case null null };
       var lastEmailSentAt = 0;
+      var lockInDurationMinutes = switch (request.lockInDurationMinutes) { case (?v) v; case null 0 };
+      var startTimeMinutes = switch (request.startTimeMinutes) {
+        case (?v) v;
+        case null switch (request.startTime) { case (?t) switch (parseMinutes(t)) { case (?m) m; case null 0 }; case null 0 };
+      };
+      var endTimeMinutes = switch (request.endTimeMinutes) {
+        case (?v) v;
+        case null switch (request.endTime) { case (?t) switch (parseMinutes(t)) { case (?m) m; case null 0 }; case null 0 };
+      };
+      var intentTimeMinutes = switch (request.intentTimeMinutes) {
+        case (?v) v;
+        case null switch (request.intentTime) { case (?t) switch (parseMinutes(t)) { case (?m) m; case null 0 }; case null 0 };
+      };
     };
     goals.add(goal);
     #ok(toPublic(goal));
@@ -270,7 +287,9 @@ module {
           case null {};
         };
         switch (request.isLockIn) {
-          case (?v) { g.isLockIn := v };
+          case (?v) {
+            if (v != g.isLockIn) { return #err(#immutableType) };
+          };
           case null {};
         };
         switch (request.startTime) {
@@ -292,6 +311,52 @@ module {
         switch (request.reminderOffset) {
           case (?o) { g.reminderOffset := ?o };
           case null {};
+        };
+        switch (request.lockInDurationMinutes) {
+          case (?v) { g.lockInDurationMinutes := v };
+          case null {};
+        };
+        switch (request.startTimeMinutes) {
+          case (?v) { g.startTimeMinutes := v };
+          case null {
+            switch (request.startTime) {
+              case (?t) {
+                switch (parseMinutes(t)) {
+                  case (?m) { g.startTimeMinutes := m };
+                  case null {};
+                };
+              };
+              case null {};
+            };
+          };
+        };
+        switch (request.endTimeMinutes) {
+          case (?v) { g.endTimeMinutes := v };
+          case null {
+            switch (request.endTime) {
+              case (?t) {
+                switch (parseMinutes(t)) {
+                  case (?m) { g.endTimeMinutes := m };
+                  case null {};
+                };
+              };
+              case null {};
+            };
+          };
+        };
+        switch (request.intentTimeMinutes) {
+          case (?v) { g.intentTimeMinutes := v };
+          case null {
+            switch (request.intentTime) {
+              case (?t) {
+                switch (parseMinutes(t)) {
+                  case (?m) { g.intentTimeMinutes := m };
+                  case null {};
+                };
+              };
+              case null {};
+            };
+          };
         };
         let now = Time.now();
         g.updatedAt := now;

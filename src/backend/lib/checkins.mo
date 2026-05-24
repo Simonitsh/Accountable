@@ -107,24 +107,17 @@ module {
         case (#success or #inProgress or #missedCheckIn or #missedCheckOut) {};
       };
     };
-    // Validate customObstacleNote length
-    switch (request.customObstacleNote) {
-      case (?note) {
-        if (note.size() > 140) Runtime.trap("customObstacleNote exceeds 140 characters");
-      };
-      case null {};
-    };
     let checkIn : CheckInTypes.CheckIn = {
       id = nextId;
       goalId = request.goalId;
       owner = caller;
       checkInType = request.checkInType;
       obstacleTemplateId = request.obstacleTemplateId;
+      customObstacleNote = request.customObstacleNote;
       timestamp = now;
       lockInStartedAt = request.lockInStartedAt;
       lockInEndedAt = request.lockInEndedAt;
       executedIfThen = request.executedIfThen;
-      customObstacleNote = request.customObstacleNote;
     };
     checkIns.add(checkIn);
     checkIn;

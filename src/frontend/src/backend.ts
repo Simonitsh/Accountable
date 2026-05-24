@@ -91,9 +91,12 @@ export class ExternalBlob {
 }
 export interface UpdateGoalRequest {
     startTime?: string;
+    intentTimeMinutes?: bigint;
+    endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
     timezoneOffsetMinutes: bigint;
+    startTimeMinutes?: bigint;
     wish?: string;
     themeColor?: string;
     wishDescription?: string;
@@ -103,6 +106,7 @@ export interface UpdateGoalRequest {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome?: string;
+    lockInDurationMinutes?: bigint;
 }
 export type Timestamp = bigint;
 export interface RecordCheckInRequest {
@@ -127,8 +131,11 @@ export interface GoalAnalytics {
 }
 export interface CreateGoalRequest {
     startTime?: string;
+    intentTimeMinutes?: bigint;
+    endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    startTimeMinutes?: bigint;
     wish: string;
     themeColor?: string;
     wishDescription: string;
@@ -139,6 +146,7 @@ export interface CreateGoalRequest {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lockInDurationMinutes?: bigint;
 }
 export type ObstacleTemplateId = bigint;
 export type ConnectionId = bigint;
@@ -149,10 +157,13 @@ export interface AnalyticsSummary {
 export interface GoalPublic {
     id: GoalId;
     startTime?: string;
+    intentTimeMinutes: bigint;
+    endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime?: string;
     owner: UserId;
     lastEditedAt?: Timestamp;
+    startTimeMinutes: bigint;
     createdAt: Timestamp;
     wish: string;
     themeColor?: string;
@@ -166,6 +177,7 @@ export interface GoalPublic {
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lockInDurationMinutes: bigint;
     lastEmailSentAt: bigint;
 }
 export interface UserProfilePublic {
@@ -940,10 +952,13 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: _GoalId;
     startTime: [] | [string];
+    intentTimeMinutes: bigint;
+    endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime: [] | [string];
     owner: _UserId;
     lastEditedAt: [] | [_Timestamp];
+    startTimeMinutes: bigint;
     createdAt: _Timestamp;
     wish: string;
     themeColor: [] | [string];
@@ -957,14 +972,18 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     reminderOffset: [] | [bigint];
     intentTime: [] | [string];
     outcome: string;
+    lockInDurationMinutes: bigint;
     lastEmailSentAt: bigint;
 }): {
     id: GoalId;
     startTime?: string;
+    intentTimeMinutes: bigint;
+    endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime?: string;
     owner: UserId;
     lastEditedAt?: Timestamp;
+    startTimeMinutes: bigint;
     createdAt: Timestamp;
     wish: string;
     themeColor?: string;
@@ -978,15 +997,19 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lockInDurationMinutes: bigint;
     lastEmailSentAt: bigint;
 } {
     return {
         id: value.id,
         startTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.startTime)),
+        intentTimeMinutes: value.intentTimeMinutes,
+        endTimeMinutes: value.endTimeMinutes,
         emailNotifications: value.emailNotifications,
         endTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.endTime)),
         owner: value.owner,
         lastEditedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.lastEditedAt)),
+        startTimeMinutes: value.startTimeMinutes,
         createdAt: value.createdAt,
         wish: value.wish,
         themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
@@ -1000,6 +1023,7 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         reminderOffset: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.reminderOffset)),
         intentTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.intentTime)),
         outcome: value.outcome,
+        lockInDurationMinutes: value.lockInDurationMinutes,
         lastEmailSentAt: value.lastEmailSentAt
     };
 }
@@ -1188,8 +1212,11 @@ function to_candid_opt_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Arr
 }
 function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     startTime?: string;
+    intentTimeMinutes?: bigint;
+    endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    startTimeMinutes?: bigint;
     wish: string;
     themeColor?: string;
     wishDescription: string;
@@ -1200,10 +1227,14 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     reminderOffset?: bigint;
     intentTime?: string;
     outcome: string;
+    lockInDurationMinutes?: bigint;
 }): {
     startTime: [] | [string];
+    intentTimeMinutes: [] | [bigint];
+    endTimeMinutes: [] | [bigint];
     emailNotifications: [] | [boolean];
     endTime: [] | [string];
+    startTimeMinutes: [] | [bigint];
     wish: string;
     themeColor: [] | [string];
     wishDescription: string;
@@ -1214,11 +1245,15 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     reminderOffset: [] | [bigint];
     intentTime: [] | [string];
     outcome: string;
+    lockInDurationMinutes: [] | [bigint];
 } {
     return {
         startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+        intentTimeMinutes: value.intentTimeMinutes ? candid_some(value.intentTimeMinutes) : candid_none(),
+        endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
         emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
         endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+        startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
         wish: value.wish,
         themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
         wishDescription: value.wishDescription,
@@ -1228,7 +1263,8 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
         isLockIn: value.isLockIn,
         reminderOffset: value.reminderOffset ? candid_some(value.reminderOffset) : candid_none(),
         intentTime: value.intentTime ? candid_some(value.intentTime) : candid_none(),
-        outcome: value.outcome
+        outcome: value.outcome,
+        lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
     };
 }
 function to_candid_record_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -1263,9 +1299,12 @@ function to_candid_record_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8
 }
 function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     startTime?: string;
+    intentTimeMinutes?: bigint;
+    endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
     timezoneOffsetMinutes: bigint;
+    startTimeMinutes?: bigint;
     wish?: string;
     themeColor?: string;
     wishDescription?: string;
@@ -1275,11 +1314,15 @@ function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     reminderOffset?: bigint;
     intentTime?: string;
     outcome?: string;
+    lockInDurationMinutes?: bigint;
 }): {
     startTime: [] | [string];
+    intentTimeMinutes: [] | [bigint];
+    endTimeMinutes: [] | [bigint];
     emailNotifications: [] | [boolean];
     endTime: [] | [string];
     timezoneOffsetMinutes: bigint;
+    startTimeMinutes: [] | [bigint];
     wish: [] | [string];
     themeColor: [] | [string];
     wishDescription: [] | [string];
@@ -1289,12 +1332,16 @@ function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     reminderOffset: [] | [bigint];
     intentTime: [] | [string];
     outcome: [] | [string];
+    lockInDurationMinutes: [] | [bigint];
 } {
     return {
         startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+        intentTimeMinutes: value.intentTimeMinutes ? candid_some(value.intentTimeMinutes) : candid_none(),
+        endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
         emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
         endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
         timezoneOffsetMinutes: value.timezoneOffsetMinutes,
+        startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
         wish: value.wish ? candid_some(value.wish) : candid_none(),
         themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
         wishDescription: value.wishDescription ? candid_some(value.wishDescription) : candid_none(),
@@ -1303,7 +1350,8 @@ function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
         reminderOffset: value.reminderOffset ? candid_some(value.reminderOffset) : candid_none(),
         intentTime: value.intentTime ? candid_some(value.intentTime) : candid_none(),
-        outcome: value.outcome ? candid_some(value.outcome) : candid_none()
+        outcome: value.outcome ? candid_some(value.outcome) : candid_none(),
+        lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
     };
 }
 function to_candid_variant_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CheckInType): {
