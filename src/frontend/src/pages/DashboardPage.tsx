@@ -773,6 +773,11 @@ export function DashboardPage() {
   // Active goals only
   const activeGoals = goals.filter((g) => g.state === GoalState.active);
 
+  // Today's day abbreviation for scheduling filter (sun=0, mon=1 ... sat=6)
+  const todayAbbr = (
+    ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const
+  )[new Date().getDay()];
+
   // ── Backend-derived done map: source of truth for Done tab across all devices ──
   // Each entry = today's check-in (filtered by user's timezone), keyed by goalId.
   const todayDoneMap = useMemo<DoneMap>(() => {
@@ -1310,7 +1315,14 @@ export function DashboardPage() {
     if (committedMissedExitsRef.current.has(key)) return false;
     const entry = todayDoneMap.get(key);
     if (entry?.checkInType === "inProgress") return true;
-    return !entry && !exitingMap.has(key) && !optimisticDoneMap.has(key);
+    if (entry || exitingMap.has(key) || optimisticDoneMap.has(key))
+      return false;
+    // Calm Technology: only show habits scheduled for today
+    const scheduledToday =
+      !g.scheduledDays ||
+      g.scheduledDays.length === 0 ||
+      g.scheduledDays.includes(todayAbbr);
+    return scheduledToday;
   });
   // Merged done map: real backend data takes priority; optimistic fills the gap
   // while the backend query refetches after a swipe.

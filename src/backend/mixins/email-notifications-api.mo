@@ -26,6 +26,14 @@ mixin (
       // Only process goals with email notifications enabled
       if (not goal.emailNotifications) continue nextGoal;
 
+      // Skip if today is not a scheduled day for this goal (rest day)
+      let tzOffsetForDay : Int = switch (profiles.get(goal.owner)) {
+        case null 0;
+        case (?p) p.timezoneOffsetMinutes;
+      };
+      let todayAbbr : Text = CheckInsLib.dayOfWeekAbbrPublic(nowNs, tzOffsetForDay);
+      if (not CheckInsLib.isScheduledDayPublic(todayAbbr, goal.scheduledDays)) continue nextGoal;
+
       // Look up the owner's profile for timezone and email
       let (tzOffsetMins, ownerEmail) : (Int, ?Text) = switch (profiles.get(goal.owner)) {
         case null { continue nextGoal };

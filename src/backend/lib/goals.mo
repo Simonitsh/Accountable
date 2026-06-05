@@ -5,6 +5,7 @@ import GoalTypes "../types/goals";
 import Text "mo:core/Text";
 import Nat "mo:core/Nat";
 import Int "mo:core/Int";
+import Debug "mo:core/Debug";
 
 /// Goals — pure domain logic module.
 ///
@@ -108,6 +109,7 @@ module {
       startTimeMinutes = goal.startTimeMinutes;
       endTimeMinutes = goal.endTimeMinutes;
       intentTimeMinutes = goal.intentTimeMinutes;
+      scheduledDays = goal.scheduledDays;
     };
   };
 
@@ -165,6 +167,11 @@ module {
       var intentTimeMinutes = switch (request.intentTimeMinutes) {
         case (?v) v;
         case null switch (request.intentTime) { case (?t) switch (parseMinutes(t)) { case (?m) m; case null 0 }; case null 0 };
+      };
+      // scheduledDays: use request value or default to all 7 days
+      var scheduledDays : [Text] = switch (request.scheduledDays) {
+        case (?days) days;
+        case null GoalTypes.DEFAULT_SCHEDULED_DAYS;
       };
     };
     goals.add(goal);
@@ -357,6 +364,14 @@ module {
               case null {};
             };
           };
+        };
+        // scheduledDays: update if provided, enforcing at least one day selected
+        switch (request.scheduledDays) {
+          case (?days) {
+            if (days.size() == 0) { return #err(#invalidInput) };
+            g.scheduledDays := days;
+          };
+          case null {};
         };
         let now = Time.now();
         g.updatedAt := now;

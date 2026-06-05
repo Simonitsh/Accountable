@@ -1,6 +1,9 @@
 import Common "common";
 
+import Debug "mo:core/Debug";
 module {
+  /// Default scheduled days — every day of the week.
+  public let DEFAULT_SCHEDULED_DAYS : [Text] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
   public type ObstacleTemplate = {
     id : Common.ObstacleTemplateId;
     owner : Common.UserId;
@@ -33,6 +36,7 @@ module {
     var startTimeMinutes : Nat;
     var endTimeMinutes : Nat;
     var intentTimeMinutes : Nat;
+    var scheduledDays : [Text];
   };
 
   public type GoalPublic = {
@@ -60,6 +64,7 @@ module {
     startTimeMinutes : Nat;
     endTimeMinutes : Nat;
     intentTimeMinutes : Nat;
+    scheduledDays : [Text];
   };
 
   public type CreateGoalRequest = {
@@ -80,6 +85,7 @@ module {
     startTimeMinutes : ?Nat;
     endTimeMinutes : ?Nat;
     intentTimeMinutes : ?Nat;
+    scheduledDays : ?[Text];
   };
 
   public type CreateObstacleRequest = {
@@ -105,6 +111,7 @@ module {
     startTimeMinutes : ?Nat;
     endTimeMinutes : ?Nat;
     intentTimeMinutes : ?Nat;
+    scheduledDays : ?[Text];
   };
 
   /// Typed error variants for goal operations.

@@ -32771,6 +32771,7 @@ const CreateGoalRequest = Record({
   "endTimeMinutes": Opt(Nat),
   "emailNotifications": Opt(Bool),
   "endTime": Opt(Text$1),
+  "scheduledDays": Opt(Vec(Text$1)),
   "startTimeMinutes": Opt(Nat),
   "wish": Text$1,
   "themeColor": Opt(Text$1),
@@ -32800,6 +32801,7 @@ const GoalPublic = Record({
   "endTimeMinutes": Nat,
   "emailNotifications": Bool,
   "endTime": Opt(Text$1),
+  "scheduledDays": Vec(Text$1),
   "owner": UserId,
   "lastEditedAt": Opt(Timestamp),
   "startTimeMinutes": Nat,
@@ -32919,6 +32921,7 @@ const UpdateGoalRequest = Record({
   "endTimeMinutes": Opt(Nat),
   "emailNotifications": Opt(Bool),
   "endTime": Opt(Text$1),
+  "scheduledDays": Opt(Vec(Text$1)),
   "timezoneOffsetMinutes": Int,
   "startTimeMinutes": Opt(Nat),
   "wish": Opt(Text$1),
@@ -33026,6 +33029,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "endTimeMinutes": IDL2.Opt(IDL2.Nat),
     "emailNotifications": IDL2.Opt(IDL2.Bool),
     "endTime": IDL2.Opt(IDL2.Text),
+    "scheduledDays": IDL2.Opt(IDL2.Vec(IDL2.Text)),
     "startTimeMinutes": IDL2.Opt(IDL2.Nat),
     "wish": IDL2.Text,
     "themeColor": IDL2.Opt(IDL2.Text),
@@ -33055,6 +33059,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "endTimeMinutes": IDL2.Nat,
     "emailNotifications": IDL2.Bool,
     "endTime": IDL2.Opt(IDL2.Text),
+    "scheduledDays": IDL2.Vec(IDL2.Text),
     "owner": UserId2,
     "lastEditedAt": IDL2.Opt(Timestamp2),
     "startTimeMinutes": IDL2.Nat,
@@ -33174,6 +33179,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "endTimeMinutes": IDL2.Opt(IDL2.Nat),
     "emailNotifications": IDL2.Opt(IDL2.Bool),
     "endTime": IDL2.Opt(IDL2.Text),
+    "scheduledDays": IDL2.Opt(IDL2.Vec(IDL2.Text)),
     "timezoneOffsetMinutes": IDL2.Int,
     "startTimeMinutes": IDL2.Opt(IDL2.Nat),
     "wish": IDL2.Opt(IDL2.Text),
@@ -33883,6 +33889,7 @@ function from_candid_record_n5(_uploadFile, _downloadFile, value) {
     endTimeMinutes: value.endTimeMinutes,
     emailNotifications: value.emailNotifications,
     endTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.endTime)),
+    scheduledDays: value.scheduledDays,
     owner: value.owner,
     lastEditedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.lastEditedAt)),
     startTimeMinutes: value.startTimeMinutes,
@@ -34003,6 +34010,7 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
     emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
     endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+    scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
     startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
     wish: value.wish,
     themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
@@ -34036,6 +34044,7 @@ function to_candid_record_n46(_uploadFile, _downloadFile, value) {
     endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
     emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
     endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+    scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
     wish: value.wish ? candid_some(value.wish) : candid_none(),
@@ -70799,17 +70808,6 @@ function GoalCard({
                     ]
                   }
                 ),
-                mode === "done" && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "absolute top-3.5 right-3.5 w-2 h-2 rounded-full",
-                    style: {
-                      backgroundColor: isSuccess ? SUCCESS_COLOR$2 : isFailedLockIn ? MISSED_COLOR$1 : SKIP_COLOR$2,
-                      opacity: 0.85
-                    },
-                    "aria-hidden": "true"
-                  }
-                ),
                 (isCheckingIn || isSkipping) && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "div",
                   {
@@ -71297,7 +71295,37 @@ function GoalInsightSheet({
     }
   }, [isOpen]);
   const groups = groupByDay(checkIns);
-  const isEmpty = !isLoading && !error && checkIns.length === 0;
+  const today = /* @__PURE__ */ new Date();
+  today.setHours(0, 0, 0, 0);
+  const createdAtMs = goal.createdAt ? Number(goal.createdAt / 1000000n) : Date.now();
+  const createdAtDate = new Date(createdAtMs);
+  createdAtDate.setHours(0, 0, 0, 0);
+  const maxDays = 14;
+  const dayCount = Math.min(
+    maxDays,
+    Math.floor(
+      (today.getTime() - createdAtDate.getTime()) / (24 * 60 * 60 * 1e3)
+    ) + 1
+  );
+  const last14Days = Array.from({ length: dayCount }, (_2, i) => {
+    const d2 = /* @__PURE__ */ new Date();
+    d2.setDate(d2.getDate() - i);
+    d2.setHours(0, 0, 0, 0);
+    return d2;
+  });
+  const weekdays = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const groupByDateStr = /* @__PURE__ */ new Map();
+  for (const g2 of groups) {
+    const ms = Number(g2.items[0].timestamp / 1000000n);
+    const key = new Date(ms).toDateString();
+    groupByDateStr.set(key, g2);
+  }
+  const hasAnyDayData = last14Days.some((d2) => {
+    const key = d2.toDateString();
+    if (groupByDateStr.has(key)) return true;
+    return true;
+  });
+  const isEmpty = !isLoading && !error && checkIns.length === 0 && !hasAnyDayData;
   const habitName = goal.wishDescription || goal.wish || "Habit";
   const macroWish = goal.wish;
   const outcome = goal.outcome;
@@ -71484,7 +71512,7 @@ function GoalInsightSheet({
                     ]
                   }
                 ),
-                !isLoading && !error && groups.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                !isLoading && !error && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "div",
                     {
@@ -71495,15 +71523,134 @@ function GoalInsightSheet({
                       "aria-hidden": "true"
                     }
                   ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-0", children: groups.map((group, gi) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: groups keyed by stable date string position
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-0", children: last14Days.map((date2, di) => {
+                    const key = date2.toDateString();
+                    const group = groupByDateStr.get(key);
+                    if (group) {
+                      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                         "div",
                         {
-                          className: "mb-3 ml-11",
-                          "data-ocid": `goal_insight.day_group.${gi + 1}`,
-                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          className: "mb-4",
+                          "data-ocid": `goal_insight.day_group.${di + 1}`,
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-3 ml-11", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "span",
+                              {
+                                className: "text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full",
+                                style: {
+                                  color: "oklch(var(--muted-foreground))",
+                                  background: "rgba(255,255,255,0.04)",
+                                  border: "1px solid rgba(255,255,255,0.07)"
+                                },
+                                children: group.label
+                              }
+                            ) }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ml-3 flex flex-col gap-0", children: group.items.map((ci) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              TimelineItem,
+                              {
+                                checkIn: ci
+                              },
+                              ci.id.toString()
+                            )) })
+                          ]
+                        },
+                        key
+                      );
+                    }
+                    const dayAbbr = weekdays[date2.getDay()];
+                    const isScheduled2 = !goal.scheduledDays || goal.scheduledDays.length === 0 || goal.scheduledDays.includes(dayAbbr);
+                    if (!isScheduled2) {
+                      return null;
+                    }
+                    const isToday = date2.toDateString() === (/* @__PURE__ */ new Date()).toDateString();
+                    if (isToday) {
+                      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: "mb-4",
+                          "data-ocid": `goal_insight.day_group.${di + 1}`,
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-3 ml-11", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "span",
+                              {
+                                className: "text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full",
+                                style: {
+                                  color: "oklch(var(--muted-foreground))",
+                                  background: "rgba(255,255,255,0.04)",
+                                  border: "1px solid rgba(255,255,255,0.07)"
+                                },
+                                children: "Today"
+                              }
+                            ) }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ml-3 flex gap-3", children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                                "div",
+                                {
+                                  className: "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+                                  style: {
+                                    border: "2px solid #F59E0B",
+                                    background: "transparent",
+                                    boxShadow: "0 0 0 3px rgba(245,158,11,0.12)"
+                                  },
+                                  "aria-hidden": "true",
+                                  children: [
+                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                      "span",
+                                      {
+                                        className: "absolute inset-0 rounded-full animate-ping opacity-40",
+                                        style: {
+                                          background: "rgba(245,158,11,0.25)"
+                                        }
+                                      }
+                                    ),
+                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                      "div",
+                                      {
+                                        className: "w-2 h-2 rounded-full",
+                                        style: { background: "#F59E0B" }
+                                      }
+                                    )
+                                  ]
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
+                                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "p",
+                                  {
+                                    className: "text-sm font-display font-medium leading-snug",
+                                    style: { color: "#F59E0B" },
+                                    children: "In Progress"
+                                  }
+                                ),
+                                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  "p",
+                                  {
+                                    className: "text-xs mt-0.5",
+                                    style: {
+                                      color: "oklch(var(--muted-foreground) / 0.7)"
+                                    },
+                                    children: "Waiting for today's action"
+                                  }
+                                )
+                              ] })
+                            ] })
+                          ]
+                        },
+                        key
+                      );
+                    }
+                    const dateLabel = date2.toLocaleDateString(void 0, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short"
+                    });
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        className: "mb-4",
+                        "data-ocid": `goal_insight.day_group.${di + 1}`,
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-3 ml-11", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                             "span",
                             {
                               className: "text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full",
@@ -71512,17 +71659,36 @@ function GoalInsightSheet({
                                 background: "rgba(255,255,255,0.04)",
                                 border: "1px solid rgba(255,255,255,0.07)"
                               },
-                              children: group.label
+                              children: dateLabel
                             }
-                          )
-                        }
-                      ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ml-3 flex flex-col gap-0", children: group.items.map((ci, ii) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: items within a day group, stable order
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineItem, { checkIn: ci }, `${gi}-${ii}`)
-                      )) })
-                    ] }, gi)
-                  )) })
+                          ) }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ml-3 flex gap-3", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "div",
+                              {
+                                className: "flex-shrink-0 w-8 h-8 rounded-full",
+                                style: {
+                                  border: `2px solid ${MISSED_COLOR}`,
+                                  background: "transparent",
+                                  boxShadow: "0 0 0 3px rgba(107,114,128,0.08)"
+                                },
+                                "aria-hidden": "true"
+                              }
+                            ),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 pb-5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "p",
+                              {
+                                className: "text-sm font-display font-medium leading-snug",
+                                style: { color: MISSED_COLOR },
+                                children: "Missed • No action taken"
+                              }
+                            ) })
+                          ] })
+                        ]
+                      },
+                      key
+                    );
+                  }) })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-4" })
               ]
@@ -71694,6 +71860,134 @@ function Textarea({ className, ...props }) {
     }
   );
 }
+const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+const DAY_ABBRS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+function DayPickerRow({ selectedDays, onChange }) {
+  function toggle(abbr) {
+    const isSelected = selectedDays.includes(abbr);
+    if (isSelected && selectedDays.length === 1) return;
+    const next = isSelected ? selectedDays.filter((d2) => d2 !== abbr) : [...selectedDays, abbr];
+    onChange(next);
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between gap-1", children: DAY_ABBRS.map((abbr, i) => {
+    const selected = selectedDays.includes(abbr);
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "button",
+      {
+        type: "button",
+        "aria-pressed": selected,
+        "aria-label": `${DAY_LABELS[i]} (${abbr})`,
+        "data-ocid": `day_picker.${abbr}`,
+        onClick: () => toggle(abbr),
+        className: "w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold font-mono transition-all duration-200 select-none",
+        style: selected ? {
+          background: "rgba(16,185,129,0.15)",
+          border: "2px solid #10B981",
+          color: "#10B981",
+          boxShadow: "0 0 10px rgba(16,185,129,0.3), inset 2px 2px 5px rgba(0,0,0,0.3)"
+        } : {
+          background: "oklch(var(--muted) / 0.4)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          color: "oklch(var(--muted-foreground))",
+          boxShadow: "3px 3px 7px rgba(0,0,0,0.45), -2px -2px 5px rgba(255,255,255,0.04)"
+        },
+        children: DAY_LABELS[i]
+      },
+      abbr
+    );
+  }) });
+}
+function ScrollWheelPicker({
+  values,
+  selectedValue,
+  onChange,
+  accentColor = "#10B981",
+  disabled = false,
+  "data-ocid": dataOcid
+}) {
+  const containerRef = reactExports.useRef(null);
+  const debounceRef = reactExports.useRef(null);
+  const itemHeight = 40;
+  const selectedIndex = values.indexOf(selectedValue);
+  reactExports.useEffect(() => {
+    if (containerRef.current && selectedIndex >= 0) {
+      containerRef.current.scrollTop = selectedIndex * itemHeight;
+    }
+  }, [selectedIndex]);
+  const handleScroll2 = () => {
+    if (disabled) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (!containerRef.current) return;
+      const scrollPos = containerRef.current.scrollTop;
+      const index2 = Math.round(scrollPos / itemHeight);
+      const clampedIndex = Math.max(0, Math.min(values.length - 1, index2));
+      const targetTop = clampedIndex * itemHeight;
+      containerRef.current.scrollTo({ top: targetTop, behavior: "smooth" });
+      onChange(values[clampedIndex]);
+    }, 150);
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      "data-ocid": dataOcid,
+      className: `relative w-full rounded-xl overflow-hidden transition-opacity duration-200 ${disabled ? "opacity-50 pointer-events-none" : ""}`,
+      style: {
+        background: "oklch(var(--card))",
+        border: `1px solid ${accentColor}25`,
+        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+        height: itemHeight * 5
+      },
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "absolute left-0 right-0 pointer-events-none z-10",
+            style: {
+              top: itemHeight * 2,
+              height: itemHeight,
+              background: `${accentColor}10`,
+              borderTop: `1px solid ${accentColor}20`,
+              borderBottom: `1px solid ${accentColor}20`
+            }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            ref: containerRef,
+            className: "w-full overflow-y-auto scrollbar-hide",
+            style: {
+              height: itemHeight * 5,
+              paddingTop: itemHeight * 2,
+              paddingBottom: itemHeight * 2,
+              WebkitOverflowScrolling: "touch"
+            },
+            onScroll: handleScroll2,
+            children: values.map((val) => {
+              const isSelected = val === selectedValue;
+              return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "flex items-center justify-center font-mono text-base transition-colors duration-150",
+                  style: {
+                    height: itemHeight,
+                    scrollSnapAlign: "center",
+                    color: isSelected ? accentColor : "oklch(var(--foreground))",
+                    fontWeight: isSelected ? 700 : 400,
+                    fontSize: isSelected ? "1.1rem" : "1rem"
+                  },
+                  children: val
+                },
+                val
+              );
+            })
+          }
+        )
+      ]
+    }
+  );
+}
 const THEME_COLORS$1 = [
   { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
   { id: "sapphire", label: "Sapphire", value: "#2563EB" },
@@ -71710,6 +72004,7 @@ const STEPS = [
   { id: 3, label: "Plan" },
   { id: 4, label: "Review" }
 ];
+const ALL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const EMPTY = {
   goalAction: "",
   goalReason: "",
@@ -71720,6 +72015,7 @@ const EMPTY = {
   lockInEndTime: "",
   lockInDurationHours: 0,
   lockInDurationMinutes: 0,
+  scheduledDays: [...ALL_DAYS],
   selectedObstacles: [],
   ifThenPlan: "",
   iconName: "target",
@@ -71895,6 +72191,7 @@ function WoopWizard({
         iconName: form.iconName || void 0,
         themeColor: form.themeColor || void 0,
         isLockIn: form.isLockIn,
+        scheduledDays: form.scheduledDays,
         startTime: form.isLockIn && form.lockInStartTime ? form.lockInStartTime : void 0,
         endTime: form.isLockIn && form.lockInEndTime ? form.lockInEndTime : void 0,
         timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
@@ -72664,6 +72961,17 @@ function WoopWizard({
                   ] })
                 ] }) })
               ] }),
+              step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-6 px-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3", children: "Active Days" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/60 mb-3", children: "Select which days this habit is active." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  DayPickerRow,
+                  {
+                    selectedDays: form.scheduledDays,
+                    onChange: (days) => setForm((f2) => ({ ...f2, scheduledDays: days }))
+                  }
+                )
+              ] }),
               step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Unlike wishful thinking, WOOP asks you to name what stands between you and your habit." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xl font-medium text-foreground", children: "What stands between me and my habit?" }),
@@ -72986,115 +73294,31 @@ function WoopWizard({
                           children: [
                             !form.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "block text-xs text-muted-foreground uppercase tracking-wide", children: "When do you plan to do this?" }),
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "label",
-                                    {
-                                      htmlFor: "intent-time-hours",
-                                      className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                                      children: "Hours"
-                                    }
-                                  ),
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "select",
-                                    {
-                                      id: "intent-time-hours",
-                                      "data-ocid": "woop_wizard.intent_time.hours",
-                                      value: form.intentTime ? Number(form.intentTime.split(":")[0]) : 0,
-                                      onChange: (e3) => {
-                                        const hours = Number(e3.target.value);
-                                        const mins = form.intentTime ? Number(form.intentTime.split(":")[1]) : 0;
-                                        setForm((f2) => ({
-                                          ...f2,
-                                          intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`
-                                        }));
-                                      },
-                                      size: 5,
-                                      className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                      style: {
-                                        background: "oklch(var(--card))",
-                                        border: "1px solid rgba(16,185,129,0.25)",
-                                        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                        color: "oklch(var(--foreground))",
-                                        padding: "6px 0",
-                                        outline: "none",
-                                        overflowY: "auto"
-                                      },
-                                      children: Array.from({ length: 24 }, (_2, h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                        "option",
-                                        {
-                                          value: h2,
-                                          style: {
-                                            background: "oklch(var(--card))",
-                                            color: (form.intentTime ? Number(form.intentTime.split(":")[0]) : 0) === h2 ? "#10B981" : "oklch(var(--foreground))",
-                                            fontWeight: (form.intentTime ? Number(form.intentTime.split(":")[0]) : 0) === h2 ? 700 : 400
-                                          },
-                                          children: String(h2).padStart(2, "0")
-                                        },
-                                        `intent-hour-${h2}`
-                                      ))
-                                    }
-                                  )
-                                ] }),
-                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "label",
-                                    {
-                                      htmlFor: "intent-time-minutes",
-                                      className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                                      children: "Minutes"
-                                    }
-                                  ),
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "select",
-                                    {
-                                      id: "intent-time-minutes",
-                                      "data-ocid": "woop_wizard.intent_time.minutes",
-                                      value: form.intentTime ? Number(form.intentTime.split(":")[1]) : 0,
-                                      onChange: (e3) => {
-                                        const mins = Number(e3.target.value);
-                                        const hours = form.intentTime ? Number(form.intentTime.split(":")[0]) : 0;
-                                        setForm((f2) => ({
-                                          ...f2,
-                                          intentTime: `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`
-                                        }));
-                                      },
-                                      size: 5,
-                                      className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                      style: {
-                                        background: "oklch(var(--card))",
-                                        border: "1px solid rgba(16,185,129,0.25)",
-                                        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                        color: "oklch(var(--foreground))",
-                                        padding: "6px 0",
-                                        outline: "none",
-                                        overflowY: "auto"
-                                      },
-                                      children: Array.from({ length: 12 }, (_2, i) => {
-                                        const m2 = i * 5;
-                                        return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                          "option",
-                                          {
-                                            value: m2,
-                                            style: {
-                                              background: "oklch(var(--card))",
-                                              color: (form.intentTime ? Number(
-                                                form.intentTime.split(":")[1]
-                                              ) : 0) === m2 ? "#10B981" : "oklch(var(--foreground))",
-                                              fontWeight: (form.intentTime ? Number(
-                                                form.intentTime.split(":")[1]
-                                              ) : 0) === m2 ? 700 : 400
-                                            },
-                                            children: String(m2).padStart(2, "0")
-                                          },
-                                          m2
-                                        );
-                                      })
-                                    }
-                                  )
-                                ] })
-                              ] }),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "input",
+                                {
+                                  type: "time",
+                                  "data-ocid": "woop_wizard.intent_time.input",
+                                  value: form.intentTime || "08:00",
+                                  onChange: (e3) => setForm((f2) => ({
+                                    ...f2,
+                                    intentTime: e3.target.value
+                                  })),
+                                  style: {
+                                    background: "oklch(var(--card))",
+                                    border: "1px solid rgba(16,185,129,0.4)",
+                                    borderRadius: "0.75rem",
+                                    padding: "10px 14px",
+                                    color: "oklch(var(--foreground))",
+                                    fontFamily: "monospace",
+                                    fontSize: "1.1rem",
+                                    colorScheme: "dark",
+                                    boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                                    width: "100%",
+                                    outline: "none"
+                                  }
+                                }
+                              ),
                               errors.intentTime && /* @__PURE__ */ jsxRuntimeExports.jsx(
                                 "p",
                                 {
@@ -73123,54 +73347,37 @@ function WoopWizard({
                                   }
                                 )
                               ] }),
-                              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "select",
-                                {
-                                  id: "reminder-offset",
-                                  "data-ocid": "woop_wizard.reminder_offset.input",
-                                  value: form.reminderOffset,
-                                  onChange: (e3) => {
-                                    setForm((f2) => ({
-                                      ...f2,
-                                      reminderOffset: Number(e3.target.value)
-                                    }));
-                                  },
-                                  size: 5,
-                                  className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer",
-                                  style: {
-                                    background: "oklch(var(--card))",
-                                    border: "1px solid rgba(16,185,129,0.25)",
-                                    boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                                    color: "oklch(var(--foreground))",
-                                    padding: "6px 0",
-                                    outline: "none",
-                                    overflowY: "auto"
-                                  },
-                                  children: (() => {
-                                    const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
-                                    const items = [];
-                                    for (let v2 = -60; v2 <= maxVal; v2 += 5) {
-                                      const label = v2 < 0 ? `${Math.abs(v2)} min before` : v2 === 0 ? "At start time" : `${v2} min after`;
-                                      items.push(
-                                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                          "option",
-                                          {
-                                            value: v2,
-                                            style: {
-                                              background: "oklch(var(--card))",
-                                              color: form.reminderOffset === v2 ? "#10B981" : "oklch(var(--foreground))",
-                                              fontWeight: form.reminderOffset === v2 ? 700 : 400
-                                            },
-                                            children: label
-                                          },
-                                          v2
-                                        )
-                                      );
-                                    }
-                                    return items;
-                                  })()
+                              (() => {
+                                const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
+                                const offsetValues = [];
+                                for (let v2 = -60; v2 <= maxVal; v2 += 5) {
+                                  offsetValues.push(
+                                    v2 < 0 ? `${Math.abs(v2)} min before` : v2 === 0 ? "At start time" : `${v2} min after`
+                                  );
                                 }
-                              ),
+                                const currentLabel = form.reminderOffset < 0 ? `${Math.abs(form.reminderOffset)} min before` : form.reminderOffset === 0 ? "At start time" : `${form.reminderOffset} min after`;
+                                return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                  ScrollWheelPicker,
+                                  {
+                                    "data-ocid": "woop_wizard.reminder_offset.input",
+                                    values: offsetValues,
+                                    selectedValue: offsetValues.includes(currentLabel) ? currentLabel : offsetValues[0],
+                                    onChange: (label) => {
+                                      const idx = offsetValues.indexOf(label);
+                                      if (idx === -1) return;
+                                      const numericValue = -60 + idx * 5;
+                                      setForm((f2) => ({
+                                        ...f2,
+                                        reminderOffset: Math.max(
+                                          -60,
+                                          Math.min(maxVal, numericValue)
+                                        )
+                                      }));
+                                    },
+                                    accentColor: form.isLockIn ? "#F59E0B" : "#10B981"
+                                  }
+                                );
+                              })(),
                               form.emailNotifications && (() => {
                                 const baseTime = form.isLockIn ? form.lockInStartTime : form.intentTime;
                                 if (!baseTime) return null;
@@ -73822,6 +74029,7 @@ function DashboardPage$1() {
   });
   const isLoading = goalsLoading || checkInsLoading;
   const activeGoals = goals.filter((g2) => g2.state === GoalState.active);
+  const todayAbbr = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][(/* @__PURE__ */ new Date()).getDay()];
   const todayDoneMap = reactExports.useMemo(() => {
     const map2 = /* @__PURE__ */ new Map();
     for (const c2 of checkIns) {
@@ -74188,7 +74396,10 @@ function DashboardPage$1() {
     if (committedMissedExitsRef.current.has(key)) return false;
     const entry = todayDoneMap.get(key);
     if ((entry == null ? void 0 : entry.checkInType) === "inProgress") return true;
-    return !entry && !exitingMap.has(key) && !optimisticDoneMap.has(key);
+    if (entry || exitingMap.has(key) || optimisticDoneMap.has(key))
+      return false;
+    const scheduledToday = !g2.scheduledDays || g2.scheduledDays.length === 0 || g2.scheduledDays.includes(todayAbbr);
+    return scheduledToday;
   });
   const mergedDoneMap = reactExports.useMemo(() => {
     if (optimisticDoneMap.size === 0) return todayDoneMap;
@@ -74676,21 +74887,8 @@ function parseHHMMToMinutes(time2) {
   const [h2, m2] = time2.split(":").map(Number);
   return h2 * 60 + m2;
 }
-const wheelStyle = {
-  background: "oklch(var(--card))",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-  color: "oklch(var(--foreground))",
-  padding: "6px 0",
-  outline: "none",
-  overflowY: "auto"
-};
-const amberWheelStyle = {
-  ...wheelStyle,
-  border: "1px solid rgba(245,158,11,0.25)"
-};
-const sectionLabel = "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
-const insetCard = {
+const sectionLabel$1 = "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
+const insetCard$1 = {
   background: "oklch(var(--card))",
   boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.4), inset -2px -2px 6px rgba(255,255,255,0.04)",
   borderRadius: "1rem",
@@ -74705,6 +74903,9 @@ function EditHabitPage$1() {
   const hasEmail = Boolean(
     userProfile == null ? void 0 : userProfile.email
   );
+  const [activeTab, setActiveTab] = reactExports.useState("general");
+  const [timeEditsToday, setTimeEditsToday] = reactExports.useState(0);
+  const [showTimeConfirmation, setShowTimeConfirmation] = reactExports.useState(false);
   const { data: goals, isLoading } = useQuery({
     queryKey: ["myGoals"],
     queryFn: async () => {
@@ -74723,6 +74924,15 @@ function EditHabitPage$1() {
   const [iconName, setIconName] = reactExports.useState("target");
   const [themeColor, setThemeColor] = reactExports.useState("#2563EB");
   const [obstacles, setObstacles] = reactExports.useState([]);
+  const [scheduledDays, setScheduledDays] = reactExports.useState([
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat",
+    "sun"
+  ]);
   const [focusedField, setFocusedField] = reactExports.useState(null);
   const [lockInStartTime, setLockInStartTime] = reactExports.useState("");
   const [lockInEndTime, setLockInEndTime] = reactExports.useState("");
@@ -74771,6 +74981,13 @@ function EditHabitPage$1() {
     setReminderOffset(
       habit.reminderOffset !== void 0 ? Number(habit.reminderOffset) : 0
     );
+    const rawDays = habit.scheduledDays;
+    setScheduledDays(
+      rawDays && rawDays.length > 0 ? rawDays : ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    );
+    const today = (/* @__PURE__ */ new Date()).toLocaleDateString();
+    const lastEditDate = habit.lastEditedAt ? new Date(Number(habit.lastEditedAt) / 1e6).toLocaleDateString() : "";
+    setTimeEditsToday(lastEditDate === today ? 1 : 0);
   }, [habit]);
   reactExports.useEffect(() => {
     if (!lockInStartTime) return;
@@ -74808,15 +75025,6 @@ function EditHabitPage$1() {
       conflict ? `Conflict: This overlaps with "${conflict.wishDescription || "an existing Lock-In"}".` : null
     );
   }, [habit == null ? void 0 : habit.isLockIn, lockInStartTime, lockInEndTime, goals, id2]);
-  const isLockedForToday = reactExports.useMemo(() => {
-    if (!(habit == null ? void 0 : habit.lastEditedAt)) return false;
-    const tzOffsetMs = (/* @__PURE__ */ new Date()).getTimezoneOffset() * 60 * 1e3 * -1;
-    const lastEditedMs = Number(habit.lastEditedAt / 1000000n);
-    const nowMs = Date.now();
-    const lastDay = Math.floor((lastEditedMs + tzOffsetMs) / 864e5);
-    const today = Math.floor((nowMs + tzOffsetMs) / 864e5);
-    return lastDay === today;
-  }, [habit == null ? void 0 : habit.lastEditedAt]);
   const isLockInWindowActive = reactExports.useMemo(() => {
     if (!(habit == null ? void 0 : habit.isLockIn) || !lockInStartTime || !lockInEndTime) return false;
     return isLockInActiveWindow$1(lockInStartTime, lockInEndTime);
@@ -74854,33 +75062,9 @@ function EditHabitPage$1() {
     });
   }
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload) => {
       if (!actor) throw new Error("Not connected");
-      obstacles.map((o2) => o2.label).join(", ");
-      const req = {
-        timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
-        wish: wish.trim(),
-        wishDescription: wishDescription.trim(),
-        ifThenPlan: ifThenPlan.trim(),
-        iconName,
-        themeColor,
-        isLockIn: (habit == null ? void 0 : habit.isLockIn) ?? false,
-        startTime: (habit == null ? void 0 : habit.isLockIn) && lockInStartTime ? lockInStartTime : void 0,
-        endTime: (habit == null ? void 0 : habit.isLockIn) && lockInEndTime ? lockInEndTime : void 0,
-        emailNotifications,
-        intentTime: emailNotifications && intentTime ? intentTime : void 0,
-        reminderOffset: emailNotifications ? BigInt(clampedOffset) : void 0,
-        lockInDurationMinutes: (habit == null ? void 0 : habit.isLockIn) ? BigInt(lockInDurationHours * 60 + lockInDurationMinutes) : BigInt(0),
-        startTimeMinutes: (habit == null ? void 0 : habit.isLockIn) && lockInStartTime ? BigInt(parseHHMMToMinutes(lockInStartTime)) : BigInt(0),
-        endTimeMinutes: (habit == null ? void 0 : habit.isLockIn) && lockInStartTime ? BigInt(
-          Math.min(
-            1435,
-            parseHHMMToMinutes(lockInStartTime) + lockInDurationHours * 60 + lockInDurationMinutes
-          )
-        ) : BigInt(0),
-        intentTimeMinutes: emailNotifications && intentTime ? BigInt(parseHHMMToMinutes(intentTime)) : BigInt(0)
-      };
-      const result = await actor.updateGoal(BigInt(id2), req);
+      const result = await actor.updateGoal(BigInt(id2), payload);
       if ("err" in result) {
         throw new Error(
           typeof result.err === "string" ? result.err : "Failed to save"
@@ -74891,11 +75075,43 @@ function EditHabitPage$1() {
     onSuccess: () => {
       queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
       ue.success("Habit updated!");
-      navigate({ to: "/goals" });
     }
   });
-  function canSave() {
+  function buildPayload(overrides) {
+    obstacles.map((o2) => o2.label).join(", ");
+    return {
+      timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
+      wish: wish.trim(),
+      wishDescription: wishDescription.trim(),
+      ifThenPlan: ifThenPlan.trim(),
+      iconName,
+      themeColor,
+      isLockIn: (habit == null ? void 0 : habit.isLockIn) ?? false,
+      scheduledDays,
+      startTime: (habit == null ? void 0 : habit.isLockIn) && lockInStartTime ? lockInStartTime : void 0,
+      endTime: (habit == null ? void 0 : habit.isLockIn) && lockInEndTime ? lockInEndTime : void 0,
+      emailNotifications,
+      intentTime: emailNotifications && intentTime ? intentTime : void 0,
+      reminderOffset: emailNotifications ? BigInt(clampedOffset) : void 0,
+      lockInDurationMinutes: (habit == null ? void 0 : habit.isLockIn) ? BigInt(lockInDurationHours * 60 + lockInDurationMinutes) : BigInt(0),
+      startTimeMinutes: (habit == null ? void 0 : habit.isLockIn) && lockInStartTime ? BigInt(parseHHMMToMinutes(lockInStartTime)) : BigInt(0),
+      endTimeMinutes: (habit == null ? void 0 : habit.isLockIn) && lockInStartTime ? BigInt(
+        Math.min(
+          1435,
+          parseHHMMToMinutes(lockInStartTime) + lockInDurationHours * 60 + lockInDurationMinutes
+        )
+      ) : BigInt(0),
+      intentTimeMinutes: emailNotifications && intentTime ? BigInt(parseHHMMToMinutes(intentTime)) : BigInt(0),
+      ...overrides
+    };
+  }
+  function canSaveGeneral() {
     if (!wish.trim()) return false;
+    if (overlapError) return false;
+    return true;
+  }
+  function canSaveTime() {
+    if ((habit == null ? void 0 : habit.isLockIn) && isLockInWindowActive) return false;
     if ((habit == null ? void 0 : habit.isLockIn) && !lockInStartTime) return false;
     if ((habit == null ? void 0 : habit.isLockIn) && lockInDurationHours === 0 && lockInDurationMinutes === 0)
       return false;
@@ -74903,6 +75119,56 @@ function EditHabitPage$1() {
     if (emailNotifications && !(habit == null ? void 0 : habit.isLockIn) && !intentTime) return false;
     return true;
   }
+  const handleGeneralSave = () => {
+    saveMutation.mutate(buildPayload(), {
+      onSuccess: () => {
+        navigate({ to: "/goals" });
+      }
+    });
+  };
+  const handleTimeSave = () => {
+    saveMutation.mutate(buildPayload(), {
+      onSuccess: () => {
+        setTimeEditsToday((prev) => prev + 1);
+        setShowTimeConfirmation(false);
+        ue.success("Time settings saved!");
+      }
+    });
+  };
+  const isTimeLocked = timeEditsToday >= 1 || isLockInWindowActive;
+  const handleTimeSaveClick = () => {
+    if (isTimeLocked) return;
+    if (timeEditsToday === 0) {
+      setShowTimeConfirmation(true);
+    }
+  };
+  const lockInDurationHourValues = Array.from(
+    { length: maxLockInHours + 1 },
+    (_2, i) => String(i).padStart(2, "0")
+  );
+  const lockInDurationMinuteValues = Array.from(
+    { length: maxLockInMinAtMaxHour + 1 },
+    (_2, i) => String(i).padStart(2, "0")
+  );
+  const offsetWheelValues = offsetOptions.map((v2) => formatOffsetLabel(v2));
+  const offsetSelectedLabel = formatOffsetLabel(clampedOffset);
+  const liveSendTime = reactExports.useMemo(() => {
+    if (!emailNotifications) return null;
+    const baseTime = (habit == null ? void 0 : habit.isLockIn) ? lockInStartTime : intentTime;
+    if (!baseTime) return null;
+    const baseMins = parseHHMMToMinutes(baseTime);
+    const sendMins = Math.max(0, Math.min(1439, baseMins + clampedOffset));
+    const sendH = Math.floor(sendMins / 60);
+    const sendM = sendMins % 60;
+    return `${String(sendH).padStart(2, "0")}:${String(sendM).padStart(2, "0")}`;
+  }, [
+    emailNotifications,
+    habit == null ? void 0 : habit.isLockIn,
+    lockInStartTime,
+    intentTime,
+    clampedOffset
+  ]);
+  const accentColor = (habit == null ? void 0 : habit.isLockIn) ? "#F59E0B" : "#10B981";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-background text-foreground", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -74931,7 +75197,7 @@ function EditHabitPage$1() {
         ]
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-lg mx-auto px-4 py-6 space-y-8 pb-24", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-lg mx-auto px-4 py-6 space-y-6 pb-24", children: [
       isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-muted-foreground py-8", children: "Loading…" }),
       !isLoading && !habit && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center space-y-3 py-8", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-muted-foreground", children: "Habit not found." }),
@@ -74947,413 +75213,489 @@ function EditHabitPage$1() {
         )
       ] }),
       habit && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5", children: "General" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-wish", className: sectionLabel, children: "Macro Goal" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center", children: habit.isLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-400", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 12 }),
+          "Lock-In Habit"
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 12 }),
+          "Regular Habit"
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-xs text-muted-foreground/70 -mt-4", children: "Habit type is permanent and cannot be changed." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: "flex gap-2 p-1 rounded-2xl",
+            style: {
+              background: "oklch(var(--muted) / 0.3)",
+              boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.03)"
+            },
+            children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "input",
+                "button",
                 {
-                  id: "edit-wish",
-                  "data-ocid": "edit_habit.wish_input",
-                  value: wish,
-                  maxLength: 140,
-                  onChange: (e3) => setWish(e3.target.value.slice(0, 140)),
-                  onFocus: () => setFocusedField("wish"),
-                  onBlur: () => setFocusedField(null),
-                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
-                  style: {
-                    background: "oklch(var(--muted) / 0.4)",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)"
+                  type: "button",
+                  onClick: () => setActiveTab("general"),
+                  "data-ocid": "edit_habit.general_tab",
+                  className: "flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                  style: activeTab === "general" ? {
+                    background: accentColor,
+                    color: "#000000",
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.2)"
+                  } : {
+                    background: "transparent",
+                    color: "oklch(var(--muted-foreground))",
+                    boxShadow: "2px 2px 5px rgba(0,0,0,0.2), -1px -1px 3px rgba(255,255,255,0.03)"
                   },
-                  placeholder: "I want to run a marathon so that I can…"
+                  children: "General"
                 }
               ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`,
-                  children: [
-                    wish.length,
-                    "/140"
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-desc", className: sectionLabel, children: "Keystone Habit" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "textarea",
+                "button",
                 {
-                  id: "edit-desc",
-                  "data-ocid": "edit_habit.wish_description_input",
-                  value: wishDescription,
-                  maxLength: 140,
-                  rows: 2,
-                  onChange: (e3) => setWishDescription(e3.target.value.slice(0, 140)),
-                  onFocus: () => setFocusedField("wishDescription"),
-                  onBlur: () => setFocusedField(null),
-                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
-                  style: {
-                    background: "oklch(var(--muted) / 0.4)",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)"
+                  type: "button",
+                  onClick: () => setActiveTab("time"),
+                  "data-ocid": "edit_habit.time_tab",
+                  className: "flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                  style: activeTab === "time" ? {
+                    background: accentColor,
+                    color: "#000000",
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.2)"
+                  } : {
+                    background: "transparent",
+                    color: "oklch(var(--muted-foreground))",
+                    boxShadow: "2px 2px 5px rgba(0,0,0,0.2), -1px -1px 3px rgba(255,255,255,0.03)"
                   },
-                  placeholder: "I will run for X minutes"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`,
-                  children: [
-                    wishDescription.length,
-                    "/140"
-                  ]
+                  children: "Time"
                 }
               )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-ifthen", className: sectionLabel, children: "If-Then Plan" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "textarea",
-                {
-                  id: "edit-ifthen",
-                  "data-ocid": "edit_habit.if_then_plan_input",
-                  value: ifThenPlan,
-                  maxLength: 140,
-                  rows: 2,
-                  onChange: (e3) => setIfThenPlan(e3.target.value.slice(0, 140)),
-                  onFocus: () => setFocusedField("ifThenPlan"),
-                  onBlur: () => setFocusedField(null),
-                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
-                  style: {
-                    background: "oklch(var(--muted) / 0.4)",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)"
-                  },
-                  placeholder: "If [obstacle], then I will…"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
-                  children: [
-                    ifThenPlan.length,
-                    "/140"
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Obstacles" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "div",
-                {
-                  className: "flex flex-wrap gap-2",
-                  "data-ocid": "edit_habit.obstacle_list",
-                  children: allObstacleChips.map((chip, idx) => {
-                    const selected = obstacles.some((o2) => o2.id === chip.id);
-                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "button",
-                      {
-                        type: "button",
-                        "data-ocid": `edit_habit.obstacle.${idx + 1}`,
-                        onClick: () => toggleObstacle(chip),
-                        "aria-pressed": selected,
-                        className: "text-sm px-3 py-2 rounded-full border transition-all duration-200",
-                        style: selected ? {
-                          backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
-                          borderColor: "oklch(var(--color-accent-social))",
-                          color: "oklch(var(--color-accent-social))",
-                          boxShadow: "0 0 10px oklch(var(--color-accent-social) / 0.35)"
-                        } : {
-                          backgroundColor: "oklch(var(--muted) / 0.35)",
-                          borderColor: "oklch(var(--border) / 0.5)",
-                          color: "oklch(var(--muted-foreground))"
-                        },
-                        children: [
-                          selected && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            Check,
-                            {
-                              size: 11,
-                              className: "inline mr-1.5 shrink-0"
+            ]
+          }
+        ),
+        activeTab === "general" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-wish", className: sectionLabel$1, children: "Macro Goal" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                id: "edit-wish",
+                "data-ocid": "edit_habit.wish_input",
+                value: wish,
+                maxLength: 140,
+                onChange: (e3) => setWish(e3.target.value.slice(0, 140)),
+                onFocus: () => setFocusedField("wish"),
+                onBlur: () => setFocusedField(null),
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)"
+                },
+                placeholder: "I want to run a marathon so that I can…"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "p",
+              {
+                className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`,
+                children: [
+                  wish.length,
+                  "/140"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-desc", className: sectionLabel$1, children: "Keystone Habit" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "textarea",
+              {
+                id: "edit-desc",
+                "data-ocid": "edit_habit.wish_description_input",
+                value: wishDescription,
+                maxLength: 140,
+                rows: 2,
+                onChange: (e3) => setWishDescription(e3.target.value.slice(0, 140)),
+                onFocus: () => setFocusedField("wishDescription"),
+                onBlur: () => setFocusedField(null),
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)"
+                },
+                placeholder: "I will run for X minutes"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "p",
+              {
+                className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`,
+                children: [
+                  wishDescription.length,
+                  "/140"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "edit-ifthen", className: sectionLabel$1, children: "If-Then Plan" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "textarea",
+              {
+                id: "edit-ifthen",
+                "data-ocid": "edit_habit.if_then_plan_input",
+                value: ifThenPlan,
+                maxLength: 140,
+                rows: 2,
+                onChange: (e3) => setIfThenPlan(e3.target.value.slice(0, 140)),
+                onFocus: () => setFocusedField("ifThenPlan"),
+                onBlur: () => setFocusedField(null),
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)"
+                },
+                placeholder: "If [obstacle], then I will…"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "p",
+              {
+                className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
+                children: [
+                  ifThenPlan.length,
+                  "/140"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "Obstacles" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "flex flex-wrap gap-2",
+                "data-ocid": "edit_habit.obstacle_list",
+                children: allObstacleChips.map((chip, idx) => {
+                  const selected = obstacles.some((o2) => o2.id === chip.id);
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "button",
+                    {
+                      type: "button",
+                      "data-ocid": `edit_habit.obstacle.${idx + 1}`,
+                      onClick: () => toggleObstacle(chip),
+                      "aria-pressed": selected,
+                      className: "text-sm px-3 py-2 rounded-full border transition-all duration-200",
+                      style: selected ? {
+                        backgroundColor: "oklch(var(--color-accent-social) / 0.2)",
+                        borderColor: "oklch(var(--color-accent-social))",
+                        color: "oklch(var(--color-accent-social))",
+                        boxShadow: "0 0 10px oklch(var(--color-accent-social) / 0.35)"
+                      } : {
+                        backgroundColor: "oklch(var(--muted) / 0.35)",
+                        borderColor: "oklch(var(--border) / 0.5)",
+                        color: "oklch(var(--muted-foreground))"
+                      },
+                      children: [
+                        selected && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          Check,
+                          {
+                            size: 11,
+                            className: "inline mr-1.5 shrink-0"
+                          }
+                        ),
+                        chip.label
+                      ]
+                    },
+                    chip.id
+                  );
+                })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "Icon" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "grid grid-cols-7 gap-2",
+                "data-ocid": "edit_habit.icon_selector",
+                children: GOAL_ICONS.map((icon) => {
+                  const isSelected = iconName === icon.id;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setIconName(icon.id),
+                      "aria-label": `Select ${icon.label} icon`,
+                      "aria-pressed": isSelected,
+                      "data-ocid": `edit_habit.icon.${icon.id}`,
+                      className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2",
+                      style: isSelected ? {
+                        backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
+                        border: "2px solid oklch(var(--color-accent-success))",
+                        color: "oklch(var(--color-accent-success))",
+                        boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.3)"
+                      } : {
+                        backgroundColor: "oklch(var(--muted) / 0.35)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "oklch(var(--muted-foreground))",
+                        boxShadow: "2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.03)"
+                      },
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 block", children: icon.svg })
+                    },
+                    icon.id
+                  );
+                })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "Theme Color" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "flex flex-wrap gap-3",
+                "data-ocid": "edit_habit.color_selector",
+                children: THEME_COLORS.map((color2) => {
+                  const isSelected = themeColor === color2.value;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      className: "flex flex-col items-center gap-1",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: () => setThemeColor(color2.value),
+                            "aria-label": color2.label,
+                            "aria-pressed": isSelected,
+                            "data-ocid": `edit_habit.color.${color2.id}`,
+                            className: "w-10 h-10 rounded-full transition-all duration-200",
+                            style: {
+                              backgroundColor: color2.value,
+                              boxShadow: isSelected ? `0 0 0 2.5px oklch(var(--card)), 0 0 0 4.5px ${color2.value}, 0 0 14px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                              transform: isSelected ? "scale(1.2)" : "scale(1)"
                             }
-                          ),
-                          chip.label
-                        ]
-                      },
-                      chip.id
-                    );
-                  })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Icon" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "div",
-                {
-                  className: "grid grid-cols-7 gap-2",
-                  "data-ocid": "edit_habit.icon_selector",
-                  children: GOAL_ICONS.map((icon) => {
-                    const isSelected = iconName === icon.id;
-                    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "button",
-                      {
-                        type: "button",
-                        onClick: () => setIconName(icon.id),
-                        "aria-label": `Select ${icon.label} icon`,
-                        "aria-pressed": isSelected,
-                        "data-ocid": `edit_habit.icon.${icon.id}`,
-                        className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2",
-                        style: isSelected ? {
-                          backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                          border: "2px solid oklch(var(--color-accent-success))",
-                          color: "oklch(var(--color-accent-success))",
-                          boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.3)"
-                        } : {
-                          backgroundColor: "oklch(var(--muted) / 0.35)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          color: "oklch(var(--muted-foreground))",
-                          boxShadow: "2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.03)"
-                        },
-                        children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 block", children: icon.svg })
-                      },
-                      icon.id
-                    );
-                  })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, children: "Theme Color" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "div",
-                {
-                  className: "flex flex-wrap gap-3",
-                  "data-ocid": "edit_habit.color_selector",
-                  children: THEME_COLORS.map((color2) => {
-                    const isSelected = themeColor === color2.value;
-                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "div",
-                      {
-                        className: "flex flex-col items-center gap-1",
-                        children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              type: "button",
-                              onClick: () => setThemeColor(color2.value),
-                              "aria-label": color2.label,
-                              "aria-pressed": isSelected,
-                              "data-ocid": `edit_habit.color.${color2.id}`,
-                              className: "w-10 h-10 rounded-full transition-all duration-200",
-                              style: {
-                                backgroundColor: color2.value,
-                                boxShadow: isSelected ? `0 0 0 2.5px oklch(var(--card)), 0 0 0 4.5px ${color2.value}, 0 0 14px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
-                                transform: isSelected ? "scale(1.2)" : "scale(1)"
-                              }
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground font-mono", children: color2.label })
-                        ]
-                      },
-                      color2.id
-                    );
-                  })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: habit.isLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-400", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 12 }),
-                "Lock-In Habit"
-              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 12 }),
-                "Regular Habit"
-              ] }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70", children: "Habit type is permanent and cannot be changed." })
-            ] }),
-            habit.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "div",
-                {
-                  className: "flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-snug",
-                  style: {
-                    background: "rgba(245,158,11,0.08)",
-                    borderLeft: "3px solid rgba(245,158,11,0.7)"
-                  },
-                  "data-ocid": "edit_habit.lockin_commitment_banner",
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Lock,
-                      {
-                        size: 12,
-                        className: "shrink-0 mt-0.5",
-                        style: { color: "#F59E0B" }
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { style: { color: "rgba(251,191,36,0.9)" }, children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Lock-In time blocks are a strict commitment." }),
-                      " ",
-                      "You can only change these times outside your active window.",
-                      isLockInWindowActive && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block mt-1 font-semibold", children: "Active window is open — time fields are locked." })
-                    ] })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground font-mono", children: color2.label })
+                      ]
+                    },
+                    color2.id
+                  );
+                })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "Active Days" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70", children: "This habit only appears on selected days." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              DayPickerRow,
+              {
+                selectedDays: scheduledDays,
+                onChange: setScheduledDays
+              }
+            )
+          ] }),
+          saveMutation.isError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "p",
+            {
+              className: "text-sm text-destructive px-1",
+              "data-ocid": "edit_habit.error_state",
+              children: saveMutation.error instanceof Error ? saveMutation.error.message : "Failed to save changes"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: handleGeneralSave,
+              disabled: !canSaveGeneral() || saveMutation.isPending,
+              "data-ocid": "edit_habit.save_general_button",
+              className: "w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2",
+              style: {
+                background: "#10B981",
+                boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+              },
+              children: saveMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
+                "Saving…"
+              ] }) : "Save Changes"
+            }
+          )
+        ] }),
+        activeTab === "time" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", children: [
+          isTimeLocked && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "flex items-start gap-2 rounded-xl px-3 py-3 text-xs leading-snug",
+              style: {
+                background: isLockInWindowActive ? "rgba(245,158,11,0.08)" : "rgba(100,116,139,0.12)",
+                border: isLockInWindowActive ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(100,116,139,0.25)",
+                boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.04)"
+              },
+              "data-ocid": "edit_habit.time_locked_banner",
+              children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "label",
+                  Lock,
                   {
-                    htmlFor: "edit-lockin-start",
-                    className: sectionLabel,
-                    children: "Start Time"
+                    size: 13,
+                    className: "shrink-0 mt-0.5",
+                    style: {
+                      color: isLockInWindowActive ? "#F59E0B" : "oklch(var(--muted-foreground))"
+                    }
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "input",
+                  "p",
                   {
-                    id: "edit-lockin-start",
-                    type: "time",
-                    "data-ocid": "edit_habit.lockin_start_time",
-                    value: lockInStartTime,
-                    disabled: isLockInWindowActive,
-                    onChange: (e3) => setLockInStartTime(e3.target.value),
-                    className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50",
                     style: {
-                      background: "oklch(var(--card))",
-                      boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                      colorScheme: "dark"
-                    }
+                      color: isLockInWindowActive ? "rgba(251,191,36,0.9)" : "oklch(var(--muted-foreground))"
+                    },
+                    children: isLockInWindowActive ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Lock-In is active — time settings are locked until the session ends." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                      "Time settings locked until midnight.",
+                      " ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Your changes are saved." })
+                    ] })
                   }
                 )
-              ] }),
-              lockInStartTime ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: sectionLabel, children: "Duration" }),
-                maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — start time leaves no room before 23:55 cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "label",
-                      {
-                        htmlFor: "edit-lockin-hours",
-                        className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                        children: "Hours"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "select",
-                      {
-                        id: "edit-lockin-hours",
-                        "data-ocid": "edit_habit.lockin_duration_hours",
-                        value: lockInDurationHours,
-                        disabled: isLockInWindowActive,
-                        onChange: (e3) => setLockInDurationHours(Number(e3.target.value)),
-                        size: 5,
-                        className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50",
-                        style: amberWheelStyle,
-                        children: Array.from(
-                          { length: maxLockInHours + 1 },
-                          (_2, i) => i
-                        ).map((h2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "option",
-                          {
-                            value: h2,
-                            style: {
-                              background: "oklch(var(--card))",
-                              color: lockInDurationHours === h2 ? "#F59E0B" : "oklch(var(--foreground))",
-                              fontWeight: lockInDurationHours === h2 ? 700 : 400
-                            },
-                            children: String(h2).padStart(2, "0")
-                          },
-                          h2
-                        ))
-                      }
-                    )
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "label",
-                      {
-                        htmlFor: "edit-lockin-mins",
-                        className: "block text-[11px] text-muted-foreground/60 mb-1.5",
-                        children: "Min"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "select",
-                      {
-                        id: "edit-lockin-mins",
-                        "data-ocid": "edit_habit.lockin_duration_minutes",
-                        value: lockInDurationMinutes,
-                        disabled: isLockInWindowActive,
-                        onChange: (e3) => setLockInDurationMinutes(
-                          Number(e3.target.value)
-                        ),
-                        size: 5,
-                        className: "w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50",
-                        style: amberWheelStyle,
-                        children: Array.from(
-                          { length: maxLockInMinAtMaxHour + 1 },
-                          (_2, i) => i
-                        ).map((m2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "option",
-                          {
-                            value: m2,
-                            style: {
-                              background: "oklch(var(--card))",
-                              color: lockInDurationMinutes === m2 ? "#F59E0B" : "oklch(var(--foreground))",
-                              fontWeight: lockInDurationMinutes === m2 ? 700 : 400
-                            },
-                            children: String(m2).padStart(2, "0")
-                          },
-                          m2
-                        ))
-                      }
-                    )
-                  ] })
-                ] }),
-                lockInEndTime && !(lockInDurationHours === 0 && lockInDurationMinutes === 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70 mt-2", children: [
-                  "Ends at",
-                  " ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F59E0B" }, children: lockInEndTime })
-                ] })
-              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/60 italic", children: "Select a start time first to set the duration." }),
-              overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "p",
-                {
-                  className: "text-xs font-medium",
-                  style: { color: "#EF4444" },
-                  "data-ocid": "edit_habit.lockin_overlap.field_error",
-                  children: overlapError
-                }
-              )
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5", children: "Email Reminders" }),
-          isLockedForToday && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              className: "rounded-xl p-4 mb-4 text-sm flex items-start gap-2.5",
-              style: {
-                background: "rgba(245,158,11,0.08)",
-                border: "1px solid rgba(245,158,11,0.3)",
-                color: "#F59E0B"
-              },
-              "data-ocid": "edit_habit.reminder_lock_banner",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 15, className: "shrink-0 mt-0.5" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "You have already updated reminders today. To build consistency, further edits are locked until tomorrow." })
               ]
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+          habit.isLockIn && !isTimeLocked && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-snug",
+              style: {
+                background: "rgba(245,158,11,0.08)",
+                borderLeft: "3px solid rgba(245,158,11,0.7)"
+              },
+              "data-ocid": "edit_habit.lockin_commitment_banner",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Lock,
+                  {
+                    size: 12,
+                    className: "shrink-0 mt-0.5",
+                    style: { color: "#F59E0B" }
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { style: { color: "rgba(251,191,36,0.9)" }, children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold", children: "Lock-In time blocks are a strict commitment." }),
+                  " ",
+                  "You can only change these times outside your active window."
+                ] })
+              ]
+            }
+          ),
+          habit.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "Start Time" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  type: "time",
+                  value: lockInStartTime,
+                  onChange: (e3) => setLockInStartTime(e3.target.value),
+                  disabled: isTimeLocked,
+                  "data-ocid": "edit_habit.lockin_start_time_input",
+                  className: `w-full transition-opacity duration-200 ${isTimeLocked ? "opacity-50 cursor-not-allowed" : ""}`,
+                  style: {
+                    background: "oklch(var(--card))",
+                    boxShadow: "2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                    border: "1px solid rgba(245,158,11,0.4)",
+                    borderRadius: "0.75rem",
+                    padding: "10px 14px",
+                    color: "oklch(var(--foreground))",
+                    fontFamily: "monospace",
+                    fontSize: "1.1rem",
+                    colorScheme: "dark"
+                  }
+                }
+              )
+            ] }),
+            lockInStartTime && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "Duration" }),
+              maxLockInMinutes === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "No duration available — start time leaves no room before 23:55 cutoff." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Hours" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    ScrollWheelPicker,
+                    {
+                      values: lockInDurationHourValues,
+                      selectedValue: String(
+                        lockInDurationHours
+                      ).padStart(2, "0"),
+                      onChange: (val) => setLockInDurationHours(Number(val)),
+                      accentColor: "#F59E0B",
+                      disabled: isTimeLocked,
+                      "data-ocid": "edit_habit.lockin_duration_hours_wheel"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground/60 mb-1.5 text-center", children: "Min" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    ScrollWheelPicker,
+                    {
+                      values: lockInDurationMinuteValues,
+                      selectedValue: String(
+                        lockInDurationMinutes
+                      ).padStart(2, "0"),
+                      onChange: (val) => setLockInDurationMinutes(Number(val)),
+                      accentColor: "#F59E0B",
+                      disabled: isTimeLocked,
+                      "data-ocid": "edit_habit.lockin_duration_minutes_wheel"
+                    }
+                  )
+                ] })
+              ] }),
+              lockInEndTime && !(lockInDurationHours === 0 && lockInDurationMinutes === 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70 mt-2 text-center", children: [
+                "Ends at",
+                " ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F59E0B" }, children: lockInEndTime })
+              ] })
+            ] }),
+            overlapError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "p",
+              {
+                className: "text-xs font-medium",
+                style: { color: "#EF4444" },
+                "data-ocid": "edit_habit.lockin_overlap.field_error",
+                children: overlapError
+              }
+            )
+          ] }),
+          !habit.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", style: insetCard$1, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "When do you plan to do this?" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                type: "time",
+                value: intentTime,
+                onChange: (e3) => setIntentTime(e3.target.value),
+                disabled: isTimeLocked,
+                "data-ocid": "edit_habit.intent_time_input",
+                className: `w-full transition-opacity duration-200 ${isTimeLocked ? "opacity-50 cursor-not-allowed" : ""}`,
+                style: {
+                  background: "oklch(var(--card))",
+                  boxShadow: "2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                  border: "1px solid rgba(16,185,129,0.4)",
+                  borderRadius: "0.75rem",
+                  padding: "10px 14px",
+                  color: "oklch(var(--foreground))",
+                  fontFamily: "monospace",
+                  fontSize: "1.1rem",
+                  colorScheme: "dark"
+                }
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard$1, children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium text-foreground", children: "Enable Email Reminders" }),
@@ -75380,15 +75722,15 @@ function EditHabitPage$1() {
                   role: "switch",
                   "aria-checked": emailNotifications,
                   "data-ocid": "edit_habit.email_notifications_toggle",
-                  disabled: !hasEmail || isLockedForToday,
+                  disabled: !hasEmail || isTimeLocked,
                   onClick: () => {
-                    if (!hasEmail || isLockedForToday) return;
+                    if (!hasEmail || isTimeLocked) return;
                     setEmailNotifications((v2) => !v2);
                   },
                   className: "relative shrink-0 w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
                   style: {
-                    background: emailNotifications && hasEmail ? "#10B981" : "oklch(var(--muted))",
-                    boxShadow: emailNotifications && hasEmail ? "0 0 10px rgba(16,185,129,0.4)" : "inset 2px 2px 5px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)"
+                    background: emailNotifications && hasEmail ? accentColor : "oklch(var(--muted))",
+                    boxShadow: emailNotifications && hasEmail ? `0 0 10px ${accentColor}66` : "inset 2px 2px 5px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)"
                   },
                   children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "span",
@@ -75407,41 +75749,14 @@ function EditHabitPage$1() {
               {
                 className: `overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${emailNotifications && hasEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`,
                 children: [
-                  !(habit == null ? void 0 : habit.isLockIn) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "label",
-                      {
-                        htmlFor: "edit-intent-time",
-                        className: sectionLabel,
-                        children: "When do you plan to do this?"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "input",
-                      {
-                        id: "edit-intent-time",
-                        type: "time",
-                        "data-ocid": "edit_habit.intent_time_input",
-                        value: intentTime,
-                        disabled: isLockedForToday,
-                        onChange: (e3) => setIntentTime(e3.target.value),
-                        className: "w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50",
-                        style: {
-                          background: "oklch(var(--card))",
-                          boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                          colorScheme: "dark"
-                        }
-                      }
-                    )
-                  ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel, style: { marginBottom: 0 }, children: "Reminder Offset" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, style: { marginBottom: 0 }, children: "Reminder Offset" }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(
                         "span",
                         {
                           className: "text-sm font-mono",
-                          style: { color: "#10B981" },
+                          style: { color: accentColor },
                           "data-ocid": "edit_habit.reminder_offset_display",
                           children: formatOffsetLabel(clampedOffset)
                         }
@@ -75449,83 +75764,417 @@ function EditHabitPage$1() {
                     ] }),
                     (habit == null ? void 0 : habit.isLockIn) ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Lock-In reminders can only be sent before the start time (up to 60 min before)." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 italic", children: "Normal habits: −60 to +60 min relative to intent time (capped at 23:55)." }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "select",
+                      ScrollWheelPicker,
                       {
-                        "data-ocid": "edit_habit.reminder_offset_wheel",
-                        value: clampedOffset,
-                        disabled: isLockedForToday,
-                        onChange: (e3) => setReminderOffset(Number(e3.target.value)),
-                        size: 5,
-                        className: "w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer disabled:opacity-50",
-                        style: wheelStyle,
-                        children: offsetOptions.map((v2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "option",
-                          {
-                            value: v2,
-                            style: {
-                              background: "oklch(var(--card))",
-                              color: clampedOffset === v2 ? "#10B981" : "oklch(var(--foreground))",
-                              fontWeight: clampedOffset === v2 ? 700 : 400
-                            },
-                            children: formatOffsetLabel(v2)
-                          },
-                          v2
-                        ))
+                        values: offsetWheelValues,
+                        selectedValue: offsetSelectedLabel,
+                        onChange: (val) => {
+                          const idx = offsetWheelValues.indexOf(val);
+                          if (idx >= 0) {
+                            setReminderOffset(offsetOptions[idx]);
+                          }
+                        },
+                        accentColor,
+                        disabled: isTimeLocked,
+                        "data-ocid": "edit_habit.reminder_offset_wheel"
                       }
                     ),
-                    emailNotifications && (() => {
-                      const baseTime = (habit == null ? void 0 : habit.isLockIn) ? lockInStartTime : intentTime;
-                      if (!baseTime) return null;
-                      const baseMins = parseHHMMToMinutes(baseTime);
-                      const sendMins = Math.max(
-                        0,
-                        Math.min(1439, baseMins + clampedOffset)
-                      );
-                      const sendH = Math.floor(sendMins / 60);
-                      const sendM = sendMins % 60;
-                      const sendTime = `${String(sendH).padStart(2, "0")}:${String(sendM).padStart(2, "0")}`;
-                      return /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70 mt-1", children: [
-                        "Email sends at",
-                        " ",
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#10B981" }, children: sendTime })
-                      ] });
-                    })()
+                    liveSendTime && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-mono text-muted-foreground/70 mt-1 text-center", children: [
+                      "Email sends at",
+                      " ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: accentColor }, children: liveSendTime })
+                    ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70", children: "Note: You can only adjust intent-time and email reminders once per day after creation." })
                 ]
               }
             )
+          ] }),
+          showTimeConfirmation && !isTimeLocked && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "rounded-xl p-4 space-y-3",
+              style: {
+                background: "rgba(245,158,11,0.06)",
+                border: "1px solid rgba(245,158,11,0.35)"
+              },
+              "data-ocid": "edit_habit.time_confirmation_card",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "#F59E0B" }, children: "This is your one time adjustment for today. You won't be able to change these settings again until tomorrow. Are you sure?" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: handleTimeSave,
+                      disabled: saveMutation.isPending,
+                      "data-ocid": "edit_habit.time_confirm_yes_button",
+                      className: "flex-1 py-2.5 rounded-xl font-semibold text-black text-sm transition-opacity disabled:opacity-40",
+                      style: {
+                        background: "#F59E0B",
+                        boxShadow: "2px 2px 6px rgba(0,0,0,0.3), -1px -1px 3px rgba(255,255,255,0.05)"
+                      },
+                      children: "Yes, Save Anyway"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setShowTimeConfirmation(false),
+                      "data-ocid": "edit_habit.time_confirm_cancel_button",
+                      className: "flex-1 py-2.5 rounded-xl font-semibold text-sm transition-opacity",
+                      style: {
+                        background: "oklch(var(--muted))",
+                        color: "oklch(var(--foreground))",
+                        boxShadow: "2px 2px 6px rgba(0,0,0,0.3), -1px -1px 3px rgba(255,255,255,0.05)"
+                      },
+                      children: "Cancel"
+                    }
+                  )
+                ] })
+              ]
+            }
+          ),
+          saveMutation.isError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "p",
+            {
+              className: "text-sm text-destructive px-1",
+              "data-ocid": "edit_habit.error_state",
+              children: saveMutation.error instanceof Error ? saveMutation.error.message : "Failed to save changes"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: handleTimeSaveClick,
+              disabled: !canSaveTime() || saveMutation.isPending || isTimeLocked,
+              "data-ocid": "edit_habit.save_time_button",
+              className: "w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2",
+              style: {
+                background: accentColor,
+                boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+              },
+              children: saveMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
+                "Saving…"
+              ] }) : "Save Time Settings"
+            }
+          ),
+          timeEditsToday >= 1 && !isLockInWindowActive && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-center text-xs text-muted-foreground/60", children: [
+            timeEditsToday,
+            " time edit used today. Fields unlock at midnight."
           ] })
-        ] }),
-        saveMutation.isError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "p",
-          {
-            className: "text-sm text-destructive px-1",
-            "data-ocid": "edit_habit.error_state",
-            children: saveMutation.error instanceof Error ? saveMutation.error.message : "Failed to save changes"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            type: "button",
-            onClick: () => saveMutation.mutate(),
-            disabled: !canSave() || saveMutation.isPending,
-            "data-ocid": "edit_habit.save_button",
-            className: "w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2",
-            style: {
-              background: "#10B981",
-              boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
-            },
-            children: saveMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
-              "Saving…"
-            ] }) : "Save Changes"
-          }
-        )
+        ] })
       ] })
     ] })
   ] });
+}
+const sectionLabel = "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
+const insetCard = {
+  background: "oklch(var(--card))",
+  boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.4), inset -2px -2px 6px rgba(255,255,255,0.04)",
+  borderRadius: "1rem",
+  padding: "1.25rem"
+};
+function EditProfilePage$1() {
+  const navigate = useNavigate();
+  const { data: profile } = useUserProfile();
+  const { mutateAsync, isPending } = useUpdateBio();
+  const [displayName, setDisplayName] = reactExports.useState("");
+  const [bio, setBio] = reactExports.useState("");
+  const [email, setEmail] = reactExports.useState("");
+  const [focusedField, setFocusedField] = reactExports.useState(null);
+  const [showDiscardDialog, setShowDiscardDialog] = reactExports.useState(false);
+  const [initialValues, setInitialValues] = reactExports.useState({
+    displayName: "",
+    bio: "",
+    email: ""
+  });
+  reactExports.useEffect(() => {
+    if (profile) {
+      const initial = {
+        displayName: profile.displayName || "",
+        bio: profile.bio || "",
+        email: profile.email || ""
+      };
+      setDisplayName(initial.displayName);
+      setBio(initial.bio);
+      setEmail(initial.email);
+      setInitialValues(initial);
+    }
+  }, [profile]);
+  const isDirty = displayName !== initialValues.displayName || bio !== initialValues.bio || email !== initialValues.email;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailError = email && !emailRegex.test(email) ? "Please enter a valid email address" : "";
+  const handleBack = reactExports.useCallback(() => {
+    if (isDirty) {
+      setShowDiscardDialog(true);
+    } else {
+      navigate({ to: "/profile" });
+    }
+  }, [isDirty, navigate]);
+  const handleSave = reactExports.useCallback(async () => {
+    if (!isDirty || emailError) return;
+    try {
+      await mutateAsync({
+        displayName: displayName || void 0,
+        bio: bio || void 0,
+        email: email || void 0
+      });
+      ue.success("Profile updated.");
+      navigate({ to: "/profile" });
+    } catch (err) {
+      ue.error(
+        err instanceof Error ? err.message : "Failed to update profile."
+      );
+    }
+  }, [isDirty, emailError, mutateAsync, displayName, bio, email, navigate]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: "min-h-screen bg-background text-foreground",
+      "data-ocid": "edit_profile.page",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: "sticky top-0 z-20 flex items-center px-4 py-3 border-b border-border",
+            style: {
+              background: "oklch(var(--card))",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.4)"
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: handleBack,
+                  className: "p-2 rounded-xl mr-2 text-foreground",
+                  style: {
+                    boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+                  },
+                  "aria-label": "Go back",
+                  "data-ocid": "edit_profile.back_button",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { className: "h-5 w-5" })
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-lg font-semibold flex-1 text-center pr-9", children: "Edit Profile" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-lg mx-auto px-4 py-6 space-y-5 pb-32", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: sectionLabel, children: "Identity" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "label",
+                {
+                  htmlFor: "displayName",
+                  className: "text-sm font-medium text-foreground",
+                  children: "Display Name"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  id: "displayName",
+                  type: "text",
+                  value: displayName,
+                  onChange: (e3) => setDisplayName(e3.target.value.slice(0, 40)),
+                  onFocus: () => setFocusedField("displayName"),
+                  onBlur: () => setFocusedField(null),
+                  placeholder: "Optional",
+                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  style: {
+                    background: "oklch(var(--muted) / 0.4)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)"
+                  },
+                  "data-ocid": "edit_profile.display_name_input"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "p",
+                {
+                  className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "displayName" ? "opacity-100" : "opacity-0"}`,
+                  children: [
+                    displayName.length,
+                    "/40"
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-medium text-foreground", children: "Username" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  className: "flex items-center gap-2 rounded-xl px-4 py-3 opacity-60",
+                  style: {
+                    background: "oklch(var(--muted) / 0.3)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)"
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm text-foreground", children: [
+                      "@",
+                      profile == null ? void 0 : profile.username
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 14, className: "ml-auto text-muted-foreground" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Cannot be changed" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: sectionLabel, children: "About" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { htmlFor: "bio", className: "text-sm font-medium text-foreground", children: [
+              "Macro Wish",
+              " ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground font-normal", children: "— About Your Journey" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "textarea",
+              {
+                id: "bio",
+                value: bio,
+                onChange: (e3) => setBio(e3.target.value.slice(0, 160)),
+                onFocus: () => setFocusedField("bio"),
+                onBlur: () => setFocusedField(null),
+                placeholder: "What is your overarching goal in life?",
+                rows: 4,
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)"
+                },
+                "data-ocid": "edit_profile.bio_textarea"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "p",
+              {
+                className: `text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "bio" ? "opacity-100" : "opacity-0"}`,
+                children: [
+                  bio.length,
+                  "/160"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: sectionLabel, children: "Contact" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "label",
+              {
+                htmlFor: "email",
+                className: "text-sm font-medium text-foreground",
+                children: "Email Address"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                id: "email",
+                type: "email",
+                value: email,
+                onChange: (e3) => setEmail(e3.target.value),
+                onFocus: () => setFocusedField("email"),
+                onBlur: () => setFocusedField(null),
+                placeholder: "your@email.com",
+                className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
+                style: {
+                  background: "oklch(var(--muted) / 0.4)",
+                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                  border: emailError ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.07)"
+                },
+                "data-ocid": "edit_profile.email_input"
+              }
+            ),
+            emailError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: emailError })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: handleSave,
+              disabled: !isDirty || !!emailError || isPending,
+              "data-ocid": "edit_profile.save_button",
+              className: "w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2",
+              style: {
+                background: "#10B981",
+                boxShadow: "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)"
+              },
+              children: isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
+                "Saving…"
+              ] }) : "Save Changes"
+            }
+          )
+        ] }),
+        showDiscardDialog && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "fixed inset-0 z-50 flex items-center justify-center",
+            style: { background: "rgba(0,0,0,0.6)" },
+            "data-ocid": "edit_profile.discard_dialog",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                className: "rounded-2xl p-6 mx-6 space-y-4",
+                style: {
+                  background: "var(--card)",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.5)"
+                },
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "h3",
+                    {
+                      className: "text-lg font-semibold",
+                      style: { color: "var(--foreground)" },
+                      children: "Discard changes?"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "var(--muted-foreground)" }, children: "Your unsaved changes will be lost." }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => setShowDiscardDialog(false),
+                        className: "flex-1 py-3 rounded-xl font-medium",
+                        style: {
+                          background: "var(--muted)",
+                          color: "var(--foreground)"
+                        },
+                        "data-ocid": "edit_profile.keep_editing_button",
+                        children: "Keep Editing"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => navigate({ to: "/profile" }),
+                        className: "flex-1 py-3 rounded-xl font-medium",
+                        style: { background: "#ef4444", color: "#fff" },
+                        "data-ocid": "edit_profile.discard_button",
+                        children: "Discard"
+                      }
+                    )
+                  ] })
+                ]
+              }
+            )
+          }
+        )
+      ]
+    }
+  );
 }
 function formatRelativeTime(timestamp) {
   const now2 = Date.now();
@@ -76921,12 +77570,12 @@ var styleHookSingleton = function() {
 };
 var styleSingleton = function() {
   var useStyle2 = styleHookSingleton();
-  var Sheet2 = function(_a3) {
+  var Sheet = function(_a3) {
     var styles = _a3.styles, dynamic = _a3.dynamic;
     useStyle2(styles, dynamic);
     return null;
   };
-  return Sheet2;
+  return Sheet;
 };
 var zeroGap = {
   left: 0,
@@ -79372,6 +80021,10 @@ function GoalsPage$1() {
           transition: { delay: index2 * 0.06, duration: 0.3 },
           onClick: () => setSelectedGoalId(isSelected ? null : goal.id),
           className: `w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${isSelected ? "border-primary/40 bg-primary/5" : "border-border/20 bg-card hover:border-primary/20"}`,
+          style: {
+            borderLeftWidth: "4px",
+            borderLeftColor: goal.isLockIn ? "#F59E0B" : "#10B981"
+          },
           "data-ocid": `goals.goal_item.${index2 + 1}`,
           children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
@@ -79394,8 +80047,14 @@ function GoalsPage$1() {
                   formatDate(goal.createdAt)
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display font-semibold text-foreground leading-tight line-clamp-1", children: goal.wish }),
-              goal.wishDescription && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed", children: goal.wishDescription })
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "font-display font-semibold text-foreground leading-tight line-clamp-1 flex items-center gap-2", children: [
+                goal.wishDescription || goal.wish,
+                goal.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30", children: "Lock-In" })
+              ] }),
+              goal.outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed", children: [
+                "So that I can ",
+                goal.outcome
+              ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "shrink-0 flex items-center gap-1.5 text-muted-foreground", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
               PenLine,
@@ -79936,291 +80595,9 @@ function OnboardingPage({ onComplete }) {
     )
   ] });
 }
-function Sheet({ ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root$1, { "data-slot": "sheet", ...props });
-}
-function SheetPortal({
-  ...props
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Portal, { "data-slot": "sheet-portal", ...props });
-}
-function SheetOverlay({
-  className,
-  ...props
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Overlay,
-    {
-      "data-slot": "sheet-overlay",
-      className: cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function SheetContent({
-  className,
-  children,
-  side = "right",
-  ...props
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(SheetPortal, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(SheetOverlay, {}),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      Content,
-      {
-        "data-slot": "sheet-content",
-        className: cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
-          side === "right" && "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
-          side === "left" && "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
-          side === "top" && "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
-          side === "bottom" && "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
-          className
-        ),
-        ...props,
-        children: [
-          children,
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(Close, { className: "ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "size-4" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "sr-only", children: "Close" })
-          ] })
-        ]
-      }
-    )
-  ] });
-}
-function SheetHeader({ className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "div",
-    {
-      "data-slot": "sheet-header",
-      className: cn("flex flex-col gap-1.5 p-4", className),
-      ...props
-    }
-  );
-}
-function SheetTitle({
-  className,
-  ...props
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Title,
-    {
-      "data-slot": "sheet-title",
-      className: cn("text-foreground font-semibold", className),
-      ...props
-    }
-  );
-}
-function EditProfileSheet({
-  open,
-  onClose,
-  initialDisplayName,
-  initialBio,
-  initialEmail
-}) {
-  const updateProfileMutation = useUpdateBio();
-  const [displayName, setDisplayName] = reactExports.useState(initialDisplayName);
-  const [bioText, setBioText] = reactExports.useState(initialBio);
-  const [email, setEmail] = reactExports.useState(initialEmail);
-  const [bioFocused, setBioFocused] = reactExports.useState(false);
-  const [bioTyped, setBioTyped] = reactExports.useState(false);
-  reactExports.useEffect(() => {
-    if (open) {
-      setDisplayName(initialDisplayName);
-      setBioText(initialBio);
-      setEmail(initialEmail);
-      setBioTyped(false);
-      setBioFocused(false);
-    }
-  }, [open, initialDisplayName, initialBio, initialEmail]);
-  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const isValidEmail = email.trim() === "" || EMAIL_REGEX.test(email.trim());
-  const BIO_MAX = 160;
-  const bioCount = bioText.length;
-  const bioOverLimit = bioCount > BIO_MAX;
-  const showBioCounter = bioFocused || bioTyped;
-  const isSaving = updateProfileMutation.isPending;
-  const displayNameChanged = displayName.trim() !== initialDisplayName.trim();
-  const bioChanged = bioText.trim() !== initialBio.trim();
-  const emailChanged = email.trim() !== initialEmail.trim();
-  const isDirty = displayNameChanged || bioChanged || emailChanged;
-  const handleSave = async () => {
-    if (bioOverLimit || !isValidEmail) return;
-    try {
-      await updateProfileMutation.mutateAsync({
-        displayName,
-        bio: bioText,
-        email
-      });
-      ue.success("Profile updated.");
-      onClose();
-    } catch (err) {
-      ue.error(
-        err instanceof Error ? err.message : "Failed to update profile."
-      );
-    }
-  };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Sheet, { open, onOpenChange: (v2) => !v2 && onClose(), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    SheetContent,
-    {
-      side: "bottom",
-      className: "rounded-t-2xl border-t border-border/40 px-0 pb-0",
-      style: {
-        background: "oklch(var(--card))",
-        maxHeight: "90dvh",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column"
-      },
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(SheetHeader, { className: "px-5 pt-5 pb-4 border-b border-border/30 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SheetTitle, { className: "font-display font-semibold text-base text-foreground", children: "Edit Profile" }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
-          {
-            className: "flex flex-col gap-5 px-5 py-5 overflow-y-auto",
-            style: { flex: 1 },
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "label",
-                    {
-                      htmlFor: "edit-display-name",
-                      className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
-                      children: "Display Name"
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-medium text-muted-foreground rounded border border-border/50 px-1.5 py-0.5", children: "Optional" })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "input",
-                  {
-                    id: "edit-display-name",
-                    type: "text",
-                    value: displayName,
-                    onChange: (e3) => setDisplayName(e3.target.value),
-                    maxLength: 40,
-                    placeholder: "e.g. Sarah",
-                    className: "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50",
-                    "data-ocid": "profile.edit_sheet.display_name_input"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "How the dashboard will greet you." })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "label",
-                  {
-                    htmlFor: "edit-email",
-                    className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
-                    children: "Email Address"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "input",
-                  {
-                    id: "edit-email",
-                    type: "email",
-                    value: email,
-                    onChange: (e3) => setEmail(e3.target.value),
-                    placeholder: "e.g. you@example.com",
-                    className: [
-                      "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border outline-none transition-smooth placeholder:text-muted-foreground/50",
-                      !isValidEmail ? "border-destructive/60 focus:border-destructive/80" : "border-border/50 focus:border-primary/60"
-                    ].join(" "),
-                    "data-ocid": "profile.edit_sheet.email_input"
-                  }
-                ),
-                !isValidEmail && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: "Please enter a valid email address." })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "label",
-                  {
-                    htmlFor: "edit-bio",
-                    className: "text-xs text-muted-foreground uppercase tracking-wide font-medium",
-                    children: "About Your Journey"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground leading-relaxed", children: "Your Macro Wish — the ultimate outcome that anchors all your habits." }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "textarea",
-                    {
-                      id: "edit-bio",
-                      value: bioText,
-                      onChange: (e3) => {
-                        setBioText(e3.target.value);
-                        setBioTyped(true);
-                      },
-                      onFocus: () => setBioFocused(true),
-                      onBlur: () => setBioFocused(false),
-                      rows: 4,
-                      placeholder: "What is the ultimate outcome you are working towards? (e.g., I want to rebuild my fitness to keep up with my kids...)",
-                      className: "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50 resize-none leading-relaxed",
-                      "data-ocid": "profile.edit_sheet.bio_textarea"
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "p",
-                    {
-                      className: "text-xs text-right transition-opacity duration-200",
-                      style: {
-                        color: bioOverLimit ? "oklch(0.65 0.2 25)" : "oklch(var(--muted-foreground))",
-                        opacity: showBioCounter ? 1 : 0,
-                        pointerEvents: "none"
-                      },
-                      "data-ocid": "profile.edit_sheet.bio_counter",
-                      children: [
-                        bioCount,
-                        " / ",
-                        BIO_MAX
-                      ]
-                    }
-                  )
-                ] })
-              ] })
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-5 py-4 border-t border-border/30 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            type: "button",
-            onClick: handleSave,
-            disabled: !isDirty || bioOverLimit || !isValidEmail || isSaving,
-            className: "w-full flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-display font-semibold text-sm transition-smooth disabled:opacity-40 disabled:cursor-not-allowed",
-            style: {
-              backgroundColor: "oklch(var(--color-accent-success) / 0.14)",
-              color: "oklch(var(--color-accent-success))"
-            },
-            "data-ocid": "profile.edit_sheet.save_button",
-            children: isSaving ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
-              "Saving…"
-            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Check,
-                {
-                  className: "w-4 h-4",
-                  style: { opacity: isDirty ? 1 : 0.4 }
-                }
-              ),
-              "Save Profile"
-            ] })
-          }
-        ) })
-      ]
-    }
-  ) });
-}
 function ProfilePage$1() {
   const { data: profile, isLoading } = useUserProfile();
-  const [editOpen, setEditOpen] = reactExports.useState(false);
+  const navigate = useNavigate();
   if (isLoading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -80238,153 +80615,141 @@ function ProfilePage$1() {
   const avatarInitial = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim()[0].toUpperCase() : (profile == null ? void 0 : profile.username) && profile.username.trim() !== "" ? profile.username.trim()[0].toUpperCase() : null;
   const displayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim() : "";
   const hasBio = ((profile == null ? void 0 : profile.bio) ?? "").trim().length > 0;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
-        "data-ocid": "profile.page",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
-          {
-            className: "relative flex flex-col gap-5 p-6 rounded-2xl bg-card card-neumorphic border border-white/[0.07] overflow-hidden",
-            style: {
-              boxShadow: "6px 6px 16px oklch(0.12 0.01 260), -4px -4px 12px oklch(0.28 0.01 260), inset 0 1px 0 oklch(1 0 0 / 0.06)"
-            },
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3 pt-1", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "flex items-center justify-center w-20 h-20 rounded-full select-none",
-                    style: {
-                      background: "oklch(0.22 0.01 260)",
-                      boxShadow: "inset 3px 3px 8px oklch(0.14 0.01 260), inset -3px -3px 8px oklch(0.30 0.01 260)"
-                    },
-                    "aria-label": "Your avatar",
-                    "data-ocid": "profile.avatar",
-                    children: avatarInitial ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "span",
-                      {
-                        className: "font-display font-bold text-3xl",
-                        style: { color: "oklch(var(--color-accent-success))" },
-                        children: avatarInitial
-                      }
-                    ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      User,
-                      {
-                        className: "w-9 h-9",
-                        style: { color: "oklch(var(--color-accent-success) / 0.7)" }
-                      }
-                    )
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
-                  displayName ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "p",
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "flex flex-col gap-5 px-4 py-6 max-w-lg mx-auto pb-24",
+      "data-ocid": "profile.page",
+      children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "div",
+        {
+          className: "relative flex flex-col gap-5 p-6 rounded-2xl bg-card card-neumorphic border border-white/[0.07] overflow-hidden",
+          style: {
+            boxShadow: "6px 6px 16px oklch(0.12 0.01 260), -4px -4px 12px oklch(0.28 0.01 260), inset 0 1px 0 oklch(1 0 0 / 0.06)"
+          },
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3 pt-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "flex items-center justify-center w-20 h-20 rounded-full select-none",
+                  style: {
+                    background: "oklch(0.22 0.01 260)",
+                    boxShadow: "inset 3px 3px 8px oklch(0.14 0.01 260), inset -3px -3px 8px oklch(0.30 0.01 260)"
+                  },
+                  "aria-label": "Your avatar",
+                  "data-ocid": "profile.avatar",
+                  children: avatarInitial ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "span",
                     {
-                      className: "font-display text-xl font-bold text-foreground leading-tight",
-                      "data-ocid": "profile.display_name",
-                      children: displayName
+                      className: "font-display font-bold text-3xl",
+                      style: { color: "oklch(var(--color-accent-success))" },
+                      children: avatarInitial
                     }
-                  ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-display font-semibold text-muted-foreground", children: (profile == null ? void 0 : profile.username) ?? "" }),
-                  (profile == null ? void 0 : profile.username) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground mt-0.5", children: [
-                    "@",
-                    profile.username
-                  ] })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-t border-border/30" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-4", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
+                  ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    User,
+                    {
+                      className: "w-9 h-9",
+                      style: { color: "oklch(var(--color-accent-success) / 0.7)" }
+                    }
+                  )
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
+                displayName ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
                   {
-                    className: "flex items-center justify-between",
-                    "data-ocid": "profile.email",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-4 h-4 text-muted-foreground flex-shrink-0" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "Email" })
-                      ] }),
-                      (profile == null ? void 0 : profile.email) ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground font-mono", children: profile.email }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground italic", children: "No email set" })
-                    ]
+                    className: "font-display text-xl font-bold text-foreground leading-tight",
+                    "data-ocid": "profile.display_name",
+                    children: displayName
                   }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
-                  {
-                    className: "flex flex-col gap-2",
-                    "data-ocid": "profile.bio_section",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "div",
-                          {
-                            className: "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                            style: {
-                              backgroundColor: "oklch(var(--color-accent-success))"
-                            }
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "About Your Journey" })
-                      ] }),
-                      hasBio ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-display font-semibold text-muted-foreground", children: (profile == null ? void 0 : profile.username) ?? "" }),
+                (profile == null ? void 0 : profile.username) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground mt-0.5", children: [
+                  "@",
+                  profile.username
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-t border-border/30" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  className: "flex items-center justify-between",
+                  "data-ocid": "profile.email",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-4 h-4 text-muted-foreground flex-shrink-0" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "Email" })
+                    ] }),
+                    (profile == null ? void 0 : profile.email) ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground font-mono", children: profile.email }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground italic", children: "No email set" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  className: "flex flex-col gap-2",
+                  "data-ocid": "profile.bio_section",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
                         "div",
                         {
-                          className: "rounded-xl px-4 py-3 text-sm text-foreground leading-relaxed",
+                          className: "w-1.5 h-1.5 rounded-full flex-shrink-0",
                           style: {
-                            background: "oklch(var(--color-accent-success) / 0.06)",
-                            borderLeft: "3px solid oklch(var(--color-accent-success) / 0.45)"
-                          },
-                          "data-ocid": "profile.bio_display",
-                          children: profile == null ? void 0 : profile.bio
+                            backgroundColor: "oklch(var(--color-accent-success))"
+                          }
                         }
-                      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "p",
-                        {
-                          className: "text-sm text-muted-foreground italic px-1",
-                          "data-ocid": "profile.bio_empty_state",
-                          children: "No Macro Wish set yet."
-                        }
-                      )
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "button",
-                {
-                  type: "button",
-                  onClick: () => setEditOpen(true),
-                  className: "flex items-center justify-center gap-2 w-full rounded-xl px-5 py-3 font-display font-semibold text-sm transition-smooth",
-                  style: {
-                    backgroundColor: "oklch(var(--color-accent-success) / 0.12)",
-                    color: "oklch(var(--color-accent-success))",
-                    border: "1px solid oklch(var(--color-accent-success) / 0.25)"
-                  },
-                  "data-ocid": "profile.edit_profile_button",
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Pencil, { className: "w-4 h-4" }),
-                    "Edit Profile"
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground uppercase tracking-wide font-medium", children: "About Your Journey" })
+                    ] }),
+                    hasBio ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: "rounded-xl px-4 py-3 text-sm text-foreground leading-relaxed",
+                        style: {
+                          background: "oklch(var(--color-accent-success) / 0.06)",
+                          borderLeft: "3px solid oklch(var(--color-accent-success) / 0.45)"
+                        },
+                        "data-ocid": "profile.bio_display",
+                        children: profile == null ? void 0 : profile.bio
+                      }
+                    ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "p",
+                      {
+                        className: "text-sm text-muted-foreground italic px-1",
+                        "data-ocid": "profile.bio_empty_state",
+                        children: "No Macro Wish set yet."
+                      }
+                    )
                   ]
                 }
               )
-            ]
-          }
-        )
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      EditProfileSheet,
-      {
-        open: editOpen,
-        onClose: () => setEditOpen(false),
-        initialDisplayName: displayName,
-        initialBio: (profile == null ? void 0 : profile.bio) ?? "",
-        initialEmail: (profile == null ? void 0 : profile.email) ?? ""
-      }
-    )
-  ] });
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => navigate({ to: "/profile/edit" }),
+                className: "flex items-center justify-center gap-2 w-full rounded-xl px-5 py-3 font-display font-semibold text-sm transition-smooth",
+                style: {
+                  backgroundColor: "oklch(var(--color-accent-success) / 0.12)",
+                  color: "oklch(var(--color-accent-success))",
+                  border: "1px solid oklch(var(--color-accent-success) / 0.25)"
+                },
+                "data-ocid": "profile.edit_profile_button",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Pencil, { className: "w-4 h-4" }),
+                  "Edit Profile"
+                ]
+              }
+            )
+          ]
+        }
+      )
+    }
+  ) });
 }
 function SettingsPage$1() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -80428,6 +80793,9 @@ function GoalsPage() {
 }
 function EditHabitPage() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(EditHabitPage$1, {});
+}
+function EditProfilePage() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(EditProfilePage$1, {});
 }
 function AppSpinner({ ocid, label }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -80549,6 +80917,11 @@ const editHabitRoute = createRoute({
   path: "/edit-habit/$id",
   component: EditHabitPage
 });
+const editProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile/edit",
+  component: EditProfilePage
+});
 const catchAllRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "*",
@@ -80564,6 +80937,7 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
   goalsRoute,
   editHabitRoute,
+  editProfileRoute,
   catchAllRoute
 ]);
 const router = createRouter({ routeTree });

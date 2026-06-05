@@ -18,24 +18,6 @@ import EmailNotificationsApi "mixins/email-notifications-api";
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 actor {
   // Auth & user state
   let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();

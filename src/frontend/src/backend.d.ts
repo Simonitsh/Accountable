@@ -13,6 +13,7 @@ export interface UpdateGoalRequest {
     endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    scheduledDays?: Array<string>;
     timezoneOffsetMinutes: bigint;
     startTimeMinutes?: bigint;
     wish?: string;
@@ -53,6 +54,7 @@ export interface CreateGoalRequest {
     endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    scheduledDays?: Array<string>;
     startTimeMinutes?: bigint;
     wish: string;
     themeColor?: string;
@@ -79,6 +81,7 @@ export interface GoalPublic {
     endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime?: string;
+    scheduledDays: Array<string>;
     owner: UserId;
     lastEditedAt?: Timestamp;
     startTimeMinutes: bigint;

@@ -359,7 +359,54 @@ export function GoalInsightSheet({
   }, [isOpen]);
 
   const groups = groupByDay(checkIns);
-  const isEmpty = !isLoading && !error && checkIns.length === 0;
+
+  // Build date range from createdAt → today, capped at 14 days, newest first.
+  // Today (index 0) is always included so we can show an "In Progress" node.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const createdAtMs = goal.createdAt
+    ? Number(goal.createdAt / 1_000_000n)
+    : Date.now();
+  const createdAtDate = new Date(createdAtMs);
+  createdAtDate.setHours(0, 0, 0, 0);
+
+  const maxDays = 14;
+  const dayCount = Math.min(
+    maxDays,
+    Math.floor(
+      (today.getTime() - createdAtDate.getTime()) / (24 * 60 * 60 * 1000),
+    ) + 1,
+  );
+
+  const last14Days = Array.from({ length: dayCount }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+
+  const weekdays = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+  // Build a lookup from date-string → group for fast access
+  const groupByDateStr = new Map<string, { label: string; items: CheckIn[] }>();
+  for (const g of groups) {
+    // Use the timestamp of the first item to get the date key
+    const ms = Number(g.items[0].timestamp / 1_000_000n);
+    const key = new Date(ms).toDateString();
+    groupByDateStr.set(key, g);
+  }
+
+  // True empty only when there are no check-ins AND habit was created too recently
+  // for any of the 14 days to have anything to show (e.g. created today)
+  const hasAnyDayData = last14Days.some((d) => {
+    const key = d.toDateString();
+    if (groupByDateStr.has(key)) return true;
+    // Either a missed or rest node would be shown for this day
+    return true;
+  });
+  const isEmpty =
+    !isLoading && !error && checkIns.length === 0 && !hasAnyDayData;
 
   // wishDescription is the keystone habit name (required, non-nullable in GoalPublic).
   // wish is the macro goal — shown below the habit name in muted text.
@@ -543,10 +590,10 @@ export function GoalInsightSheet({
                 </div>
               )}
 
-              {/* Timeline groups */}
-              {!isLoading && !error && groups.length > 0 && (
+              {/* Timeline — all 14 days, newest first */}
+              {!isLoading && !error && (
                 <div className="relative">
-                  {/* Vertical connecting line — spans full content height */}
+                  {/* Vertical connecting line */}
                   <div
                     className="absolute left-[15px] top-0 bottom-0 w-[2px] pointer-events-none"
                     style={{
@@ -557,35 +604,172 @@ export function GoalInsightSheet({
                   />
 
                   <div className="flex flex-col gap-0">
-                    {groups.map((group, gi) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: groups keyed by stable date string position
-                      <div key={gi} className="mb-4">
-                        {/* Day label */}
-                        <div
-                          className="mb-3 ml-11"
-                          data-ocid={`goal_insight.day_group.${gi + 1}`}
-                        >
-                          <span
-                            className="text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full"
-                            style={{
-                              color: "oklch(var(--muted-foreground))",
-                              background: "rgba(255,255,255,0.04)",
-                              border: "1px solid rgba(255,255,255,0.07)",
-                            }}
-                          >
-                            {group.label}
-                          </span>
-                        </div>
+                    {last14Days.map((date, di) => {
+                      const key = date.toDateString();
+                      const group = groupByDateStr.get(key);
 
-                        {/* Check-in items */}
-                        <div className="ml-3 flex flex-col gap-0">
-                          {group.items.map((ci, ii) => (
-                            // biome-ignore lint/suspicious/noArrayIndexKey: items within a day group, stable order
-                            <TimelineItem key={`${gi}-${ii}`} checkIn={ci} />
-                          ))}
+                      // ── Day has check-in(s) ──────────────────────────────
+                      if (group) {
+                        return (
+                          <div
+                            key={key}
+                            className="mb-4"
+                            data-ocid={`goal_insight.day_group.${di + 1}`}
+                          >
+                            {/* Day label */}
+                            <div className="mb-3 ml-11">
+                              <span
+                                className="text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full"
+                                style={{
+                                  color: "oklch(var(--muted-foreground))",
+                                  background: "rgba(255,255,255,0.04)",
+                                  border: "1px solid rgba(255,255,255,0.07)",
+                                }}
+                              >
+                                {group.label}
+                              </span>
+                            </div>
+                            {/* Check-in items */}
+                            <div className="ml-3 flex flex-col gap-0">
+                              {group.items.map((ci) => (
+                                <TimelineItem
+                                  key={ci.id.toString()}
+                                  checkIn={ci}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // ── No check-in for this day ─────────────────────────
+                      const dayAbbr = weekdays[date.getDay()];
+                      const isScheduled =
+                        !goal.scheduledDays ||
+                        goal.scheduledDays.length === 0 ||
+                        goal.scheduledDays.includes(dayAbbr);
+
+                      if (!isScheduled) {
+                        // Rest day — skip entirely, render nothing
+                        return null;
+                      }
+
+                      const isToday =
+                        date.toDateString() === new Date().toDateString();
+
+                      // Today with no check-in yet → "In Progress" node
+                      if (isToday) {
+                        return (
+                          <div
+                            key={key}
+                            className="mb-4"
+                            data-ocid={`goal_insight.day_group.${di + 1}`}
+                          >
+                            {/* Day label */}
+                            <div className="mb-3 ml-11">
+                              <span
+                                className="text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full"
+                                style={{
+                                  color: "oklch(var(--muted-foreground))",
+                                  background: "rgba(255,255,255,0.04)",
+                                  border: "1px solid rgba(255,255,255,0.07)",
+                                }}
+                              >
+                                Today
+                              </span>
+                            </div>
+                            {/* In Progress node */}
+                            <div className="ml-3 flex gap-3">
+                              <div
+                                className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                                style={{
+                                  border: "2px solid #F59E0B",
+                                  background: "transparent",
+                                  boxShadow: "0 0 0 3px rgba(245,158,11,0.12)",
+                                }}
+                                aria-hidden="true"
+                              >
+                                <span
+                                  className="absolute inset-0 rounded-full animate-ping opacity-40"
+                                  style={{
+                                    background: "rgba(245,158,11,0.25)",
+                                  }}
+                                />
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ background: "#F59E0B" }}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0 pb-5">
+                                <p
+                                  className="text-sm font-display font-medium leading-snug"
+                                  style={{ color: "#F59E0B" }}
+                                >
+                                  In Progress
+                                </p>
+                                <p
+                                  className="text-xs mt-0.5"
+                                  style={{
+                                    color:
+                                      "oklch(var(--muted-foreground) / 0.7)",
+                                  }}
+                                >
+                                  Waiting for today&apos;s action
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Past scheduled day with no check-in → Missed
+                      const dateLabel = date.toLocaleDateString(undefined, {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      });
+                      return (
+                        <div
+                          key={key}
+                          className="mb-4"
+                          data-ocid={`goal_insight.day_group.${di + 1}`}
+                        >
+                          {/* Day label */}
+                          <div className="mb-3 ml-11">
+                            <span
+                              className="text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full"
+                              style={{
+                                color: "oklch(var(--muted-foreground))",
+                                background: "rgba(255,255,255,0.04)",
+                                border: "1px solid rgba(255,255,255,0.07)",
+                              }}
+                            >
+                              {dateLabel}
+                            </span>
+                          </div>
+                          {/* Missed node */}
+                          <div className="ml-3 flex gap-3">
+                            <div
+                              className="flex-shrink-0 w-8 h-8 rounded-full"
+                              style={{
+                                border: `2px solid ${MISSED_COLOR}`,
+                                background: "transparent",
+                                boxShadow: "0 0 0 3px rgba(107,114,128,0.08)",
+                              }}
+                              aria-hidden="true"
+                            />
+                            <div className="flex-1 min-w-0 pb-5">
+                              <p
+                                className="text-sm font-display font-medium leading-snug"
+                                style={{ color: MISSED_COLOR }}
+                              >
+                                Missed • No action taken
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

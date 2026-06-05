@@ -95,6 +95,7 @@ export interface UpdateGoalRequest {
     endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    scheduledDays?: Array<string>;
     timezoneOffsetMinutes: bigint;
     startTimeMinutes?: bigint;
     wish?: string;
@@ -135,6 +136,7 @@ export interface CreateGoalRequest {
     endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    scheduledDays?: Array<string>;
     startTimeMinutes?: bigint;
     wish: string;
     themeColor?: string;
@@ -161,6 +163,7 @@ export interface GoalPublic {
     endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime?: string;
+    scheduledDays: Array<string>;
     owner: UserId;
     lastEditedAt?: Timestamp;
     startTimeMinutes: bigint;
@@ -956,6 +959,7 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime: [] | [string];
+    scheduledDays: Array<string>;
     owner: _UserId;
     lastEditedAt: [] | [_Timestamp];
     startTimeMinutes: bigint;
@@ -981,6 +985,7 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     endTimeMinutes: bigint;
     emailNotifications: boolean;
     endTime?: string;
+    scheduledDays: Array<string>;
     owner: UserId;
     lastEditedAt?: Timestamp;
     startTimeMinutes: bigint;
@@ -1007,6 +1012,7 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         endTimeMinutes: value.endTimeMinutes,
         emailNotifications: value.emailNotifications,
         endTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.endTime)),
+        scheduledDays: value.scheduledDays,
         owner: value.owner,
         lastEditedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.lastEditedAt)),
         startTimeMinutes: value.startTimeMinutes,
@@ -1216,6 +1222,7 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    scheduledDays?: Array<string>;
     startTimeMinutes?: bigint;
     wish: string;
     themeColor?: string;
@@ -1234,6 +1241,7 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     endTimeMinutes: [] | [bigint];
     emailNotifications: [] | [boolean];
     endTime: [] | [string];
+    scheduledDays: [] | [Array<string>];
     startTimeMinutes: [] | [bigint];
     wish: string;
     themeColor: [] | [string];
@@ -1253,6 +1261,7 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
         endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
         emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
         endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+        scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
         startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
         wish: value.wish,
         themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
@@ -1303,6 +1312,7 @@ function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     endTimeMinutes?: bigint;
     emailNotifications?: boolean;
     endTime?: string;
+    scheduledDays?: Array<string>;
     timezoneOffsetMinutes: bigint;
     startTimeMinutes?: bigint;
     wish?: string;
@@ -1321,6 +1331,7 @@ function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     endTimeMinutes: [] | [bigint];
     emailNotifications: [] | [boolean];
     endTime: [] | [string];
+    scheduledDays: [] | [Array<string>];
     timezoneOffsetMinutes: bigint;
     startTimeMinutes: [] | [bigint];
     wish: [] | [string];
@@ -1340,6 +1351,7 @@ function to_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
         emailNotifications: value.emailNotifications ? candid_some(value.emailNotifications) : candid_none(),
         endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+        scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
         timezoneOffsetMinutes: value.timezoneOffsetMinutes,
         startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
         wish: value.wish ? candid_some(value.wish) : candid_none(),

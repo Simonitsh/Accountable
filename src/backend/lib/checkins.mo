@@ -5,6 +5,7 @@ import Common "../types/common";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
 import Int "mo:core/Int";
+import Debug "mo:core/Debug";
 
 module {
   // 86400 seconds in nanoseconds
@@ -121,6 +122,104 @@ module {
     };
     checkIns.add(checkIn);
     checkIn;
+  };
+
+  /// Returns true if the given day-of-week abbreviation ("mon".."sun") is in scheduledDays.
+  func isScheduledDay(dayAbbr : Text, scheduledDays : [Text]) : Bool {
+    scheduledDays.find(func(d) { d == dayAbbr }) != null;
+  };
+
+  /// Derives the day-of-week abbreviation ("mon".."sun") from a nanosecond timestamp,
+  /// adjusted for the user's timezone offset in minutes.
+  /// Unix epoch (1970-01-01) was a Thursday, so epoch day 0 = Thursday (index 3).
+  /// Days: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  func dayOfWeekAbbr(timestampNs : Int, timezoneOffsetMinutes : Int) : Text {
+    // Shift the timestamp into local time, then compute the day index
+    let localNs : Int = timestampNs + (timezoneOffsetMinutes * 60 * 1_000_000_000);
+    // Days since epoch (truncate toward zero for both positive and negative)
+    let daysSinceEpoch : Int = localNs / DAY_NS;
+    // Epoch day 0 (1970-01-01) was a Thursday = weekday index 4 (0=Sun)
+    // dayOfWeek: (4 + daysSinceEpoch) mod 7, always positive
+    let raw : Int = Int.rem(4 + daysSinceEpoch, 7);
+    let idx : Int = if (raw < 0) { raw + 7 } else { raw };
+    switch (idx) {
+      case 0 "sun";
+      case 1 "mon";
+      case 2 "tue";
+      case 3 "wed";
+      case 4 "thu";
+      case 5 "fri";
+      case 6 "sat";
+      case _ "mon"; // unreachable
+    };
+  };
+
+  /// Midnight auto-fail: generate a #Missed check-in for every active goal that
+  /// had no terminal check-in yesterday — but only if yesterday was a scheduled day.
+  /// If yesterday was NOT in goal.scheduledDays (rest day), skip silently.
+  public func autoFailMissedGoals(
+    checkIns : List.List<CheckInTypes.CheckIn>,
+    goals : List.List<GoalTypes.Goal>,
+    nextCheckInId : [var Nat],
+    nowNs : Int,
+    timezoneOffsetMinutes : Int,
+  ) : Nat {
+    let offsetNs : Int = timezoneOffsetMinutes * 60 * 1_000_000_000;
+    // Local "now" and "yesterday" day boundaries
+    let localNowNs : Int = nowNs + offsetNs;
+    let localYesterdayNs : Int = localNowNs - DAY_NS;
+    // Yesterday's start/end in UTC (for querying check-ins stored in UTC)
+    let localMidnightNs : Int = (localNowNs / DAY_NS) * DAY_NS;
+    let yesterdayStartUtc : Int = localMidnightNs - DAY_NS - offsetNs;
+    let yesterdayEndUtc : Int = localMidnightNs - offsetNs;
+    // Day-of-week abbreviation for yesterday in user's local timezone
+    // Pass 0 for tzOffset since localYesterdayNs is already in local time
+    let yesterdayAbbr : Text = dayOfWeekAbbr(localYesterdayNs, 0);
+    var count : Nat = 0;
+    label goalLoop for (goal in goals.values()) {
+      if (goal.state != #active) continue goalLoop;
+      // Skip if yesterday was not a scheduled day (rest day)
+      if (not isScheduledDay(yesterdayAbbr, goal.scheduledDays)) continue goalLoop;
+      // Skip Lock-In goals — they handle their own missed states via frontend + checkin flow
+      if (goal.isLockIn) continue goalLoop;
+      // Check if there is any terminal check-in for this goal yesterday (UTC window)
+      let hadTerminal = checkIns.find(func(c) {
+        c.goalId == goal.id and
+        c.owner == goal.owner and
+        c.timestamp >= yesterdayStartUtc and
+        c.timestamp < yesterdayEndUtc and
+        (c.checkInType == #success or c.checkInType == #skip or
+         c.checkInType == #missedCheckIn or c.checkInType == #missedCheckOut)
+      }) != null;
+      if (not hadTerminal) {
+        let missedCheckIn : CheckInTypes.CheckIn = {
+          id = nextCheckInId[0];
+          goalId = goal.id;
+          owner = goal.owner;
+          checkInType = #skip; // auto-missed recorded as skip for analytics consistency
+          obstacleTemplateId = null;
+          customObstacleNote = null;
+          timestamp = yesterdayEndUtc - 1; // one ns before midnight
+          lockInStartedAt = null;
+          lockInEndedAt = null;
+          executedIfThen = false;
+        };
+        checkIns.add(missedCheckIn);
+        nextCheckInId[0] += 1;
+        count += 1;
+      };
+    };
+    count;
+  };
+
+  /// Public wrapper for isScheduledDay — used by email-notifications-api.
+  public func isScheduledDayPublic(dayAbbr : Text, scheduledDays : [Text]) : Bool {
+    isScheduledDay(dayAbbr, scheduledDays);
+  };
+
+  /// Public wrapper for dayOfWeekAbbr — used by email-notifications-api.
+  public func dayOfWeekAbbrPublic(timestampNs : Int, timezoneOffsetMinutes : Int) : Text {
+    dayOfWeekAbbr(timestampNs, timezoneOffsetMinutes);
   };
 
   public func listCheckIns(

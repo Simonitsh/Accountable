@@ -182,6 +182,7 @@ module {
         startTimeMinutes = g.startTimeMinutes;
         endTimeMinutes = g.endTimeMinutes;
         intentTimeMinutes = g.intentTimeMinutes;
+        scheduledDays = g.scheduledDays;
       };
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);

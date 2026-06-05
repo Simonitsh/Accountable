@@ -48,6 +48,7 @@ type Goal__520167328 =
     outcome : Text;
     owner : UserId__158757552;
     var reminderOffset : ?Int;
+    var scheduledDays : [Text];
     var startTime : ?Text;
     var startTimeMinutes : Nat;
     var state : GoalState__810211879;

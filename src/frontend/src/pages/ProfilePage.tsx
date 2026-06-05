@@ -1,246 +1,13 @@
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { useNavigate } from "@tanstack/react-router";
+import { Mail, Pencil, User } from "lucide-react";
+import { useUserProfile } from "../hooks/useUserProfile";
+
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Loader2, Mail, Pencil, User } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { useUpdateBio, useUserProfile } from "../hooks/useUserProfile";
-
-// ─── EditProfileSheet ─────────────────────────────────────────────────────────
-interface EditProfileSheetProps {
-  open: boolean;
-  onClose: () => void;
-  initialDisplayName: string;
-  initialBio: string;
-  initialEmail: string;
-}
-
-function EditProfileSheet({
-  open,
-  onClose,
-  initialDisplayName,
-  initialBio,
-  initialEmail,
-}: EditProfileSheetProps) {
-  const updateProfileMutation = useUpdateBio();
-
-  const [displayName, setDisplayName] = useState(initialDisplayName);
-  const [bioText, setBioText] = useState(initialBio);
-  const [email, setEmail] = useState(initialEmail);
-  const [bioFocused, setBioFocused] = useState(false);
-  const [bioTyped, setBioTyped] = useState(false);
-
-  // Sync when sheet opens with fresh values
-  useEffect(() => {
-    if (open) {
-      setDisplayName(initialDisplayName);
-      setBioText(initialBio);
-      setEmail(initialEmail);
-      setBioTyped(false);
-      setBioFocused(false);
-    }
-  }, [open, initialDisplayName, initialBio, initialEmail]);
-
-  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const isValidEmail = email.trim() === "" || EMAIL_REGEX.test(email.trim());
-
-  const BIO_MAX = 160;
-  const bioCount = bioText.length;
-  const bioOverLimit = bioCount > BIO_MAX;
-  const showBioCounter = bioFocused || bioTyped;
-
-  const isSaving = updateProfileMutation.isPending;
-
-  const displayNameChanged = displayName.trim() !== initialDisplayName.trim();
-  const bioChanged = bioText.trim() !== initialBio.trim();
-  const emailChanged = email.trim() !== initialEmail.trim();
-  const isDirty = displayNameChanged || bioChanged || emailChanged;
-
-  const handleSave = async () => {
-    if (bioOverLimit || !isValidEmail) return;
-    try {
-      await updateProfileMutation.mutateAsync({
-        displayName,
-        bio: bioText,
-        email,
-      });
-      toast.success("Profile updated.");
-      onClose();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update profile.",
-      );
-    }
-  };
-
-  return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl border-t border-border/40 px-0 pb-0"
-        style={{
-          background: "oklch(var(--card))",
-          maxHeight: "90dvh",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Header */}
-        <SheetHeader className="px-5 pt-5 pb-4 border-b border-border/30 flex-shrink-0">
-          <SheetTitle className="font-display font-semibold text-base text-foreground">
-            Edit Profile
-          </SheetTitle>
-        </SheetHeader>
-
-        {/* Scrollable body */}
-        <div
-          className="flex flex-col gap-5 px-5 py-5 overflow-y-auto"
-          style={{ flex: 1 }}
-        >
-          {/* Display Name */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="edit-display-name"
-                className="text-xs text-muted-foreground uppercase tracking-wide font-medium"
-              >
-                Display Name
-              </label>
-              <span className="text-xs font-medium text-muted-foreground rounded border border-border/50 px-1.5 py-0.5">
-                Optional
-              </span>
-            </div>
-            <input
-              id="edit-display-name"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              maxLength={40}
-              placeholder="e.g. Sarah"
-              className="w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50"
-              data-ocid="profile.edit_sheet.display_name_input"
-            />
-            <p className="text-xs text-muted-foreground">
-              How the dashboard will greet you.
-            </p>
-          </div>
-
-          {/* Email Address */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="edit-email"
-              className="text-xs text-muted-foreground uppercase tracking-wide font-medium"
-            >
-              Email Address
-            </label>
-            <input
-              id="edit-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. you@example.com"
-              className={[
-                "w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border outline-none transition-smooth placeholder:text-muted-foreground/50",
-                !isValidEmail
-                  ? "border-destructive/60 focus:border-destructive/80"
-                  : "border-border/50 focus:border-primary/60",
-              ].join(" ")}
-              data-ocid="profile.edit_sheet.email_input"
-            />
-            {!isValidEmail && (
-              <p className="text-xs text-destructive">
-                Please enter a valid email address.
-              </p>
-            )}
-          </div>
-
-          {/* Macro Wish / Bio */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="edit-bio"
-              className="text-xs text-muted-foreground uppercase tracking-wide font-medium"
-            >
-              About Your Journey
-            </label>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Your Macro Wish — the ultimate outcome that anchors all your
-              habits.
-            </p>
-            <div className="flex flex-col gap-1">
-              <textarea
-                id="edit-bio"
-                value={bioText}
-                onChange={(e) => {
-                  setBioText(e.target.value);
-                  setBioTyped(true);
-                }}
-                onFocus={() => setBioFocused(true)}
-                onBlur={() => setBioFocused(false)}
-                rows={4}
-                placeholder="What is the ultimate outcome you are working towards? (e.g., I want to rebuild my fitness to keep up with my kids...)"
-                className="w-full rounded-xl px-4 py-3 text-sm text-foreground bg-background border border-border/50 outline-none focus:border-primary/60 transition-smooth placeholder:text-muted-foreground/50 resize-none leading-relaxed"
-                data-ocid="profile.edit_sheet.bio_textarea"
-              />
-              <p
-                className="text-xs text-right transition-opacity duration-200"
-                style={{
-                  color: bioOverLimit
-                    ? "oklch(0.65 0.2 25)"
-                    : "oklch(var(--muted-foreground))",
-                  opacity: showBioCounter ? 1 : 0,
-                  pointerEvents: "none",
-                }}
-                data-ocid="profile.edit_sheet.bio_counter"
-              >
-                {bioCount} / {BIO_MAX}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Sticky Save button */}
-        <div className="px-5 py-4 border-t border-border/30 flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!isDirty || bioOverLimit || !isValidEmail || isSaving}
-            className="w-full flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-display font-semibold text-sm transition-smooth disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: "oklch(var(--color-accent-success) / 0.14)",
-              color: "oklch(var(--color-accent-success))",
-            }}
-            data-ocid="profile.edit_sheet.save_button"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Check
-                  className="w-4 h-4"
-                  style={{ opacity: isDirty ? 1 : 0.4 }}
-                />
-                Save Profile
-              </>
-            )}
-          </button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ProfilePage() {
   const { data: profile, isLoading } = useUserProfile();
-  const [editOpen, setEditOpen] = useState(false);
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -401,7 +168,7 @@ export function ProfilePage() {
           {/* Edit Profile button */}
           <button
             type="button"
-            onClick={() => setEditOpen(true)}
+            onClick={() => navigate({ to: "/profile/edit" })}
             className="flex items-center justify-center gap-2 w-full rounded-xl px-5 py-3 font-display font-semibold text-sm transition-smooth"
             style={{
               backgroundColor: "oklch(var(--color-accent-success) / 0.12)",
@@ -415,15 +182,6 @@ export function ProfilePage() {
           </button>
         </div>
       </div>
-
-      {/* Edit sheet — mutually exclusive from the read-only view */}
-      <EditProfileSheet
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        initialDisplayName={displayName}
-        initialBio={profile?.bio ?? ""}
-        initialEmail={profile?.email ?? ""}
-      />
     </>
   );
 }

@@ -34,6 +34,7 @@ export interface Goal {
   startTimeMinutes?: number;
   endTimeMinutes?: number;
   intentTimeMinutes?: number;
+  scheduledDays?: string[];
   createdAt: bigint;
   updatedAt: bigint;
 }

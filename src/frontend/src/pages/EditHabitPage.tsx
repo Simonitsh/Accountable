@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { Check, ChevronLeft, Lock, Plus, X } from "lucide-react";
+import { Check, ChevronLeft, Lock, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { UpdateGoalRequest } from "../backend.d.ts";
+import { DayPickerRow } from "../components/DayPickerRow";
+import { ScrollWheelPicker } from "../components/ScrollWheelPicker";
 import { useBackend } from "../hooks/useBackend";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { OBSTACLE_TEMPLATES } from "../types/index";
@@ -82,22 +84,6 @@ interface SelectedObstacle {
   kind: "builtin" | "custom";
 }
 
-const wheelStyle: React.CSSProperties = {
-  background: "oklch(var(--card))",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow:
-    "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-  color: "oklch(var(--foreground))",
-  padding: "6px 0",
-  outline: "none",
-  overflowY: "auto",
-};
-
-const amberWheelStyle: React.CSSProperties = {
-  ...wheelStyle,
-  border: "1px solid rgba(245,158,11,0.25)",
-};
-
 const sectionLabel =
   "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
 
@@ -118,6 +104,11 @@ export function EditHabitPage() {
   const hasEmail = Boolean(
     (userProfile as unknown as { email?: string })?.email,
   );
+
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<"general" | "time">("general");
+  const [timeEditsToday, setTimeEditsToday] = useState(0);
+  const [showTimeConfirmation, setShowTimeConfirmation] = useState(false);
 
   // ── Fetch habit ────────────────────────────────────────────────────────────
   const { data: goals, isLoading } = useQuery({
@@ -141,6 +132,15 @@ export function EditHabitPage() {
   const [iconName, setIconName] = useState("target");
   const [themeColor, setThemeColor] = useState("#2563EB");
   const [obstacles, setObstacles] = useState<SelectedObstacle[]>([]);
+  const [scheduledDays, setScheduledDays] = useState<string[]>([
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat",
+    "sun",
+  ]);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Lock-In
@@ -150,7 +150,7 @@ export function EditHabitPage() {
   const [lockInDurationMinutes, setLockInDurationMinutes] = useState(0);
   const [overlapError, setOverlapError] = useState<string | null>(null);
 
-  // ── Section 2: Email reminder fields (daily lockout) ──────────────────────
+  // ── Section 2: Email reminder fields ──────────────────────────────────────
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [intentTime, setIntentTime] = useState("");
   const [reminderOffset, setReminderOffset] = useState(0);
@@ -202,6 +202,20 @@ export function EditHabitPage() {
     setReminderOffset(
       habit.reminderOffset !== undefined ? Number(habit.reminderOffset) : 0,
     );
+    const rawDays = (habit as unknown as { scheduledDays?: string[] })
+      .scheduledDays;
+    setScheduledDays(
+      rawDays && rawDays.length > 0
+        ? rawDays
+        : ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+    );
+
+    // Initialize timeEditsToday from lastEditedAt
+    const today = new Date().toLocaleDateString();
+    const lastEditDate = habit.lastEditedAt
+      ? new Date(Number(habit.lastEditedAt) / 1000000).toLocaleDateString()
+      : "";
+    setTimeEditsToday(lastEditDate === today ? 1 : 0);
   }, [habit]);
 
   // ── Auto-recalculate Lock-In end time ─────────────────────────────────────
@@ -245,17 +259,6 @@ export function EditHabitPage() {
         : null,
     );
   }, [habit?.isLockIn, lockInStartTime, lockInEndTime, goals, id]);
-
-  // ── Daily lockout for email reminder fields ───────────────────────────────
-  const isLockedForToday = useMemo(() => {
-    if (!habit?.lastEditedAt) return false;
-    const tzOffsetMs = new Date().getTimezoneOffset() * 60 * 1000 * -1;
-    const lastEditedMs = Number(habit.lastEditedAt / 1_000_000n);
-    const nowMs = Date.now();
-    const lastDay = Math.floor((lastEditedMs + tzOffsetMs) / 86_400_000);
-    const today = Math.floor((nowMs + tzOffsetMs) / 86_400_000);
-    return lastDay === today;
-  }, [habit?.lastEditedAt]);
 
   // ── Ulysses Pact: Lock-In time fields locked during active window ─────────
   const isLockInWindowActive = useMemo(() => {
@@ -304,51 +307,11 @@ export function EditHabitPage() {
     });
   }
 
-  // ── Save ───────────────────────────────────────────────────────────────────
+  // ── Save mutation ─────────────────────────────────────────────────────────
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: UpdateGoalRequest) => {
       if (!actor) throw new Error("Not connected");
-      const outcomeStr = obstacles.map((o) => o.label).join(", ");
-      const req: UpdateGoalRequest = {
-        timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
-        wish: wish.trim(),
-        wishDescription: wishDescription.trim(),
-        ifThenPlan: ifThenPlan.trim(),
-        iconName,
-        themeColor,
-        isLockIn: habit?.isLockIn ?? false,
-        startTime:
-          habit?.isLockIn && lockInStartTime ? lockInStartTime : undefined,
-        endTime: habit?.isLockIn && lockInEndTime ? lockInEndTime : undefined,
-        emailNotifications,
-        intentTime: emailNotifications && intentTime ? intentTime : undefined,
-        reminderOffset: emailNotifications ? BigInt(clampedOffset) : undefined,
-        lockInDurationMinutes: habit?.isLockIn
-          ? BigInt(lockInDurationHours * 60 + lockInDurationMinutes)
-          : BigInt(0),
-        startTimeMinutes:
-          habit?.isLockIn && lockInStartTime
-            ? BigInt(parseHHMMToMinutes(lockInStartTime))
-            : BigInt(0),
-        endTimeMinutes:
-          habit?.isLockIn && lockInStartTime
-            ? BigInt(
-                Math.min(
-                  1435,
-                  parseHHMMToMinutes(lockInStartTime) +
-                    lockInDurationHours * 60 +
-                    lockInDurationMinutes,
-                ),
-              )
-            : BigInt(0),
-        intentTimeMinutes:
-          emailNotifications && intentTime
-            ? BigInt(parseHHMMToMinutes(intentTime))
-            : BigInt(0),
-      };
-      // outcome is not in UpdateGoalRequest — we send the rest as-is
-      void outcomeStr;
-      const result = await actor.updateGoal(BigInt(id), req);
+      const result = await actor.updateGoal(BigInt(id), payload);
       if ("err" in result) {
         throw new Error(
           typeof result.err === "string" ? result.err : "Failed to save",
@@ -359,12 +322,63 @@ export function EditHabitPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myGoals"] });
       toast.success("Habit updated!");
-      navigate({ to: "/goals" });
     },
   });
 
-  function canSave(): boolean {
+  function buildPayload(
+    overrides?: Partial<UpdateGoalRequest>,
+  ): UpdateGoalRequest {
+    const outcomeStr = obstacles.map((o) => o.label).join(", ");
+    void outcomeStr;
+    return {
+      timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
+      wish: wish.trim(),
+      wishDescription: wishDescription.trim(),
+      ifThenPlan: ifThenPlan.trim(),
+      iconName,
+      themeColor,
+      isLockIn: habit?.isLockIn ?? false,
+      scheduledDays,
+      startTime:
+        habit?.isLockIn && lockInStartTime ? lockInStartTime : undefined,
+      endTime: habit?.isLockIn && lockInEndTime ? lockInEndTime : undefined,
+      emailNotifications,
+      intentTime: emailNotifications && intentTime ? intentTime : undefined,
+      reminderOffset: emailNotifications ? BigInt(clampedOffset) : undefined,
+      lockInDurationMinutes: habit?.isLockIn
+        ? BigInt(lockInDurationHours * 60 + lockInDurationMinutes)
+        : BigInt(0),
+      startTimeMinutes:
+        habit?.isLockIn && lockInStartTime
+          ? BigInt(parseHHMMToMinutes(lockInStartTime))
+          : BigInt(0),
+      endTimeMinutes:
+        habit?.isLockIn && lockInStartTime
+          ? BigInt(
+              Math.min(
+                1435,
+                parseHHMMToMinutes(lockInStartTime) +
+                  lockInDurationHours * 60 +
+                  lockInDurationMinutes,
+              ),
+            )
+          : BigInt(0),
+      intentTimeMinutes:
+        emailNotifications && intentTime
+          ? BigInt(parseHHMMToMinutes(intentTime))
+          : BigInt(0),
+      ...overrides,
+    };
+  }
+
+  function canSaveGeneral(): boolean {
     if (!wish.trim()) return false;
+    if (overlapError) return false;
+    return true;
+  }
+
+  function canSaveTime(): boolean {
+    if (habit?.isLockIn && isLockInWindowActive) return false;
     if (habit?.isLockIn && !lockInStartTime) return false;
     if (
       habit?.isLockIn &&
@@ -376,6 +390,68 @@ export function EditHabitPage() {
     if (emailNotifications && !habit?.isLockIn && !intentTime) return false;
     return true;
   }
+
+  const handleGeneralSave = () => {
+    saveMutation.mutate(buildPayload(), {
+      onSuccess: () => {
+        navigate({ to: "/goals" });
+      },
+    });
+  };
+
+  const handleTimeSave = () => {
+    saveMutation.mutate(buildPayload(), {
+      onSuccess: () => {
+        setTimeEditsToday((prev) => prev + 1);
+        setShowTimeConfirmation(false);
+        toast.success("Time settings saved!");
+      },
+    });
+  };
+
+  // A single computed flag for all Time tab locking
+  const isTimeLocked = timeEditsToday >= 1 || isLockInWindowActive;
+
+  const handleTimeSaveClick = () => {
+    if (isTimeLocked) return;
+    if (timeEditsToday === 0) {
+      setShowTimeConfirmation(true);
+    }
+  };
+
+  // ── Scroll wheel state helpers ────────────────────────────────────────────
+
+  const lockInDurationHourValues = Array.from(
+    { length: maxLockInHours + 1 },
+    (_, i) => String(i).padStart(2, "0"),
+  );
+  const lockInDurationMinuteValues = Array.from(
+    { length: maxLockInMinAtMaxHour + 1 },
+    (_, i) => String(i).padStart(2, "0"),
+  );
+
+  const offsetWheelValues = offsetOptions.map((v) => formatOffsetLabel(v));
+  const offsetSelectedLabel = formatOffsetLabel(clampedOffset);
+
+  // ── Live preview helpers ──────────────────────────────────────────────────
+  const liveSendTime = useMemo(() => {
+    if (!emailNotifications) return null;
+    const baseTime = habit?.isLockIn ? lockInStartTime : intentTime;
+    if (!baseTime) return null;
+    const baseMins = parseHHMMToMinutes(baseTime);
+    const sendMins = Math.max(0, Math.min(1439, baseMins + clampedOffset));
+    const sendH = Math.floor(sendMins / 60);
+    const sendM = sendMins % 60;
+    return `${String(sendH).padStart(2, "0")}:${String(sendM).padStart(2, "0")}`;
+  }, [
+    emailNotifications,
+    habit?.isLockIn,
+    lockInStartTime,
+    intentTime,
+    clampedOffset,
+  ]);
+
+  const accentColor = habit?.isLockIn ? "#F59E0B" : "#10B981";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -405,7 +481,7 @@ export function EditHabitPage() {
         </h1>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-8 pb-24">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6 pb-24">
         {isLoading && (
           <p className="text-center text-muted-foreground py-8">Loading…</p>
         )}
@@ -425,11 +501,83 @@ export function EditHabitPage() {
 
         {habit && (
           <>
-            {/* ─── SECTION 1: GENERAL (always editable) ─── */}
-            <div>
-              <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5">
+            {/* Habit Type Badge */}
+            <div className="flex items-center justify-center">
+              {habit.isLockIn ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-400">
+                  <Lock size={12} />
+                  Lock-In Habit
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400">
+                  <Check size={12} />
+                  Regular Habit
+                </span>
+              )}
+            </div>
+            <p className="text-center text-xs text-muted-foreground/70 -mt-4">
+              Habit type is permanent and cannot be changed.
+            </p>
+
+            {/* Tab Bar */}
+            <div
+              className="flex gap-2 p-1 rounded-2xl"
+              style={{
+                background: "oklch(var(--muted) / 0.3)",
+                boxShadow:
+                  "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.03)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveTab("general")}
+                data-ocid="edit_habit.general_tab"
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                style={
+                  activeTab === "general"
+                    ? {
+                        background: accentColor,
+                        color: "#000000",
+                        boxShadow:
+                          "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.2)",
+                      }
+                    : {
+                        background: "transparent",
+                        color: "oklch(var(--muted-foreground))",
+                        boxShadow:
+                          "2px 2px 5px rgba(0,0,0,0.2), -1px -1px 3px rgba(255,255,255,0.03)",
+                      }
+                }
+              >
                 General
-              </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("time")}
+                data-ocid="edit_habit.time_tab"
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                style={
+                  activeTab === "time"
+                    ? {
+                        background: accentColor,
+                        color: "#000000",
+                        boxShadow:
+                          "inset 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.2)",
+                      }
+                    : {
+                        background: "transparent",
+                        color: "oklch(var(--muted-foreground))",
+                        boxShadow:
+                          "2px 2px 5px rgba(0,0,0,0.2), -1px -1px 3px rgba(255,255,255,0.03)",
+                      }
+                }
+              >
+                Time
+              </button>
+            </div>
+
+            {/* ─── GENERAL TAB ─── */}
+            {activeTab === "general" && (
               <div className="space-y-5">
                 {/* Macro Goal */}
                 <div className="space-y-2" style={insetCard}>
@@ -655,82 +803,162 @@ export function EditHabitPage() {
                   </div>
                 </div>
 
-                {/* Habit Type */}
+                {/* Day Scheduling */}
                 <div className="space-y-3" style={insetCard}>
-                  <div className="flex items-center gap-2">
-                    {habit.isLockIn ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-400">
-                        <Lock size={12} />
-                        Lock-In Habit
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400">
-                        <Check size={12} />
-                        Regular Habit
-                      </span>
-                    )}
-                  </div>
+                  <p className={sectionLabel}>Active Days</p>
                   <p className="text-xs text-muted-foreground/70">
-                    Habit type is permanent and cannot be changed.
+                    This habit only appears on selected days.
                   </p>
+                  <DayPickerRow
+                    selectedDays={scheduledDays}
+                    onChange={setScheduledDays}
+                  />
                 </div>
 
-                {habit.isLockIn && (
-                  <div className="space-y-4" style={insetCard}>
-                    <div
-                      className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-snug"
-                      style={{
-                        background: "rgba(245,158,11,0.08)",
-                        borderLeft: "3px solid rgba(245,158,11,0.7)",
-                      }}
-                      data-ocid="edit_habit.lockin_commitment_banner"
-                    >
-                      <Lock
-                        size={12}
-                        className="shrink-0 mt-0.5"
-                        style={{ color: "#F59E0B" }}
-                      />
-                      <p style={{ color: "rgba(251,191,36,0.9)" }}>
-                        <span className="font-semibold">
-                          Lock-In time blocks are a strict commitment.
-                        </span>{" "}
-                        You can only change these times outside your active
-                        window.
-                        {isLockInWindowActive && (
-                          <span className="block mt-1 font-semibold">
-                            Active window is open — time fields are locked.
-                          </span>
-                        )}
-                      </p>
-                    </div>
+                {saveMutation.isError && (
+                  <p
+                    className="text-sm text-destructive px-1"
+                    data-ocid="edit_habit.error_state"
+                  >
+                    {saveMutation.error instanceof Error
+                      ? saveMutation.error.message
+                      : "Failed to save changes"}
+                  </p>
+                )}
 
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor="edit-lockin-start"
-                        className={sectionLabel}
-                      >
-                        Start Time
-                      </label>
+                <button
+                  type="button"
+                  onClick={handleGeneralSave}
+                  disabled={!canSaveGeneral() || saveMutation.isPending}
+                  data-ocid="edit_habit.save_general_button"
+                  className="w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
+                  style={{
+                    background: "#10B981",
+                    boxShadow:
+                      "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)",
+                  }}
+                >
+                  {saveMutation.isPending ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* ─── TIME TAB ─── */}
+            {activeTab === "time" && (
+              <div className="space-y-5">
+                {/* Locked state banner — shown instead of confirmation when already locked */}
+                {isTimeLocked && (
+                  <div
+                    className="flex items-start gap-2 rounded-xl px-3 py-3 text-xs leading-snug"
+                    style={{
+                      background: isLockInWindowActive
+                        ? "rgba(245,158,11,0.08)"
+                        : "rgba(100,116,139,0.12)",
+                      border: isLockInWindowActive
+                        ? "1px solid rgba(245,158,11,0.35)"
+                        : "1px solid rgba(100,116,139,0.25)",
+                      boxShadow:
+                        "inset 2px 2px 6px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(255,255,255,0.04)",
+                    }}
+                    data-ocid="edit_habit.time_locked_banner"
+                  >
+                    <Lock
+                      size={13}
+                      className="shrink-0 mt-0.5"
+                      style={{
+                        color: isLockInWindowActive
+                          ? "#F59E0B"
+                          : "oklch(var(--muted-foreground))",
+                      }}
+                    />
+                    <p
+                      style={{
+                        color: isLockInWindowActive
+                          ? "rgba(251,191,36,0.9)"
+                          : "oklch(var(--muted-foreground))",
+                      }}
+                    >
+                      {isLockInWindowActive ? (
+                        <span className="font-semibold">
+                          Lock-In is active — time settings are locked until the
+                          session ends.
+                        </span>
+                      ) : (
+                        <span>
+                          Time settings locked until midnight.{" "}
+                          <span className="font-semibold">
+                            Your changes are saved.
+                          </span>
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {/* Lock-In: Ulysses Pact banner — only when not locked by daily limit */}
+                {habit.isLockIn && !isTimeLocked && (
+                  <div
+                    className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-snug"
+                    style={{
+                      background: "rgba(245,158,11,0.08)",
+                      borderLeft: "3px solid rgba(245,158,11,0.7)",
+                    }}
+                    data-ocid="edit_habit.lockin_commitment_banner"
+                  >
+                    <Lock
+                      size={12}
+                      className="shrink-0 mt-0.5"
+                      style={{ color: "#F59E0B" }}
+                    />
+                    <p style={{ color: "rgba(251,191,36,0.9)" }}>
+                      <span className="font-semibold">
+                        Lock-In time blocks are a strict commitment.
+                      </span>{" "}
+                      You can only change these times outside your active
+                      window.
+                    </p>
+                  </div>
+                )}
+
+                {/* Lock-In Time Settings */}
+                {habit.isLockIn && (
+                  <div className="space-y-5" style={insetCard}>
+                    {/* Start Time */}
+                    <div className="space-y-2">
+                      <p className={sectionLabel}>Start Time</p>
                       <input
-                        id="edit-lockin-start"
                         type="time"
-                        data-ocid="edit_habit.lockin_start_time"
                         value={lockInStartTime}
-                        disabled={isLockInWindowActive}
                         onChange={(e) => setLockInStartTime(e.target.value)}
-                        className="w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+                        disabled={isTimeLocked}
+                        data-ocid="edit_habit.lockin_start_time_input"
+                        className={`w-full transition-opacity duration-200 ${isTimeLocked ? "opacity-50 cursor-not-allowed" : ""}`}
                         style={{
                           background: "oklch(var(--card))",
                           boxShadow:
-                            "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                            "2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                          border: "1px solid rgba(245,158,11,0.4)",
+                          borderRadius: "0.75rem",
+                          padding: "10px 14px",
+                          color: "oklch(var(--foreground))",
+                          fontFamily: "monospace",
+                          fontSize: "1.1rem",
                           colorScheme: "dark",
                         }}
                       />
                     </div>
 
-                    {lockInStartTime ? (
-                      <div>
-                        <span className={sectionLabel}>Duration</span>
+                    {/* Duration */}
+                    {lockInStartTime && (
+                      <div className="space-y-2">
+                        <p className={sectionLabel}>Duration</p>
                         {maxLockInMinutes === 0 ? (
                           <p className="text-xs text-destructive">
                             No duration available — start time leaves no room
@@ -739,88 +967,38 @@ export function EditHabitPage() {
                         ) : (
                           <div className="flex gap-3">
                             <div className="flex-1">
-                              <label
-                                htmlFor="edit-lockin-hours"
-                                className="block text-[11px] text-muted-foreground/60 mb-1.5"
-                              >
+                              <p className="text-[11px] text-muted-foreground/60 mb-1.5 text-center">
                                 Hours
-                              </label>
-                              <select
-                                id="edit-lockin-hours"
-                                data-ocid="edit_habit.lockin_duration_hours"
-                                value={lockInDurationHours}
-                                disabled={isLockInWindowActive}
-                                onChange={(e) =>
-                                  setLockInDurationHours(Number(e.target.value))
+                              </p>
+                              <ScrollWheelPicker
+                                values={lockInDurationHourValues}
+                                selectedValue={String(
+                                  lockInDurationHours,
+                                ).padStart(2, "0")}
+                                onChange={(val) =>
+                                  setLockInDurationHours(Number(val))
                                 }
-                                size={5}
-                                className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
-                                style={amberWheelStyle}
-                              >
-                                {Array.from(
-                                  { length: maxLockInHours + 1 },
-                                  (_, i) => i,
-                                ).map((h) => (
-                                  <option
-                                    key={h}
-                                    value={h}
-                                    style={{
-                                      background: "oklch(var(--card))",
-                                      color:
-                                        lockInDurationHours === h
-                                          ? "#F59E0B"
-                                          : "oklch(var(--foreground))",
-                                      fontWeight:
-                                        lockInDurationHours === h ? 700 : 400,
-                                    }}
-                                  >
-                                    {String(h).padStart(2, "0")}
-                                  </option>
-                                ))}
-                              </select>
+                                accentColor="#F59E0B"
+                                disabled={isTimeLocked}
+                                data-ocid="edit_habit.lockin_duration_hours_wheel"
+                              />
                             </div>
                             <div className="flex-1">
-                              <label
-                                htmlFor="edit-lockin-mins"
-                                className="block text-[11px] text-muted-foreground/60 mb-1.5"
-                              >
+                              <p className="text-[11px] text-muted-foreground/60 mb-1.5 text-center">
                                 Min
-                              </label>
-                              <select
-                                id="edit-lockin-mins"
-                                data-ocid="edit_habit.lockin_duration_minutes"
-                                value={lockInDurationMinutes}
-                                disabled={isLockInWindowActive}
-                                onChange={(e) =>
-                                  setLockInDurationMinutes(
-                                    Number(e.target.value),
-                                  )
+                              </p>
+                              <ScrollWheelPicker
+                                values={lockInDurationMinuteValues}
+                                selectedValue={String(
+                                  lockInDurationMinutes,
+                                ).padStart(2, "0")}
+                                onChange={(val) =>
+                                  setLockInDurationMinutes(Number(val))
                                 }
-                                size={5}
-                                className="w-full rounded-xl font-mono text-base text-center appearance-none cursor-pointer disabled:opacity-50"
-                                style={amberWheelStyle}
-                              >
-                                {Array.from(
-                                  { length: maxLockInMinAtMaxHour + 1 },
-                                  (_, i) => i,
-                                ).map((m) => (
-                                  <option
-                                    key={m}
-                                    value={m}
-                                    style={{
-                                      background: "oklch(var(--card))",
-                                      color:
-                                        lockInDurationMinutes === m
-                                          ? "#F59E0B"
-                                          : "oklch(var(--foreground))",
-                                      fontWeight:
-                                        lockInDurationMinutes === m ? 700 : 400,
-                                    }}
-                                  >
-                                    {String(m).padStart(2, "0")}
-                                  </option>
-                                ))}
-                              </select>
+                                accentColor="#F59E0B"
+                                disabled={isTimeLocked}
+                                data-ocid="edit_habit.lockin_duration_minutes_wheel"
+                              />
                             </div>
                           </div>
                         )}
@@ -829,7 +1007,7 @@ export function EditHabitPage() {
                             lockInDurationHours === 0 &&
                             lockInDurationMinutes === 0
                           ) && (
-                            <p className="text-xs font-mono text-muted-foreground/70 mt-2">
+                            <p className="text-xs font-mono text-muted-foreground/70 mt-2 text-center">
                               Ends at{" "}
                               <span style={{ color: "#F59E0B" }}>
                                 {lockInEndTime}
@@ -837,10 +1015,6 @@ export function EditHabitPage() {
                             </p>
                           )}
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground/60 italic">
-                        Select a start time first to set the duration.
-                      </p>
                     )}
 
                     {overlapError && (
@@ -854,232 +1028,239 @@ export function EditHabitPage() {
                     )}
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* ─── SECTION 2: EMAIL REMINDERS (once-per-day lockout) ─── */}
-            <div>
-              <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase mb-5">
-                Email Reminders
-              </p>
-
-              {isLockedForToday && (
-                <div
-                  className="rounded-xl p-4 mb-4 text-sm flex items-start gap-2.5"
-                  style={{
-                    background: "rgba(245,158,11,0.08)",
-                    border: "1px solid rgba(245,158,11,0.3)",
-                    color: "#F59E0B",
-                  }}
-                  data-ocid="edit_habit.reminder_lock_banner"
-                >
-                  <Lock size={15} className="shrink-0 mt-0.5" />
-                  <span>
-                    You have already updated reminders today. To build
-                    consistency, further edits are locked until tomorrow.
-                  </span>
-                </div>
-              )}
-
-              <div className="space-y-4" style={insetCard}>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      Enable Email Reminders
-                    </p>
-                    {!hasEmail && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Requires an email address.{" "}
-                        <a
-                          href="/profile"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline"
-                          style={{ color: "#10B981" }}
-                        >
-                          Update Profile
-                        </a>
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={emailNotifications}
-                    data-ocid="edit_habit.email_notifications_toggle"
-                    disabled={!hasEmail || isLockedForToday}
-                    onClick={() => {
-                      if (!hasEmail || isLockedForToday) return;
-                      setEmailNotifications((v) => !v);
-                    }}
-                    className="relative shrink-0 w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      background:
-                        emailNotifications && hasEmail
-                          ? "#10B981"
-                          : "oklch(var(--muted))",
-                      boxShadow:
-                        emailNotifications && hasEmail
-                          ? "0 0 10px rgba(16,185,129,0.4)"
-                          : "inset 2px 2px 5px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <span
-                      className="inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-all duration-200"
+                {/* Regular Habit: Intent Time */}
+                {!habit.isLockIn && (
+                  <div className="space-y-2" style={insetCard}>
+                    <p className={sectionLabel}>When do you plan to do this?</p>
+                    <input
+                      type="time"
+                      value={intentTime}
+                      onChange={(e) => setIntentTime(e.target.value)}
+                      disabled={isTimeLocked}
+                      data-ocid="edit_habit.intent_time_input"
+                      className={`w-full transition-opacity duration-200 ${isTimeLocked ? "opacity-50 cursor-not-allowed" : ""}`}
                       style={{
-                        marginLeft:
-                          emailNotifications && hasEmail
-                            ? "calc(100% - 20px)"
-                            : "4px",
+                        background: "oklch(var(--card))",
+                        boxShadow:
+                          "2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
+                        border: "1px solid rgba(16,185,129,0.4)",
+                        borderRadius: "0.75rem",
+                        padding: "10px 14px",
+                        color: "oklch(var(--foreground))",
+                        fontFamily: "monospace",
+                        fontSize: "1.1rem",
+                        colorScheme: "dark",
                       }}
                     />
-                  </button>
-                </div>
+                  </div>
+                )}
 
-                <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${emailNotifications && hasEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}
-                >
-                  {!habit?.isLockIn && (
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor="edit-intent-time"
-                        className={sectionLabel}
-                      >
-                        When do you plan to do this?
-                      </label>
-                      <input
-                        id="edit-intent-time"
-                        type="time"
-                        data-ocid="edit_habit.intent_time_input"
-                        value={intentTime}
-                        disabled={isLockedForToday}
-                        onChange={(e) => setIntentTime(e.target.value)}
-                        className="w-full rounded-xl px-3 py-2.5 text-base font-mono text-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+                {/* Email Notifications */}
+                <div className="space-y-4" style={insetCard}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Enable Email Reminders
+                      </p>
+                      {!hasEmail && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Requires an email address.{" "}
+                          <a
+                            href="/profile"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline"
+                            style={{ color: "#10B981" }}
+                          >
+                            Update Profile
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={emailNotifications}
+                      data-ocid="edit_habit.email_notifications_toggle"
+                      disabled={!hasEmail || isTimeLocked}
+                      onClick={() => {
+                        if (!hasEmail || isTimeLocked) return;
+                        setEmailNotifications((v) => !v);
+                      }}
+                      className="relative shrink-0 w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        background:
+                          emailNotifications && hasEmail
+                            ? accentColor
+                            : "oklch(var(--muted))",
+                        boxShadow:
+                          emailNotifications && hasEmail
+                            ? `0 0 10px ${accentColor}66`
+                            : "inset 2px 2px 5px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <span
+                        className="inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-all duration-200"
                         style={{
-                          background: "oklch(var(--card))",
-                          boxShadow:
-                            "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                          colorScheme: "dark",
+                          marginLeft:
+                            emailNotifications && hasEmail
+                              ? "calc(100% - 20px)"
+                              : "4px",
                         }}
                       />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className={sectionLabel} style={{ marginBottom: 0 }}>
-                        Reminder Offset
-                      </p>
-                      <span
-                        className="text-sm font-mono"
-                        style={{ color: "#10B981" }}
-                        data-ocid="edit_habit.reminder_offset_display"
-                      >
-                        {formatOffsetLabel(clampedOffset)}
-                      </span>
-                    </div>
-                    {habit?.isLockIn ? (
-                      <p className="text-xs text-muted-foreground/70 italic">
-                        Lock-In reminders can only be sent before the start time
-                        (up to 60 min before).
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground/70 italic">
-                        Normal habits: −60 to +60 min relative to intent time
-                        (capped at 23:55).
-                      </p>
-                    )}
-                    <select
-                      data-ocid="edit_habit.reminder_offset_wheel"
-                      value={clampedOffset}
-                      disabled={isLockedForToday}
-                      onChange={(e) =>
-                        setReminderOffset(Number(e.target.value))
-                      }
-                      size={5}
-                      className="w-full rounded-xl font-mono text-sm text-center appearance-none cursor-pointer disabled:opacity-50"
-                      style={wheelStyle}
-                    >
-                      {offsetOptions.map((v) => (
-                        <option
-                          key={v}
-                          value={v}
-                          style={{
-                            background: "oklch(var(--card))",
-                            color:
-                              clampedOffset === v
-                                ? "#10B981"
-                                : "oklch(var(--foreground))",
-                            fontWeight: clampedOffset === v ? 700 : 400,
-                          }}
-                        >
-                          {formatOffsetLabel(v)}
-                        </option>
-                      ))}
-                    </select>
-                    {emailNotifications &&
-                      (() => {
-                        const baseTime = habit?.isLockIn
-                          ? lockInStartTime
-                          : intentTime;
-                        if (!baseTime) return null;
-                        const baseMins = parseHHMMToMinutes(baseTime);
-                        const sendMins = Math.max(
-                          0,
-                          Math.min(1439, baseMins + clampedOffset),
-                        );
-                        const sendH = Math.floor(sendMins / 60);
-                        const sendM = sendMins % 60;
-                        const sendTime = `${String(sendH).padStart(2, "0")}:${String(sendM).padStart(2, "0")}`;
-                        return (
-                          <p className="text-xs font-mono text-muted-foreground/70 mt-1">
-                            Email sends at{" "}
-                            <span style={{ color: "#10B981" }}>{sendTime}</span>
-                          </p>
-                        );
-                      })()}
+                    </button>
                   </div>
 
-                  <p className="text-xs text-muted-foreground/70">
-                    Note: You can only adjust intent-time and email reminders
-                    once per day after creation.
-                  </p>
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${emailNotifications && hasEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}
+                  >
+                    {/* Reminder Offset */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className={sectionLabel} style={{ marginBottom: 0 }}>
+                          Reminder Offset
+                        </p>
+                        <span
+                          className="text-sm font-mono"
+                          style={{ color: accentColor }}
+                          data-ocid="edit_habit.reminder_offset_display"
+                        >
+                          {formatOffsetLabel(clampedOffset)}
+                        </span>
+                      </div>
+                      {habit?.isLockIn ? (
+                        <p className="text-xs text-muted-foreground/70 italic">
+                          Lock-In reminders can only be sent before the start
+                          time (up to 60 min before).
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground/70 italic">
+                          Normal habits: −60 to +60 min relative to intent time
+                          (capped at 23:55).
+                        </p>
+                      )}
+                      <ScrollWheelPicker
+                        values={offsetWheelValues}
+                        selectedValue={offsetSelectedLabel}
+                        onChange={(val) => {
+                          const idx = offsetWheelValues.indexOf(val);
+                          if (idx >= 0) {
+                            setReminderOffset(offsetOptions[idx]);
+                          }
+                        }}
+                        accentColor={accentColor}
+                        disabled={isTimeLocked}
+                        data-ocid="edit_habit.reminder_offset_wheel"
+                      />
+                      {liveSendTime && (
+                        <p className="text-xs font-mono text-muted-foreground/70 mt-1 text-center">
+                          Email sends at{" "}
+                          <span style={{ color: accentColor }}>
+                            {liveSendTime}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-muted-foreground/70">
+                      Note: You can only adjust intent-time and email reminders
+                      once per day after creation.
+                    </p>
+                  </div>
                 </div>
+
+                {/* Time Tab Save */}
+                {showTimeConfirmation && !isTimeLocked && (
+                  <div
+                    className="rounded-xl p-4 space-y-3"
+                    style={{
+                      background: "rgba(245,158,11,0.06)",
+                      border: "1px solid rgba(245,158,11,0.35)",
+                    }}
+                    data-ocid="edit_habit.time_confirmation_card"
+                  >
+                    <p className="text-sm" style={{ color: "#F59E0B" }}>
+                      This is your one time adjustment for today. You won't be
+                      able to change these settings again until tomorrow. Are
+                      you sure?
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={handleTimeSave}
+                        disabled={saveMutation.isPending}
+                        data-ocid="edit_habit.time_confirm_yes_button"
+                        className="flex-1 py-2.5 rounded-xl font-semibold text-black text-sm transition-opacity disabled:opacity-40"
+                        style={{
+                          background: "#F59E0B",
+                          boxShadow:
+                            "2px 2px 6px rgba(0,0,0,0.3), -1px -1px 3px rgba(255,255,255,0.05)",
+                        }}
+                      >
+                        Yes, Save Anyway
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowTimeConfirmation(false)}
+                        data-ocid="edit_habit.time_confirm_cancel_button"
+                        className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition-opacity"
+                        style={{
+                          background: "oklch(var(--muted))",
+                          color: "oklch(var(--foreground))",
+                          boxShadow:
+                            "2px 2px 6px rgba(0,0,0,0.3), -1px -1px 3px rgba(255,255,255,0.05)",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {saveMutation.isError && (
+                  <p
+                    className="text-sm text-destructive px-1"
+                    data-ocid="edit_habit.error_state"
+                  >
+                    {saveMutation.error instanceof Error
+                      ? saveMutation.error.message
+                      : "Failed to save changes"}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleTimeSaveClick}
+                  disabled={
+                    !canSaveTime() || saveMutation.isPending || isTimeLocked
+                  }
+                  data-ocid="edit_habit.save_time_button"
+                  className="w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
+                  style={{
+                    background: accentColor,
+                    boxShadow:
+                      "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)",
+                  }}
+                >
+                  {saveMutation.isPending ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    "Save Time Settings"
+                  )}
+                </button>
+
+                {timeEditsToday >= 1 && !isLockInWindowActive && (
+                  <p className="text-center text-xs text-muted-foreground/60">
+                    {timeEditsToday} time edit used today. Fields unlock at
+                    midnight.
+                  </p>
+                )}
               </div>
-            </div>
-
-            {saveMutation.isError && (
-              <p
-                className="text-sm text-destructive px-1"
-                data-ocid="edit_habit.error_state"
-              >
-                {saveMutation.error instanceof Error
-                  ? saveMutation.error.message
-                  : "Failed to save changes"}
-              </p>
             )}
-
-            <button
-              type="button"
-              onClick={() => saveMutation.mutate()}
-              disabled={!canSave() || saveMutation.isPending}
-              data-ocid="edit_habit.save_button"
-              className="w-full py-3.5 rounded-xl font-semibold text-white transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{
-                background: "#10B981",
-                boxShadow:
-                  "3px 3px 8px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05)",
-              }}
-            >
-              {saveMutation.isPending ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
           </>
         )}
       </div>

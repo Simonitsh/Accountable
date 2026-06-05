@@ -29,6 +29,7 @@ type UpdateGoalRequest =
    lockInDurationMinutes: opt nat;
    outcome: opt text;
    reminderOffset: opt int;
+   scheduledDays: opt vec text;
    startTime: opt text;
    startTimeMinutes: opt nat;
    themeColor: opt text;
@@ -92,6 +93,7 @@ type GoalPublic =
    outcome: text;
    owner: UserId;
    reminderOffset: opt int;
+   scheduledDays: vec text;
    startTime: opt text;
    startTimeMinutes: nat;
    state: GoalState;
@@ -138,6 +140,7 @@ type CreateGoalRequest =
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
    reminderOffset: opt int;
+   scheduledDays: opt vec text;
    startTime: opt text;
    startTimeMinutes: opt nat;
    themeColor: opt text;

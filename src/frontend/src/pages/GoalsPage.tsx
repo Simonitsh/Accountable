@@ -1578,6 +1578,10 @@ export function GoalsPage() {
                     ? "border-primary/40 bg-primary/5"
                     : "border-border/20 bg-card hover:border-primary/20"
                 }`}
+                style={{
+                  borderLeftWidth: "4px",
+                  borderLeftColor: goal.isLockIn ? "#F59E0B" : "#10B981",
+                }}
                 data-ocid={`goals.goal_item.${index + 1}`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -1599,12 +1603,17 @@ export function GoalsPage() {
                         {formatDate(goal.createdAt)}
                       </span>
                     </div>
-                    <h3 className="font-display font-semibold text-foreground leading-tight line-clamp-1">
-                      {goal.wish}
+                    <h3 className="font-display font-semibold text-foreground leading-tight line-clamp-1 flex items-center gap-2">
+                      {goal.wishDescription || goal.wish}
+                      {goal.isLockIn && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                          Lock-In
+                        </span>
+                      )}
                     </h3>
-                    {goal.wishDescription && (
+                    {goal.outcome && (
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed">
-                        {goal.wishDescription}
+                        So that I can {goal.outcome}
                       </p>
                     )}
                   </div>

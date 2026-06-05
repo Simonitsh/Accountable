@@ -15,6 +15,7 @@ import { AnalyticsPage as AnalyticsPageImpl } from "./pages/AnalyticsPage";
 import { ConnectionsPage } from "./pages/ConnectionsPage";
 import { DashboardPage as DashboardPageImpl } from "./pages/DashboardPage";
 import { EditHabitPage as EditHabitPageImpl } from "./pages/EditHabitPage";
+import { EditProfilePage as EditProfilePageImpl } from "./pages/EditProfilePage";
 import { FeedPage as FeedPageImpl } from "./pages/FeedPage";
 import { GoalsPage as GoalsPageImpl } from "./pages/GoalsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -46,6 +47,9 @@ function GoalsPage() {
 }
 function EditHabitPage() {
   return <EditHabitPageImpl />;
+}
+function EditProfilePage() {
+  return <EditProfilePageImpl />;
 }
 
 // ─── Shared spinner ───────────────────────────────────────────────────────────
@@ -230,6 +234,11 @@ const editHabitRoute = createRoute({
   path: "/edit-habit/$id",
   component: EditHabitPage,
 });
+const editProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile/edit",
+  component: EditProfilePage,
+});
 
 const catchAllRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -247,6 +256,7 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
   goalsRoute,
   editHabitRoute,
+  editProfileRoute,
   catchAllRoute,
 ]);
 

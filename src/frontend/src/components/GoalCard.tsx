@@ -1132,22 +1132,6 @@ export function GoalCard({
             </div>
           )}
 
-          {/* State dot (done cards) */}
-          {mode === "done" && (
-            <div
-              className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full"
-              style={{
-                backgroundColor: isSuccess
-                  ? SUCCESS_COLOR
-                  : isFailedLockIn
-                    ? MISSED_COLOR
-                    : SKIP_COLOR,
-                opacity: 0.85,
-              }}
-              aria-hidden="true"
-            />
-          )}
-
           {/* Loading spinner */}
           {(isCheckingIn || isSkipping) && mode === "active" && (
             <div

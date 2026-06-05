@@ -42,6 +42,7 @@ const sampleGoal1 = {
   endTimeMinutes: 0n,
   startTimeMinutes: 0n,
   lockInDurationMinutes: 0n,
+  scheduledDays: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
 };
 
 const sampleGoal2 = {
@@ -65,6 +66,7 @@ const sampleGoal2 = {
   endTimeMinutes: 0n,
   startTimeMinutes: 0n,
   lockInDurationMinutes: 0n,
+  scheduledDays: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
 };
 
 const sampleCheckIn = {
@@ -210,6 +212,7 @@ export const mockBackend: backendInterface = {
       endTimeMinutes: 0n,
       startTimeMinutes: 0n,
       lockInDurationMinutes: 0n,
+      scheduledDays: request.scheduledDays ?? ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
     },
   }),
 
@@ -356,6 +359,7 @@ export const mockBackend: backendInterface = {
       endTimeMinutes: 0n,
       startTimeMinutes: 0n,
       lockInDurationMinutes: 0n,
+      scheduledDays: request.scheduledDays ?? sampleGoal1.scheduledDays,
     },
   }),
 
