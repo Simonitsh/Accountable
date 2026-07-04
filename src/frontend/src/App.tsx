@@ -71,8 +71,8 @@ function AppSpinner({ ocid, label }: { ocid: string; label?: string }) {
 //
 // Three-state machine:
 //   LOADING         → waiting for actor + profile to be ready
-//   NEEDS_ONBOARDING → authenticated, actor ready, but no username set
-//   READY           → authenticated, actor ready, username confirmed → show app
+//   NEEDS_ONBOARDING → authenticated, actor ready, but no username or avatarArchetype set
+//   READY           → authenticated, actor ready, username and avatarArchetype confirmed → show app
 //
 // KEY: The routing decision is latched with a useRef once it's made.
 // Once we decide READY, we never go back to LOADING or NEEDS_ONBOARDING,
@@ -111,10 +111,27 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     // Determine if the user needs onboarding.
     const username = profile?.username ?? "";
     const principalStr = profile?.id?.toString() ?? "";
+    const avatarArchetype = profile?.avatarArchetype ?? "";
+
+    const validArchetypes = [
+      "Oak",
+      "River",
+      "Wolf",
+      "Owl",
+      "Mountain",
+      "Fire",
+      "Bamboo",
+      "Honeycomb",
+      "Wind",
+      "Tide",
+    ];
+
     const needsOnboarding =
       !profile ||
       username.trim().length === 0 ||
-      (principalStr.length > 0 && username === principalStr);
+      (principalStr.length > 0 && username === principalStr) ||
+      avatarArchetype.trim().length === 0 ||
+      !validArchetypes.includes(avatarArchetype);
 
     if (needsOnboarding) {
       // The early return above already handles the case where latched === "READY",
@@ -122,7 +139,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
       latchedStateRef.current = "NEEDS_ONBOARDING";
       setGateState("NEEDS_ONBOARDING");
     } else {
-      // Username confirmed — latch READY permanently.
+      // Username and avatarArchetype confirmed — latch READY permanently.
       latchedStateRef.current = "READY";
       setGateState("READY");
     }
@@ -141,8 +158,8 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     return (
       <OnboardingPage
         onComplete={() => {
-          // After username is set, refetch profile — useEffect above will
-          // see the populated username and transition gate to READY.
+          // After username and avatarArchetype are set, refetch profile — useEffect above will
+          // see the populated username and avatarArchetype and transition gate to READY.
           void refetch();
         }}
       />

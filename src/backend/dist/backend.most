@@ -1,4 +1,4 @@
-// Version: 1.0.0
+// Version: 3.0.0
 type CheckInId__143223767 = Nat;
 type CheckInType__225513767 =
   {#inProgress; #missedCheckIn; #missedCheckOut; #skip; #success};
@@ -25,12 +25,15 @@ type Connection__54064141 =
     var status : ConnectionStatus__1022222714;
     toPrincipal : UserId__158757552
   };
-type Data__791452850<K, V> =
-  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type Data__80296667<K, V> =
+  {var count : Nat__1040412405; kvs : [var ?(K, V)]};
+type GoalCategory__419219042 =
+  {#Health; #Learning; #Leisure; #Productivity; #Social};
 type GoalId__1036611184 = Nat;
 type GoalState__810211879 = {#abandoned; #active; #completed; #paused};
 type Goal__520167328 =
   {
+    var category : GoalCategory__419219042;
     createdAt : Timestamp__301639476;
     var emailNotifications : Bool;
     var endTime : ?Text;
@@ -67,13 +70,24 @@ type Interaction__467696781 =
     interactionType : InteractionType__486718376;
     timestamp : Timestamp__301639476
   };
-type Internal__8484328<K, V> =
-  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
-type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
-type Nat__490723111 = Nat__920180692;
+type Internal__41346355<K, V> =
+  {children : [var ?Node__1000929467<K, V>]; data : Data__80296667<K, V>};
+type Leaf__712614010<K, V> = {data : Data__80296667<K, V>};
+type List__529703492<T> =
+  {
+    var blockIndex : Nat__1040412405;
+    var blocks : [var [var ?T]];
+    var elementIndex : Nat__1040412405
+  };
+type List__560604548<T> = List__529703492<T>;
+type Map__222667396<K, V> = Map__912772452<K, V>;
+type Map__709709801<K, V> =
+  {var root : Node__1000929467<K, V>; var size : Nat__1040412405};
+type Map__912772452<K, V> = Map__709709801<K, V>;
+type Nat__1040412405 = Nat__920180692;
 type Nat__920180692 = Nat;
-type Node__46230540<K, V> =
-  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type Node__1000929467<K, V> =
+  {#internal : Internal__41346355<K, V>; #leaf : Leaf__712614010<K, V>};
 type ObstacleTemplateId__228170292 = Nat;
 type ObstacleTemplate__309430647 =
   {
@@ -82,11 +96,99 @@ type ObstacleTemplate__309430647 =
     owner : UserId__158757552;
     title : Text
   };
+type OldCheckInId__677121563 = Nat;
+type OldCheckIn__257194189 =
+  {
+    checkInType :
+      {#inProgress; #missedCheckIn; #missedCheckOut; #skip; #success};
+    customObstacleNote : ?Text;
+    executedIfThen : Bool;
+    goalId : OldGoalId__482094942;
+    id : OldCheckInId__677121563;
+    lockInEndedAt : ?Int;
+    lockInStartedAt : ?Int;
+    obstacleTemplateId : ?OldObstacleTemplateId__179170115;
+    owner : OldUserId__580276348;
+    timestamp : OldTimestamp__27916213
+  };
+type OldConnectionId__969090171 = Nat;
+type OldConnection__510397035 =
+  {
+    createdAt : OldTimestamp__27916213;
+    fromPrincipal : OldUserId__580276348;
+    id : OldConnectionId__969090171;
+    var status : {#accepted; #pending; #rejected};
+    toPrincipal : OldUserId__580276348
+  };
+type OldGoalCategory__216595717 =
+  {#Health; #Learning; #Leisure; #Productivity; #Social};
+type OldGoalId__482094942 = Nat;
+type OldGoal__892343327 =
+  {
+    var category : OldGoalCategory__216595717;
+    createdAt : OldTimestamp__27916213;
+    var emailNotifications : Bool;
+    var endTime : ?Text;
+    var endTimeMinutes : Nat;
+    var iconName : ?Text;
+    id : OldGoalId__482094942;
+    var ifThenPlan : Text;
+    var intentTime : ?Text;
+    var intentTimeMinutes : Nat;
+    var isLockIn : Bool;
+    var lastEditedAt : ?OldTimestamp__27916213;
+    var lastEmailSentAt : Int;
+    var lockInDurationMinutes : Nat;
+    obstacleTemplateId : ?OldObstacleTemplateId__179170115;
+    outcome : Text;
+    owner : OldUserId__580276348;
+    var reminderOffset : ?Int;
+    var scheduledDays : [Text];
+    var startTime : ?Text;
+    var startTimeMinutes : Nat;
+    var state : {#abandoned; #active; #completed; #paused};
+    var themeColor : ?Text;
+    var updatedAt : OldTimestamp__27916213;
+    var wish : Text;
+    var wishDescription : Text
+  };
+type OldInteractionId__384082445 = Nat;
+type OldInteraction__262957672 =
+  {
+    checkInId : OldCheckInId__677121563;
+    fromPrincipal : OldUserId__580276348;
+    id : OldInteractionId__384082445;
+    interactionType : {#highFive};
+    timestamp : OldTimestamp__27916213
+  };
+type OldObstacleTemplateId__179170115 = Nat;
+type OldObstacleTemplate__683652564 =
+  {
+    description : Text;
+    id : OldObstacleTemplateId__179170115;
+    owner : OldUserId__580276348;
+    title : Text
+  };
+type OldTimestamp__27916213 = Int;
+type OldUserId__580276348 = Principal;
+type OldUserProfile__416069324 =
+  {
+    var avatarEmoji : Text;
+    var bio : ?Text;
+    var createdAt : OldTimestamp__27916213;
+    var displayName : Text;
+    var email : ?Text;
+    id : OldUserId__580276348;
+    var role : {#admin; #user};
+    var timezone : Text;
+    var timezoneOffsetMinutes : Int;
+    var username : Text
+  };
 type Timestamp__301639476 = Int;
 type UserId__158757552 = Principal;
 type UserProfile__775633023 =
   {
-    var avatarEmoji : Text;
+    var avatarArchetype : Text;
     var bio : ?Text;
     var createdAt : Timestamp__301639476;
     var displayName : Text;
@@ -98,30 +200,43 @@ type UserProfile__775633023 =
     var username : Text
   };
 type UserRole__451090586 = {#admin; #user};
-actor {
+actor ({
+  in checkIns : List__560604548<OldCheckIn__257194189>;
+  in connections : List__560604548<OldConnection__510397035>;
+  in goals : List__560604548<OldGoal__892343327>;
+  in interactions : List__560604548<OldInteraction__262957672>;
+  in nextCheckInId : [var Nat];
+  in nextConnectionId : [var Nat];
+  in nextGoalId : [var Nat];
+  in nextInteractionId : [var Nat];
+  in nextObstacleTemplateId : [var Nat];
+  in obstacleTemplates : List__560604548<OldObstacleTemplate__683652564>;
+  in profiles :
+    Map__222667396<OldUserId__580276348, OldUserProfile__416069324>
+}, {
   stable checkIns :
     {
-      var blockIndex : Nat__490723111;
+      var blockIndex : Nat__1040412405;
       var blocks : [var [var ?CheckIn__661112040]];
-      var elementIndex : Nat__490723111
+      var elementIndex : Nat__1040412405
     };
   stable connections :
     {
-      var blockIndex : Nat__490723111;
+      var blockIndex : Nat__1040412405;
       var blocks : [var [var ?Connection__54064141]];
-      var elementIndex : Nat__490723111
+      var elementIndex : Nat__1040412405
     };
   stable goals :
     {
-      var blockIndex : Nat__490723111;
+      var blockIndex : Nat__1040412405;
       var blocks : [var [var ?Goal__520167328]];
-      var elementIndex : Nat__490723111
+      var elementIndex : Nat__1040412405
     };
   stable interactions :
     {
-      var blockIndex : Nat__490723111;
+      var blockIndex : Nat__1040412405;
       var blocks : [var [var ?Interaction__467696781]];
-      var elementIndex : Nat__490723111
+      var elementIndex : Nat__1040412405
     };
   stable nextCheckInId : [var Nat];
   stable nextConnectionId : [var Nat];
@@ -130,13 +245,13 @@ actor {
   stable nextObstacleTemplateId : [var Nat];
   stable obstacleTemplates :
     {
-      var blockIndex : Nat__490723111;
+      var blockIndex : Nat__1040412405;
       var blocks : [var [var ?ObstacleTemplate__309430647]];
-      var elementIndex : Nat__490723111
+      var elementIndex : Nat__1040412405
     };
   stable profiles :
     {
-      var root : Node__46230540<UserId__158757552, UserProfile__775633023>;
-      var size : Nat__490723111
+      var root : Node__1000929467<UserId__158757552, UserProfile__775633023>;
+      var size : Nat__1040412405
     }
-};
+});

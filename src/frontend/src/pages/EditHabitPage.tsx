@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { Check, ChevronLeft, Lock, X } from "lucide-react";
+import { Check, ChevronLeft, Lock, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { UpdateGoalRequest } from "../backend.d.ts";
+
 import { DayPickerRow } from "../components/DayPickerRow";
 import { ScrollWheelPicker } from "../components/ScrollWheelPicker";
 import { useBackend } from "../hooks/useBackend";
@@ -392,7 +393,7 @@ export function EditHabitPage() {
   }
 
   const handleGeneralSave = () => {
-    saveMutation.mutate(buildPayload(), {
+    saveMutation.mutate(buildPayload({ isTimeEdit: undefined }), {
       onSuccess: () => {
         navigate({ to: "/goals" });
       },
@@ -400,7 +401,7 @@ export function EditHabitPage() {
   };
 
   const handleTimeSave = () => {
-    saveMutation.mutate(buildPayload(), {
+    saveMutation.mutate(buildPayload({ isTimeEdit: true }), {
       onSuccess: () => {
         setTimeEditsToday((prev) => prev + 1);
         setShowTimeConfirmation(false);
@@ -515,8 +516,25 @@ export function EditHabitPage() {
                 </span>
               )}
             </div>
+
+            {/* Category Badge — read-only, immutable after creation */}
+            <div className="flex items-center justify-center">
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                style={{
+                  background: "rgba(107,114,128,0.15)",
+                  border: "1px solid rgba(107,114,128,0.3)",
+                  color: habit.isLockIn ? "#F59E0B" : "#10B981",
+                }}
+                data-ocid="edit_habit.category_badge"
+              >
+                <Tag size={12} />
+                {habit.category || "Uncategorized"}
+              </span>
+            </div>
+
             <p className="text-center text-xs text-muted-foreground/70 -mt-4">
-              Habit type is permanent and cannot be changed.
+              Habit type and category are permanent and cannot be changed.
             </p>
 
             {/* Tab Bar */}

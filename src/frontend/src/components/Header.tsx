@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { Menu, User } from "lucide-react";
 import { useDashboardHeader } from "../hooks/useDashboardHeader";
 import { useTheme } from "../hooks/useTheme";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { ArchetypeAvatar } from "./ArchetypeAvatar";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -131,6 +133,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const dashboardData = useDashboardHeader();
   const isDashboard = dashboardData !== null;
+  const { data: profile } = useUserProfile();
 
   return (
     <header
@@ -198,19 +201,23 @@ export function Header({ onMenuClick }: HeaderProps) {
             isComplete={dashboardData.isComplete}
           />
         ) : (
-          /* Other pages: profile link */
+          /* Other pages: profile link with ArchetypeAvatar */
           <Link
             to="/profile"
             data-ocid="header.profile_link"
             aria-label="Go to profile"
             className={cn(
-              "flex items-center justify-center w-10 h-10 rounded-full transition-smooth",
-              "bg-muted/30 shadow-neumorphic-emboss-dark",
+              "flex items-center justify-center rounded-full transition-smooth",
+              "shadow-neumorphic-emboss-dark",
               "text-muted-foreground hover:text-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
           >
-            <User size={18} />
+            <ArchetypeAvatar
+              archetype={profile?.avatarArchetype ?? ""}
+              size={36}
+              showFallback
+            />
           </Link>
         )}
       </div>

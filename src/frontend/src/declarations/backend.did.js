@@ -9,6 +9,13 @@
 import { IDL } from '@icp-sdk/core/candid';
 
 export const ObstacleTemplateId = IDL.Nat;
+export const GoalCategory = IDL.Variant({
+  'Productivity' : IDL.Null,
+  'Learning' : IDL.Null,
+  'Health' : IDL.Null,
+  'Social' : IDL.Null,
+  'Leisure' : IDL.Null,
+});
 export const CreateGoalRequest = IDL.Record({
   'startTime' : IDL.Opt(IDL.Text),
   'intentTimeMinutes' : IDL.Opt(IDL.Nat),
@@ -23,6 +30,7 @@ export const CreateGoalRequest = IDL.Record({
   'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Text,
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+  'category' : GoalCategory,
   'isLockIn' : IDL.Bool,
   'reminderOffset' : IDL.Opt(IDL.Int),
   'intentTime' : IDL.Opt(IDL.Text),
@@ -58,6 +66,7 @@ export const GoalPublic = IDL.Record({
   'updatedAt' : Timestamp,
   'state' : GoalState,
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+  'category' : GoalCategory,
   'isLockIn' : IDL.Bool,
   'reminderOffset' : IDL.Opt(IDL.Int),
   'intentTime' : IDL.Opt(IDL.Text),
@@ -113,13 +122,13 @@ export const UserRole = IDL.Variant({ 'admin' : IDL.Null, 'user' : IDL.Null });
 export const UserProfilePublic = IDL.Record({
   'id' : UserId,
   'bio' : IDL.Opt(IDL.Text),
+  'avatarArchetype' : IDL.Text,
   'timezone' : IDL.Text,
   'username' : IDL.Text,
   'displayName' : IDL.Text,
   'timezoneOffsetMinutes' : IDL.Int,
   'role' : UserRole,
   'email' : IDL.Opt(IDL.Text),
-  'avatarEmoji' : IDL.Text,
 });
 export const FeedItem = IDL.Record({
   'checkIn' : CheckIn,
@@ -170,9 +179,11 @@ export const UpdateGoalRequest = IDL.Record({
   'startTimeMinutes' : IDL.Opt(IDL.Nat),
   'wish' : IDL.Opt(IDL.Text),
   'themeColor' : IDL.Opt(IDL.Text),
+  'isTimeEdit' : IDL.Opt(IDL.Bool),
   'wishDescription' : IDL.Opt(IDL.Text),
   'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Opt(IDL.Text),
+  'category' : IDL.Opt(GoalCategory),
   'isLockIn' : IDL.Opt(IDL.Bool),
   'reminderOffset' : IDL.Opt(IDL.Int),
   'intentTime' : IDL.Opt(IDL.Text),
@@ -244,7 +255,7 @@ export const idlService = IDL.Service({
       [Interaction],
       [],
     ),
-  'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
+  'register' : IDL.Func([IDL.Text, IDL.Text], [UserProfilePublic], []),
   'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
   'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
   'setTimezone' : IDL.Func([IDL.Text], [], []),
@@ -271,6 +282,13 @@ export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
   const ObstacleTemplateId = IDL.Nat;
+  const GoalCategory = IDL.Variant({
+    'Productivity' : IDL.Null,
+    'Learning' : IDL.Null,
+    'Health' : IDL.Null,
+    'Social' : IDL.Null,
+    'Leisure' : IDL.Null,
+  });
   const CreateGoalRequest = IDL.Record({
     'startTime' : IDL.Opt(IDL.Text),
     'intentTimeMinutes' : IDL.Opt(IDL.Nat),
@@ -285,6 +303,7 @@ export const idlFactory = ({ IDL }) => {
     'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Text,
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+    'category' : GoalCategory,
     'isLockIn' : IDL.Bool,
     'reminderOffset' : IDL.Opt(IDL.Int),
     'intentTime' : IDL.Opt(IDL.Text),
@@ -320,6 +339,7 @@ export const idlFactory = ({ IDL }) => {
     'updatedAt' : Timestamp,
     'state' : GoalState,
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+    'category' : GoalCategory,
     'isLockIn' : IDL.Bool,
     'reminderOffset' : IDL.Opt(IDL.Int),
     'intentTime' : IDL.Opt(IDL.Text),
@@ -375,13 +395,13 @@ export const idlFactory = ({ IDL }) => {
   const UserProfilePublic = IDL.Record({
     'id' : UserId,
     'bio' : IDL.Opt(IDL.Text),
+    'avatarArchetype' : IDL.Text,
     'timezone' : IDL.Text,
     'username' : IDL.Text,
     'displayName' : IDL.Text,
     'timezoneOffsetMinutes' : IDL.Int,
     'role' : UserRole,
     'email' : IDL.Opt(IDL.Text),
-    'avatarEmoji' : IDL.Text,
   });
   const FeedItem = IDL.Record({
     'checkIn' : CheckIn,
@@ -432,9 +452,11 @@ export const idlFactory = ({ IDL }) => {
     'startTimeMinutes' : IDL.Opt(IDL.Nat),
     'wish' : IDL.Opt(IDL.Text),
     'themeColor' : IDL.Opt(IDL.Text),
+    'isTimeEdit' : IDL.Opt(IDL.Bool),
     'wishDescription' : IDL.Opt(IDL.Text),
     'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Opt(IDL.Text),
+    'category' : IDL.Opt(GoalCategory),
     'isLockIn' : IDL.Opt(IDL.Bool),
     'reminderOffset' : IDL.Opt(IDL.Int),
     'intentTime' : IDL.Opt(IDL.Text),
@@ -510,7 +532,7 @@ export const idlFactory = ({ IDL }) => {
         [Interaction],
         [],
       ),
-    'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
+    'register' : IDL.Func([IDL.Text, IDL.Text], [UserProfilePublic], []),
     'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
     'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
     'setTimezone' : IDL.Func([IDL.Text], [], []),

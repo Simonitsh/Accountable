@@ -110,6 +110,7 @@ module {
       endTimeMinutes = goal.endTimeMinutes;
       intentTimeMinutes = goal.intentTimeMinutes;
       scheduledDays = goal.scheduledDays;
+      category = goal.category;
     };
   };
 
@@ -173,6 +174,7 @@ module {
         case (?days) days;
         case null GoalTypes.DEFAULT_SCHEDULED_DAYS;
       };
+      var category = request.category;
     };
     goals.add(goal);
     #ok(toPublic(goal));
@@ -210,7 +212,7 @@ module {
     goals : List.List<GoalTypes.Goal>,
     caller : Common.UserId,
   ) : [GoalTypes.GoalPublic] {
-    goals.values().filter(func(g) { g.owner == caller }).map<GoalTypes.Goal, GoalTypes.GoalPublic>(
+    goals.values().filter(func(g) { g.owner == caller }).map(
       func(g) { toPublic(g) }
     ).toArray();
   };
@@ -225,21 +227,24 @@ module {
       case null { #err(#goalNotFound) };
       case (?g) {
         if (g.owner != caller) return #err(#notOwner);
-        // Daily edit lockout: each goal can only be edited once per calendar day (user's local timezone).
-        // First edit (lastEditedAt == null) is always allowed.
-        switch (g.lastEditedAt) {
-          case (?lea) {
-            let nowMs : Int = Time.now() / 1_000_000;
-            let tzOffsetMs : Int = request.timezoneOffsetMinutes * 60 * 1000;
-            let lastEditedAdjusted : Int = (lea / 1_000_000) + tzOffsetMs;
-            let nowAdjusted : Int = nowMs + tzOffsetMs;
-            let lastEditedDay : Int = lastEditedAdjusted / 86_400_000;
-            let todayDay : Int = nowAdjusted / 86_400_000;
-            if (lastEditedDay == todayDay) {
-              return #err(#dailyEditLockout);
+        // Daily edit lockout: only enforced for Time-tab saves (isTimeEdit == ?true).
+        // General-tab saves (isTimeEdit == null or ?false) bypass this check entirely.
+        let applyLockout = switch (request.isTimeEdit) { case (?true) true; case _ false };
+        if (applyLockout) {
+          switch (g.lastEditedAt) {
+            case (?lea) {
+              let nowMs : Int = Time.now() / 1_000_000;
+              let tzOffsetMs : Int = request.timezoneOffsetMinutes * 60 * 1000;
+              let lastEditedAdjusted : Int = (lea / 1_000_000) + tzOffsetMs;
+              let nowAdjusted : Int = nowMs + tzOffsetMs;
+              let lastEditedDay : Int = lastEditedAdjusted / 86_400_000;
+              let todayDay : Int = nowAdjusted / 86_400_000;
+              if (lastEditedDay == todayDay) {
+                return #err(#dailyEditLockout);
+              };
             };
+            case null {};
           };
-          case null {};
         };
         // Strict Lock-In edit lockout: reject any edit while the active window is open
         if (g.isLockIn) {
@@ -296,6 +301,12 @@ module {
         switch (request.isLockIn) {
           case (?v) {
             if (v != g.isLockIn) { return #err(#immutableType) };
+          };
+          case null {};
+        };
+        switch (request.category) {
+          case (?cat) {
+            if (cat != g.category) { return #err(#immutableType) };
           };
           case null {};
         };

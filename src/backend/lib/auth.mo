@@ -10,7 +10,7 @@ module {
       id = profile.id;
       username = profile.username;
       displayName = profile.displayName;
-      avatarEmoji = profile.avatarEmoji;
+      avatarArchetype = profile.avatarArchetype;
       timezone = profile.timezone;
       bio = profile.bio;
       email = profile.email;
@@ -30,7 +30,7 @@ module {
           id = caller;
           var username = caller.toText();
           var displayName = "";
-          var avatarEmoji = "";
+          var avatarArchetype = "Oak";
           var timezone = "";
           var bio = null;
           var email = null;
@@ -76,7 +76,7 @@ module {
     profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
     caller : Common.UserId,
     displayName : ?Text,
-    avatarEmoji : ?Text,
+    avatarArchetype : ?Text,
     bio : ?Text,
     email : ?Text,
     timezoneOffsetMinutes : ?Int,
@@ -86,8 +86,13 @@ module {
       case (?dn) { profile.displayName := dn };
       case null {};
     };
-    switch (avatarEmoji) {
-      case (?ae) { profile.avatarEmoji := ae };
+    switch (avatarArchetype) {
+      case (?aa) {
+        if (not AuthTypes.isValidArchetype(aa)) {
+          return #err("Invalid avatarArchetype. Must be one of: Oak, River, Wolf, Owl, Mountain, Fire, Bamboo, Honeycomb, Wind, Tide");
+        };
+        profile.avatarArchetype := aa;
+      };
       case null {};
     };
     switch (bio) {
@@ -95,14 +100,14 @@ module {
         if (b.size() > 160) return #err("Bio cannot exceed 160 characters");
         profile.bio := ?b;
       };
-      case null {};
+      case null { profile.bio := null };
     };
     switch (email) {
       case (?e) {
         if (e.size() > 254) return #err("Email cannot exceed 254 characters");
         profile.email := ?e;
       };
-      case null {};
+      case null { profile.email := null };
     };
     switch (timezoneOffsetMinutes) {
       case (?tz) { profile.timezoneOffsetMinutes := tz };
@@ -153,7 +158,7 @@ module {
   public func listAllUsers(
     profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
   ) : [AuthTypes.UserProfilePublic] {
-    profiles.values().map<AuthTypes.UserProfile, AuthTypes.UserProfilePublic>(
+    profiles.values().map(
       func(p) { toPublic(p) }
     ).toArray();
   };

@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { LogOut, ShieldCheck, Target, User, Users, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { UserProfilePublic } from "../backend.d.ts";
+import { ArchetypeAvatar } from "./ArchetypeAvatar";
 
 interface DrawerProps {
   isOpen: boolean;
@@ -89,36 +90,12 @@ export function Drawer({ isOpen, onClose, profile, onLogout }: DrawerProps) {
           style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}
         >
           <div className="flex items-center gap-3 min-w-0">
-            {/* Avatar initial */}
-            <div
-              className="flex items-center justify-center w-10 h-10 rounded-full select-none flex-shrink-0"
-              style={{
-                background: "oklch(0.22 0.01 260)",
-                boxShadow:
-                  "inset 2px 2px 4px oklch(0.15 0.01 260), inset -2px -2px 4px oklch(0.28 0.01 260)",
-              }}
-              aria-hidden="true"
-            >
-              {profile?.displayName?.trim() || profile?.username?.trim() ? (
-                <span
-                  className="font-display font-bold text-base"
-                  style={{ color: "oklch(var(--color-accent-success))" }}
-                >
-                  {(
-                    profile.displayName?.trim() ||
-                    profile.username?.trim() ||
-                    ""
-                  )
-                    .charAt(0)
-                    .toUpperCase()}
-                </span>
-              ) : (
-                <User
-                  size={18}
-                  style={{ color: "oklch(var(--color-accent-success) / 0.7)" }}
-                />
-              )}
-            </div>
+            {/* ArchetypeAvatar */}
+            <ArchetypeAvatar
+              archetype={profile?.avatarArchetype ?? ""}
+              size={40}
+              showFallback
+            />
 
             {/* Display name / CTA */}
             <div className="min-w-0">

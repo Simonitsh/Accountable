@@ -151,7 +151,7 @@ export function SkipModal({
                       data-ocid={`skip_modal.obstacle.${obstacle.id}`}
                     >
                       <p
-                        className="text-sm font-display font-medium leading-tight"
+                        className="text-sm font-display font-medium leading-tight text-foreground"
                         style={isSelected ? { color: SKIP_COLOR } : undefined}
                       >
                         {obstacle.label}

@@ -7,11 +7,18 @@ export type CheckInType =
   | "missedCheckIn"
   | "missedCheckOut";
 export type ConnectionStatus = "pending" | "accepted" | "rejected";
+export type GoalCategory =
+  | "Health"
+  | "Learning"
+  | "Social"
+  | "Productivity"
+  | "Leisure";
 
 export interface UserProfile {
   id: string;
   username: string;
   displayName: string;
+  avatarArchetype: string;
   role: UserRole;
   goalLimit: number;
 }
@@ -28,6 +35,7 @@ export interface Goal {
   iconName?: string;
   themeColor?: string;
   isLockIn: boolean;
+  category: GoalCategory;
   startTime?: string;
   endTime?: string;
   lockInDurationMinutes?: number;
@@ -64,6 +72,7 @@ export interface FeedItem {
   checkIn: CheckIn;
   goalName: string;
   partnerDisplayName: string;
+  partnerAvatarArchetype?: string;
   highFiveCount: number;
 }
 
@@ -81,11 +90,67 @@ export interface AnalyticsSummary {
   dailySuccessRate30Days: number[];
 }
 
+export interface CreateGoalRequest {
+  wish: string;
+  wishDescription: string;
+  outcome: string;
+  ifThenPlan: string;
+  category: GoalCategory;
+  isLockIn: boolean;
+  scheduledDays: string[];
+  iconName?: string;
+  themeColor?: string;
+  obstacleTemplateId?: string;
+  startTime?: string;
+  endTime?: string;
+  lockInDurationMinutes?: number;
+  startTimeMinutes?: number;
+  endTimeMinutes?: number;
+  intentTimeMinutes?: number;
+  emailNotifications?: boolean;
+  intentTime?: string;
+  reminderOffset?: number;
+  timezoneOffsetMinutes: bigint;
+}
+
 export interface ObstacleTemplate {
   id: string;
   label: string;
   description: string;
 }
+
+export const CATEGORY_DETAILS: {
+  id: GoalCategory;
+  title: string;
+  description: string;
+}[] = [
+  {
+    id: "Health",
+    title: "Health",
+    description:
+      "Physical fitness, nutrition, sleep, and mental wellness habits.",
+  },
+  {
+    id: "Learning",
+    title: "Learning",
+    description: "Reading, courses, skill-building, and intellectual growth.",
+  },
+  {
+    id: "Social",
+    title: "Social",
+    description: "Relationships, networking, community, and communication.",
+  },
+  {
+    id: "Productivity",
+    title: "Productivity",
+    description: "Work, focus, time management, and career advancement.",
+  },
+  {
+    id: "Leisure",
+    title: "Leisure",
+    description: "Hobbies, creativity, relaxation, and personal enjoyment.",
+  },
+];
 
 export const OBSTACLE_TEMPLATES: ObstacleTemplate[] = [
   {

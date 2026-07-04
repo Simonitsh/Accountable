@@ -4,6 +4,7 @@ import Common "../types/common";
 import AnalyticsTypes "../types/analytics";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
+import GoalLib "./goals";
 
 module {
   let DAY_NS : Int = 86_400_000_000_000;
@@ -157,33 +158,7 @@ module {
     let allCheckIns = checkIns.values().filter(func(c) { c.owner == caller }).toArray();
 
     let goalAnalytics = ownedGoals.map(func(g) {
-      let gPublic : GoalTypes.GoalPublic = {
-        id = g.id;
-        owner = g.owner;
-        wish = g.wish;
-        wishDescription = g.wishDescription;
-        outcome = g.outcome;
-        obstacleTemplateId = g.obstacleTemplateId;
-        ifThenPlan = g.ifThenPlan;
-        state = g.state;
-        createdAt = g.createdAt;
-        updatedAt = g.updatedAt;
-        iconName = g.iconName;
-        themeColor = g.themeColor;
-        isLockIn = g.isLockIn;
-        startTime = g.startTime;
-        endTime = g.endTime;
-        lastEditedAt = g.lastEditedAt;
-        emailNotifications = g.emailNotifications;
-        intentTime = g.intentTime;
-        reminderOffset = g.reminderOffset;
-        lastEmailSentAt = g.lastEmailSentAt;
-        lockInDurationMinutes = g.lockInDurationMinutes;
-        startTimeMinutes = g.startTimeMinutes;
-        endTimeMinutes = g.endTimeMinutes;
-        intentTimeMinutes = g.intentTimeMinutes;
-        scheduledDays = g.scheduledDays;
-      };
+      let gPublic = GoalLib.toPublic(g);
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);
     });

@@ -55,7 +55,7 @@ mixin (
       case (#err (#lockInOverlap msg)) #err msg;
       case (#err (#strictLockActive)) #err "Strict Lock Active: You cannot edit this habit while its time window is currently active.";
       case (#err (#dailyEditLockout)) #err "dailyEditLockout";
-      case (#err (#immutableType)) #err "Immutable Type: A habit's core type (Regular or Lock-In) cannot be changed after creation.";
+      case (#err (#immutableType)) #err "Immutable Type: A habit's core type (Regular or Lock-In) and category cannot be changed after creation.";
     };
   };
 

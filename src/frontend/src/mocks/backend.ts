@@ -1,6 +1,7 @@
 import {
   CheckInType,
   ConnectionStatus,
+  GoalCategory,
   GoalState,
   InteractionType,
   UserRole,
@@ -43,6 +44,7 @@ const sampleGoal1 = {
   startTimeMinutes: 0n,
   lockInDurationMinutes: 0n,
   scheduledDays: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
+  category: GoalCategory.Health,
 };
 
 const sampleGoal2 = {
@@ -67,6 +69,7 @@ const sampleGoal2 = {
   startTimeMinutes: 0n,
   lockInDurationMinutes: 0n,
   scheduledDays: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
+  category: GoalCategory.Health,
 };
 
 const sampleCheckIn = {
@@ -213,6 +216,7 @@ export const mockBackend: backendInterface = {
       startTimeMinutes: 0n,
       lockInDurationMinutes: 0n,
       scheduledDays: request.scheduledDays ?? ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
+      category: request.category ?? GoalCategory.Health,
     },
   }),
 
@@ -256,7 +260,7 @@ export const mockBackend: backendInterface = {
     id: mockPrincipal,
     username: "alex_cumulative",
     displayName: "Alex",
-    avatarEmoji: "",
+    avatarArchetype: "Oak",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     timezoneOffsetMinutes: 0n,
@@ -275,7 +279,7 @@ export const mockBackend: backendInterface = {
     id: mockPrincipal,
     username: "alex_cumulative",
     displayName: "Demo User",
-    avatarEmoji: "",
+    avatarArchetype: "River",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     timezoneOffsetMinutes: 0n,
@@ -317,11 +321,11 @@ export const mockBackend: backendInterface = {
     timestamp: BigInt(Date.now()) * BigInt(1_000_000),
   }),
 
-  register: async (username) => ({
+  register: async (username, avatarArchetype) => ({
     id: mockPrincipal,
     username,
     displayName: username,
-    avatarEmoji: "",
+    avatarArchetype: avatarArchetype || "Oak",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     timezoneOffsetMinutes: 0n,
@@ -360,6 +364,7 @@ export const mockBackend: backendInterface = {
       startTimeMinutes: 0n,
       lockInDurationMinutes: 0n,
       scheduledDays: request.scheduledDays ?? sampleGoal1.scheduledDays,
+      category: sampleGoal1.category,
     },
   }),
 
@@ -383,14 +388,15 @@ export const mockBackend: backendInterface = {
 
   isUsernameAvailable: async (username: string) => username !== "alex_cumulative",
 
-  updateMyProfile: async (displayName, _avatarEmoji, bio) => ({
+  updateMyProfile: async (displayName, avatarArchetype, bio, email) => ({
     __kind__: "ok" as const,
     ok: {
       id: mockPrincipal,
       username: "alex_cumulative",
       displayName: displayName ?? "",
-      avatarEmoji: "",
+      avatarArchetype: avatarArchetype ?? "Oak",
       bio: bio ?? undefined,
+      email: email ?? undefined,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       role: UserRole.user,
       timezoneOffsetMinutes: 0n,

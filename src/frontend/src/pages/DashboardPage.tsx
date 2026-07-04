@@ -240,9 +240,11 @@ function ForcedUsernameModal({ onComplete }: ForcedUsernameModalProps) {
     setApiError("");
     try {
       if (!actor) throw new Error("Backend not available.");
-      await (actor as { register: (u: string) => Promise<unknown> }).register(
-        username.trim(),
-      );
+      await (
+        actor as unknown as {
+          register: (u: string, a: string) => Promise<unknown>;
+        }
+      ).register(username.trim(), "Oak");
       await queryClient.invalidateQueries({ queryKey: ["userProfile"] });
       await queryClient.refetchQueries({ queryKey: ["userProfile"] });
       onComplete();

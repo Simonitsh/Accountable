@@ -15821,7 +15821,7 @@ function mergeLoginOptions(loginOptions, otherLoginOptions) {
   };
 }
 const ONE_HOUR_IN_NANOSECONDS = BigInt(36e11);
-const DEFAULT_IDENTITY_PROVIDER = "https://id.ai";
+const DEFAULT_IDENTITY_PROVIDER = "https://id.ai/authorize";
 const InternetIdentityReactContext = reactExports.createContext(void 0);
 async function createAuthClient(createOptions) {
   const config2 = await loadConfig();
@@ -32740,6 +32740,123 @@ function RouterContextProvider({
 function RouterProvider({ router: router2, ...rest }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(RouterContextProvider, { router: router2, ...rest, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Matches, {}) });
 }
+function _resolveBlockerOpts(opts, condition) {
+  if (opts === void 0) {
+    return {
+      shouldBlockFn: () => true,
+      withResolver: false
+    };
+  }
+  if ("shouldBlockFn" in opts) {
+    return opts;
+  }
+  if (typeof opts === "function") {
+    const shouldBlock2 = Boolean(true);
+    const _customBlockerFn2 = async () => {
+      if (shouldBlock2) return await opts();
+      return false;
+    };
+    return {
+      shouldBlockFn: _customBlockerFn2,
+      enableBeforeUnload: shouldBlock2,
+      withResolver: false
+    };
+  }
+  const shouldBlock = Boolean(opts.condition ?? true);
+  const fn = opts.blockerFn;
+  const _customBlockerFn = async () => {
+    if (shouldBlock && fn !== void 0) {
+      return await fn();
+    }
+    return shouldBlock;
+  };
+  return {
+    shouldBlockFn: _customBlockerFn,
+    enableBeforeUnload: shouldBlock,
+    withResolver: fn === void 0
+  };
+}
+function useBlocker(opts, condition) {
+  const {
+    shouldBlockFn,
+    enableBeforeUnload = true,
+    disabled = false,
+    withResolver = false
+  } = _resolveBlockerOpts(opts);
+  const router2 = useRouter();
+  const { history } = router2;
+  const [resolver, setResolver] = reactExports.useState({
+    status: "idle",
+    current: void 0,
+    next: void 0,
+    action: void 0,
+    proceed: void 0,
+    reset: void 0
+  });
+  reactExports.useEffect(() => {
+    const blockerFnComposed = async (blockerFnArgs) => {
+      function getLocation(location2) {
+        const parsedLocation = router2.parseLocation(location2);
+        const matchedRoutes = router2.getMatchedRoutes(
+          parsedLocation.pathname,
+          void 0
+        );
+        if (matchedRoutes.foundRoute === void 0) {
+          throw new Error(`No route found for location ${location2.href}`);
+        }
+        return {
+          routeId: matchedRoutes.foundRoute.id,
+          fullPath: matchedRoutes.foundRoute.fullPath,
+          pathname: parsedLocation.pathname,
+          params: matchedRoutes.routeParams,
+          search: parsedLocation.search
+        };
+      }
+      const current = getLocation(blockerFnArgs.currentLocation);
+      const next = getLocation(blockerFnArgs.nextLocation);
+      const shouldBlock = await shouldBlockFn({
+        action: blockerFnArgs.action,
+        current,
+        next
+      });
+      if (!withResolver) {
+        return shouldBlock;
+      }
+      if (!shouldBlock) {
+        return false;
+      }
+      const promise = new Promise((resolve) => {
+        setResolver({
+          status: "blocked",
+          current,
+          next,
+          action: blockerFnArgs.action,
+          proceed: () => resolve(false),
+          reset: () => resolve(true)
+        });
+      });
+      const canNavigateAsync = await promise;
+      setResolver({
+        status: "idle",
+        current: void 0,
+        next: void 0,
+        action: void 0,
+        proceed: void 0,
+        reset: void 0
+      });
+      return canNavigateAsync;
+    };
+    return disabled ? void 0 : history.block({ blockerFn: blockerFnComposed, enableBeforeUnload });
+  }, [
+    shouldBlockFn,
+    enableBeforeUnload,
+    disabled,
+    withResolver,
+    history,
+    router2
+  ]);
+  return resolver;
+}
 function useAuth() {
   const { identity: identity3, loginStatus, login, clear, isAuthenticated, isLoggingIn } = useInternetIdentity();
   const hasSettledRef = reactExports.useRef(false);
@@ -32765,6 +32882,13 @@ function useAuth() {
   };
 }
 const ObstacleTemplateId = Nat;
+const GoalCategory$1 = Variant({
+  "Productivity": Null,
+  "Learning": Null,
+  "Health": Null,
+  "Social": Null,
+  "Leisure": Null
+});
 const CreateGoalRequest = Record({
   "startTime": Opt(Text$1),
   "intentTimeMinutes": Opt(Nat),
@@ -32779,6 +32903,7 @@ const CreateGoalRequest = Record({
   "iconName": Opt(Text$1),
   "ifThenPlan": Text$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
+  "category": GoalCategory$1,
   "isLockIn": Bool,
   "reminderOffset": Opt(Int),
   "intentTime": Opt(Text$1),
@@ -32814,6 +32939,7 @@ const GoalPublic = Record({
   "updatedAt": Timestamp,
   "state": GoalState$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
+  "category": GoalCategory$1,
   "isLockIn": Bool,
   "reminderOffset": Opt(Int),
   "intentTime": Opt(Text$1),
@@ -32869,13 +32995,13 @@ const UserRole$1 = Variant({ "admin": Null, "user": Null });
 const UserProfilePublic = Record({
   "id": UserId,
   "bio": Opt(Text$1),
+  "avatarArchetype": Text$1,
   "timezone": Text$1,
   "username": Text$1,
   "displayName": Text$1,
   "timezoneOffsetMinutes": Int,
   "role": UserRole$1,
-  "email": Opt(Text$1),
-  "avatarEmoji": Text$1
+  "email": Opt(Text$1)
 });
 const FeedItem$1 = Record({
   "checkIn": CheckIn,
@@ -32926,9 +33052,11 @@ const UpdateGoalRequest = Record({
   "startTimeMinutes": Opt(Nat),
   "wish": Opt(Text$1),
   "themeColor": Opt(Text$1),
+  "isTimeEdit": Opt(Bool),
   "wishDescription": Opt(Text$1),
   "iconName": Opt(Text$1),
   "ifThenPlan": Opt(Text$1),
+  "category": Opt(GoalCategory$1),
   "isLockIn": Opt(Bool),
   "reminderOffset": Opt(Int),
   "intentTime": Opt(Text$1),
@@ -32999,7 +33127,7 @@ Service({
     [Interaction],
     []
   ),
-  "register": Func([Text$1], [UserProfilePublic], []),
+  "register": Func([Text$1, Text$1], [UserProfilePublic], []),
   "respondToConnection": Func([ConnectionId, Bool], [Bool], []),
   "sendConnectionRequest": Func([UserId], [ConnectionPublic], []),
   "setTimezone": Func([Text$1], [], []),
@@ -33023,6 +33151,13 @@ Service({
 });
 const idlFactory = ({ IDL: IDL2 }) => {
   const ObstacleTemplateId2 = IDL2.Nat;
+  const GoalCategory2 = IDL2.Variant({
+    "Productivity": IDL2.Null,
+    "Learning": IDL2.Null,
+    "Health": IDL2.Null,
+    "Social": IDL2.Null,
+    "Leisure": IDL2.Null
+  });
   const CreateGoalRequest2 = IDL2.Record({
     "startTime": IDL2.Opt(IDL2.Text),
     "intentTimeMinutes": IDL2.Opt(IDL2.Nat),
@@ -33037,6 +33172,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Text,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
+    "category": GoalCategory2,
     "isLockIn": IDL2.Bool,
     "reminderOffset": IDL2.Opt(IDL2.Int),
     "intentTime": IDL2.Opt(IDL2.Text),
@@ -33072,6 +33208,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "updatedAt": Timestamp2,
     "state": GoalState2,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
+    "category": GoalCategory2,
     "isLockIn": IDL2.Bool,
     "reminderOffset": IDL2.Opt(IDL2.Int),
     "intentTime": IDL2.Opt(IDL2.Text),
@@ -33127,13 +33264,13 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const UserProfilePublic2 = IDL2.Record({
     "id": UserId2,
     "bio": IDL2.Opt(IDL2.Text),
+    "avatarArchetype": IDL2.Text,
     "timezone": IDL2.Text,
     "username": IDL2.Text,
     "displayName": IDL2.Text,
     "timezoneOffsetMinutes": IDL2.Int,
     "role": UserRole2,
-    "email": IDL2.Opt(IDL2.Text),
-    "avatarEmoji": IDL2.Text
+    "email": IDL2.Opt(IDL2.Text)
   });
   const FeedItem2 = IDL2.Record({
     "checkIn": CheckIn2,
@@ -33184,9 +33321,11 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "startTimeMinutes": IDL2.Opt(IDL2.Nat),
     "wish": IDL2.Opt(IDL2.Text),
     "themeColor": IDL2.Opt(IDL2.Text),
+    "isTimeEdit": IDL2.Opt(IDL2.Bool),
     "wishDescription": IDL2.Opt(IDL2.Text),
     "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Opt(IDL2.Text),
+    "category": IDL2.Opt(GoalCategory2),
     "isLockIn": IDL2.Opt(IDL2.Bool),
     "reminderOffset": IDL2.Opt(IDL2.Int),
     "intentTime": IDL2.Opt(IDL2.Text),
@@ -33261,7 +33400,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
       [Interaction2],
       []
     ),
-    "register": IDL2.Func([IDL2.Text], [UserProfilePublic2], []),
+    "register": IDL2.Func([IDL2.Text, IDL2.Text], [UserProfilePublic2], []),
     "respondToConnection": IDL2.Func([ConnectionId2, IDL2.Bool], [IDL2.Bool], []),
     "sendConnectionRequest": IDL2.Func([UserId2], [ConnectionPublic2], []),
     "setTimezone": IDL2.Func([IDL2.Text], [], []),
@@ -33347,6 +33486,14 @@ var ConnectionStatus = /* @__PURE__ */ ((ConnectionStatus2) => {
   ConnectionStatus2["accepted"] = "accepted";
   return ConnectionStatus2;
 })(ConnectionStatus || {});
+var GoalCategory = /* @__PURE__ */ ((GoalCategory2) => {
+  GoalCategory2["Productivity"] = "Productivity";
+  GoalCategory2["Learning"] = "Learning";
+  GoalCategory2["Health"] = "Health";
+  GoalCategory2["Social"] = "Social";
+  GoalCategory2["Leisure"] = "Leisure";
+  return GoalCategory2;
+})(GoalCategory || {});
 var GoalState = /* @__PURE__ */ ((GoalState2) => {
   GoalState2["active"] = "active";
   GoalState2["completed"] = "completed";
@@ -33374,14 +33521,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.createGoal(to_candid_CreateGoalRequest_n1(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n5(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.createGoal(to_candid_CreateGoalRequest_n1(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n5(this._uploadFile, this._downloadFile, result);
     }
   }
   async createObstacleTemplate(arg0) {
@@ -33402,14 +33549,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.deleteCheckIn(arg0);
-        return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n16(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.deleteCheckIn(arg0);
-      return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n16(this._uploadFile, this._downloadFile, result);
     }
   }
   async devReset() {
@@ -33444,56 +33591,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoal(arg0);
-        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoal(arg0);
-      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForGoalTimeline(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForPeriod(arg0, arg1, arg2) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
     }
   }
   async getGoal(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getGoal(arg0);
-        return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getGoal(arg0);
-      return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
     }
   }
   async getInteractionCount(arg0) {
@@ -33514,42 +33661,42 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getMyProfile();
-        return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n24(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyProfile();
-      return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n24(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerFeed() {
     if (this.processError) {
       try {
         const result = await this.actor.getPartnerFeed();
-        return from_candid_vec_n24(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getPartnerFeed();
-      return from_candid_vec_n24(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
     }
   }
   async getUserProfile(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getUserProfile(arg0);
-        return from_candid_opt_n27(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n31(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getUserProfile(arg0);
-      return from_candid_opt_n27(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n31(this._uploadFile, this._downloadFile, result);
     }
   }
   async isUsernameAvailable(arg0) {
@@ -33570,56 +33717,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listAllUsers();
-        return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n32(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listAllUsers();
-      return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n32(this._uploadFile, this._downloadFile, result);
     }
   }
   async listConnections() {
     if (this.processError) {
       try {
         const result = await this.actor.listConnections();
-        return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listConnections();
-      return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyCheckIns() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyCheckIns();
-        return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyCheckIns();
-      return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyGoals() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyGoals();
-        return from_candid_vec_n34(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n38(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyGoals();
-      return from_candid_vec_n34(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n38(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyObstacleTemplates() {
@@ -33640,56 +33787,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listPendingRequests();
-        return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listPendingRequests();
-      return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordCheckIn(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n35(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_CheckIn_n15(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n39(this._uploadFile, this._downloadFile, arg0));
+        return from_candid_CheckIn_n19(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n35(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_CheckIn_n15(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n39(this._uploadFile, this._downloadFile, arg0));
+      return from_candid_CheckIn_n19(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordInteraction(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n39(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_Interaction_n41(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n43(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_Interaction_n45(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n39(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_Interaction_n41(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n43(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_Interaction_n45(this._uploadFile, this._downloadFile, result);
     }
   }
-  async register(arg0) {
+  async register(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.register(arg0);
-        return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.register(arg0, arg1);
+        return from_candid_UserProfilePublic_n24(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.register(arg0);
-      return from_candid_UserProfilePublic_n20(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.register(arg0, arg1);
+      return from_candid_UserProfilePublic_n24(this._uploadFile, this._downloadFile, result);
     }
   }
   async respondToConnection(arg0, arg1) {
@@ -33710,14 +33857,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.sendConnectionRequest(arg0);
-        return from_candid_ConnectionPublic_n30(this._uploadFile, this._downloadFile, result);
+        return from_candid_ConnectionPublic_n34(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.sendConnectionRequest(arg0);
-      return from_candid_ConnectionPublic_n30(this._uploadFile, this._downloadFile, result);
+      return from_candid_ConnectionPublic_n34(this._uploadFile, this._downloadFile, result);
     }
   }
   async setTimezone(arg0) {
@@ -33737,189 +33884,199 @@ class Backend {
   async updateGoal(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n45(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n49(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_variant_n5(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n45(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateGoal(arg0, to_candid_UpdateGoalRequest_n49(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_variant_n5(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n51(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n47(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n51(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
   async updateMyProfile(arg0, arg1, arg2, arg3, arg4) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n50(this._uploadFile, this._downloadFile, arg4));
-        return from_candid_variant_n51(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n53(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n53(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n53(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n53(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n54(this._uploadFile, this._downloadFile, arg4));
+        return from_candid_variant_n55(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n49(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n49(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n50(this._uploadFile, this._downloadFile, arg4));
-      return from_candid_variant_n51(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n53(this._uploadFile, this._downloadFile, arg0), to_candid_opt_n53(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n53(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n53(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n54(this._uploadFile, this._downloadFile, arg4));
+      return from_candid_variant_n55(this._uploadFile, this._downloadFile, result);
     }
   }
 }
-function from_candid_CheckInType_n17(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n18(_uploadFile, _downloadFile, value);
+function from_candid_CheckInType_n21(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n22(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckIn_n15(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n16(_uploadFile, _downloadFile, value);
+function from_candid_CheckIn_n19(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n20(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionPublic_n30(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n31(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionPublic_n34(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n35(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionStatus_n32(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n33(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionStatus_n36(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n37(_uploadFile, _downloadFile, value);
 }
-function from_candid_FeedItem_n25(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n26(_uploadFile, _downloadFile, value);
+function from_candid_FeedItem_n29(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n30(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n5(_uploadFile, _downloadFile, value);
+function from_candid_GoalCategory_n13(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n14(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalState_n8(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n9(_uploadFile, _downloadFile, value);
+function from_candid_GoalPublic_n6(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n7(_uploadFile, _downloadFile, value);
 }
-function from_candid_InteractionType_n43(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n44(_uploadFile, _downloadFile, value);
+function from_candid_GoalState_n10(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n11(_uploadFile, _downloadFile, value);
 }
-function from_candid_Interaction_n41(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n42(_uploadFile, _downloadFile, value);
+function from_candid_InteractionType_n47(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n48(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n21(_uploadFile, _downloadFile, value);
+function from_candid_Interaction_n45(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n46(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n22(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n23(_uploadFile, _downloadFile, value);
+function from_candid_UserProfilePublic_n24(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n25(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n10(_uploadFile, _downloadFile, value) {
+function from_candid_UserRole_n26(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n27(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n12(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n11(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n15(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n19(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n23(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_GoalPublic_n6(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n27(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n31(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_UserProfilePublic_n24(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n6(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n8(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n7(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n9(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n16(_uploadFile, _downloadFile, value) {
+function from_candid_record_n20(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
     goalId: value.goalId,
-    checkInType: from_candid_CheckInType_n17(_uploadFile, _downloadFile, value.checkInType),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    checkInType: from_candid_CheckInType_n21(_uploadFile, _downloadFile, value.checkInType),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     timestamp: value.timestamp,
     executedIfThen: value.executedIfThen,
-    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.lockInStartedAt)),
-    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.lockInEndedAt)),
-    customObstacleNote: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customObstacleNote))
+    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.lockInStartedAt)),
+    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.lockInEndedAt)),
+    customObstacleNote: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.customObstacleNote))
   };
 }
-function from_candid_record_n21(_uploadFile, _downloadFile, value) {
+function from_candid_record_n25(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
+    bio: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.bio)),
+    avatarArchetype: value.avatarArchetype,
     timezone: value.timezone,
     username: value.username,
     displayName: value.displayName,
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
-    role: from_candid_UserRole_n22(_uploadFile, _downloadFile, value.role),
-    email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
-    avatarEmoji: value.avatarEmoji
+    role: from_candid_UserRole_n26(_uploadFile, _downloadFile, value.role),
+    email: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.email))
   };
 }
-function from_candid_record_n26(_uploadFile, _downloadFile, value) {
+function from_candid_record_n30(_uploadFile, _downloadFile, value) {
   return {
-    checkIn: from_candid_CheckIn_n15(_uploadFile, _downloadFile, value.checkIn),
+    checkIn: from_candid_CheckIn_n19(_uploadFile, _downloadFile, value.checkIn),
     goalName: value.goalName,
     partnerDisplayName: value.partnerDisplayName,
     highFiveCount: value.highFiveCount
   };
 }
-function from_candid_record_n31(_uploadFile, _downloadFile, value) {
+function from_candid_record_n35(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_ConnectionStatus_n32(_uploadFile, _downloadFile, value.status),
+    status: from_candid_ConnectionStatus_n36(_uploadFile, _downloadFile, value.status),
     createdAt: value.createdAt,
     toPrincipal: value.toPrincipal,
     fromPrincipal: value.fromPrincipal
   };
 }
-function from_candid_record_n42(_uploadFile, _downloadFile, value) {
+function from_candid_record_n46(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    interactionType: from_candid_InteractionType_n43(_uploadFile, _downloadFile, value.interactionType),
+    interactionType: from_candid_InteractionType_n47(_uploadFile, _downloadFile, value.interactionType),
     fromPrincipal: value.fromPrincipal,
     checkInId: value.checkInId,
     timestamp: value.timestamp
   };
 }
-function from_candid_record_n5(_uploadFile, _downloadFile, value) {
+function from_candid_record_n7(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    startTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.startTime)),
+    startTime: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.startTime)),
     intentTimeMinutes: value.intentTimeMinutes,
     endTimeMinutes: value.endTimeMinutes,
     emailNotifications: value.emailNotifications,
-    endTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.endTime)),
+    endTime: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.endTime)),
     scheduledDays: value.scheduledDays,
     owner: value.owner,
-    lastEditedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.lastEditedAt)),
+    lastEditedAt: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.lastEditedAt)),
     startTimeMinutes: value.startTimeMinutes,
     createdAt: value.createdAt,
     wish: value.wish,
-    themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
+    themeColor: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.themeColor)),
     wishDescription: value.wishDescription,
-    iconName: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.iconName)),
+    iconName: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.iconName)),
     ifThenPlan: value.ifThenPlan,
     updatedAt: value.updatedAt,
-    state: from_candid_GoalState_n8(_uploadFile, _downloadFile, value.state),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    state: from_candid_GoalState_n10(_uploadFile, _downloadFile, value.state),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    category: from_candid_GoalCategory_n13(_uploadFile, _downloadFile, value.category),
     isLockIn: value.isLockIn,
-    reminderOffset: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.reminderOffset)),
-    intentTime: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.intentTime)),
+    reminderOffset: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.reminderOffset)),
+    intentTime: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.intentTime)),
     outcome: value.outcome,
     lockInDurationMinutes: value.lockInDurationMinutes,
     lastEmailSentAt: value.lastEmailSentAt
   };
 }
-function from_candid_variant_n12(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
+  return "active" in value ? "active" : "completed" in value ? "completed" : "abandoned" in value ? "abandoned" : "paused" in value ? "paused" : value;
+}
+function from_candid_variant_n14(_uploadFile, _downloadFile, value) {
+  return "Productivity" in value ? "Productivity" : "Learning" in value ? "Learning" : "Health" in value ? "Health" : "Social" in value ? "Social" : "Leisure" in value ? "Leisure" : value;
+}
+function from_candid_variant_n16(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: value.ok
   } : "err" in value ? {
     __kind__: "err",
-    err: from_candid_variant_n13(_uploadFile, _downloadFile, value.err)
+    err: from_candid_variant_n17(_uploadFile, _downloadFile, value.err)
   } : value;
 }
-function from_candid_variant_n13(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n17(_uploadFile, _downloadFile, value) {
   return "sealed" in value ? {
     __kind__: "sealed",
     sealed: value.sealed
@@ -33931,76 +34088,76 @@ function from_candid_variant_n13(_uploadFile, _downloadFile, value) {
     unauthorized: value.unauthorized
   } : value;
 }
-function from_candid_variant_n18(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
   return "skip" in value ? "skip" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
-function from_candid_variant_n23(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n27(_uploadFile, _downloadFile, value) {
   return "admin" in value ? "admin" : "user" in value ? "user" : value;
 }
-function from_candid_variant_n3(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: from_candid_GoalPublic_n4(_uploadFile, _downloadFile, value.ok)
-  } : "err" in value ? {
-    __kind__: "err",
-    err: value.err
-  } : value;
-}
-function from_candid_variant_n33(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n37(_uploadFile, _downloadFile, value) {
   return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
 }
-function from_candid_variant_n44(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n48(_uploadFile, _downloadFile, value) {
   return "highFive" in value ? "highFive" : value;
 }
-function from_candid_variant_n51(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n5(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
-    ok: from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, value.ok)
+    ok: from_candid_GoalPublic_n6(_uploadFile, _downloadFile, value.ok)
   } : "err" in value ? {
     __kind__: "err",
     err: value.err
   } : value;
 }
-function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
-  return "active" in value ? "active" : "completed" in value ? "completed" : "abandoned" in value ? "abandoned" : "paused" in value ? "paused" : value;
+function from_candid_variant_n55(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: from_candid_UserProfilePublic_n24(_uploadFile, _downloadFile, value.ok)
+  } : "err" in value ? {
+    __kind__: "err",
+    err: value.err
+  } : value;
 }
-function from_candid_vec_n14(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_CheckIn_n15(_uploadFile, _downloadFile, x3));
-}
-function from_candid_vec_n24(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_FeedItem_n25(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n18(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_CheckIn_n19(_uploadFile, _downloadFile, x3));
 }
 function from_candid_vec_n28(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_UserProfilePublic_n20(_uploadFile, _downloadFile, x3));
+  return value.map((x3) => from_candid_FeedItem_n29(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n29(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_ConnectionPublic_n30(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n32(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_UserProfilePublic_n24(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n34(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_GoalPublic_n4(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n33(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_ConnectionPublic_n34(_uploadFile, _downloadFile, x3));
 }
-function to_candid_CheckInType_n37(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n38(_uploadFile, _downloadFile, value);
+function from_candid_vec_n38(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_GoalPublic_n6(_uploadFile, _downloadFile, x3));
+}
+function to_candid_CheckInType_n41(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n42(_uploadFile, _downloadFile, value);
 }
 function to_candid_CreateGoalRequest_n1(_uploadFile, _downloadFile, value) {
   return to_candid_record_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_GoalState_n47(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n48(_uploadFile, _downloadFile, value);
+function to_candid_GoalCategory_n3(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n4(_uploadFile, _downloadFile, value);
 }
-function to_candid_InteractionType_n39(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n40(_uploadFile, _downloadFile, value);
+function to_candid_GoalState_n51(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n52(_uploadFile, _downloadFile, value);
 }
-function to_candid_RecordCheckInRequest_n35(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n36(_uploadFile, _downloadFile, value);
+function to_candid_InteractionType_n43(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n44(_uploadFile, _downloadFile, value);
 }
-function to_candid_UpdateGoalRequest_n45(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n46(_uploadFile, _downloadFile, value);
+function to_candid_RecordCheckInRequest_n39(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n40(_uploadFile, _downloadFile, value);
 }
-function to_candid_opt_n49(_uploadFile, _downloadFile, value) {
+function to_candid_UpdateGoalRequest_n49(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n50(_uploadFile, _downloadFile, value);
+}
+function to_candid_opt_n53(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_opt_n50(_uploadFile, _downloadFile, value) {
+function to_candid_opt_n54(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_record_n2(_uploadFile, _downloadFile, value) {
@@ -34018,6 +34175,7 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     ifThenPlan: value.ifThenPlan,
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
+    category: to_candid_GoalCategory_n3(_uploadFile, _downloadFile, value.category),
     isLockIn: value.isLockIn,
     reminderOffset: value.reminderOffset ? candid_some(value.reminderOffset) : candid_none(),
     intentTime: value.intentTime ? candid_some(value.intentTime) : candid_none(),
@@ -34025,11 +34183,11 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
   };
 }
-function to_candid_record_n36(_uploadFile, _downloadFile, value) {
+function to_candid_record_n40(_uploadFile, _downloadFile, value) {
   return {
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     goalId: value.goalId,
-    checkInType: to_candid_CheckInType_n37(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: to_candid_CheckInType_n41(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     executedIfThen: value.executedIfThen,
     lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
@@ -34037,7 +34195,7 @@ function to_candid_record_n36(_uploadFile, _downloadFile, value) {
     customObstacleNote: value.customObstacleNote ? candid_some(value.customObstacleNote) : candid_none()
   };
 }
-function to_candid_record_n46(_uploadFile, _downloadFile, value) {
+function to_candid_record_n50(_uploadFile, _downloadFile, value) {
   return {
     startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
     intentTimeMinutes: value.intentTimeMinutes ? candid_some(value.intentTimeMinutes) : candid_none(),
@@ -34049,9 +34207,11 @@ function to_candid_record_n46(_uploadFile, _downloadFile, value) {
     startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
     wish: value.wish ? candid_some(value.wish) : candid_none(),
     themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
+    isTimeEdit: value.isTimeEdit ? candid_some(value.isTimeEdit) : candid_none(),
     wishDescription: value.wishDescription ? candid_some(value.wishDescription) : candid_none(),
     iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
+    category: value.category ? candid_some(to_candid_GoalCategory_n3(_uploadFile, _downloadFile, value.category)) : candid_none(),
     isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
     reminderOffset: value.reminderOffset ? candid_some(value.reminderOffset) : candid_none(),
     intentTime: value.intentTime ? candid_some(value.intentTime) : candid_none(),
@@ -34059,7 +34219,20 @@ function to_candid_record_n46(_uploadFile, _downloadFile, value) {
     lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
   };
 }
-function to_candid_variant_n38(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n4(_uploadFile, _downloadFile, value) {
+  return value == "Productivity" ? {
+    Productivity: null
+  } : value == "Learning" ? {
+    Learning: null
+  } : value == "Health" ? {
+    Health: null
+  } : value == "Social" ? {
+    Social: null
+  } : value == "Leisure" ? {
+    Leisure: null
+  } : value;
+}
+function to_candid_variant_n42(_uploadFile, _downloadFile, value) {
   return value == "skip" ? {
     skip: null
   } : value == "missedCheckIn" ? {
@@ -34072,12 +34245,12 @@ function to_candid_variant_n38(_uploadFile, _downloadFile, value) {
     inProgress: null
   } : value;
 }
-function to_candid_variant_n40(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n44(_uploadFile, _downloadFile, value) {
   return value == "highFive" ? {
     highFive: null
   } : value;
 }
-function to_candid_variant_n48(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n52(_uploadFile, _downloadFile, value) {
   return value == "active" ? {
     active: null
   } : value == "completed" ? {
@@ -34108,6 +34281,7 @@ const backend = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePrope
   CheckInType,
   ConnectionStatus,
   ExternalBlob: ExternalBlob2,
+  GoalCategory,
   GoalState,
   InteractionType,
   UserRole,
@@ -34183,20 +34357,22 @@ function useUpdateBio() {
     mutationFn: async ({
       bio,
       displayName,
-      email
+      email,
+      avatarArchetype
     }) => {
       if (!actor) throw new Error("Actor not available");
-      const nameArg = displayName !== void 0 ? displayName.trim().length > 0 ? displayName.trim() : null : null;
-      const bioArg = bio !== void 0 ? bio.trim().length > 0 ? bio.trim() : null : null;
-      const emailArg = email !== void 0 ? email.trim().length > 0 ? email.trim() : null : null;
+      const nameArg = displayName.trim().length > 0 ? displayName.trim() : null;
+      const bioArg = bio.trim().length > 0 ? bio.trim() : null;
+      const emailArg = email.trim().length > 0 ? email.trim() : null;
+      const archetypeArg = avatarArchetype && avatarArchetype.trim().length > 0 ? avatarArchetype.trim() : null;
       const result = await actor.updateMyProfile(
         nameArg,
-        null,
+        archetypeArg,
         bioArg,
         emailArg,
         BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset())
       );
-      if ("err" in result)
+      if (result && typeof result === "object" && "__kind__" in result && result.__kind__ === "err")
         throw new Error(String(result.err));
       return result;
     },
@@ -36786,53 +36962,65 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$F = [
+const __iconNode$G = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$F);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$G);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$E = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$E);
+const __iconNode$F = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$F);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$D = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$D);
+const __iconNode$E = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$E);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$C = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$C);
+const __iconNode$D = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$B = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-const ChevronRight = createLucideIcon("chevron-right", __iconNode$B);
+const __iconNode$C = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$C);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$A = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
-const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
+const __iconNode$B = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+const ChevronUp = createLucideIcon("chevron-up", __iconNode$B);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$A = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+];
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$A);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36841,10 +37029,9 @@ const ChevronUp = createLucideIcon("chevron-up", __iconNode$A);
  */
 const __iconNode$z = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$z);
+const CircleCheck = createLucideIcon("circle-check", __iconNode$z);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36853,9 +37040,9 @@ const CircleAlert = createLucideIcon("circle-alert", __iconNode$z);
  */
 const __iconNode$y = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
 ];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$y);
+const Clock = createLucideIcon("clock", __iconNode$y);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36863,17 +37050,6 @@ const CircleCheck = createLucideIcon("circle-check", __iconNode$y);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$x = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
-];
-const Clock = createLucideIcon("clock", __iconNode$x);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$w = [
   [
     "path",
     {
@@ -36882,14 +37058,14 @@ const __iconNode$w = [
     }
   ]
 ];
-const Flame = createLucideIcon("flame", __iconNode$w);
+const Flame = createLucideIcon("flame", __iconNode$x);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$v = [
+const __iconNode$w = [
   ["path", { d: "M18 12.5V10a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1.4", key: "wc6myp" }],
   ["path", { d: "M14 11V9a2 2 0 1 0-4 0v2", key: "94qvcw" }],
   ["path", { d: "M10 10.5V5a2 2 0 1 0-4 0v9", key: "m1ah89" }],
@@ -36901,14 +37077,14 @@ const __iconNode$v = [
     }
   ]
 ];
-const HandMetal = createLucideIcon("hand-metal", __iconNode$v);
+const HandMetal = createLucideIcon("hand-metal", __iconNode$w);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$u = [
+const __iconNode$v = [
   ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8", key: "5wwlr5" }],
   [
     "path",
@@ -36918,27 +37094,38 @@ const __iconNode$u = [
     }
   ]
 ];
-const House = createLucideIcon("house", __iconNode$u);
+const House = createLucideIcon("house", __iconNode$v);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$t = [
+const __iconNode$u = [
   ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
   ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
   ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
 ];
-const Link2 = createLucideIcon("link-2", __iconNode$t);
+const Link2 = createLucideIcon("link-2", __iconNode$u);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$s = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-const LoaderCircle = createLucideIcon("loader-circle", __iconNode$s);
+const __iconNode$t = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+const LoaderCircle = createLucideIcon("loader-circle", __iconNode$t);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$s = [
+  ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
+  ["path", { d: "M7 11V7a5 5 0 0 1 9.9-1", key: "1mm8w8" }]
+];
+const LockOpen = createLucideIcon("lock-open", __iconNode$s);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36947,9 +37134,9 @@ const LoaderCircle = createLucideIcon("loader-circle", __iconNode$s);
  */
 const __iconNode$r = [
   ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
-  ["path", { d: "M7 11V7a5 5 0 0 1 9.9-1", key: "1mm8w8" }]
+  ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
 ];
-const LockOpen = createLucideIcon("lock-open", __iconNode$r);
+const Lock = createLucideIcon("lock", __iconNode$r);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36957,10 +37144,11 @@ const LockOpen = createLucideIcon("lock-open", __iconNode$r);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$q = [
-  ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
-  ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
+  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
+  ["path", { d: "M21 12H9", key: "dn1m92" }],
+  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
 ];
-const Lock = createLucideIcon("lock", __iconNode$q);
+const LogOut = createLucideIcon("log-out", __iconNode$q);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36968,11 +37156,10 @@ const Lock = createLucideIcon("lock", __iconNode$q);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$p = [
-  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
-  ["path", { d: "M21 12H9", key: "dn1m92" }],
-  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
+  ["path", { d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7", key: "132q7q" }],
+  ["rect", { x: "2", y: "4", width: "20", height: "16", rx: "2", key: "izxlao" }]
 ];
-const LogOut = createLucideIcon("log-out", __iconNode$p);
+const Mail = createLucideIcon("mail", __iconNode$p);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36980,10 +37167,11 @@ const LogOut = createLucideIcon("log-out", __iconNode$p);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$o = [
-  ["path", { d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7", key: "132q7q" }],
-  ["rect", { x: "2", y: "4", width: "20", height: "16", rx: "2", key: "izxlao" }]
+  ["path", { d: "M4 12h16", key: "1lakjw" }],
+  ["path", { d: "M4 18h16", key: "19g7jn" }],
+  ["path", { d: "M4 6h16", key: "1o0s65" }]
 ];
-const Mail = createLucideIcon("mail", __iconNode$o);
+const Menu = createLucideIcon("menu", __iconNode$o);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -36991,11 +37179,10 @@ const Mail = createLucideIcon("mail", __iconNode$o);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$n = [
-  ["path", { d: "M4 12h16", key: "1lakjw" }],
-  ["path", { d: "M4 18h16", key: "19g7jn" }],
-  ["path", { d: "M4 6h16", key: "1o0s65" }]
+  ["rect", { x: "14", y: "4", width: "4", height: "16", rx: "1", key: "zuxfzm" }],
+  ["rect", { x: "6", y: "4", width: "4", height: "16", rx: "1", key: "1okwgv" }]
 ];
-const Menu = createLucideIcon("menu", __iconNode$n);
+const Pause = createLucideIcon("pause", __iconNode$n);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37003,17 +37190,6 @@ const Menu = createLucideIcon("menu", __iconNode$n);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$m = [
-  ["rect", { x: "14", y: "4", width: "4", height: "16", rx: "1", key: "zuxfzm" }],
-  ["rect", { x: "6", y: "4", width: "4", height: "16", rx: "1", key: "1okwgv" }]
-];
-const Pause = createLucideIcon("pause", __iconNode$m);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$l = [
   ["path", { d: "M12 20h9", key: "t2du7b" }],
   [
     "path",
@@ -37023,14 +37199,14 @@ const __iconNode$l = [
     }
   ]
 ];
-const PenLine = createLucideIcon("pen-line", __iconNode$l);
+const PenLine = createLucideIcon("pen-line", __iconNode$m);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$k = [
+const __iconNode$l = [
   [
     "path",
     {
@@ -37040,15 +37216,26 @@ const __iconNode$k = [
   ],
   ["path", { d: "m15 5 4 4", key: "1mk7zo" }]
 ];
-const Pencil = createLucideIcon("pencil", __iconNode$k);
+const Pencil = createLucideIcon("pencil", __iconNode$l);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$j = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
-const Play = createLucideIcon("play", __iconNode$j);
+const __iconNode$k = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
+const Play = createLucideIcon("play", __iconNode$k);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$j = [
+  ["path", { d: "M5 12h14", key: "1ays0h" }],
+  ["path", { d: "M12 5v14", key: "s699le" }]
+];
+const Plus = createLucideIcon("plus", __iconNode$j);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37056,10 +37243,12 @@ const Play = createLucideIcon("play", __iconNode$j);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$i = [
-  ["path", { d: "M5 12h14", key: "1ays0h" }],
-  ["path", { d: "M12 5v14", key: "s699le" }]
+  ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
+  ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
+  ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
+  ["path", { d: "M8 16H3v5", key: "1cv678" }]
 ];
-const Plus = createLucideIcon("plus", __iconNode$i);
+const RefreshCw = createLucideIcon("refresh-cw", __iconNode$i);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37067,19 +37256,6 @@ const Plus = createLucideIcon("plus", __iconNode$i);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$h = [
-  ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
-  ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
-  ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
-  ["path", { d: "M8 16H3v5", key: "1cv678" }]
-];
-const RefreshCw = createLucideIcon("refresh-cw", __iconNode$h);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$g = [
   [
     "path",
     {
@@ -37090,7 +37266,18 @@ const __iconNode$g = [
   ["path", { d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7", key: "1ydtos" }],
   ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
 ];
-const Save = createLucideIcon("save", __iconNode$g);
+const Save = createLucideIcon("save", __iconNode$h);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$g = [
+  ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
+  ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
+];
+const Search = createLucideIcon("search", __iconNode$g);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37098,10 +37285,16 @@ const Save = createLucideIcon("save", __iconNode$g);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$f = [
-  ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
-  ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
+  [
+    "path",
+    {
+      d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
+      key: "1qme2f"
+    }
+  ],
+  ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
 ];
-const Search = createLucideIcon("search", __iconNode$f);
+const Settings = createLucideIcon("settings", __iconNode$f);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37112,13 +37305,13 @@ const __iconNode$e = [
   [
     "path",
     {
-      d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
-      key: "1qme2f"
+      d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+      key: "oel41y"
     }
   ],
-  ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const Settings = createLucideIcon("settings", __iconNode$e);
+const ShieldCheck = createLucideIcon("shield-check", __iconNode$e);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37132,10 +37325,9 @@ const __iconNode$d = [
       d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
       key: "oel41y"
     }
-  ],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ]
 ];
-const ShieldCheck = createLucideIcon("shield-check", __iconNode$d);
+const Shield = createLucideIcon("shield", __iconNode$d);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37146,12 +37338,13 @@ const __iconNode$c = [
   [
     "path",
     {
-      d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
-      key: "oel41y"
+      d: "M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z",
+      key: "vktsd0"
     }
-  ]
+  ],
+  ["circle", { cx: "7.5", cy: "7.5", r: ".5", fill: "currentColor", key: "kqv944" }]
 ];
-const Shield = createLucideIcon("shield", __iconNode$c);
+const Tag = createLucideIcon("tag", __iconNode$c);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37409,6 +37602,476 @@ function BottomTabBar() {
     }
   );
 }
+const VALID_ARCHETYPES = [
+  "Oak",
+  "River",
+  "Wolf",
+  "Owl",
+  "Mountain",
+  "Fire",
+  "Bamboo",
+  "Honeycomb",
+  "Wind",
+  "Tide"
+];
+function isValidArchetype(value) {
+  return VALID_ARCHETYPES.includes(value);
+}
+function OakIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 22V14M12 14C8 14 5 11 5 7C5 4 8 2 12 2C16 2 19 4 19 7C19 11 16 14 12 14Z",
+            stroke: "currentColor",
+            strokeWidth: "1.8",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 14C10 12 9 10 9 8M12 14C14 12 15 10 15 8",
+            stroke: "currentColor",
+            strokeWidth: "1.4",
+            strokeLinecap: "round",
+            opacity: "0.6"
+          }
+        )
+      ]
+    }
+  );
+}
+function RiverIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M3 8C6 8 6 12 9 12C12 12 12 8 15 8C18 8 18 12 21 12",
+            stroke: "currentColor",
+            strokeWidth: "1.8",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M3 14C6 14 6 18 9 18C12 18 12 14 15 14C18 14 18 18 21 18",
+            stroke: "currentColor",
+            strokeWidth: "1.8",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            opacity: "0.5"
+          }
+        )
+      ]
+    }
+  );
+}
+function WolfIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 4L8 8L6 6L4 10L6 14L8 12L10 16L12 14L14 16L16 12L18 14L20 10L18 6L16 8L12 4Z",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "10", r: "1", fill: "currentColor" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "15", cy: "10", r: "1", fill: "currentColor" })
+      ]
+    }
+  );
+}
+function OwlIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 4C8 4 5 7 5 11V16C5 18 8 20 12 20C16 20 19 18 19 16V11C19 7 16 4 12 4Z",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "11", r: "2.2", stroke: "currentColor", strokeWidth: "1.4" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "15", cy: "11", r: "2.2", stroke: "currentColor", strokeWidth: "1.4" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "11", r: "0.8", fill: "currentColor" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "15", cy: "11", r: "0.8", fill: "currentColor" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 14V16",
+            stroke: "currentColor",
+            strokeWidth: "1.4",
+            strokeLinecap: "round"
+          }
+        )
+      ]
+    }
+  );
+}
+function MountainIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M4 18L10 8L14 14L18 6L20 18H4Z",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M10 8L6 18",
+            stroke: "currentColor",
+            strokeWidth: "1.2",
+            strokeLinecap: "round",
+            opacity: "0.4"
+          }
+        )
+      ]
+    }
+  );
+}
+function FireIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 22C16 22 19 18 19 13C19 9 17 6 14 4C14 7 12 9 12 9C12 9 10 7 10 4C7 6 5 9 5 13C5 18 8 22 12 22Z",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 18C13.5 18 14.5 16.5 14.5 14.5C14.5 12.5 13 11 12 11C11 11 9.5 12.5 9.5 14.5C9.5 16.5 10.5 18 12 18Z",
+            stroke: "currentColor",
+            strokeWidth: "1.2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            opacity: "0.5"
+          }
+        )
+      ]
+    }
+  );
+}
+function BambooIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M10 22V4M14 22V4",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M10 8H7M10 14H7M14 10H17M14 16H17",
+            stroke: "currentColor",
+            strokeWidth: "1.4",
+            strokeLinecap: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M10 4C10 2 12 2 12 2C12 2 14 2 14 4",
+            stroke: "currentColor",
+            strokeWidth: "1.4",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        )
+      ]
+    }
+  );
+}
+function HoneycombIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 4L16 6.5V11.5L12 14L8 11.5V6.5L12 4Z",
+            stroke: "currentColor",
+            strokeWidth: "1.5",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M8 11.5L4 14V19L8 21.5L12 19L16 21.5L20 19V14L16 11.5",
+            stroke: "currentColor",
+            strokeWidth: "1.5",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M12 14V19",
+            stroke: "currentColor",
+            strokeWidth: "1.2",
+            strokeLinecap: "round",
+            opacity: "0.5"
+          }
+        )
+      ]
+    }
+  );
+}
+function WindIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M4 10H16C18 10 19 9 19 7.5C19 6 18 5 16.5 5C15 5 14 6 14 7.5",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M4 14H12C14 14 15 15 15 16.5C15 18 14 19 12.5 19C11 19 10 18 10 16.5",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M4 18H8",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round"
+          }
+        )
+      ]
+    }
+  );
+}
+function TideIcon$3({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M3 12C5 10 7 10 9 12C11 14 13 14 15 12C17 10 19 10 21 12",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M3 16C5 14 7 14 9 16C11 18 13 18 15 16C17 14 19 14 21 16",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            opacity: "0.5"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M3 8C5 6 7 6 9 8C11 10 13 10 15 8C17 6 19 6 21 8",
+            stroke: "currentColor",
+            strokeWidth: "1.6",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            opacity: "0.3"
+          }
+        )
+      ]
+    }
+  );
+}
+function FallbackIcon({ size }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "circle",
+          {
+            cx: "12",
+            cy: "12",
+            r: "9",
+            stroke: "currentColor",
+            strokeWidth: "1.5",
+            opacity: "0.5"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "10", r: "3", stroke: "currentColor", strokeWidth: "1.4" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M6 18C6 15 9 14 12 14C15 14 18 15 18 18",
+            stroke: "currentColor",
+            strokeWidth: "1.4",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        )
+      ]
+    }
+  );
+}
+const ARCHETYPE_ICONS$3 = {
+  Oak: OakIcon$3,
+  River: RiverIcon$3,
+  Wolf: WolfIcon$3,
+  Owl: OwlIcon$3,
+  Mountain: MountainIcon$3,
+  Fire: FireIcon$3,
+  Bamboo: BambooIcon$3,
+  Honeycomb: HoneycombIcon$3,
+  Wind: WindIcon$3,
+  Tide: TideIcon$3
+};
+function ArchetypeAvatar$1({
+  archetype,
+  size = 40,
+  className,
+  showFallback = true
+}) {
+  const normalized = (archetype == null ? void 0 : archetype.trim()) ?? "";
+  const valid = isValidArchetype(normalized);
+  const Icon2 = valid ? ARCHETYPE_ICONS$3[normalized] : null;
+  if (!valid && !showFallback) return null;
+  const iconSize = Math.round(size * 0.55);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: cn(
+        "flex items-center justify-center rounded-full flex-shrink-0 select-none",
+        className
+      ),
+      style: {
+        width: size,
+        height: size,
+        background: "oklch(0.22 0.01 260)",
+        boxShadow: "inset 2px 2px 4px oklch(0.15 0.01 260), inset -2px -2px 4px oklch(0.28 0.01 260)",
+        color: "oklch(var(--color-accent-success))"
+      },
+      "aria-label": valid ? `${normalized} archetype` : "Default avatar",
+      role: "img",
+      children: Icon2 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: iconSize }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FallbackIcon, { size: iconSize })
+    }
+  );
+}
 const NAV_ITEMS = [
   { to: "/goals", icon: Target, label: "My Habits" },
   { to: "/profile", icon: User, label: "Profile" },
@@ -37416,7 +38079,6 @@ const NAV_ITEMS = [
   { to: "/admin", icon: ShieldCheck, label: "Admin Controls", adminOnly: true }
 ];
 function Drawer({ isOpen, onClose, profile, onLogout }) {
-  var _a3, _b3, _c2, _d2;
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const prevPathRef = reactExports.useRef(currentPath);
@@ -37472,28 +38134,11 @@ function Drawer({ isOpen, onClose, profile, onLogout }) {
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 min-w-0", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "div",
+                    ArchetypeAvatar$1,
                     {
-                      className: "flex items-center justify-center w-10 h-10 rounded-full select-none flex-shrink-0",
-                      style: {
-                        background: "oklch(0.22 0.01 260)",
-                        boxShadow: "inset 2px 2px 4px oklch(0.15 0.01 260), inset -2px -2px 4px oklch(0.28 0.01 260)"
-                      },
-                      "aria-hidden": "true",
-                      children: ((_a3 = profile == null ? void 0 : profile.displayName) == null ? void 0 : _a3.trim()) || ((_b3 = profile == null ? void 0 : profile.username) == null ? void 0 : _b3.trim()) ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "span",
-                        {
-                          className: "font-display font-bold text-base",
-                          style: { color: "oklch(var(--color-accent-success))" },
-                          children: (((_c2 = profile.displayName) == null ? void 0 : _c2.trim()) || ((_d2 = profile.username) == null ? void 0 : _d2.trim()) || "").charAt(0).toUpperCase()
-                        }
-                      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        User,
-                        {
-                          size: 18,
-                          style: { color: "oklch(var(--color-accent-success) / 0.7)" }
-                        }
-                      )
+                      archetype: (profile == null ? void 0 : profile.avatarArchetype) ?? "",
+                      size: 40,
+                      showFallback: true
                     }
                   ),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-w-0", children: displayName ? /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display font-semibold text-foreground text-sm truncate", children: displayName }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -37794,6 +38439,7 @@ function Header({ onMenuClick }) {
   const { theme, toggleTheme } = useTheme();
   const dashboardData = useDashboardHeader();
   const isDashboard = dashboardData !== null;
+  const { data: profile } = useUserProfile();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "header",
     {
@@ -37848,7 +38494,7 @@ function Header({ onMenuClick }) {
               isComplete: dashboardData.isComplete
             }
           ) : (
-            /* Other pages: profile link */
+            /* Other pages: profile link with ArchetypeAvatar */
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Link,
               {
@@ -37856,12 +38502,19 @@ function Header({ onMenuClick }) {
                 "data-ocid": "header.profile_link",
                 "aria-label": "Go to profile",
                 className: cn(
-                  "flex items-center justify-center w-10 h-10 rounded-full transition-smooth",
-                  "bg-muted/30 shadow-neumorphic-emboss-dark",
+                  "flex items-center justify-center rounded-full transition-smooth",
+                  "shadow-neumorphic-emboss-dark",
                   "text-muted-foreground hover:text-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 ),
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { size: 18 })
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  ArchetypeAvatar$1,
+                  {
+                    archetype: (profile == null ? void 0 : profile.avatarArchetype) ?? "",
+                    size: 36,
+                    showFallback: true
+                  }
+                )
               }
             )
           )
@@ -69117,286 +69770,33 @@ reactExports.forwardRef(function(e3, t2) {
     })) : null;
   }));
 });
-const GOAL_ICONS = [
+const CATEGORY_DETAILS = [
   {
-    id: "target",
-    label: "Target",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "6" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "2" })
-        ]
-      }
-    )
+    id: "Health",
+    title: "Health",
+    description: "Physical fitness, nutrition, sleep, and mental wellness habits."
   },
   {
-    id: "flame",
-    label: "Flame",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8.5 14.5A2.5 2.5 0 0 0 11 17c2 0 3-1.5 3-3s-1-3-3-5c0 0 0 2.5-1.5 3.5S8.5 14.5 8.5 14.5Z" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22c-4.418 0-8-3.582-8-8 0-3.5 2-6.5 5-8 0 1 .5 2 1.5 2.5C11 7 12 4 12 2c3 2 5 5 5 8 0 4.418-3.582 8-8 8Z" })
-        ]
-      }
-    )
+    id: "Learning",
+    title: "Learning",
+    description: "Reading, courses, skill-building, and intellectual growth."
   },
   {
-    id: "bolt",
-    label: "Lightning",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M13 2L3 14h9l-1 8 10-12h-9l1-8z" })
-      }
-    )
+    id: "Social",
+    title: "Social",
+    description: "Relationships, networking, community, and communication."
   },
   {
-    id: "star",
-    label: "Star",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" })
-      }
-    )
+    id: "Productivity",
+    title: "Productivity",
+    description: "Work, focus, time management, and career advancement."
   },
   {
-    id: "trophy",
-    label: "Trophy",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 22h16" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 2H6v7a6 6 0 0 0 12 0V2Z" })
-        ]
-      }
-    )
-  },
-  {
-    id: "mountain",
-    label: "Mountain",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "m8 3 4 8 5-5 5 15H2L8 3z" })
-      }
-    )
-  },
-  {
-    id: "run",
-    label: "Running",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "13", cy: "4", r: "1" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M7 17l2-5.5 2 2.5 2-3 2 1" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9 11.5l-2 2.5" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M15 10l2 2" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22v-4" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 20l-2-2" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20l2-2" })
-        ]
-      }
-    )
-  },
-  {
-    id: "book",
-    label: "Book",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" })
-        ]
-      }
-    )
-  },
-  {
-    id: "heart",
-    label: "Heart",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" })
-      }
-    )
-  },
-  {
-    id: "brain",
-    label: "Mind",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.16Z" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.16Z" })
-        ]
-      }
-    )
-  },
-  {
-    id: "clock",
-    label: "Clock",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "12 6 12 12 16 14" })
-        ]
-      }
-    )
-  },
-  {
-    id: "chart",
-    label: "Growth",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "22 7 13.5 15.5 8.5 10.5 2 17" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "16 7 22 7 22 13" })
-        ]
-      }
-    )
-  },
-  {
-    id: "compass",
-    label: "Compass",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" })
-        ]
-      }
-    )
-  },
-  {
-    id: "shield",
-    label: "Shield",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" })
-      }
-    )
+    id: "Leisure",
+    title: "Leisure",
+    description: "Hobbies, creativity, relaxation, and personal enjoyment."
   }
 ];
-function getGoalIcon(iconId) {
-  return GOAL_ICONS.find((i) => i.id === iconId) ?? GOAL_ICONS[0];
-}
 const OBSTACLE_TEMPLATES = [
   {
     id: "low_energy",
@@ -69748,7 +70148,7 @@ function SkipModal({
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "p",
                       {
-                        className: "text-sm font-display font-medium leading-tight",
+                        className: "text-sm font-display font-medium leading-tight text-foreground",
                         style: isSelected ? { color: SKIP_COLOR$3 } : void 0,
                         children: obstacle.label
                       }
@@ -70203,10 +70603,12 @@ function GoalCard({
   const isMissedCheckIn = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn";
   const isMissedCheckOut = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut";
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
-  const goalIcon = getGoalIcon(goal.iconName);
   const themeColor = goal.themeColor;
   const rawWishDescription = goal.wishDescription || goal.wish;
   const keystoneText = rawWishDescription.startsWith("Every day, I will ") ? `I will ${rawWishDescription.slice("Every day, I will ".length)}` : rawWishDescription.startsWith("Every day ,") ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}` : rawWishDescription;
+  const categoryLabel = goal.category && typeof goal.category === "string" && goal.category.trim() ? goal.category : "Uncategorized";
+  const isUncategorized = categoryLabel === "Uncategorized";
+  const categoryBadgeTextColor = isLockIn ? "#F59E0B" : "#10B981";
   const cardBgIdle = themeColor ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))` : "oklch(var(--card))";
   function getCardStyle() {
     const embossed = isDarkMode ? "-5px -5px 14px rgba(70,70,80,0.55), 8px 8px 20px rgba(0,0,0,0.9)" : "-5px -5px 14px rgba(90,90,100,0.6), 8px 8px 20px rgba(0,0,0,0.75)";
@@ -70461,7 +70863,6 @@ function GoalCard({
     setShowSkipModal(false);
     modalOpenedDuringGestureRef.current = false;
   }
-  const iconColor = mode === "done" && isFailedLockIn ? MISSED_COLOR$1 : mode === "done" && isSuccess ? SUCCESS_COLOR$2 : mode === "done" && isSkipped ? SKIP_COLOR$2 : themeColor ?? "oklch(var(--muted-foreground))";
   const swipeIconOpacity = Math.max(0, (dragProgress - 0.3) / 0.7);
   const today = /* @__PURE__ */ new Date();
   const WEEK_SLOTS = ["w0", "w1", "w2", "w3", "w4", "w5", "w6"];
@@ -70578,6 +70979,7 @@ function GoalCard({
       transition: { delay: index2 * 0.08, duration: 0.35 }
     };
   })();
+  const showLockInTimeBlock = isLockIn && lockInStartTime != null && lockInStartTime !== "" && lockInEndTime != null && lockInEndTime !== "";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       motion.div,
@@ -70695,7 +71097,7 @@ function GoalCard({
               ]
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
             {
               ref: cardRef,
@@ -70722,37 +71124,99 @@ function GoalCard({
                 touchAction: "pan-y",
                 ...getCardStyle()
               },
-              children: [
-                executedIfThen && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "span",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center text-center gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
                   {
-                    className: "absolute",
+                    type: "button",
+                    className: "text-left w-full group",
                     style: {
-                      top: "50%",
-                      left: "-2px",
-                      transform: "translateY(-50%)"
+                      touchAction: "none",
+                      cursor: "pointer",
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      margin: 0
                     },
-                    "aria-label": "Hard-fought win via If-Then plan",
-                    title: "Executed If-Then Plan",
-                    "data-ocid": "goal.revival_icon",
-                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Zap,
-                      {
-                        size: 14,
-                        style: {
-                          color: SUCCESS_COLOR$2,
-                          filter: "drop-shadow(0 0 4px rgba(16,185,129,0.7))"
-                        },
-                        strokeWidth: 2.5,
-                        fill: SUCCESS_COLOR$2
+                    onPointerDown: (e3) => {
+                      e3.stopPropagation();
+                      e3.preventDefault();
+                    },
+                    onClick: (e3) => {
+                      e3.stopPropagation();
+                      e3.preventDefault();
+                      if (onInsightOpen) {
+                        if (navigator.vibrate) navigator.vibrate([8]);
+                        onInsightOpen(goal);
                       }
-                    )
+                    },
+                    "aria-label": `View timeline for ${keystoneText}`,
+                    "data-ocid": `goal.title_button.${index2 + 1}`,
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "font-display text-lg font-semibold text-foreground leading-snug line-clamp-2 active:opacity-70 transition-opacity duration-75 text-center w-full flex items-center justify-center gap-1.5", children: [
+                      mode === "done" && executedIfThen && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "inline-flex items-center justify-center rounded-full shrink-0",
+                          "aria-label": "Hard-fought win via If-Then plan",
+                          title: "Executed If-Then Plan",
+                          "data-ocid": "goal.revival_icon",
+                          style: {
+                            width: "1.125em",
+                            height: "1.125em",
+                            background: "rgba(16,185,129,0.15)",
+                            border: `1px solid ${SUCCESS_COLOR$2}`,
+                            boxShadow: "0 0 6px rgba(16,185,129,0.35)"
+                          },
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            Zap,
+                            {
+                              size: 11,
+                              style: {
+                                color: SUCCESS_COLOR$2,
+                                filter: "drop-shadow(0 0 3px rgba(16,185,129,0.8))"
+                              },
+                              strokeWidth: 2.5,
+                              fill: SUCCESS_COLOR$2
+                            }
+                          )
+                        }
+                      ),
+                      keystoneText,
+                      mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        ChevronRight,
+                        {
+                          size: 14,
+                          className: "shrink-0 inline-block ml-1 transition-opacity duration-150",
+                          style: {
+                            opacity: 0.35,
+                            color: "oklch(var(--muted-foreground))",
+                            verticalAlign: "middle"
+                          },
+                          "aria-hidden": "true"
+                        }
+                      )
+                    ] })
                   }
                 ),
-                isLockIn && lockInStartTime != null && lockInStartTime !== "" && lockInEndTime != null && lockInEndTime !== "" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "div",
                   {
-                    className: "absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono",
+                    className: "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide",
+                    style: {
+                      background: isUncategorized ? "rgba(75,85,99,0.12)" : "rgba(107,114,128,0.15)",
+                      border: isUncategorized ? "1px solid rgba(75,85,99,0.25)" : "1px solid rgba(107,114,128,0.3)",
+                      color: isUncategorized ? "oklch(var(--muted-foreground) / 0.65)" : categoryBadgeTextColor,
+                      boxShadow: isDarkMode ? "inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(70,70,80,0.25)" : "inset 1px 1px 2px rgba(0,0,0,0.25), inset -1px -1px 2px rgba(90,90,100,0.2)"
+                    },
+                    "aria-label": `Category: ${categoryLabel}`,
+                    "data-ocid": `goal.category_badge.${index2 + 1}`,
+                    children: categoryLabel
+                  }
+                ),
+                showLockInTimeBlock && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono",
                     style: {
                       background: "rgba(107,114,128,0.15)",
                       border: "1px solid rgba(107,114,128,0.3)",
@@ -70770,15 +71234,15 @@ function GoalCard({
                 ),
                 isLockIn && lockInTimer && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
-                @keyframes lockInPulse {
-                  0%, 100% { opacity: 1; }
-                  50% { opacity: 0.5; }
-                }
-              ` }),
+                  @keyframes lockInPulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                  }
+                ` }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "div",
                     {
-                      className: "mt-1.5 mb-0.5 text-xs font-mono font-medium",
+                      className: "text-xs font-mono font-medium",
                       style: {
                         color: lockInTimer.color,
                         animation: lockInTimer.pulse ? "lockInPulse 1.2s ease-in-out infinite" : "none"
@@ -70792,7 +71256,7 @@ function GoalCard({
                 isLockIn && lockInState && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "div",
                   {
-                    className: "mt-1 mb-0.5 text-xs font-mono",
+                    className: "text-xs font-mono max-w-[90%]",
                     style: {
                       color: lockInState === "start-window" || lockInState === "end-window" ? SUCCESS_COLOR$2 : lockInState === "completed" ? SUCCESS_COLOR$2 : lockInState === "missed-start" || lockInState === "missed-checkout" || lockInState === "failed-finalized" ? MISSED_COLOR$1 : "oklch(var(--muted-foreground))"
                     },
@@ -70808,86 +71272,18 @@ function GoalCard({
                     ]
                   }
                 ),
-                (isCheckingIn || isSkipping) && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "absolute top-4 right-4 w-4 h-4 border-2 rounded-full animate-spin",
-                    style: {
-                      borderColor: "rgba(16,185,129,0.3)",
-                      borderTopColor: SUCCESS_COLOR$2
-                    },
-                    "aria-hidden": "true"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "div",
-                    {
-                      className: "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center mt-0.5",
-                      style: {
-                        background: themeColor ? `color-mix(in srgb, ${themeColor} 18%, oklch(var(--card)))` : "oklch(var(--muted) / 0.5)",
-                        boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.55), inset -1px -1px 2px rgba(80,80,85,0.2)"
-                      },
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 shrink-0", style: { color: iconColor }, children: goalIcon.svg })
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      type: "button",
-                      className: "text-left w-full group",
-                      style: {
-                        touchAction: "none",
-                        cursor: "pointer",
-                        background: "none",
-                        border: "none",
-                        padding: 0,
-                        margin: 0
-                      },
-                      onPointerDown: (e3) => {
-                        e3.stopPropagation();
-                        e3.preventDefault();
-                      },
-                      onClick: (e3) => {
-                        e3.stopPropagation();
-                        e3.preventDefault();
-                        if (onInsightOpen) {
-                          if (navigator.vibrate) navigator.vibrate([8]);
-                          onInsightOpen(goal);
-                        }
-                      },
-                      "aria-label": `View timeline for ${keystoneText}`,
-                      "data-ocid": `goal.title_button.${index2 + 1}`,
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "font-display text-lg font-semibold text-foreground leading-snug line-clamp-2 active:opacity-70 transition-opacity duration-75 flex items-center gap-1", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1", children: keystoneText }),
-                        mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          ChevronRight,
-                          {
-                            size: 14,
-                            className: "shrink-0 transition-opacity duration-150",
-                            style: {
-                              opacity: 0.35,
-                              color: "oklch(var(--muted-foreground))"
-                            },
-                            "aria-hidden": "true"
-                          }
-                        )
-                      ] })
-                    }
-                  ) })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 flex flex-col items-center gap-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-1 mt-1", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: weekHistoryLoading ? WEEK_SLOTS.map((id2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "div",
                     {
-                      className: "w-2.5 h-2.5 rounded-full animate-pulse",
+                      className: "w-3.5 h-3.5 rounded-full animate-pulse",
                       style: { backgroundColor: GREY_COLOR }
                     },
                     id2
                   )) : weekSlotData.map(({ id: id2, status }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "div",
                     {
-                      className: "w-2.5 h-2.5 rounded-full",
+                      className: "w-3.5 h-3.5 rounded-full",
                       style: {
                         backgroundColor: getBallColor(status),
                         opacity: status === "none" ? 0.35 : 0.9
@@ -70899,9 +71295,9 @@ function GoalCard({
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: weekSlotData.map(({ id: id2, label }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "div",
                     {
-                      className: "w-2.5 text-center",
+                      className: "w-3.5 text-center",
                       style: {
-                        fontSize: "9px",
+                        fontSize: "11px",
                         color: "oklch(var(--muted-foreground) / 0.55)",
                         lineHeight: 1
                       },
@@ -70910,7 +71306,7 @@ function GoalCard({
                     id2
                   )) })
                 ] }),
-                isLockIn && (lockInState === "missed-start" || lockInState === "missed-checkout") && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 flex justify-start", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                isLockIn && (lockInState === "missed-start" || lockInState === "missed-checkout") && mode === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-start w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "button",
                   {
                     type: "button",
@@ -70940,7 +71336,7 @@ function GoalCard({
                     ]
                   }
                 ) }),
-                mode === "done" && !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                mode === "done" && !isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
                   {
                     type: "button",
@@ -70965,7 +71361,7 @@ function GoalCard({
                     children: "Undo"
                   }
                 ) })
-              ]
+              ] })
             }
           )
         ]
@@ -71008,6 +71404,286 @@ function GoalCard({
     )
   ] });
 }
+const GOAL_ICONS = [
+  {
+    id: "target",
+    label: "Target",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "6" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "2" })
+        ]
+      }
+    )
+  },
+  {
+    id: "flame",
+    label: "Flame",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8.5 14.5A2.5 2.5 0 0 0 11 17c2 0 3-1.5 3-3s-1-3-3-5c0 0 0 2.5-1.5 3.5S8.5 14.5 8.5 14.5Z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22c-4.418 0-8-3.582-8-8 0-3.5 2-6.5 5-8 0 1 .5 2 1.5 2.5C11 7 12 4 12 2c3 2 5 5 5 8 0 4.418-3.582 8-8 8Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "bolt",
+    label: "Lightning",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M13 2L3 14h9l-1 8 10-12h-9l1-8z" })
+      }
+    )
+  },
+  {
+    id: "star",
+    label: "Star",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" })
+      }
+    )
+  },
+  {
+    id: "trophy",
+    label: "Trophy",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 22h16" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 2H6v7a6 6 0 0 0 12 0V2Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "mountain",
+    label: "Mountain",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "m8 3 4 8 5-5 5 15H2L8 3z" })
+      }
+    )
+  },
+  {
+    id: "run",
+    label: "Running",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "13", cy: "4", r: "1" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M7 17l2-5.5 2 2.5 2-3 2 1" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9 11.5l-2 2.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M15 10l2 2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22v-4" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 20l-2-2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20l2-2" })
+        ]
+      }
+    )
+  },
+  {
+    id: "book",
+    label: "Book",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "heart",
+    label: "Heart",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" })
+      }
+    )
+  },
+  {
+    id: "brain",
+    label: "Mind",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.16Z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.16Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "clock",
+    label: "Clock",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "12 6 12 12 16 14" })
+        ]
+      }
+    )
+  },
+  {
+    id: "chart",
+    label: "Growth",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "22 7 13.5 15.5 8.5 10.5 2 17" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "16 7 22 7 22 13" })
+        ]
+      }
+    )
+  },
+  {
+    id: "compass",
+    label: "Compass",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" })
+        ]
+      }
+    )
+  },
+  {
+    id: "shield",
+    label: "Shield",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" })
+      }
+    )
+  }
+];
+function getGoalIcon(iconId) {
+  return GOAL_ICONS.find((i) => i.id === iconId) ?? GOAL_ICONS[0];
+}
 const SUCCESS_COLOR$1 = "#10B981";
 const SKIP_COLOR$1 = "#0369A1";
 const MISSED_COLOR = "#6B7280";
@@ -71041,14 +71717,13 @@ function obstacleLabel(id2) {
   return ((_a3 = OBSTACLE_TEMPLATES[idx]) == null ? void 0 : _a3.label) ?? "Unspecified";
 }
 function TimelineNodeCircle({
-  type,
-  isRevival
+  type
 }) {
   const isSuccess = type === CheckInType.success;
   const isSkip = type === CheckInType.skip;
   const isMissedLockIn = type === CheckInType.missedCheckIn || type === CheckInType.missedCheckOut;
   if (isSuccess) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
       {
         className: "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
@@ -71058,33 +71733,13 @@ function TimelineNodeCircle({
           boxShadow: "0 0 0 3px rgba(16,185,129,0.08)"
         },
         "aria-hidden": "true",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              className: "w-3 h-3 rounded-full",
-              style: { background: SUCCESS_COLOR$1 }
-            }
-          ),
-          isRevival && /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              className: "absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center",
-              style: {
-                background: "oklch(var(--card))",
-                border: `1px solid ${SUCCESS_COLOR$1}`
-              },
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Zap,
-                {
-                  className: "w-2.5 h-2.5",
-                  style: { color: SUCCESS_COLOR$1 },
-                  strokeWidth: 2.5
-                }
-              )
-            }
-          )
-        ]
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "w-3 h-3 rounded-full",
+            style: { background: SUCCESS_COLOR$1 }
+          }
+        )
       }
     );
   }
@@ -71150,36 +71805,25 @@ function TimelineItem({ checkIn }) {
     primaryColor = MISSED_COLOR;
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", "data-ocid": "goal_insight.timeline_item", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType, isRevival }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
-        isRevival && /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Zap,
-          {
-            className: "w-3 h-3 flex-shrink-0",
-            style: { color: SUCCESS_COLOR$1 },
-            strokeWidth: 2.5,
-            "aria-hidden": "true"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "p",
-          {
-            className: "text-sm font-display font-medium leading-snug",
-            style: { color: primaryColor },
-            children: [
-              primaryText,
-              (isSkip || isMissedLockIn) && (checkIn.obstacleTemplateId !== void 0 && checkIn.obstacleTemplateId !== null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                " • ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F97316" }, children: obstacleLabel(checkIn.obstacleTemplateId) })
-              ] }) : isMissedLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                " • ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
-              ] }) : null)
-            ]
-          }
-        )
-      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "p",
+        {
+          className: "text-sm font-display font-medium leading-snug",
+          style: { color: primaryColor },
+          children: [
+            primaryText,
+            (isSkip || isMissedLockIn) && (checkIn.obstacleTemplateId !== void 0 && checkIn.obstacleTemplateId !== null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              " • ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F97316" }, children: obstacleLabel(checkIn.obstacleTemplateId) })
+            ] }) : isMissedLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              " • ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
+            ] }) : null)
+          ]
+        }
+      ) }),
       (isSkip || isMissedLockIn) && checkIn.customObstacleNote && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "p",
         {
@@ -71329,6 +71973,7 @@ function GoalInsightSheet({
   const habitName = goal.wishDescription || goal.wish || "Habit";
   const macroWish = goal.wish;
   const outcome = goal.outcome;
+  const goalIcon = getGoalIcon(goal.iconName);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: isOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       motion.div,
@@ -71380,15 +72025,41 @@ function GoalInsightSheet({
               style: {
                 borderBottom: "1px solid rgba(255,255,255,0.07)"
               },
-              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+              children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-start justify-between gap-3", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
                     "h2",
                     {
-                      className: "font-display text-xl font-bold leading-tight truncate",
+                      className: "font-display text-xl font-bold leading-tight truncate flex items-center gap-2",
                       style: { color: "oklch(var(--foreground))" },
                       "data-ocid": "goal_insight.habit_name",
-                      children: habitName
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "span",
+                          {
+                            className: "inline-flex items-center justify-center shrink-0",
+                            style: {
+                              width: "1.125em",
+                              height: "1.125em"
+                            },
+                            "aria-hidden": "true",
+                            "data-ocid": "goal_insight.icon",
+                            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "span",
+                              {
+                                className: "shrink-0",
+                                style: {
+                                  width: "0.833em",
+                                  height: "0.833em",
+                                  color: "oklch(0.85 0 0)"
+                                },
+                                children: goalIcon.svg
+                              }
+                            )
+                          }
+                        ),
+                        habitName
+                      ]
                     }
                   ),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1.5 space-y-0.5", children: [
@@ -71404,7 +72075,7 @@ function GoalInsightSheet({
                             {
                               className: "text-xs font-mono uppercase tracking-widest mr-1.5",
                               style: {
-                                color: "oklch(var(--muted-foreground) / 0.6)"
+                                color: SUCCESS_COLOR$1
                               },
                               children: "Wish"
                             }
@@ -71425,7 +72096,7 @@ function GoalInsightSheet({
                             {
                               className: "text-xs font-mono uppercase tracking-widest mr-1.5",
                               style: {
-                                color: "oklch(var(--muted-foreground) / 0.6)"
+                                color: "#F97316"
                               },
                               children: "Obstacles"
                             }
@@ -71999,13 +72670,15 @@ const THEME_COLORS$1 = [
   { id: "teal", label: "Teal", value: "#0D9488" }
 ];
 const STEPS = [
-  { id: 1, label: "Wish" },
-  { id: 2, label: "Obstacle" },
-  { id: 3, label: "Plan" },
-  { id: 4, label: "Review" }
+  { id: 1, label: "Domain" },
+  { id: 2, label: "Wish" },
+  { id: 3, label: "Obstacle" },
+  { id: 4, label: "Plan" },
+  { id: 5, label: "Review" }
 ];
 const ALL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const EMPTY = {
+  category: "",
   goalAction: "",
   goalReason: "",
   habitAction: "",
@@ -72188,6 +72861,7 @@ function WoopWizard({
         outcome: assembledObstacles,
         obstacleTemplateId,
         ifThenPlan: form.ifThenPlan.trim(),
+        category: form.category,
         iconName: form.iconName || void 0,
         themeColor: form.themeColor || void 0,
         isLockIn: form.isLockIn,
@@ -72241,6 +72915,9 @@ function WoopWizard({
   const validate = (s2) => {
     const e3 = {};
     if (s2 === 1) {
+      if (!form.category) e3.category = "Select a category for your habit.";
+    }
+    if (s2 === 2) {
       if (!form.goalAction.trim())
         e3.goalAction = "Tell us what you want to achieve.";
       if (!form.goalReason.trim()) e3.goalReason = "What's your deeper reason?";
@@ -72257,13 +72934,13 @@ function WoopWizard({
         }
       }
     }
-    if (s2 === 2 && form.selectedObstacles.length === 0) {
+    if (s2 === 3 && form.selectedObstacles.length === 0) {
       e3.obstacles = "Select at least one obstacle you might face.";
     }
-    if (s2 === 3 && !form.ifThenPlan.trim()) {
+    if (s2 === 4 && !form.ifThenPlan.trim()) {
       e3.ifThenPlan = "Write your backup plan.";
     }
-    if (s2 === 4 && form.emailNotifications && !form.isLockIn && !form.intentTime) {
+    if (s2 === 5 && form.emailNotifications && !form.isLockIn && !form.intentTime) {
       e3.intentTime = "Please set your intended time for the reminder";
     }
     setErrors(e3);
@@ -72278,12 +72955,12 @@ function WoopWizard({
     }, 180);
   };
   const goNext = () => {
-    if (step === 4) {
+    if (step === 5) {
       createGoalMutation.mutate();
       return;
     }
     if (!validate(step)) return;
-    if (step === 1 && overlapError) return;
+    if (step === 2 && overlapError) return;
     navigate("fwd");
   };
   const goBack = () => {
@@ -72328,6 +73005,7 @@ function WoopWizard({
   ];
   const isSelected = (id2) => form.selectedObstacles.some((o2) => o2.id === id2);
   const stepTitles = [
+    "Choose a category",
     "Plant your wish",
     "Name your obstacle",
     "Write your plan",
@@ -72373,23 +73051,28 @@ function WoopWizard({
           "div",
           {
             className: "shrink-0 px-6 pt-5 pb-4",
-            "aria-label": `Step ${step} of 4`,
+            "aria-label": `Step ${step} of 5`,
             children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-center max-w-2xl mx-auto", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "div",
                 {
-                  className: "absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full",
-                  style: { background: "oklch(var(--color-accent-missed) / 0.18)" },
+                  className: "absolute h-[2px] top-10 rounded-full",
+                  style: {
+                    left: "calc(10% - 20px)",
+                    right: "calc(10% - 20px)",
+                    background: "oklch(var(--color-accent-missed) / 0.18)"
+                  },
                   "aria-hidden": "true"
                 }
               ),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "div",
                 {
-                  className: "absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out",
+                  className: "absolute h-[2px] top-10 rounded-full transition-all duration-500 ease-out",
                   style: {
+                    left: "calc(10% - 20px)",
+                    right: `calc(${(5 - step) * 20}% + 20px)`,
                     background: "oklch(var(--color-accent-success))",
-                    right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
                     boxShadow: "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)"
                   },
                   "aria-hidden": "true"
@@ -72463,7 +73146,66 @@ function WoopWizard({
           {
             className: `max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`,
             children: [
-              step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
+              step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Every habit belongs to a domain of your life. Pick the one that fits best — this helps you see patterns across your goals." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: CATEGORY_DETAILS.map((cat) => {
+                  const isSelected2 = form.category === cat.id;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "button",
+                    {
+                      type: "button",
+                      "data-ocid": `woop_wizard.category.${cat.id.toLowerCase()}`,
+                      onClick: () => {
+                        setForm((f2) => ({ ...f2, category: cat.id }));
+                        setErrors((er) => ({ ...er, category: void 0 }));
+                      },
+                      className: "w-full text-left rounded-2xl p-5 transition-all duration-200",
+                      style: {
+                        background: isSelected2 ? "oklch(var(--card))" : "oklch(var(--muted))",
+                        border: isSelected2 ? "2px solid oklch(var(--color-accent-success))" : "1px solid oklch(var(--border))",
+                        boxShadow: isSelected2 ? "-4px -4px 10px rgba(70,70,80,0.45), 6px 6px 14px rgba(0,0,0,0.8), 0 0 16px 3px oklch(var(--color-accent-success) / 0.25)" : "-4px -4px 10px rgba(70,70,80,0.35), 6px 6px 14px rgba(0,0,0,0.7)"
+                      },
+                      "aria-pressed": isSelected2,
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "h3",
+                            {
+                              className: "text-xl font-display font-semibold",
+                              style: {
+                                color: isSelected2 ? "oklch(var(--color-accent-success))" : "oklch(var(--foreground))"
+                              },
+                              children: cat.title
+                            }
+                          ),
+                          isSelected2 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "div",
+                            {
+                              className: "w-6 h-6 rounded-full flex items-center justify-center",
+                              style: {
+                                backgroundColor: "oklch(var(--color-accent-success))",
+                                boxShadow: "0 0 8px oklch(var(--color-accent-success) / 0.5)"
+                              },
+                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 14, color: "#000", strokeWidth: 3 })
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-relaxed", children: cat.description })
+                      ]
+                    },
+                    cat.id
+                  );
+                }) }),
+                errors.category && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-base text-destructive",
+                    "data-ocid": "woop_wizard.category.field_error",
+                    children: errors.category
+                  }
+                )
+              ] }),
+              step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Your keystone habit is the daily action. Your goal is the destination. Focus on the action." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
@@ -72476,14 +73218,14 @@ function WoopWizard({
                           "data-ocid": "woop_wizard.goal_action_input",
                           value: form.goalAction,
                           onChange: (e3) => {
-                            const val = e3.target.value.slice(0, 140);
+                            const val = e3.target.value.slice(0, 40);
                             setForm((f2) => ({ ...f2, goalAction: val }));
                             setErrors((er) => ({ ...er, goalAction: void 0 }));
                           },
                           onFocus: () => setFocusedField("goalAction"),
                           onBlur: () => setFocusedField(null),
                           placeholder: "run a marathon",
-                          maxLength: 140,
+                          maxLength: 40,
                           className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
                           "aria-label": "What do you want to achieve"
                         }
@@ -72495,14 +73237,14 @@ function WoopWizard({
                           "data-ocid": "woop_wizard.goal_reason_input",
                           value: form.goalReason,
                           onChange: (e3) => {
-                            const val = e3.target.value.slice(0, 140);
+                            const val = e3.target.value.slice(0, 40);
                             setForm((f2) => ({ ...f2, goalReason: val }));
                             setErrors((er) => ({ ...er, goalReason: void 0 }));
                           },
                           onFocus: () => setFocusedField("goalReason"),
                           onBlur: () => setFocusedField(null),
                           placeholder: "feel unstoppable",
-                          maxLength: 140,
+                          maxLength: 40,
                           className: "input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium",
                           "aria-label": "Your deeper reason"
                         }
@@ -72515,7 +73257,7 @@ function WoopWizard({
                           className: `transition-opacity duration-200 ${focusedField === "goalAction" ? "opacity-100" : "opacity-0"}`,
                           children: [
                             form.goalAction.length,
-                            "/140"
+                            "/40"
                           ]
                         }
                       ),
@@ -72525,7 +73267,7 @@ function WoopWizard({
                           className: `transition-opacity duration-200 ${focusedField === "goalReason" ? "opacity-100" : "opacity-0"}`,
                           children: [
                             form.goalReason.length,
-                            "/140"
+                            "/40"
                           ]
                         }
                       )
@@ -72555,7 +73297,7 @@ function WoopWizard({
                           "data-ocid": "woop_wizard.habit_action_input",
                           value: form.habitAction,
                           onChange: (e3) => {
-                            const val = e3.target.value.slice(0, 140);
+                            const val = e3.target.value.slice(0, 40);
                             setForm((f2) => ({ ...f2, habitAction: val }));
                             setErrors((er) => ({
                               ...er,
@@ -72565,7 +73307,7 @@ function WoopWizard({
                           onFocus: () => setFocusedField("habitAction"),
                           onBlur: () => setFocusedField(null),
                           placeholder: "run",
-                          maxLength: 140,
+                          maxLength: 40,
                           className: "input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium",
                           "aria-label": "Daily habit action"
                         }
@@ -72961,7 +73703,7 @@ function WoopWizard({
                   ] })
                 ] }) })
               ] }),
-              step === 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-6 px-1", children: [
+              step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-6 px-1", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3", children: "Active Days" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/60 mb-3", children: "Select which days this habit is active." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -72972,7 +73714,7 @@ function WoopWizard({
                   }
                 )
               ] }),
-              step === 2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+              step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Unlike wishful thinking, WOOP asks you to name what stands between you and your habit." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xl font-medium text-foreground", children: "What stands between me and my habit?" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -73020,7 +73762,7 @@ function WoopWizard({
                   form.selectedObstacles.map((o2) => o2.label).join(", ")
                 ] })
               ] }),
-              step === 3 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+              step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Implementation intentions double follow-through. When you encounter your obstacle, this plan becomes your autopilot." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-3", children: [
@@ -73048,14 +73790,14 @@ function WoopWizard({
                           "data-ocid": "woop_wizard.if_then_plan_input",
                           value: form.ifThenPlan,
                           onChange: (e3) => {
-                            const val = e3.target.value.slice(0, 140);
+                            const val = e3.target.value.slice(0, 40);
                             setForm((f2) => ({ ...f2, ifThenPlan: val }));
                             setErrors((er) => ({ ...er, ifThenPlan: void 0 }));
                           },
                           onFocus: () => setFocusedField("ifThenPlan"),
                           onBlur: () => setFocusedField(null),
                           placeholder: "do a 15-min home workout instead",
-                          maxLength: 140,
+                          maxLength: 40,
                           rows: 4,
                           className: "w-full bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none",
                           "aria-label": "Your If-Then plan"
@@ -73068,7 +73810,7 @@ function WoopWizard({
                         className: `text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`,
                         children: [
                           form.ifThenPlan.length,
-                          "/140"
+                          "/40"
                         ]
                       }
                     ) })
@@ -73099,7 +73841,7 @@ function WoopWizard({
                   }
                 )
               ] }),
-              step === 4 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+              step === 5 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Review your commitment and personalize your goal. This is the contract with yourself — make it real." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
@@ -73423,32 +74165,32 @@ function WoopWizard({
               variant: "outline",
               size: "lg",
               "data-ocid": "woop_wizard.back_button",
-              onClick: step === 4 ? () => {
+              onClick: step === 5 ? () => {
                 setErrors({});
-                setStep(3);
+                setStep(4);
               } : goBack,
               disabled: step === 1,
               className: "gap-2 button-primary-neon text-base min-w-[100px]",
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { size: 16 }),
-                step === 4 ? "Edit" : "Back"
+                step === 5 ? "Edit" : "Back"
               ]
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-mono text-muted-foreground", children: [
             step,
-            " / 4"
+            " / 5"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Button,
             {
               type: "button",
               size: "lg",
-              "data-ocid": step === 4 ? "woop_wizard.commit_button" : "woop_wizard.next_button",
+              "data-ocid": step === 5 ? "woop_wizard.commit_button" : "woop_wizard.next_button",
               onClick: goNext,
-              disabled: createGoalMutation.isPending || step === 4 && !actor || step === 1 && !!overlapError,
+              disabled: createGoalMutation.isPending || step === 5 && !actor || step === 2 && !!overlapError,
               className: "gap-2 button-primary-neon text-base min-w-[130px]",
-              children: step === 4 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              children: step === 5 ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
                 "Committing…"
               ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -73603,9 +74345,7 @@ function ForcedUsernameModal({ onComplete }) {
     setApiError("");
     try {
       if (!actor) throw new Error("Backend not available.");
-      await actor.register(
-        username.trim()
-      );
+      await actor.register(username.trim(), "Oak");
       await queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
       await queryClient2.refetchQueries({ queryKey: ["userProfile"] });
       onComplete();
@@ -75120,14 +75860,14 @@ function EditHabitPage$1() {
     return true;
   }
   const handleGeneralSave = () => {
-    saveMutation.mutate(buildPayload(), {
+    saveMutation.mutate(buildPayload({ isTimeEdit: void 0 }), {
       onSuccess: () => {
         navigate({ to: "/goals" });
       }
     });
   };
   const handleTimeSave = () => {
-    saveMutation.mutate(buildPayload(), {
+    saveMutation.mutate(buildPayload({ isTimeEdit: true }), {
       onSuccess: () => {
         setTimeEditsToday((prev) => prev + 1);
         setShowTimeConfirmation(false);
@@ -75220,7 +75960,23 @@ function EditHabitPage$1() {
           /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 12 }),
           "Regular Habit"
         ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-xs text-muted-foreground/70 -mt-4", children: "Habit type is permanent and cannot be changed." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "span",
+          {
+            className: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
+            style: {
+              background: "rgba(107,114,128,0.15)",
+              border: "1px solid rgba(107,114,128,0.3)",
+              color: habit.isLockIn ? "#F59E0B" : "#10B981"
+            },
+            "data-ocid": "edit_habit.category_badge",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { size: 12 }),
+              habit.category || "Uncategorized"
+            ]
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-xs text-muted-foreground/70 -mt-4", children: "Habit type and category are permanent and cannot be changed." }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "div",
           {
@@ -75871,6 +76627,327 @@ function EditHabitPage$1() {
     ] })
   ] });
 }
+const ARCHETYPE_NAMES$2 = [
+  "Oak",
+  "River",
+  "Wolf",
+  "Owl",
+  "Mountain",
+  "Fire",
+  "Bamboo",
+  "Honeycomb",
+  "Wind",
+  "Tide"
+];
+function OakIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Oak archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Oak" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 56V28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 28C32 28 20 20 20 12C20 6 25 2 32 2C39 2 44 6 44 12C44 20 32 28 32 28Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 36C32 36 16 32 12 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40C32 40 48 36 52 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 44C32 44 22 48 18 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 48C32 48 42 52 46 56" })
+      ]
+    }
+  );
+}
+function RiverIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "River archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "River" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20C16 16 24 24 32 20C40 16 48 24 56 20" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 32C16 28 24 36 32 32C40 28 48 36 56 32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 44C16 40 24 48 32 44C40 40 48 48 56 44" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 52C20 48 28 56 36 52" })
+      ]
+    }
+  );
+}
+function WolfIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Wolf archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Wolf" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 48L12 56L16 40L8 32L20 28L24 12L32 20L40 12L44 28L56 32L48 40L52 56L44 48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "26", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "38", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 38L32 42L36 38" })
+      ]
+    }
+  );
+}
+function OwlIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Owl archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Owl" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("ellipse", { cx: "32", cy: "34", rx: "18", ry: "20" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "24", cy: "30", r: "6" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "40", cy: "30", r: "6" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "24", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "40", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M30 38L32 40L34 38" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 18L24 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M46 18L40 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 54C28 54 32 58 36 54" })
+      ]
+    }
+  );
+}
+function MountainIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Mountain archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Mountain" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 52L24 20L32 36L40 16L56 52Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 20L28 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M40 16L44 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 36L22 40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M46 32L50 36" })
+      ]
+    }
+  );
+}
+function FireIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Fire archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Fire" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8C32 8 20 20 20 32C20 42 26 50 32 54C38 50 44 42 44 32C44 20 32 8 32 8Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 24C32 24 26 30 26 36C26 42 30 46 32 48C34 46 38 42 38 36C38 30 32 24 32 24Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 40C16 40 12 44 14 48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M48 40C48 40 52 44 50 48" })
+      ]
+    }
+  );
+}
+function BambooIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Bamboo archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Bamboo" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 56V12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M40 56V12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 20H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 32H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 44H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 8C20 8 24 4 28 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M36 8C36 8 40 4 44 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 52C18 52 22 56 26 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M38 52C38 52 42 56 46 52" })
+      ]
+    }
+  );
+}
+function HoneycombIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Honeycomb archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Honeycomb" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8L44 16V32L32 40L20 32V16Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40L44 48V56" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40L20 48V56" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M44 32L56 40V48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 32L8 40V48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M44 16L56 24V32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 16L8 24V32" })
+      ]
+    }
+  );
+}
+function WindIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Wind archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Wind" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 24H48C52 24 56 20 56 16C56 12 52 8 48 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 36H40C44 36 48 40 48 44C48 48 44 52 40 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 48H32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 12H24" })
+      ]
+    }
+  );
+}
+function TideIcon$2({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Tide archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Tide" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 28C16 20 24 20 32 28C40 36 48 36 56 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 40C16 32 24 32 32 40C40 48 48 48 56 40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 52C16 44 24 44 32 52C40 60 48 60 56 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8V16" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 12L32 8L36 12" })
+      ]
+    }
+  );
+}
+const ARCHETYPE_ICONS$2 = {
+  Oak: OakIcon$2,
+  River: RiverIcon$2,
+  Wolf: WolfIcon$2,
+  Owl: OwlIcon$2,
+  Mountain: MountainIcon$2,
+  Fire: FireIcon$2,
+  Bamboo: BambooIcon$2,
+  Honeycomb: HoneycombIcon$2,
+  Wind: WindIcon$2,
+  Tide: TideIcon$2
+};
+const ARCHETYPE_DESCRIPTIONS$1 = {
+  Oak: "Grounded and resilient. You grow steadily, rooted in purpose.",
+  River: "Fluid and adaptable. You flow around obstacles with ease.",
+  Wolf: "Loyal and driven. You thrive in packs and pursue goals fiercely.",
+  Owl: "Wise and observant. You see patterns others miss.",
+  Mountain: "Steadfast and unshakable. You endure where others falter.",
+  Fire: "Passionate and transformative. You ignite change in yourself and others.",
+  Bamboo: "Flexible yet strong. You bend without breaking.",
+  Honeycomb: "Collaborative and structured. You build systems that sustain.",
+  Wind: "Free and influential. You move others without being seen.",
+  Tide: "Rhythmic and persistent. You return, again and again, until the shore shifts."
+};
+function ArchetypeSelector$1({ value, onChange }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3", children: ARCHETYPE_NAMES$2.map((name) => {
+      const Icon2 = ARCHETYPE_ICONS$2[name];
+      const isSelected = value === name;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: () => onChange(name),
+          "data-ocid": `edit_profile.archetype.${name.toLowerCase()}_button`,
+          className: `flex flex-col items-center gap-2 p-3 rounded-xl transition-smooth border ${isSelected ? "border-accent-success bg-accent-success/10" : "border-transparent hover:border-white/10"}`,
+          style: {
+            background: isSelected ? "oklch(var(--color-accent-success) / 0.08)" : "oklch(var(--card))",
+            boxShadow: isSelected ? "inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.04), 0 0 12px 2px oklch(var(--color-accent-success) / 0.2)" : "3px 3px 8px rgba(0,0,0,0.4), -2px -2px 6px rgba(255,255,255,0.04)"
+          },
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Icon2,
+              {
+                className: `w-8 h-8 ${isSelected ? "text-accent-success" : "text-muted-foreground"}`
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "span",
+              {
+                className: `text-xs font-semibold ${isSelected ? "text-accent-success" : "text-muted-foreground"}`,
+                children: name
+              }
+            )
+          ]
+        },
+        name
+      );
+    }) }),
+    value && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground text-center px-2", children: ARCHETYPE_DESCRIPTIONS$1[value] })
+  ] });
+}
 const sectionLabel = "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
 const insetCard = {
   background: "oklch(var(--card))",
@@ -75885,52 +76962,86 @@ function EditProfilePage$1() {
   const [displayName, setDisplayName] = reactExports.useState("");
   const [bio, setBio] = reactExports.useState("");
   const [email, setEmail] = reactExports.useState("");
+  const [archetype, setArchetype] = reactExports.useState("");
   const [focusedField, setFocusedField] = reactExports.useState(null);
-  const [showDiscardDialog, setShowDiscardDialog] = reactExports.useState(false);
+  const [justSaved, setJustSaved] = reactExports.useState(false);
+  const initializedRef = reactExports.useRef(false);
   const [initialValues, setInitialValues] = reactExports.useState({
     displayName: "",
     bio: "",
-    email: ""
+    email: "",
+    archetype: ""
   });
+  const isDirty = displayName !== initialValues.displayName || bio !== initialValues.bio || email !== initialValues.email || archetype !== initialValues.archetype;
   reactExports.useEffect(() => {
-    if (profile) {
+    if (justSaved && !isDirty) {
+      navigate({ to: "/profile" });
+    }
+  }, [justSaved, isDirty, navigate]);
+  reactExports.useEffect(() => {
+    if (profile && !initializedRef.current) {
+      initializedRef.current = true;
       const initial = {
         displayName: profile.displayName || "",
         bio: profile.bio || "",
-        email: profile.email || ""
+        email: profile.email || "",
+        archetype: profile.avatarArchetype || ""
       };
       setDisplayName(initial.displayName);
       setBio(initial.bio);
       setEmail(initial.email);
+      setArchetype(initial.archetype);
       setInitialValues(initial);
     }
   }, [profile]);
-  const isDirty = displayName !== initialValues.displayName || bio !== initialValues.bio || email !== initialValues.email;
+  const blocker = useBlocker({
+    condition: isDirty && !justSaved
+  });
+  reactExports.useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e3) => {
+      e3.preventDefault();
+      e3.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const emailError = email && !emailRegex.test(email) ? "Please enter a valid email address" : "";
   const handleBack = reactExports.useCallback(() => {
-    if (isDirty) {
-      setShowDiscardDialog(true);
-    } else {
-      navigate({ to: "/profile" });
-    }
-  }, [isDirty, navigate]);
+    navigate({ to: "/profile" });
+  }, [navigate]);
+  const handleSaveSuccess = reactExports.useCallback(() => {
+    const saved = { displayName, bio, email, archetype };
+    setInitialValues(saved);
+  }, [displayName, bio, email, archetype]);
   const handleSave = reactExports.useCallback(async () => {
     if (!isDirty || emailError) return;
     try {
       await mutateAsync({
-        displayName: displayName || void 0,
-        bio: bio || void 0,
-        email: email || void 0
+        displayName,
+        bio,
+        email,
+        avatarArchetype: archetype || null
       });
+      handleSaveSuccess();
       ue.success("Profile updated.");
-      navigate({ to: "/profile" });
+      setJustSaved(true);
     } catch (err) {
       ue.error(
         err instanceof Error ? err.message : "Failed to update profile."
       );
     }
-  }, [isDirty, emailError, mutateAsync, displayName, bio, email, navigate]);
+  }, [
+    isDirty,
+    emailError,
+    mutateAsync,
+    displayName,
+    bio,
+    email,
+    archetype,
+    handleSaveSuccess
+  ]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
@@ -75976,25 +77087,38 @@ function EditProfilePage$1() {
                   children: "Display Name"
                 }
               ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "input",
-                {
-                  id: "displayName",
-                  type: "text",
-                  value: displayName,
-                  onChange: (e3) => setDisplayName(e3.target.value.slice(0, 40)),
-                  onFocus: () => setFocusedField("displayName"),
-                  onBlur: () => setFocusedField(null),
-                  placeholder: "Optional",
-                  className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
-                  style: {
-                    background: "oklch(var(--muted) / 0.4)",
-                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)"
-                  },
-                  "data-ocid": "edit_profile.display_name_input"
-                }
-              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    id: "displayName",
+                    type: "text",
+                    value: displayName,
+                    onChange: (e3) => setDisplayName(e3.target.value.slice(0, 40)),
+                    onFocus: () => setFocusedField("displayName"),
+                    onBlur: () => setFocusedField(null),
+                    placeholder: "Optional",
+                    className: "w-full rounded-xl px-4 py-3 pr-10 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
+                    style: {
+                      background: "oklch(var(--muted) / 0.4)",
+                      boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.07)"
+                    },
+                    "data-ocid": "edit_profile.display_name_input"
+                  }
+                ),
+                displayName && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setDisplayName(""),
+                    className: "absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors duration-200",
+                    "aria-label": "Clear display name",
+                    "data-ocid": "edit_profile.clear_display_name_button",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                  }
+                )
+              ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "p",
                 {
@@ -76030,31 +77154,55 @@ function EditProfilePage$1() {
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: sectionLabel, children: "Archetype" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground -mt-1 mb-2", children: "Your visual identity. Choose the archetype that represents you." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              ArchetypeSelector$1,
+              {
+                value: archetype,
+                onChange: (val) => setArchetype(val)
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", style: insetCard, children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: sectionLabel, children: "About" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { htmlFor: "bio", className: "text-sm font-medium text-foreground", children: [
               "Macro Wish",
               " ",
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground font-normal", children: "— About Your Journey" })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "textarea",
-              {
-                id: "bio",
-                value: bio,
-                onChange: (e3) => setBio(e3.target.value.slice(0, 160)),
-                onFocus: () => setFocusedField("bio"),
-                onBlur: () => setFocusedField(null),
-                placeholder: "What is your overarching goal in life?",
-                rows: 4,
-                className: "w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
-                style: {
-                  background: "oklch(var(--muted) / 0.4)",
-                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.07)"
-                },
-                "data-ocid": "edit_profile.bio_textarea"
-              }
-            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "textarea",
+                {
+                  id: "bio",
+                  value: bio,
+                  onChange: (e3) => setBio(e3.target.value.slice(0, 160)),
+                  onFocus: () => setFocusedField("bio"),
+                  onBlur: () => setFocusedField(null),
+                  placeholder: "What is your overarching goal in life?",
+                  rows: 4,
+                  className: "w-full rounded-xl px-4 py-3 pr-10 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  style: {
+                    background: "oklch(var(--muted) / 0.4)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)"
+                  },
+                  "data-ocid": "edit_profile.bio_textarea"
+                }
+              ),
+              bio && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setBio(""),
+                  className: "absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground transition-colors duration-200",
+                  "aria-label": "Clear bio",
+                  "data-ocid": "edit_profile.clear_bio_button",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                }
+              )
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "p",
               {
@@ -76076,25 +77224,38 @@ function EditProfilePage$1() {
                 children: "Email Address"
               }
             ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "input",
-              {
-                id: "email",
-                type: "email",
-                value: email,
-                onChange: (e3) => setEmail(e3.target.value),
-                onFocus: () => setFocusedField("email"),
-                onBlur: () => setFocusedField(null),
-                placeholder: "your@email.com",
-                className: "w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
-                style: {
-                  background: "oklch(var(--muted) / 0.4)",
-                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                  border: emailError ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.07)"
-                },
-                "data-ocid": "edit_profile.email_input"
-              }
-            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  id: "email",
+                  type: "email",
+                  value: email,
+                  onChange: (e3) => setEmail(e3.target.value),
+                  onFocus: () => setFocusedField("email"),
+                  onBlur: () => setFocusedField(null),
+                  placeholder: "your@email.com",
+                  className: "w-full rounded-xl px-4 py-3 pr-10 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  style: {
+                    background: "oklch(var(--muted) / 0.4)",
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                    border: emailError ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.07)"
+                  },
+                  "data-ocid": "edit_profile.email_input"
+                }
+              ),
+              email && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setEmail(""),
+                  className: "absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors duration-200",
+                  "aria-label": "Clear email",
+                  "data-ocid": "edit_profile.clear_email_button",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                }
+              )
+            ] }),
             emailError && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-destructive", children: emailError })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -76116,7 +77277,7 @@ function EditProfilePage$1() {
             }
           )
         ] }),
-        showDiscardDialog && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        blocker.status === "blocked" && /* @__PURE__ */ jsxRuntimeExports.jsx(
           "div",
           {
             className: "fixed inset-0 z-50 flex items-center justify-center",
@@ -76145,7 +77306,9 @@ function EditProfilePage$1() {
                       "button",
                       {
                         type: "button",
-                        onClick: () => setShowDiscardDialog(false),
+                        onClick: () => {
+                          blocker.reset();
+                        },
                         className: "flex-1 py-3 rounded-xl font-medium",
                         style: {
                           background: "var(--muted)",
@@ -76159,7 +77322,9 @@ function EditProfilePage$1() {
                       "button",
                       {
                         type: "button",
-                        onClick: () => navigate({ to: "/profile" }),
+                        onClick: () => {
+                          blocker.proceed();
+                        },
                         className: "flex-1 py-3 rounded-xl font-medium",
                         style: { background: "#ef4444", color: "#fff" },
                         "data-ocid": "edit_profile.discard_button",
@@ -76220,9 +77385,19 @@ function FeedItem({ item, index: index2 }) {
       "aria-label": `${item.partnerDisplayName}'s check-in for ${item.goalName}`,
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col min-w-0", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display font-semibold text-foreground truncate leading-tight", children: item.partnerDisplayName }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground truncate mt-0.5", children: item.goalName })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 min-w-0", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              ArchetypeAvatar$1,
+              {
+                archetype: item.partnerAvatarArchetype ?? "",
+                size: 36,
+                showFallback: true
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col min-w-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display font-semibold text-foreground truncate leading-tight", children: item.partnerDisplayName }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground truncate mt-0.5", children: item.goalName })
+            ] })
           ] }),
           isSuccess ? /* @__PURE__ */ jsxRuntimeExports.jsx(
             "span",
@@ -79732,7 +80907,7 @@ function GoalDetailPanel({
 function GoalsPage$1() {
   const [showWoop, setShowWoop] = reactExports.useState(false);
   const [activeFilter, setActiveFilter] = reactExports.useState(GoalState.active);
-  const [selectedGoalId, setSelectedGoalId] = reactExports.useState(null);
+  const [expandedGoalId, setExpandedGoalId] = reactExports.useState(null);
   const [changingStateId, setChangingStateId] = reactExports.useState(null);
   const [deletingGoalId, setDeletingGoalId] = reactExports.useState(null);
   const { actor, isFetching } = useBackend();
@@ -79763,7 +80938,7 @@ function GoalsPage$1() {
     onSuccess: (_data, variables) => {
       queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
       ue.success(`Goal ${stateLabel(variables.newState).toLowerCase()}.`);
-      setSelectedGoalId(null);
+      setExpandedGoalId(null);
     },
     onError: (err) => {
       console.error("[GoalsPage] updateGoalState error:", err);
@@ -79800,7 +80975,7 @@ function GoalsPage$1() {
     onSuccess: () => {
       queryClient2.invalidateQueries({ queryKey: ["myGoals"] });
       ue.success("Goal deleted.");
-      setSelectedGoalId(null);
+      setExpandedGoalId(null);
     },
     onError: (err) => {
       console.error("[GoalsPage] deleteGoal error:", err);
@@ -79829,7 +81004,7 @@ function GoalsPage$1() {
   const activeCount = visibleGoals.filter(
     (g2) => g2.state === GoalState.active
   ).length;
-  const selectedGoal = visibleGoals.find((g2) => g2.id === selectedGoalId) ?? null;
+  visibleGoals.find((g2) => g2.id === expandedGoalId) ?? null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-6 px-4 pb-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
@@ -79886,7 +81061,7 @@ function GoalsPage$1() {
               type: "button",
               onClick: () => {
                 setActiveFilter(tab.key);
-                setSelectedGoalId(null);
+                setExpandedGoalId(null);
               },
               "data-ocid": `goals.filter.${tab.key}`,
               className: `shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-smooth border ${isActive ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/30 border-border text-muted-foreground hover:border-primary/20"}`,
@@ -79987,87 +81162,104 @@ function GoalsPage$1() {
         ]
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: selectedGoal && /* @__PURE__ */ jsxRuntimeExports.jsx(
-      GoalDetailPanel,
-      {
-        goal: selectedGoal,
-        onClose: () => setSelectedGoalId(null),
-        onStateChange: handleStateChange,
-        isChangingState: changingStateId === selectedGoal.id && updateStateMutation.isPending,
-        onUpdateGoal: handleUpdateGoal,
-        isUpdating: updateGoalMutation.isPending,
-        onDeleteGoal: handleDeleteGoal,
-        isDeleting: deletingGoalId === selectedGoal.id && deleteGoalMutation.isPending,
-        existingLockInGoals: visibleGoals.filter(
-          (g2) => g2.isLockIn && g2.startTime && g2.endTime && g2.state === GoalState.active
-        ).map((g2) => ({
-          id: g2.id,
-          startTime: g2.startTime,
-          endTime: g2.endTime,
-          wishDescription: g2.wishDescription
-        })),
-        onEditNavigate: (id2) => navigate({ to: "/edit-habit/$id", params: { id: String(id2) } })
-      },
-      String(selectedGoal.id)
-    ) }),
-    !isLoading && filtered.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", "data-ocid": "goals.goal_list", children: filtered.map((goal, index2) => {
-      const isSelected = selectedGoalId === goal.id;
-      return /* @__PURE__ */ jsxRuntimeExports.jsx(
-        motion.button,
-        {
-          type: "button",
-          initial: { opacity: 0, y: 14 },
-          animate: { opacity: 1, y: 0 },
-          transition: { delay: index2 * 0.06, duration: 0.3 },
-          onClick: () => setSelectedGoalId(isSelected ? null : goal.id),
-          className: `w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${isSelected ? "border-primary/40 bg-primary/5" : "border-border/20 bg-card hover:border-primary/20"}`,
-          style: {
-            borderLeftWidth: "4px",
-            borderLeftColor: goal.isLockIn ? "#F59E0B" : "#10B981"
-          },
-          "data-ocid": `goals.goal_item.${index2 + 1}`,
-          children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1.5 flex-wrap", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "span",
-                  {
-                    className: "inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full",
-                    style: stateBadgeStyle(goal.state),
-                    children: [
-                      goal.state === GoalState.active && /* @__PURE__ */ jsxRuntimeExports.jsx(Flame, { size: 8 }),
-                      goal.state === GoalState.paused && /* @__PURE__ */ jsxRuntimeExports.jsx(Pause, { size: 8 }),
-                      goal.state === GoalState.completed && /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { size: 8 }),
-                      stateLabel(goal.state)
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-muted-foreground/60 font-mono flex items-center gap-0.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { size: 8 }),
-                  formatDate(goal.createdAt)
+    !isLoading && filtered.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", "data-ocid": "goals.goal_list", children: /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: filtered.map((goal, index2) => {
+      const isExpanded = expandedGoalId === goal.id;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          motion.button,
+          {
+            type: "button",
+            initial: { opacity: 0, y: 14 },
+            animate: { opacity: 1, y: 0 },
+            transition: { delay: index2 * 0.06, duration: 0.3 },
+            onClick: () => setExpandedGoalId(
+              (prev) => prev === goal.id ? null : goal.id
+            ),
+            className: `w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${isExpanded ? "border-primary/40 bg-primary/5" : "border-border/20 bg-card hover:border-primary/20"}`,
+            style: {
+              borderLeftWidth: "4px",
+              borderLeftColor: goal.isLockIn ? "#F59E0B" : "#10B981"
+            },
+            "data-ocid": `goals.goal_item.${index2 + 1}`,
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1.5 flex-wrap", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "span",
+                    {
+                      className: "inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full",
+                      style: stateBadgeStyle(goal.state),
+                      children: [
+                        goal.state === GoalState.active && /* @__PURE__ */ jsxRuntimeExports.jsx(Flame, { size: 8 }),
+                        goal.state === GoalState.paused && /* @__PURE__ */ jsxRuntimeExports.jsx(Pause, { size: 8 }),
+                        goal.state === GoalState.completed && /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { size: 8 }),
+                        stateLabel(goal.state)
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-muted-foreground/60 font-mono flex items-center gap-0.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { size: 8 }),
+                    formatDate(goal.createdAt)
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "font-display font-semibold text-foreground leading-tight line-clamp-1 flex items-center gap-2", children: [
+                  goal.wishDescription || goal.wish,
+                  goal.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30", children: "Lock-In" })
+                ] }),
+                goal.outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed", children: [
+                  "So that I can ",
+                  goal.outcome
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "font-display font-semibold text-foreground leading-tight line-clamp-1 flex items-center gap-2", children: [
-                goal.wishDescription || goal.wish,
-                goal.isLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30", children: "Lock-In" })
-              ] }),
-              goal.outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed", children: [
-                "So that I can ",
-                goal.outcome
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "shrink-0 flex items-center gap-1.5 text-muted-foreground", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-              PenLine,
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "shrink-0 flex items-center gap-1.5 text-muted-foreground", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                PenLine,
+                {
+                  size: 14,
+                  className: `transition-smooth ${isExpanded ? "text-primary" : ""}`
+                }
+              ) })
+            ] })
+          }
+        ),
+        isExpanded && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          motion.div,
+          {
+            initial: { opacity: 0, height: 0 },
+            animate: { opacity: 1, height: "auto" },
+            exit: { opacity: 0, height: 0 },
+            transition: { duration: 0.25, ease: "easeInOut" },
+            style: { overflow: "hidden" },
+            className: "mx-2 mb-3 rounded-2xl",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              GoalDetailPanel,
               {
-                size: 14,
-                className: `transition-smooth ${isSelected ? "text-primary" : ""}`
+                goal,
+                onClose: () => setExpandedGoalId(null),
+                onStateChange: handleStateChange,
+                isChangingState: changingStateId === goal.id && updateStateMutation.isPending,
+                onUpdateGoal: handleUpdateGoal,
+                isUpdating: updateGoalMutation.isPending,
+                onDeleteGoal: handleDeleteGoal,
+                isDeleting: deletingGoalId === goal.id && deleteGoalMutation.isPending,
+                existingLockInGoals: visibleGoals.filter(
+                  (g2) => g2.isLockIn && g2.startTime && g2.endTime && g2.state === GoalState.active
+                ).map((g2) => ({
+                  id: g2.id,
+                  startTime: g2.startTime,
+                  endTime: g2.endTime,
+                  wishDescription: g2.wishDescription
+                })),
+                onEditNavigate: (id2) => navigate({
+                  to: "/edit-habit/$id",
+                  params: { id: String(id2) }
+                })
               }
-            ) })
-          ] })
-        },
-        String(goal.id)
-      );
-    }) }),
+            )
+          },
+          `detail-${goal.id}`
+        )
+      ] }, String(goal.id));
+    }) }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       WoopWizard,
       {
@@ -80224,6 +81416,336 @@ function LoginPage() {
     ] }) })
   ] });
 }
+const ARCHETYPE_NAMES$1 = [
+  "Oak",
+  "River",
+  "Wolf",
+  "Owl",
+  "Mountain",
+  "Fire",
+  "Bamboo",
+  "Honeycomb",
+  "Wind",
+  "Tide"
+];
+function OakIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Oak archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Oak" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 56V28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 28C32 28 20 20 20 12C20 6 25 2 32 2C39 2 44 6 44 12C44 20 32 28 32 28Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 36C32 36 16 32 12 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40C32 40 48 36 52 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 44C32 44 22 48 18 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 48C32 48 42 52 46 56" })
+      ]
+    }
+  );
+}
+function RiverIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "River archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "River" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20C16 16 24 24 32 20C40 16 48 24 56 20" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 32C16 28 24 36 32 32C40 28 48 36 56 32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 44C16 40 24 48 32 44C40 40 48 48 56 44" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 52C20 48 28 56 36 52" })
+      ]
+    }
+  );
+}
+function WolfIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Wolf archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Wolf" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 48L12 56L16 40L8 32L20 28L24 12L32 20L40 12L44 28L56 32L48 40L52 56L44 48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "26", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "38", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 38L32 42L36 38" })
+      ]
+    }
+  );
+}
+function OwlIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Owl archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Owl" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("ellipse", { cx: "32", cy: "34", rx: "18", ry: "20" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "24", cy: "30", r: "6" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "40", cy: "30", r: "6" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "24", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "40", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M30 38L32 40L34 38" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 18L24 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M46 18L40 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 54C28 54 32 58 36 54" })
+      ]
+    }
+  );
+}
+function MountainIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Mountain archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Mountain" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 52L24 20L32 36L40 16L56 52Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 20L28 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M40 16L44 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 36L22 40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M46 32L50 36" })
+      ]
+    }
+  );
+}
+function FireIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Fire archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Fire" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8C32 8 20 20 20 32C20 42 26 50 32 54C38 50 44 42 44 32C44 20 32 8 32 8Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 24C32 24 26 30 26 36C26 42 30 46 32 48C34 46 38 42 38 36C38 30 32 24 32 24Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 40C16 40 12 44 14 48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M48 40C48 40 52 44 50 48" })
+      ]
+    }
+  );
+}
+function BambooIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Bamboo archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Bamboo" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 56V12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M40 56V12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 20H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 32H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 44H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 8C20 8 24 4 28 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M36 8C36 8 40 4 44 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 52C18 52 22 56 26 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M38 52C38 52 42 56 46 52" })
+      ]
+    }
+  );
+}
+function HoneycombIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Honeycomb archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Honeycomb" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8L44 16V32L32 40L20 32V16Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40L44 48V56" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40L20 48V56" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M44 32L56 40V48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 32L8 40V48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M44 16L56 24V32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 16L8 24V32" })
+      ]
+    }
+  );
+}
+function WindIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Wind archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Wind" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 24H48C52 24 56 20 56 16C56 12 52 8 48 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 36H40C44 36 48 40 48 44C48 48 44 52 40 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 48H32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 12H24" })
+      ]
+    }
+  );
+}
+function TideIcon$1({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Tide archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Tide" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 28C16 20 24 20 32 28C40 36 48 36 56 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 40C16 32 24 32 32 40C40 48 48 48 56 40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 52C16 44 24 44 32 52C40 60 48 60 56 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8V16" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 12L32 8L36 12" })
+      ]
+    }
+  );
+}
+const ARCHETYPE_ICONS$1 = {
+  Oak: OakIcon$1,
+  River: RiverIcon$1,
+  Wolf: WolfIcon$1,
+  Owl: OwlIcon$1,
+  Mountain: MountainIcon$1,
+  Fire: FireIcon$1,
+  Bamboo: BambooIcon$1,
+  Honeycomb: HoneycombIcon$1,
+  Wind: WindIcon$1,
+  Tide: TideIcon$1
+};
+const ARCHETYPE_DESCRIPTIONS = {
+  Oak: "Grounded and resilient. You grow steadily, rooted in purpose.",
+  River: "Fluid and adaptable. You flow around obstacles with ease.",
+  Wolf: "Loyal and driven. You thrive in packs and pursue goals fiercely.",
+  Owl: "Wise and observant. You see patterns others miss.",
+  Mountain: "Steadfast and unshakable. You endure where others falter.",
+  Fire: "Passionate and transformative. You ignite change in yourself and others.",
+  Bamboo: "Flexible yet strong. You bend without breaking.",
+  Honeycomb: "Collaborative and structured. You build systems that sustain.",
+  Wind: "Free and influential. You move others without being seen.",
+  Tide: "Rhythmic and persistent. You return, again and again, until the shore shifts."
+};
+function ArchetypeSelector({ value, onChange, error }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3", children: ARCHETYPE_NAMES$1.map((name) => {
+      const Icon2 = ARCHETYPE_ICONS$1[name];
+      const isSelected = value === name;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: () => onChange(name),
+          "data-ocid": `onboarding.archetype.${name.toLowerCase()}_button`,
+          className: `flex flex-col items-center gap-2 p-3 rounded-xl transition-smooth border ${isSelected ? "border-accent-success bg-accent-success/10" : "border-transparent hover:border-white/10"}`,
+          style: {
+            background: isSelected ? "oklch(var(--color-accent-success) / 0.08)" : "oklch(var(--card))",
+            boxShadow: isSelected ? "inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.04), 0 0 12px 2px oklch(var(--color-accent-success) / 0.2)" : "3px 3px 8px rgba(0,0,0,0.4), -2px -2px 6px rgba(255,255,255,0.04)"
+          },
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Icon2,
+              {
+                className: `w-8 h-8 ${isSelected ? "text-accent-success" : "text-muted-foreground"}`
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "span",
+              {
+                className: `text-xs font-semibold ${isSelected ? "text-accent-success" : "text-muted-foreground"}`,
+                children: name
+              }
+            )
+          ]
+        },
+        name
+      );
+    }) }),
+    value && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground text-center px-2", children: ARCHETYPE_DESCRIPTIONS[value] }),
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "p",
+      {
+        className: "text-xs text-center",
+        "data-ocid": "onboarding.archetype.field_error",
+        style: { color: "oklch(var(--destructive))" },
+        children: error
+      }
+    )
+  ] });
+}
 function isValidUsernameFormat(value) {
   return /^[a-zA-Z0-9_]{3,20}$/.test(value);
 }
@@ -80310,8 +81832,11 @@ function AvailabilityIndicator({ status }) {
   return null;
 }
 function OnboardingPage({ onComplete }) {
+  const [step, setStep] = reactExports.useState(1);
   const [username, setUsername] = reactExports.useState("");
   const [usernameError, setUsernameError] = reactExports.useState("");
+  const [archetype, setArchetype] = reactExports.useState("");
+  const [archetypeError, setArchetypeError] = reactExports.useState("");
   const [apiError, setApiError] = reactExports.useState("");
   const [isSubmitting, setIsSubmitting] = reactExports.useState(false);
   const [availability, setAvailability] = reactExports.useState("idle");
@@ -80356,19 +81881,26 @@ function OnboardingPage({ onComplete }) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [username, checkAvailability]);
-  async function handleSubmit(e3) {
-    e3.preventDefault();
+  function goToStep2() {
     const uErr = username.trim() ? getUsernameFormatError(username.trim()) : "Username is required.";
     setUsernameError(uErr);
     if (uErr) return;
     if (availability === "taken") return;
+    setStep(2);
+    setApiError("");
+  }
+  async function handleSubmit(e3) {
+    e3.preventDefault();
+    if (!archetype) {
+      setArchetypeError("Please select an archetype to continue.");
+      return;
+    }
+    setArchetypeError("");
     setIsSubmitting(true);
     setApiError("");
     try {
       if (!actor) throw new Error("Backend not available.");
-      await actor.register(
-        username.trim()
-      );
+      await actor.register(username.trim(), archetype);
       await queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
       await queryClient2.refetchQueries({ queryKey: ["userProfile"] });
       onComplete();
@@ -80377,6 +81909,9 @@ function OnboardingPage({ onComplete }) {
       if (msg.toLowerCase().includes("taken") || msg.toLowerCase().includes("username")) {
         setAvailability("taken");
         setUsernameError("That username is already taken.");
+        setStep(1);
+      } else if (msg.toLowerCase().includes("archetype") || msg.toLowerCase().includes("avatar")) {
+        setArchetypeError(msg);
       } else {
         setApiError(msg);
       }
@@ -80384,7 +81919,8 @@ function OnboardingPage({ onComplete }) {
       setIsSubmitting(false);
     }
   }
-  const canSubmit = isValidUsernameFormat(username) && (availability === "available" || availability === "unknown") && !isSubmitting;
+  const canSubmitStep1 = isValidUsernameFormat(username) && (availability === "available" || availability === "unknown");
+  const canSubmit = isValidUsernameFormat(username) && (availability === "available" || availability === "unknown") && !!archetype && !isSubmitting;
   const usernameInputStyle = availability === "available" ? {
     outline: "2px solid oklch(var(--color-accent-success) / 0.5)",
     outlineOffset: "2px"
@@ -80443,101 +81979,191 @@ function OnboardingPage({ onComplete }) {
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
             {
-              className: "onboarding-card w-full max-w-md",
+              className: "onboarding-card w-full max-w-lg",
               "data-ocid": "onboarding.card",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-8 text-center", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs uppercase tracking-widest text-muted-foreground mb-2", children: "Identity Setup" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-display font-semibold text-foreground leading-snug", children: "Welcome. Choose your handle." }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-sm text-muted-foreground", children: "Your username is permanent and must be unique." })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, noValidate: true, className: "space-y-7", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "label",
-                      {
-                        htmlFor: "username",
-                        className: "flex items-center text-sm font-medium text-foreground",
-                        children: [
-                          "Username",
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "span",
-                            {
-                              className: "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold tracking-wide uppercase ml-2",
-                              style: {
-                                color: "oklch(var(--color-accent-success))",
-                                background: "oklch(var(--color-accent-success) / 0.12)",
-                                border: "1px solid oklch(var(--color-accent-success) / 0.35)",
-                                boxShadow: "0 0 6px 1px oklch(var(--color-accent-success) / 0.18)"
-                              },
-                              children: "Required"
-                            }
-                          )
-                        ]
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-center gap-3 mb-8", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: `w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-smooth ${step >= 1 ? "bg-accent-success text-white" : "bg-muted text-muted-foreground"}`,
+                      "data-ocid": "onboarding.step.1",
+                      children: "1"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: "w-10 h-0.5 rounded",
+                      style: {
+                        background: step >= 2 ? "oklch(var(--color-accent-success))" : "oklch(var(--muted))"
                       }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground", children: [
-                      "My handle on Cumulative is",
-                      " ",
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "madlib-field font-semibold", children: username || "___" })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "input",
-                        {
-                          id: "username",
-                          "data-ocid": "onboarding.username.input",
-                          type: "text",
-                          className: "input-neumorphic w-full text-base pr-10",
-                          placeholder: "e.g. sarah_runs",
-                          value: username,
-                          maxLength: 20,
-                          autoComplete: "username",
-                          spellCheck: false,
-                          style: usernameInputStyle,
-                          onChange: (e3) => {
-                            const val = e3.target.value.replace(/\s/g, "");
-                            setUsername(val);
-                            setUsernameError("");
-                            setApiError("");
-                          },
-                          onBlur: () => {
-                            if (username.trim()) {
-                              setUsernameError(getUsernameFormatError(username.trim()));
-                            }
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: `w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-smooth ${step >= 2 ? "bg-accent-success text-white" : "bg-muted text-muted-foreground"}`,
+                      "data-ocid": "onboarding.step.2",
+                      children: "2"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-8 text-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs uppercase tracking-widest text-muted-foreground mb-2", children: step === 1 ? "Identity Setup" : "Choose Your Archetype" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-display font-semibold text-foreground leading-snug", children: step === 1 ? "Welcome. Choose your handle." : "Which force shapes you?" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-sm text-muted-foreground", children: step === 1 ? "Your username is permanent and must be unique." : "Select the archetype that resonates with your nature. This defines your visual identity." })
+                ] }),
+                step === 1 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "form",
+                  {
+                    onSubmit: (e3) => {
+                      e3.preventDefault();
+                      goToStep2();
+                    },
+                    noValidate: true,
+                    className: "space-y-7",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                          "label",
+                          {
+                            htmlFor: "username",
+                            className: "flex items-center text-sm font-medium text-foreground",
+                            children: [
+                              "Username",
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "span",
+                                {
+                                  className: "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold tracking-wide uppercase ml-2",
+                                  style: {
+                                    color: "oklch(var(--color-accent-success))",
+                                    background: "oklch(var(--color-accent-success) / 0.12)",
+                                    border: "1px solid oklch(var(--color-accent-success) / 0.35)",
+                                    boxShadow: "0 0 6px 1px oklch(var(--color-accent-success) / 0.18)"
+                                  },
+                                  children: "Required"
+                                }
+                              )
+                            ]
                           }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground", children: [
+                          "My handle on Cumulative is",
+                          " ",
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "madlib-field font-semibold", children: username || "___" })
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "input",
+                            {
+                              id: "username",
+                              "data-ocid": "onboarding.username.input",
+                              type: "text",
+                              className: "input-neumorphic w-full text-base pr-10",
+                              placeholder: "e.g. sarah_runs",
+                              value: username,
+                              maxLength: 20,
+                              autoComplete: "username",
+                              spellCheck: false,
+                              style: usernameInputStyle,
+                              onChange: (e3) => {
+                                const val = e3.target.value.replace(/\s/g, "");
+                                setUsername(val);
+                                setUsernameError("");
+                                setApiError("");
+                              },
+                              onBlur: () => {
+                                if (username.trim()) {
+                                  setUsernameError(
+                                    getUsernameFormatError(username.trim())
+                                  );
+                                }
+                              }
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(AvailabilityIndicator, { status: availability })
+                        ] }),
+                        availability === "available" && !usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-xs font-medium",
+                            "data-ocid": "onboarding.username_available.text",
+                            style: { color: "oklch(var(--color-accent-success))" },
+                            children: "✓ Username is available"
+                          }
+                        ),
+                        availability === "taken" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-xs font-medium",
+                            "data-ocid": "onboarding.username_taken.text",
+                            style: { color: "oklch(var(--color-accent-social))" },
+                            children: "Username taken — try another"
+                          }
+                        ),
+                        usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-xs mt-0.5",
+                            "data-ocid": "onboarding.username.field_error",
+                            style: { color: "oklch(var(--destructive))" },
+                            children: usernameError
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "3–20 characters · letters, numbers, and underscores only" })
+                      ] }),
+                      apiError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "p",
+                        {
+                          className: "text-sm text-center py-2 px-3 rounded-lg bg-muted",
+                          "data-ocid": "onboarding.error_state",
+                          style: { color: "oklch(var(--destructive))" },
+                          children: apiError
                         }
                       ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(AvailabilityIndicator, { status: availability })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "button",
+                        {
+                          "data-ocid": "onboarding.next_button",
+                          type: "submit",
+                          disabled: !canSubmitStep1,
+                          className: "w-full py-3 rounded-lg font-display font-semibold text-base tracking-wide transition-smooth button-primary-neon disabled:opacity-40 disabled:cursor-not-allowed",
+                          children: "Continue →"
+                        }
+                      )
+                    ]
+                  }
+                ) : /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, noValidate: true, className: "space-y-7", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-medium text-foreground", children: "Archetype" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold tracking-wide uppercase",
+                          style: {
+                            color: "oklch(var(--color-accent-success))",
+                            background: "oklch(var(--color-accent-success) / 0.12)",
+                            border: "1px solid oklch(var(--color-accent-success) / 0.35)",
+                            boxShadow: "0 0 6px 1px oklch(var(--color-accent-success) / 0.18)"
+                          },
+                          children: "Required"
+                        }
+                      )
                     ] }),
-                    availability === "available" && !usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "p",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      ArchetypeSelector,
                       {
-                        className: "text-xs font-medium",
-                        "data-ocid": "onboarding.username_available.text",
-                        style: { color: "oklch(var(--color-accent-success))" },
-                        children: "✓ Username is available"
+                        value: archetype,
+                        onChange: (val) => {
+                          setArchetype(val);
+                          setArchetypeError("");
+                          setApiError("");
+                        },
+                        error: archetypeError
                       }
-                    ),
-                    availability === "taken" && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "p",
-                      {
-                        className: "text-xs font-medium",
-                        "data-ocid": "onboarding.username_taken.text",
-                        style: { color: "oklch(var(--color-accent-social))" },
-                        children: "Username taken — try another"
-                      }
-                    ),
-                    usernameError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "p",
-                      {
-                        className: "text-xs mt-0.5",
-                        "data-ocid": "onboarding.username.field_error",
-                        style: { color: "oklch(var(--destructive))" },
-                        children: usernameError
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "3–20 characters · letters, numbers, and underscores only" })
+                    )
                   ] }),
                   apiError && /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "p",
@@ -80548,26 +82174,38 @@ function OnboardingPage({ onComplete }) {
                       children: apiError
                     }
                   ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      "data-ocid": "onboarding.submit_button",
-                      type: "submit",
-                      disabled: !canSubmit,
-                      className: "w-full py-3 rounded-lg font-display font-semibold text-base tracking-wide transition-smooth button-primary-neon disabled:opacity-40 disabled:cursor-not-allowed",
-                      children: isSubmitting ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                        "span",
-                        {
-                          className: "flex items-center justify-center gap-2",
-                          "data-ocid": "onboarding.loading_state",
-                          children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" }),
-                            "Setting up…"
-                          ]
-                        }
-                      ) : "Begin →"
-                    }
-                  )
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => setStep(1),
+                        "data-ocid": "onboarding.back_button",
+                        className: "flex-1 py-3 rounded-lg font-display font-semibold text-base tracking-wide transition-smooth button-secondary-neon",
+                        children: "← Back"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        "data-ocid": "onboarding.submit_button",
+                        type: "submit",
+                        disabled: !canSubmit,
+                        className: "flex-[2] py-3 rounded-lg font-display font-semibold text-base tracking-wide transition-smooth button-primary-neon disabled:opacity-40 disabled:cursor-not-allowed",
+                        children: isSubmitting ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                          "span",
+                          {
+                            className: "flex items-center justify-center gap-2",
+                            "data-ocid": "onboarding.loading_state",
+                            children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" }),
+                              "Setting up…"
+                            ]
+                          }
+                        ) : "Begin →"
+                      }
+                    )
+                  ] })
                 ] })
               ]
             }
@@ -80595,6 +82233,313 @@ function OnboardingPage({ onComplete }) {
     )
   ] });
 }
+const ARCHETYPE_NAMES = [
+  "Oak",
+  "River",
+  "Wolf",
+  "Owl",
+  "Mountain",
+  "Fire",
+  "Bamboo",
+  "Honeycomb",
+  "Wind",
+  "Tide"
+];
+function OakIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Oak archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Oak" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 56V28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 28C32 28 20 20 20 12C20 6 25 2 32 2C39 2 44 6 44 12C44 20 32 28 32 28Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 36C32 36 16 32 12 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40C32 40 48 36 52 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 44C32 44 22 48 18 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 48C32 48 42 52 46 56" })
+      ]
+    }
+  );
+}
+function RiverIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "River archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "River" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20C16 16 24 24 32 20C40 16 48 24 56 20" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 32C16 28 24 36 32 32C40 28 48 36 56 32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 44C16 40 24 48 32 44C40 40 48 48 56 44" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 52C20 48 28 56 36 52" })
+      ]
+    }
+  );
+}
+function WolfIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Wolf archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Wolf" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 48L12 56L16 40L8 32L20 28L24 12L32 20L40 12L44 28L56 32L48 40L52 56L44 48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "26", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "38", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 38L32 42L36 38" })
+      ]
+    }
+  );
+}
+function OwlIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Owl archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Owl" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("ellipse", { cx: "32", cy: "34", rx: "18", ry: "20" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "24", cy: "30", r: "6" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "40", cy: "30", r: "6" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "24", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "40", cy: "30", r: "2", fill: "currentColor", stroke: "none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M30 38L32 40L34 38" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 18L24 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M46 18L40 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 54C28 54 32 58 36 54" })
+      ]
+    }
+  );
+}
+function MountainIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Mountain archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Mountain" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 52L24 20L32 36L40 16L56 52Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 20L28 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M40 16L44 24" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 36L22 40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M46 32L50 36" })
+      ]
+    }
+  );
+}
+function FireIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Fire archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Fire" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8C32 8 20 20 20 32C20 42 26 50 32 54C38 50 44 42 44 32C44 20 32 8 32 8Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 24C32 24 26 30 26 36C26 42 30 46 32 48C34 46 38 42 38 36C38 30 32 24 32 24Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 40C16 40 12 44 14 48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M48 40C48 40 52 44 50 48" })
+      ]
+    }
+  );
+}
+function BambooIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Bamboo archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Bamboo" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 56V12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M40 56V12" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 20H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 32H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 44H40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 8C20 8 24 4 28 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M36 8C36 8 40 4 44 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 52C18 52 22 56 26 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M38 52C38 52 42 56 46 52" })
+      ]
+    }
+  );
+}
+function HoneycombIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Honeycomb archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Honeycomb" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8L44 16V32L32 40L20 32V16Z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40L44 48V56" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 40L20 48V56" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M44 32L56 40V48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 32L8 40V48" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M44 16L56 24V32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20 16L8 24V32" })
+      ]
+    }
+  );
+}
+function WindIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Wind archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Wind" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 24H48C52 24 56 20 56 16C56 12 52 8 48 8" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 36H40C44 36 48 40 48 44C48 48 44 52 40 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 48H32" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 12H24" })
+      ]
+    }
+  );
+}
+function TideIcon({ className }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 64 64",
+      className,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      role: "img",
+      "aria-label": "Tide archetype icon",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: "Tide" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 28C16 20 24 20 32 28C40 36 48 36 56 28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 40C16 32 24 32 32 40C40 48 48 48 56 40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 52C16 44 24 44 32 52C40 60 48 60 56 52" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M32 8V16" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M28 12L32 8L36 12" })
+      ]
+    }
+  );
+}
+const ARCHETYPE_ICONS = {
+  Oak: OakIcon,
+  River: RiverIcon,
+  Wolf: WolfIcon,
+  Owl: OwlIcon,
+  Mountain: MountainIcon,
+  Fire: FireIcon,
+  Bamboo: BambooIcon,
+  Honeycomb: HoneycombIcon,
+  Wind: WindIcon,
+  Tide: TideIcon
+};
+function ArchetypeAvatar({
+  archetype,
+  size = "lg"
+}) {
+  const isValid = ARCHETYPE_NAMES.includes(archetype);
+  const Icon2 = isValid ? ARCHETYPE_ICONS[archetype] : null;
+  const sizeClasses = {
+    sm: "w-10 h-10",
+    md: "w-14 h-14",
+    lg: "w-20 h-20"
+  };
+  const iconSizes = {
+    sm: "w-5 h-5",
+    md: "w-7 h-7",
+    lg: "w-9 h-9"
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: `flex items-center justify-center rounded-full select-none ${sizeClasses[size]}`,
+      style: {
+        background: "oklch(0.22 0.01 260)",
+        boxShadow: "inset 3px 3px 8px oklch(0.14 0.01 260), inset -3px -3px 8px oklch(0.30 0.01 260)"
+      },
+      "aria-label": `Your archetype: ${archetype || "none selected"}`,
+      "data-ocid": "profile.avatar",
+      children: Icon2 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { className: `${iconSizes[size]} text-accent-success` }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+        User,
+        {
+          className: `${iconSizes[size]}`,
+          style: { color: "oklch(var(--color-accent-success) / 0.7)" }
+        }
+      )
+    }
+  );
+}
 function ProfilePage$1() {
   const { data: profile, isLoading } = useUserProfile();
   const navigate = useNavigate();
@@ -80612,7 +82557,6 @@ function ProfilePage$1() {
       }
     );
   }
-  const avatarInitial = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim()[0].toUpperCase() : (profile == null ? void 0 : profile.username) && profile.username.trim() !== "" ? profile.username.trim()[0].toUpperCase() : null;
   const displayName = (profile == null ? void 0 : profile.displayName) && profile.displayName.trim() !== "" ? profile.displayName.trim() : "";
   const hasBio = ((profile == null ? void 0 : profile.bio) ?? "").trim().length > 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -80630,29 +82574,10 @@ function ProfilePage$1() {
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3 pt-1", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "div",
+                ArchetypeAvatar,
                 {
-                  className: "flex items-center justify-center w-20 h-20 rounded-full select-none",
-                  style: {
-                    background: "oklch(0.22 0.01 260)",
-                    boxShadow: "inset 3px 3px 8px oklch(0.14 0.01 260), inset -3px -3px 8px oklch(0.30 0.01 260)"
-                  },
-                  "aria-label": "Your avatar",
-                  "data-ocid": "profile.avatar",
-                  children: avatarInitial ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "span",
-                    {
-                      className: "font-display font-bold text-3xl",
-                      style: { color: "oklch(var(--color-accent-success))" },
-                      children: avatarInitial
-                    }
-                  ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    User,
-                    {
-                      className: "w-9 h-9",
-                      style: { color: "oklch(var(--color-accent-success) / 0.7)" }
-                    }
-                  )
+                  archetype: (profile == null ? void 0 : profile.avatarArchetype) ?? "",
+                  size: "lg"
                 }
               ),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
@@ -80667,7 +82592,16 @@ function ProfilePage$1() {
                 (profile == null ? void 0 : profile.username) && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground mt-0.5", children: [
                   "@",
                   profile.username
-                ] })
+                ] }),
+                (profile == null ? void 0 : profile.avatarArchetype) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "p",
+                  {
+                    className: "text-xs font-mono tracking-widest uppercase mt-1",
+                    style: { color: "oklch(var(--color-accent-success))" },
+                    "data-ocid": "profile.archetype_label",
+                    children: profile.avatarArchetype
+                  }
+                )
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-t border-border/30" }),
@@ -80829,7 +82763,20 @@ function OnboardingGate({ children }) {
     if (profileIsFetching && !profile) return;
     const username = (profile == null ? void 0 : profile.username) ?? "";
     const principalStr = ((_a3 = profile == null ? void 0 : profile.id) == null ? void 0 : _a3.toString()) ?? "";
-    const needsOnboarding = !profile || username.trim().length === 0 || principalStr.length > 0 && username === principalStr;
+    const avatarArchetype = (profile == null ? void 0 : profile.avatarArchetype) ?? "";
+    const validArchetypes = [
+      "Oak",
+      "River",
+      "Wolf",
+      "Owl",
+      "Mountain",
+      "Fire",
+      "Bamboo",
+      "Honeycomb",
+      "Wind",
+      "Tide"
+    ];
+    const needsOnboarding = !profile || username.trim().length === 0 || principalStr.length > 0 && username === principalStr || avatarArchetype.trim().length === 0 || !validArchetypes.includes(avatarArchetype);
     if (needsOnboarding) {
       latchedStateRef.current = "NEEDS_ONBOARDING";
       setGateState("NEEDS_ONBOARDING");

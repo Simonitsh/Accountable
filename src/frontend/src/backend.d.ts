@@ -18,9 +18,11 @@ export interface UpdateGoalRequest {
     startTimeMinutes?: bigint;
     wish?: string;
     themeColor?: string;
+    isTimeEdit?: boolean;
     wishDescription?: string;
     iconName?: string;
     ifThenPlan?: string;
+    category?: GoalCategory;
     isLockIn?: boolean;
     reminderOffset?: bigint;
     intentTime?: string;
@@ -62,6 +64,7 @@ export interface CreateGoalRequest {
     iconName?: string;
     ifThenPlan: string;
     obstacleTemplateId?: ObstacleTemplateId;
+    category: GoalCategory;
     isLockIn: boolean;
     reminderOffset?: bigint;
     intentTime?: string;
@@ -70,10 +73,6 @@ export interface CreateGoalRequest {
 }
 export type ObstacleTemplateId = bigint;
 export type ConnectionId = bigint;
-export interface AnalyticsSummary {
-    goals: Array<GoalAnalytics>;
-    dailySuccessRate30Days: Array<number>;
-}
 export interface GoalPublic {
     id: GoalId;
     startTime?: string;
@@ -94,6 +93,7 @@ export interface GoalPublic {
     updatedAt: Timestamp;
     state: GoalState;
     obstacleTemplateId?: ObstacleTemplateId;
+    category: GoalCategory;
     isLockIn: boolean;
     reminderOffset?: bigint;
     intentTime?: string;
@@ -101,16 +101,20 @@ export interface GoalPublic {
     lockInDurationMinutes: bigint;
     lastEmailSentAt: bigint;
 }
+export interface AnalyticsSummary {
+    goals: Array<GoalAnalytics>;
+    dailySuccessRate30Days: Array<number>;
+}
 export interface UserProfilePublic {
     id: UserId;
     bio?: string;
+    avatarArchetype: string;
     timezone: string;
     username: string;
     displayName: string;
     timezoneOffsetMinutes: bigint;
     role: UserRole;
     email?: string;
-    avatarEmoji: string;
 }
 export interface CreateObstacleRequest {
     title: string;
@@ -170,6 +174,13 @@ export enum ConnectionStatus {
     rejected = "rejected",
     accepted = "accepted"
 }
+export enum GoalCategory {
+    Productivity = "Productivity",
+    Learning = "Learning",
+    Health = "Health",
+    Social = "Social",
+    Leisure = "Leisure"
+}
 export enum GoalState {
     active = "active",
     completed = "completed",
@@ -227,7 +238,7 @@ export interface backendInterface {
     listPendingRequests(): Promise<Array<ConnectionPublic>>;
     recordCheckIn(request: RecordCheckInRequest): Promise<CheckIn>;
     recordInteraction(checkInId: CheckInId, interactionType: InteractionType): Promise<Interaction>;
-    register(username: string): Promise<UserProfilePublic>;
+    register(username: string, avatarArchetype: string): Promise<UserProfilePublic>;
     respondToConnection(connectionId: ConnectionId, accept: boolean): Promise<boolean>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;
     setTimezone(tz: string): Promise<void>;
@@ -239,7 +250,7 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
-    updateMyProfile(displayName: string | null, avatarEmoji: string | null, bio: string | null, email: string | null, timezoneOffsetMinutes: bigint | null): Promise<{
+    updateMyProfile(displayName: string | null, avatarArchetype: string | null, bio: string | null, email: string | null, timezoneOffsetMinutes: bigint | null): Promise<{
         __kind__: "ok";
         ok: UserProfilePublic;
     } | {

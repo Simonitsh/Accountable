@@ -5,7 +5,7 @@ type UserRole =
  };
 type UserProfilePublic = 
  record {
-   avatarEmoji: text;
+   avatarArchetype: text;
    bio: opt text;
    displayName: text;
    email: opt text;
@@ -18,6 +18,7 @@ type UserProfilePublic =
 type UserId = principal;
 type UpdateGoalRequest = 
  record {
+   category: opt GoalCategory;
    emailNotifications: opt bool;
    endTime: opt text;
    endTimeMinutes: opt nat;
@@ -26,6 +27,7 @@ type UpdateGoalRequest =
    intentTime: opt text;
    intentTimeMinutes: opt nat;
    isLockIn: opt bool;
+   isTimeEdit: opt bool;
    lockInDurationMinutes: opt nat;
    outcome: opt text;
    reminderOffset: opt int;
@@ -76,6 +78,7 @@ type GoalState =
  };
 type GoalPublic = 
  record {
+   category: GoalCategory;
    createdAt: Timestamp;
    emailNotifications: bool;
    endTime: opt text;
@@ -103,6 +106,14 @@ type GoalPublic =
    wishDescription: text;
  };
 type GoalId = nat;
+type GoalCategory = 
+ variant {
+   Health;
+   Learning;
+   Leisure;
+   Productivity;
+   Social;
+ };
 type GoalAnalytics = 
  record {
    completionRate: float64;
@@ -128,6 +139,7 @@ type CreateObstacleRequest =
  };
 type CreateGoalRequest = 
  record {
+   category: GoalCategory;
    emailNotifications: opt bool;
    endTime: opt text;
    endTimeMinutes: opt nat;
@@ -228,7 +240,7 @@ service : {
   recordCheckIn: (request: RecordCheckInRequest) -> (CheckIn);
   recordInteraction: (checkInId: CheckInId, interactionType:
    InteractionType) -> (Interaction);
-  register: (username: text) -> (UserProfilePublic);
+  register: (username: text, avatarArchetype: text) -> (UserProfilePublic);
   respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
   setTimezone: (tz: text) -> ();
@@ -238,7 +250,7 @@ service : {
       ok: GoalPublic;
     });
   updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
-  updateMyProfile: (displayName: opt text, avatarEmoji: opt text, bio:
+  updateMyProfile: (displayName: opt text, avatarArchetype: opt text, bio:
    opt text, email: opt text, timezoneOffsetMinutes: opt int) ->
    (variant {
       err: text;

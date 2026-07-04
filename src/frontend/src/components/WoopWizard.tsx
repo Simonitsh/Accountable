@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import type { ObstacleTemplate as BackendObstacleTemplate } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import { useUserProfile } from "../hooks/useUserProfile";
-import { OBSTACLE_TEMPLATES } from "../types/index";
+import { CATEGORY_DETAILS, OBSTACLE_TEMPLATES } from "../types/index";
 import { GOAL_ICONS } from "../utils/goalIcons";
 import { DayPickerRow } from "./DayPickerRow";
 import { ScrollWheelPicker } from "./ScrollWheelPicker";
@@ -36,7 +36,9 @@ interface SelectedObstacle {
 }
 
 interface FormState {
-  // Step 1 — Wish + Keystone Habit
+  // Step 1 — Category
+  category: string;
+  // Step 2 — Wish + Keystone Habit
   goalAction: string;
   goalReason: string;
   habitAction: string;
@@ -49,11 +51,11 @@ interface FormState {
   lockInDurationMinutes: number;
   // Scheduling
   scheduledDays: string[];
-  // Step 2 — Obstacles
+  // Step 3 — Obstacles
   selectedObstacles: SelectedObstacle[];
-  // Step 3 — If-Then Plan
+  // Step 4 — If-Then Plan
   ifThenPlan: string;
-  // Step 4 — Icon + Color
+  // Step 5 — Icon + Color + Review
   iconName: string;
   themeColor: string;
   // Email Notifications
@@ -76,15 +78,17 @@ const THEME_COLORS = [
 ];
 
 const STEPS = [
-  { id: 1, label: "Wish" },
-  { id: 2, label: "Obstacle" },
-  { id: 3, label: "Plan" },
-  { id: 4, label: "Review" },
+  { id: 1, label: "Domain" },
+  { id: 2, label: "Wish" },
+  { id: 3, label: "Obstacle" },
+  { id: 4, label: "Plan" },
+  { id: 5, label: "Review" },
 ];
 
 const ALL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 const EMPTY: FormState = {
+  category: "",
   goalAction: "",
   goalReason: "",
   habitAction: "",
@@ -340,6 +344,7 @@ export default function WoopWizard({
         outcome: assembledObstacles,
         obstacleTemplateId,
         ifThenPlan: form.ifThenPlan.trim(),
+        category: form.category,
         iconName: form.iconName || undefined,
         themeColor: form.themeColor || undefined,
         isLockIn: form.isLockIn,
@@ -419,6 +424,9 @@ export default function WoopWizard({
   const validate = (s: number): boolean => {
     const e: StepError = {};
     if (s === 1) {
+      if (!form.category) e.category = "Select a category for your habit.";
+    }
+    if (s === 2) {
       if (!form.goalAction.trim())
         e.goalAction = "Tell us what you want to achieve.";
       if (!form.goalReason.trim()) e.goalReason = "What's your deeper reason?";
@@ -443,14 +451,14 @@ export default function WoopWizard({
         }
       }
     }
-    if (s === 2 && form.selectedObstacles.length === 0) {
+    if (s === 3 && form.selectedObstacles.length === 0) {
       e.obstacles = "Select at least one obstacle you might face.";
     }
-    if (s === 3 && !form.ifThenPlan.trim()) {
+    if (s === 4 && !form.ifThenPlan.trim()) {
       e.ifThenPlan = "Write your backup plan.";
     }
     if (
-      s === 4 &&
+      s === 5 &&
       form.emailNotifications &&
       !form.isLockIn &&
       !form.intentTime
@@ -471,12 +479,12 @@ export default function WoopWizard({
   };
 
   const goNext = () => {
-    if (step === 4) {
+    if (step === 5) {
       createGoalMutation.mutate();
       return;
     }
     if (!validate(step)) return;
-    if (step === 1 && overlapError) return;
+    if (step === 2 && overlapError) return;
     navigate("fwd");
   };
 
@@ -544,6 +552,7 @@ export default function WoopWizard({
     form.selectedObstacles.some((o) => o.id === id);
 
   const stepTitles = [
+    "Choose a category",
     "Plant your wish",
     "Name your obstacle",
     "Write your plan",
@@ -594,21 +603,31 @@ export default function WoopWizard({
         {/* ── Step Indicator ── */}
         <div
           className="shrink-0 px-6 pt-5 pb-4"
-          aria-label={`Step ${step} of 4`}
+          aria-label={`Step ${step} of 5`}
         >
           <div className="relative flex items-center max-w-2xl mx-auto">
-            {/* Background track */}
+            {/* Background track — starts at the leftmost edge of the first circle
+                and ends at the rightmost edge of the last circle.
+                Each circle is 40px (w-10) centered in its flex-1 column (20% of width),
+                so the first circle's left edge is at calc(10% - 20px) and the last
+                circle's right edge is at calc(90% + 20px). */}
             <div
-              className="absolute left-5 right-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full"
-              style={{ background: "oklch(var(--color-accent-missed) / 0.18)" }}
+              className="absolute h-[2px] top-10 rounded-full"
+              style={{
+                left: "calc(10% - 20px)",
+                right: "calc(10% - 20px)",
+                background: "oklch(var(--color-accent-missed) / 0.18)",
+              }}
               aria-hidden="true"
             />
-            {/* Progress track */}
+            {/* Progress track — same start as the background track, grows from
+                the first circle's left edge toward the current step. */}
             <div
-              className="absolute left-5 h-[2px] top-1/2 -translate-y-1/2 rounded-full transition-all duration-500 ease-out"
+              className="absolute h-[2px] top-10 rounded-full transition-all duration-500 ease-out"
               style={{
+                left: "calc(10% - 20px)",
+                right: `calc(${(5 - step) * 20}% + 20px)`,
                 background: "oklch(var(--color-accent-success))",
-                right: `calc(${(4 - step + 1) * 25 - 6}% + 20px)`,
                 boxShadow:
                   "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)",
               }}
@@ -696,8 +715,87 @@ export default function WoopWizard({
           <div
             className={`max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`}
           >
-            {/* STEP 1 — Wish + Keystone Habit */}
+            {/* STEP 1 — Category Selection */}
             {step === 1 && (
+              <div className="space-y-8">
+                <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
+                  Every habit belongs to a domain of your life. Pick the one
+                  that fits best — this helps you see patterns across your
+                  goals.
+                </p>
+
+                <div className="space-y-4">
+                  {CATEGORY_DETAILS.map((cat) => {
+                    const isSelected = form.category === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        data-ocid={`woop_wizard.category.${cat.id.toLowerCase()}`}
+                        onClick={() => {
+                          setForm((f) => ({ ...f, category: cat.id }));
+                          setErrors((er) => ({ ...er, category: undefined }));
+                        }}
+                        className="w-full text-left rounded-2xl p-5 transition-all duration-200"
+                        style={{
+                          background: isSelected
+                            ? "oklch(var(--card))"
+                            : "oklch(var(--muted))",
+                          border: isSelected
+                            ? "2px solid oklch(var(--color-accent-success))"
+                            : "1px solid oklch(var(--border))",
+                          boxShadow: isSelected
+                            ? "-4px -4px 10px rgba(70,70,80,0.45), 6px 6px 14px rgba(0,0,0,0.8), 0 0 16px 3px oklch(var(--color-accent-success) / 0.25)"
+                            : "-4px -4px 10px rgba(70,70,80,0.35), 6px 6px 14px rgba(0,0,0,0.7)",
+                        }}
+                        aria-pressed={isSelected}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h3
+                            className="text-xl font-display font-semibold"
+                            style={{
+                              color: isSelected
+                                ? "oklch(var(--color-accent-success))"
+                                : "oklch(var(--foreground))",
+                            }}
+                          >
+                            {cat.title}
+                          </h3>
+                          {isSelected && (
+                            <div
+                              className="w-6 h-6 rounded-full flex items-center justify-center"
+                              style={{
+                                backgroundColor:
+                                  "oklch(var(--color-accent-success))",
+                                boxShadow:
+                                  "0 0 8px oklch(var(--color-accent-success) / 0.5)",
+                              }}
+                            >
+                              <Check size={14} color="#000" strokeWidth={3} />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {cat.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {errors.category && (
+                  <p
+                    className="text-base text-destructive"
+                    data-ocid="woop_wizard.category.field_error"
+                  >
+                    {errors.category}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* STEP 2 — Wish + Keystone Habit */}
+            {step === 2 && (
               <div className="space-y-10">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Your keystone habit is the daily action. Your goal is the
@@ -717,14 +815,14 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.goal_action_input"
                         value={form.goalAction}
                         onChange={(e) => {
-                          const val = e.target.value.slice(0, 140);
+                          const val = e.target.value.slice(0, 40);
                           setForm((f) => ({ ...f, goalAction: val }));
                           setErrors((er) => ({ ...er, goalAction: undefined }));
                         }}
                         onFocus={() => setFocusedField("goalAction")}
                         onBlur={() => setFocusedField(null)}
                         placeholder="run a marathon"
-                        maxLength={140}
+                        maxLength={40}
                         className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
                         aria-label="What do you want to achieve"
                       />
@@ -735,14 +833,14 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.goal_reason_input"
                         value={form.goalReason}
                         onChange={(e) => {
-                          const val = e.target.value.slice(0, 140);
+                          const val = e.target.value.slice(0, 40);
                           setForm((f) => ({ ...f, goalReason: val }));
                           setErrors((er) => ({ ...er, goalReason: undefined }));
                         }}
                         onFocus={() => setFocusedField("goalReason")}
                         onBlur={() => setFocusedField(null)}
                         placeholder="feel unstoppable"
-                        maxLength={140}
+                        maxLength={40}
                         className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
                         aria-label="Your deeper reason"
                       />
@@ -751,12 +849,12 @@ export default function WoopWizard({
                       <span
                         className={`transition-opacity duration-200 ${focusedField === "goalAction" ? "opacity-100" : "opacity-0"}`}
                       >
-                        {form.goalAction.length}/140
+                        {form.goalAction.length}/40
                       </span>
                       <span
                         className={`transition-opacity duration-200 ${focusedField === "goalReason" ? "opacity-100" : "opacity-0"}`}
                       >
-                        {form.goalReason.length}/140
+                        {form.goalReason.length}/40
                       </span>
                     </div>
                     {(errors.goalAction || errors.goalReason) && (
@@ -789,7 +887,7 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.habit_action_input"
                         value={form.habitAction}
                         onChange={(e) => {
-                          const val = e.target.value.slice(0, 140);
+                          const val = e.target.value.slice(0, 40);
                           setForm((f) => ({ ...f, habitAction: val }));
                           setErrors((er) => ({
                             ...er,
@@ -799,7 +897,7 @@ export default function WoopWizard({
                         onFocus={() => setFocusedField("habitAction")}
                         onBlur={() => setFocusedField(null)}
                         placeholder="run"
-                        maxLength={140}
+                        maxLength={40}
                         className="input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium"
                         aria-label="Daily habit action"
                       />
@@ -1278,7 +1376,7 @@ export default function WoopWizard({
             )}
 
             {/* Active Days */}
-            {step === 1 && (
+            {step === 2 && (
               <div className="mt-6 px-1">
                 <p className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                   Active Days
@@ -1294,8 +1392,8 @@ export default function WoopWizard({
                 />
               </div>
             )}
-            {/* STEP 2 — Obstacles */}
-            {step === 2 && (
+            {/* STEP 3 — Obstacles */}
+            {step === 3 && (
               <div className="space-y-8">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Unlike wishful thinking, WOOP asks you to name what stands
@@ -1360,8 +1458,8 @@ export default function WoopWizard({
               </div>
             )}
 
-            {/* STEP 3 — If-Then Plan */}
-            {step === 3 && (
+            {/* STEP 4 — If-Then Plan */}
+            {step === 4 && (
               <div className="space-y-8">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Implementation intentions double follow-through. When you
@@ -1399,14 +1497,14 @@ export default function WoopWizard({
                         data-ocid="woop_wizard.if_then_plan_input"
                         value={form.ifThenPlan}
                         onChange={(e) => {
-                          const val = e.target.value.slice(0, 140);
+                          const val = e.target.value.slice(0, 40);
                           setForm((f) => ({ ...f, ifThenPlan: val }));
                           setErrors((er) => ({ ...er, ifThenPlan: undefined }));
                         }}
                         onFocus={() => setFocusedField("ifThenPlan")}
                         onBlur={() => setFocusedField(null)}
                         placeholder="do a 15-min home workout instead"
-                        maxLength={140}
+                        maxLength={40}
                         rows={4}
                         className="w-full bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none"
                         aria-label="Your If-Then plan"
@@ -1416,7 +1514,7 @@ export default function WoopWizard({
                       <span
                         className={`text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`}
                       >
-                        {form.ifThenPlan.length}/140
+                        {form.ifThenPlan.length}/40
                       </span>
                     </div>
                   </div>
@@ -1450,8 +1548,8 @@ export default function WoopWizard({
               </div>
             )}
 
-            {/* STEP 4 — Review + Icon + Color */}
-            {step === 4 && (
+            {/* STEP 5 — Review + Icon + Color */}
+            {step === 5 && (
               <div className="space-y-8">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Review your commitment and personalize your goal. This is the
@@ -1837,10 +1935,10 @@ export default function WoopWizard({
             size="lg"
             data-ocid="woop_wizard.back_button"
             onClick={
-              step === 4
+              step === 5
                 ? () => {
                     setErrors({});
-                    setStep(3);
+                    setStep(4);
                   }
                 : goBack
             }
@@ -1848,30 +1946,30 @@ export default function WoopWizard({
             className="gap-2 button-primary-neon text-base min-w-[100px]"
           >
             <ChevronLeft size={16} />
-            {step === 4 ? "Edit" : "Back"}
+            {step === 5 ? "Edit" : "Back"}
           </Button>
 
           <span className="text-sm font-mono text-muted-foreground">
-            {step} / 4
+            {step} / 5
           </span>
 
           <Button
             type="button"
             size="lg"
             data-ocid={
-              step === 4
+              step === 5
                 ? "woop_wizard.commit_button"
                 : "woop_wizard.next_button"
             }
             onClick={goNext}
             disabled={
               createGoalMutation.isPending ||
-              (step === 4 && !actor) ||
-              (step === 1 && !!overlapError)
+              (step === 5 && !actor) ||
+              (step === 2 && !!overlapError)
             }
             className="gap-2 button-primary-neon text-base min-w-[130px]"
           >
-            {step === 4 ? (
+            {step === 5 ? (
               createGoalMutation.isPending ? (
                 <>
                   <span className="w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" />

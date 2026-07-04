@@ -679,17 +679,11 @@ video {
   top: 0px;
   bottom: 0px;
 }
-.-bottom-1 {
-  bottom: -0.25rem;
-}
 .-bottom-12 {
   bottom: -3rem;
 }
 .-left-12 {
   left: -3rem;
-}
-.-right-1 {
-  right: -0.25rem;
 }
 .-right-12 {
   right: -3rem;
@@ -718,9 +712,6 @@ video {
 .left-4 {
   left: 1rem;
 }
-.left-5 {
-  left: 1.25rem;
-}
 .left-\[15px\] {
   left: 15px;
 }
@@ -742,9 +733,6 @@ video {
 .right-4 {
   right: 1rem;
 }
-.right-5 {
-  right: 1.25rem;
-}
 .top-0 {
   top: 0px;
 }
@@ -759,6 +747,9 @@ video {
 }
 .top-1\/2 {
   top: 50%;
+}
+.top-10 {
+  top: 2.5rem;
 }
 .top-3 {
   top: 0.75rem;
@@ -844,6 +835,9 @@ video {
 }
 .-ml-4 {
   margin-left: -1rem;
+}
+.-mt-1 {
+  margin-top: -0.25rem;
 }
 .-mt-4 {
   margin-top: -1rem;
@@ -1028,6 +1022,9 @@ video {
 .size-full {
   width: 100%;
   height: 100%;
+}
+.h-0\.5 {
+  height: 0.125rem;
 }
 .h-1 {
   height: 0.25rem;
@@ -1301,6 +1298,9 @@ video {
 .max-w-\[220px\] {
   max-width: 220px;
 }
+.max-w-\[90\%\] {
+  max-width: 90%;
+}
 .max-w-\[calc\(100\%-2rem\)\] {
   max-width: calc(100% - 2rem);
 }
@@ -1322,6 +1322,9 @@ video {
 }
 .flex-1 {
   flex: 1 1 0%;
+}
+.flex-\[2\] {
+  flex: 2;
 }
 .flex-shrink-0 {
   flex-shrink: 0;
@@ -1857,6 +1860,9 @@ video {
 .bg-accent-success {
   --tw-bg-opacity: 1;
   background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
+}
+.bg-accent-success\/10 {
+  background-color: rgb(16 185 129 / 0.1);
 }
 .bg-accent\/10 {
   background-color: oklch(var(--accent) / 0.1);
@@ -3260,6 +3266,10 @@ video {
   border-color: oklch(var(--primary) / 0.3);
 }
 
+.hover\:border-white\/10:hover {
+  border-color: rgb(255 255 255 / 0.1);
+}
+
 .hover\:bg-\[rgba\(3\2c 105\2c 161\2c 0\.1\)\]:hover {
   background-color: rgba(3,105,161,0.1);
 }
@@ -4612,6 +4622,14 @@ video {
     max-width: 24rem;
   }
 
+  .sm\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
   .sm\:flex-row {
     flex-direction: row;
   }
@@ -4675,6 +4693,10 @@ video {
 
   .md\:w-auto {
     width: auto;
+  }
+
+  .md\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .md\:flex-row {

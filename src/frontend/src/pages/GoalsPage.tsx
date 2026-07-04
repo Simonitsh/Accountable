@@ -1242,7 +1242,7 @@ function GoalDetailPanel({
 export function GoalsPage() {
   const [showWoop, setShowWoop] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>(GoalState.active);
-  const [selectedGoalId, setSelectedGoalId] = useState<bigint | null>(null);
+  const [expandedGoalId, setExpandedGoalId] = useState<bigint | null>(null);
   const [changingStateId, setChangingStateId] = useState<bigint | null>(null);
   const [deletingGoalId, setDeletingGoalId] = useState<bigint | null>(null);
   const { actor, isFetching } = useBackend();
@@ -1275,7 +1275,7 @@ export function GoalsPage() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["myGoals"] });
       toast.success(`Goal ${stateLabel(variables.newState).toLowerCase()}.`);
-      setSelectedGoalId(null);
+      setExpandedGoalId(null);
     },
     onError: (err: Error) => {
       console.error("[GoalsPage] updateGoalState error:", err);
@@ -1315,7 +1315,7 @@ export function GoalsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myGoals"] });
       toast.success("Goal deleted.");
-      setSelectedGoalId(null);
+      setExpandedGoalId(null);
     },
     onError: (err: Error) => {
       console.error("[GoalsPage] deleteGoal error:", err);
@@ -1351,8 +1351,8 @@ export function GoalsPage() {
   const activeCount = visibleGoals.filter(
     (g) => g.state === GoalState.active,
   ).length;
-  const selectedGoal =
-    visibleGoals.find((g) => g.id === selectedGoalId) ?? null;
+  const _expandedGoal =
+    visibleGoals.find((g) => g.id === expandedGoalId) ?? null;
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-6">
@@ -1412,7 +1412,7 @@ export function GoalsPage() {
               type="button"
               onClick={() => {
                 setActiveFilter(tab.key);
-                setSelectedGoalId(null);
+                setExpandedGoalId(null);
               }}
               data-ocid={`goals.filter.${tab.key}`}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-smooth border ${
@@ -1521,114 +1521,134 @@ export function GoalsPage() {
         </div>
       )}
 
-      {/* Goal Detail Panel */}
-      <AnimatePresence>
-        {selectedGoal && (
-          <GoalDetailPanel
-            key={String(selectedGoal.id)}
-            goal={selectedGoal}
-            onClose={() => setSelectedGoalId(null)}
-            onStateChange={handleStateChange}
-            isChangingState={
-              changingStateId === selectedGoal.id &&
-              updateStateMutation.isPending
-            }
-            onUpdateGoal={handleUpdateGoal}
-            isUpdating={updateGoalMutation.isPending}
-            onDeleteGoal={handleDeleteGoal}
-            isDeleting={
-              deletingGoalId === selectedGoal.id && deleteGoalMutation.isPending
-            }
-            existingLockInGoals={visibleGoals
-              .filter(
-                (g) =>
-                  g.isLockIn &&
-                  g.startTime &&
-                  g.endTime &&
-                  g.state === GoalState.active,
-              )
-              .map((g) => ({
-                id: g.id,
-                startTime: g.startTime,
-                endTime: g.endTime,
-                wishDescription: g.wishDescription,
-              }))}
-            onEditNavigate={(id) =>
-              navigate({ to: "/edit-habit/$id", params: { id: String(id) } })
-            }
-          />
-        )}
-      </AnimatePresence>
-
       {/* Goal list */}
       {!isLoading && filtered.length > 0 && (
         <div className="space-y-3" data-ocid="goals.goal_list">
-          {filtered.map((goal, index) => {
-            const isSelected = selectedGoalId === goal.id;
-            return (
-              <motion.button
-                key={String(goal.id)}
-                type="button"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.06, duration: 0.3 }}
-                onClick={() => setSelectedGoalId(isSelected ? null : goal.id)}
-                className={`w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${
-                  isSelected
-                    ? "border-primary/40 bg-primary/5"
-                    : "border-border/20 bg-card hover:border-primary/20"
-                }`}
-                style={{
-                  borderLeftWidth: "4px",
-                  borderLeftColor: goal.isLockIn ? "#F59E0B" : "#10B981",
-                }}
-                data-ocid={`goals.goal_item.${index + 1}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span
-                        className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
-                        style={stateBadgeStyle(goal.state)}
-                      >
-                        {goal.state === GoalState.active && <Flame size={8} />}
-                        {goal.state === GoalState.paused && <Pause size={8} />}
-                        {goal.state === GoalState.completed && (
-                          <CheckCircle2 size={8} />
+          <AnimatePresence>
+            {filtered.map((goal, index) => {
+              const isExpanded = expandedGoalId === goal.id;
+              return (
+                <div key={String(goal.id)}>
+                  <motion.button
+                    type="button"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.06, duration: 0.3 }}
+                    onClick={() =>
+                      setExpandedGoalId((prev) =>
+                        prev === goal.id ? null : goal.id,
+                      )
+                    }
+                    className={`w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${
+                      isExpanded
+                        ? "border-primary/40 bg-primary/5"
+                        : "border-border/20 bg-card hover:border-primary/20"
+                    }`}
+                    style={{
+                      borderLeftWidth: "4px",
+                      borderLeftColor: goal.isLockIn ? "#F59E0B" : "#10B981",
+                    }}
+                    data-ocid={`goals.goal_item.${index + 1}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
+                            style={stateBadgeStyle(goal.state)}
+                          >
+                            {goal.state === GoalState.active && (
+                              <Flame size={8} />
+                            )}
+                            {goal.state === GoalState.paused && (
+                              <Pause size={8} />
+                            )}
+                            {goal.state === GoalState.completed && (
+                              <CheckCircle2 size={8} />
+                            )}
+                            {stateLabel(goal.state)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-0.5">
+                            <Clock size={8} />
+                            {formatDate(goal.createdAt)}
+                          </span>
+                        </div>
+                        <h3 className="font-display font-semibold text-foreground leading-tight line-clamp-1 flex items-center gap-2">
+                          {goal.wishDescription || goal.wish}
+                          {goal.isLockIn && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                              Lock-In
+                            </span>
+                          )}
+                        </h3>
+                        {goal.outcome && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed">
+                            So that I can {goal.outcome}
+                          </p>
                         )}
-                        {stateLabel(goal.state)}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-0.5">
-                        <Clock size={8} />
-                        {formatDate(goal.createdAt)}
-                      </span>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-1.5 text-muted-foreground">
+                        <Edit3
+                          size={14}
+                          className={`transition-smooth ${
+                            isExpanded ? "text-primary" : ""
+                          }`}
+                        />
+                      </div>
                     </div>
-                    <h3 className="font-display font-semibold text-foreground leading-tight line-clamp-1 flex items-center gap-2">
-                      {goal.wishDescription || goal.wish}
-                      {goal.isLockIn && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                          Lock-In
-                        </span>
-                      )}
-                    </h3>
-                    {goal.outcome && (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed">
-                        So that I can {goal.outcome}
-                      </p>
-                    )}
-                  </div>
-                  <div className="shrink-0 flex items-center gap-1.5 text-muted-foreground">
-                    <Edit3
-                      size={14}
-                      className={`transition-smooth ${
-                        isSelected ? "text-primary" : ""
-                      }`}
-                    />
-                  </div>
+                  </motion.button>
+                  {isExpanded && (
+                    <motion.div
+                      key={`detail-${goal.id}`}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      style={{ overflow: "hidden" }}
+                      className="mx-2 mb-3 rounded-2xl"
+                    >
+                      <GoalDetailPanel
+                        goal={goal}
+                        onClose={() => setExpandedGoalId(null)}
+                        onStateChange={handleStateChange}
+                        isChangingState={
+                          changingStateId === goal.id &&
+                          updateStateMutation.isPending
+                        }
+                        onUpdateGoal={handleUpdateGoal}
+                        isUpdating={updateGoalMutation.isPending}
+                        onDeleteGoal={handleDeleteGoal}
+                        isDeleting={
+                          deletingGoalId === goal.id &&
+                          deleteGoalMutation.isPending
+                        }
+                        existingLockInGoals={visibleGoals
+                          .filter(
+                            (g) =>
+                              g.isLockIn &&
+                              g.startTime &&
+                              g.endTime &&
+                              g.state === GoalState.active,
+                          )
+                          .map((g) => ({
+                            id: g.id,
+                            startTime: g.startTime,
+                            endTime: g.endTime,
+                            wishDescription: g.wishDescription,
+                          }))}
+                        onEditNavigate={(id) =>
+                          navigate({
+                            to: "/edit-habit/$id",
+                            params: { id: String(id) },
+                          })
+                        }
+                      />
+                    </motion.div>
+                  )}
                 </div>
-              </motion.button>
-            );
-          })}
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
 

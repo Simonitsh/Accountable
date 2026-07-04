@@ -5,6 +5,7 @@ import { CheckInType } from "../backend";
 import type { CheckIn, GoalPublic } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import { OBSTACLE_TEMPLATES } from "../types";
+import { getGoalIcon } from "../utils/goalIcons";
 
 // ─── Accent colours (matching index.css semantic tokens) ─────────────────────
 const SUCCESS_COLOR = "#10B981"; // Emerald Green
@@ -54,10 +55,8 @@ function obstacleLabel(id?: bigint): string {
 
 function TimelineNodeCircle({
   type,
-  isRevival,
 }: {
   type: CheckInType;
-  isRevival: boolean;
 }) {
   const isSuccess = type === CheckInType.success;
   const isSkip = type === CheckInType.skip;
@@ -79,21 +78,6 @@ function TimelineNodeCircle({
           className="w-3 h-3 rounded-full"
           style={{ background: SUCCESS_COLOR }}
         />
-        {isRevival && (
-          <div
-            className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-            style={{
-              background: "oklch(var(--card))",
-              border: `1px solid ${SUCCESS_COLOR}`,
-            }}
-          >
-            <Zap
-              className="w-2.5 h-2.5"
-              style={{ color: SUCCESS_COLOR }}
-              strokeWidth={2.5}
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -167,19 +151,11 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   return (
     <div className="flex gap-3" data-ocid="goal_insight.timeline_item">
       {/* Node */}
-      <TimelineNodeCircle type={checkIn.checkInType} isRevival={isRevival} />
+      <TimelineNodeCircle type={checkIn.checkInType} />
 
       {/* Content */}
       <div className="flex-1 min-w-0 pb-5">
         <div className="flex items-center gap-1.5">
-          {isRevival && (
-            <Zap
-              className="w-3 h-3 flex-shrink-0"
-              style={{ color: SUCCESS_COLOR }}
-              strokeWidth={2.5}
-              aria-hidden="true"
-            />
-          )}
           <p
             className="text-sm font-display font-medium leading-snug"
             style={{ color: primaryColor }}
@@ -413,6 +389,7 @@ export function GoalInsightSheet({
   const habitName = goal.wishDescription || goal.wish || "Habit";
   const macroWish = goal.wish;
   const outcome = goal.outcome;
+  const goalIcon = getGoalIcon(goal.iconName);
 
   return (
     <AnimatePresence>
@@ -470,14 +447,34 @@ export function GoalInsightSheet({
               }}
             >
               {/* Title row */}
-              <div className="flex items-start justify-between gap-3">
+              <div className="relative flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   {/* Habit name — prominent */}
                   <h2
-                    className="font-display text-xl font-bold leading-tight truncate"
+                    className="font-display text-xl font-bold leading-tight truncate flex items-center gap-2"
                     style={{ color: "oklch(var(--foreground))" }}
                     data-ocid="goal_insight.habit_name"
                   >
+                    <span
+                      className="inline-flex items-center justify-center shrink-0"
+                      style={{
+                        width: "1.125em",
+                        height: "1.125em",
+                      }}
+                      aria-hidden="true"
+                      data-ocid="goal_insight.icon"
+                    >
+                      <span
+                        className="shrink-0"
+                        style={{
+                          width: "0.833em",
+                          height: "0.833em",
+                          color: "oklch(0.85 0 0)",
+                        }}
+                      >
+                        {goalIcon.svg}
+                      </span>
+                    </span>
                     {habitName}
                   </h2>
 
@@ -492,7 +489,7 @@ export function GoalInsightSheet({
                         <span
                           className="text-xs font-mono uppercase tracking-widest mr-1.5"
                           style={{
-                            color: "oklch(var(--muted-foreground) / 0.6)",
+                            color: SUCCESS_COLOR,
                           }}
                         >
                           Wish
@@ -509,7 +506,7 @@ export function GoalInsightSheet({
                         <span
                           className="text-xs font-mono uppercase tracking-widest mr-1.5"
                           style={{
-                            color: "oklch(var(--muted-foreground) / 0.6)",
+                            color: "#F97316",
                           }}
                         >
                           Obstacles

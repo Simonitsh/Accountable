@@ -25,7 +25,7 @@ module {
   ) : [FeedTypes.FeedItem] {
     checkIns.values().filter(func(c) {
       partnerIds.find(func(p) { p == c.owner }) != null
-    }).map<CheckInTypes.CheckIn, FeedTypes.FeedItem>(func(c) {
+    }).map(func(c) {
       let goalName = switch (goals.find(func(g) { g.id == c.goalId })) {
         case (?g) g.wish;
         case null "";

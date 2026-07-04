@@ -107,35 +107,41 @@ export function useUpdateBio() {
       bio,
       displayName,
       email,
+      avatarArchetype,
     }: {
-      bio?: string;
-      displayName?: string;
-      email?: string;
+      bio: string;
+      displayName: string;
+      email: string;
+      avatarArchetype?: string | null;
     }) => {
       if (!actor) throw new Error("Actor not available");
-      const nameArg =
-        displayName !== undefined
-          ? displayName.trim().length > 0
-            ? displayName.trim()
-            : null
+      // Explicitly send null for empty strings to clear the field on the backend.
+      // Do NOT use `|| undefined` — that silently ignores clearing.
+      const nameArg = displayName.trim().length > 0 ? displayName.trim() : null;
+      const bioArg = bio.trim().length > 0 ? bio.trim() : null;
+      const emailArg = email.trim().length > 0 ? email.trim() : null;
+      const archetypeArg =
+        avatarArchetype && avatarArchetype.trim().length > 0
+          ? avatarArchetype.trim()
           : null;
-      const bioArg =
-        bio !== undefined ? (bio.trim().length > 0 ? bio.trim() : null) : null;
-      const emailArg =
-        email !== undefined
-          ? email.trim().length > 0
-            ? email.trim()
-            : null
-          : null;
-      const result = await (actor as any).updateMyProfile(
+      const result = await (
+        actor as unknown as {
+          updateMyProfile: (...args: unknown[]) => Promise<unknown>;
+        }
+      ).updateMyProfile(
         nameArg,
-        null,
+        archetypeArg,
         bioArg,
         emailArg,
         BigInt(-new Date().getTimezoneOffset()),
       );
-      if ("err" in result)
-        throw new Error(String((result as { err: unknown }).err));
+      if (
+        result &&
+        typeof result === "object" &&
+        "__kind__" in result &&
+        (result as { __kind__: string }).__kind__ === "err"
+      )
+        throw new Error(String((result as unknown as { err: unknown }).err));
       return result;
     },
     onSuccess: () => {

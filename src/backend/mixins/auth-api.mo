@@ -7,25 +7,29 @@ import AuthLib "../lib/auth";
 mixin (
   profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
 ) {
-  public shared ({ caller }) func register(username : Text) : async AuthTypes.UserProfilePublic {
+  public shared ({ caller }) func register(username : Text, avatarArchetype : Text) : async AuthTypes.UserProfilePublic {
     if (caller.isAnonymous()) Runtime.trap("Anonymous callers cannot register");
+    if (not AuthTypes.isValidArchetype(avatarArchetype)) {
+      Runtime.trap("Invalid avatarArchetype. Must be one of: Oak, River, Wolf, Owl, Mountain, Fire, Bamboo, Honeycomb, Wind, Tide");
+    };
     // Enforce username uniqueness (excluding the caller's own principal in case of re-registration)
     if (not AuthLib.isUsernameAvailableForCaller(profiles, username, caller)) {
       Runtime.trap("Username is already taken. Please choose a different username.");
     };
     let profile = AuthLib.getOrCreateProfile(profiles, caller);
     profile.username := username;
+    profile.avatarArchetype := avatarArchetype;
     AuthLib.toPublic(profile);
   };
 
   public shared ({ caller }) func updateMyProfile(
     displayName : ?Text,
-    avatarEmoji : ?Text,
+    avatarArchetype : ?Text,
     bio : ?Text,
     email : ?Text,
     timezoneOffsetMinutes : ?Int,
   ) : async { #ok : AuthTypes.UserProfilePublic; #err : Text } {
-    AuthLib.updateProfile(profiles, caller, displayName, avatarEmoji, bio, email, timezoneOffsetMinutes);
+    AuthLib.updateProfile(profiles, caller, displayName, avatarArchetype, bio, email, timezoneOffsetMinutes);
   };
 
   public shared query ({ caller }) func isUsernameAvailable(username : Text) : async Bool {

@@ -57,6 +57,7 @@ export interface CreateGoalRequest {
   'iconName' : [] | [string],
   'ifThenPlan' : string,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
+  'category' : GoalCategory,
   'isLockIn' : boolean,
   'reminderOffset' : [] | [bigint],
   'intentTime' : [] | [string],
@@ -83,6 +84,11 @@ export interface GoalAnalytics {
   'totalSuccesses' : bigint,
   'currentStreak' : bigint,
 }
+export type GoalCategory = { 'Productivity' : null } |
+  { 'Learning' : null } |
+  { 'Health' : null } |
+  { 'Social' : null } |
+  { 'Leisure' : null };
 export type GoalId = bigint;
 export interface GoalPublic {
   'id' : GoalId,
@@ -104,6 +110,7 @@ export interface GoalPublic {
   'updatedAt' : Timestamp,
   'state' : GoalState,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
+  'category' : GoalCategory,
   'isLockIn' : boolean,
   'reminderOffset' : [] | [bigint],
   'intentTime' : [] | [string],
@@ -153,9 +160,11 @@ export interface UpdateGoalRequest {
   'startTimeMinutes' : [] | [bigint],
   'wish' : [] | [string],
   'themeColor' : [] | [string],
+  'isTimeEdit' : [] | [boolean],
   'wishDescription' : [] | [string],
   'iconName' : [] | [string],
   'ifThenPlan' : [] | [string],
+  'category' : [] | [GoalCategory],
   'isLockIn' : [] | [boolean],
   'reminderOffset' : [] | [bigint],
   'intentTime' : [] | [string],
@@ -166,13 +175,13 @@ export type UserId = Principal;
 export interface UserProfilePublic {
   'id' : UserId,
   'bio' : [] | [string],
+  'avatarArchetype' : string,
   'timezone' : string,
   'username' : string,
   'displayName' : string,
   'timezoneOffsetMinutes' : bigint,
   'role' : UserRole,
   'email' : [] | [string],
-  'avatarEmoji' : string,
 }
 export type UserRole = { 'admin' : null } |
   { 'user' : null };
@@ -217,7 +226,7 @@ export interface _SERVICE {
   'listPendingRequests' : ActorMethod<[], Array<ConnectionPublic>>,
   'recordCheckIn' : ActorMethod<[RecordCheckInRequest], CheckIn>,
   'recordInteraction' : ActorMethod<[CheckInId, InteractionType], Interaction>,
-  'register' : ActorMethod<[string], UserProfilePublic>,
+  'register' : ActorMethod<[string, string], UserProfilePublic>,
   'respondToConnection' : ActorMethod<[ConnectionId, boolean], boolean>,
   'sendConnectionRequest' : ActorMethod<[UserId], ConnectionPublic>,
   'setTimezone' : ActorMethod<[string], undefined>,

@@ -11,6 +11,8 @@ module {
     description : Text;
   };
 
+  public type GoalCategory = { #Health; #Learning; #Social; #Productivity; #Leisure };
+
   public type Goal = {
     id : Common.GoalId;
     owner : Common.UserId;
@@ -37,6 +39,7 @@ module {
     var endTimeMinutes : Nat;
     var intentTimeMinutes : Nat;
     var scheduledDays : [Text];
+    var category : GoalCategory;
   };
 
   public type GoalPublic = {
@@ -65,6 +68,7 @@ module {
     endTimeMinutes : Nat;
     intentTimeMinutes : Nat;
     scheduledDays : [Text];
+    category : GoalCategory;
   };
 
   public type CreateGoalRequest = {
@@ -86,6 +90,7 @@ module {
     endTimeMinutes : ?Nat;
     intentTimeMinutes : ?Nat;
     scheduledDays : ?[Text];
+    category : GoalCategory;
   };
 
   public type CreateObstacleRequest = {
@@ -112,6 +117,10 @@ module {
     endTimeMinutes : ?Nat;
     intentTimeMinutes : ?Nat;
     scheduledDays : ?[Text];
+    /// When true, applies the daily edit lockout check (Time-tab save).
+    /// When false or null, skips the lockout check (General-tab save — unlimited).
+    isTimeEdit : ?Bool;
+    category : ?GoalCategory;
   };
 
   /// Typed error variants for goal operations.

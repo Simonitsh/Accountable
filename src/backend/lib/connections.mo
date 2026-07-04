@@ -75,7 +75,7 @@ module {
   ) : [ConnectionTypes.ConnectionPublic] {
     connections.values().filter(func(c) {
       c.status == #accepted and (c.fromPrincipal == caller or c.toPrincipal == caller)
-    }).map<ConnectionTypes.Connection, ConnectionTypes.ConnectionPublic>(
+    }).map(
       func(c) { toPublic(c) }
     ).toArray();
   };
@@ -86,7 +86,7 @@ module {
   ) : [ConnectionTypes.ConnectionPublic] {
     connections.values().filter(func(c) {
       c.status == #pending and c.toPrincipal == caller
-    }).map<ConnectionTypes.Connection, ConnectionTypes.ConnectionPublic>(
+    }).map(
       func(c) { toPublic(c) }
     ).toArray();
   };
@@ -97,7 +97,7 @@ module {
   ) : [Common.UserId] {
     connections.values().filter(func(c) {
       c.status == #accepted and (c.fromPrincipal == caller or c.toPrincipal == caller)
-    }).map<ConnectionTypes.Connection, Common.UserId>(func(c) {
+    }).map(func(c) {
       if (c.fromPrincipal == caller) c.toPrincipal else c.fromPrincipal
     }).toArray();
   };

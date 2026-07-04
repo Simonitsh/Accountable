@@ -11,7 +11,7 @@ import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { GoalPublic } from "../backend.d.ts";
 import type { GoalAnalytics } from "../types";
-import { getGoalIcon } from "../utils/goalIcons";
+
 import { MissedWindowSheet } from "./MissedWindowSheet";
 import { SkipModal } from "./SkipModal";
 import { WoopCatchSheet } from "./WoopCatchSheet";
@@ -351,7 +351,6 @@ export function GoalCard({
   const isMissedCheckIn = checkInToday?.checkInType === "missedCheckIn";
   const isMissedCheckOut = checkInToday?.checkInType === "missedCheckOut";
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
-  const goalIcon = getGoalIcon(goal.iconName);
   const themeColor = goal.themeColor;
   const rawWishDescription = goal.wishDescription || goal.wish;
   // Strip the wizard-assembled prefix "Every day, I will " → display "I will …"
@@ -360,6 +359,16 @@ export function GoalCard({
     : rawWishDescription.startsWith("Every day ,")
       ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}`
       : rawWishDescription;
+
+  // Category badge: fixed neutral color, "Uncategorized" for missing/undefined
+  const categoryLabel =
+    goal.category && typeof goal.category === "string" && goal.category.trim()
+      ? goal.category
+      : "Uncategorized";
+  const isUncategorized = categoryLabel === "Uncategorized";
+
+  // Badge text color follows habit type: Emerald for Regular, Amber for Lock-In
+  const categoryBadgeTextColor = isLockIn ? "#F59E0B" : "#10B981";
 
   const cardBgIdle = themeColor
     ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))`
@@ -684,16 +693,6 @@ export function GoalCard({
     modalOpenedDuringGestureRef.current = false;
   }
 
-  // ── Icon color ────────────────────────────────────────────────────────────────
-  const iconColor =
-    mode === "done" && isFailedLockIn
-      ? MISSED_COLOR
-      : mode === "done" && isSuccess
-        ? SUCCESS_COLOR
-        : mode === "done" && isSkipped
-          ? SKIP_COLOR
-          : (themeColor ?? "oklch(var(--muted-foreground))");
-
   // ── Swipe icon opacity ────────────────────────────────────────────────────────
   const swipeIconOpacity = Math.max(0, (dragProgress - 0.3) / 0.7);
 
@@ -824,6 +823,14 @@ export function GoalCard({
       transition: { delay: index * 0.08, duration: 0.35 },
     };
   })();
+
+  // ── Card content: centered column with consistent spacing ─────────────────────
+  const showLockInTimeBlock =
+    isLockIn &&
+    lockInStartTime != null &&
+    lockInStartTime !== "" &&
+    lockInEndTime != null &&
+    lockInEndTime !== "";
 
   return (
     <>
@@ -1010,39 +1017,104 @@ export function GoalCard({
             ...getCardStyle(),
           }}
         >
-          {/* Revival Grit icon — absolutely positioned at the left border edge */}
-          {executedIfThen && (
-            <span
-              className="absolute"
+          {/* Content: centered */}
+          <div className="flex flex-col items-center text-center gap-3">
+            {/* Habit title as direct tap target for timeline */}
+            <button
+              type="button"
+              className="text-left w-full group"
               style={{
-                top: "50%",
-                left: "-2px",
-                transform: "translateY(-50%)",
+                touchAction: "none",
+                cursor: "pointer",
+                background: "none",
+                border: "none",
+                padding: 0,
+                margin: 0,
               }}
-              aria-label="Hard-fought win via If-Then plan"
-              title="Executed If-Then Plan"
-              data-ocid="goal.revival_icon"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (onInsightOpen) {
+                  if (navigator.vibrate) navigator.vibrate([8]);
+                  onInsightOpen(goal);
+                }
+              }}
+              aria-label={`View timeline for ${keystoneText}`}
+              data-ocid={`goal.title_button.${index + 1}`}
             >
-              <Zap
-                size={14}
-                style={{
-                  color: SUCCESS_COLOR,
-                  filter: "drop-shadow(0 0 4px rgba(16,185,129,0.7))",
-                }}
-                strokeWidth={2.5}
-                fill={SUCCESS_COLOR}
-              />
-            </span>
-          )}
+              <h3 className="font-display text-lg font-semibold text-foreground leading-snug line-clamp-2 active:opacity-70 transition-opacity duration-75 text-center w-full flex items-center justify-center gap-1.5">
+                {mode === "done" && executedIfThen && (
+                  <span
+                    className="inline-flex items-center justify-center rounded-full shrink-0"
+                    aria-label="Hard-fought win via If-Then plan"
+                    title="Executed If-Then Plan"
+                    data-ocid="goal.revival_icon"
+                    style={{
+                      width: "1.125em",
+                      height: "1.125em",
+                      background: "rgba(16,185,129,0.15)",
+                      border: `1px solid ${SUCCESS_COLOR}`,
+                      boxShadow: "0 0 6px rgba(16,185,129,0.35)",
+                    }}
+                  >
+                    <Zap
+                      size={11}
+                      style={{
+                        color: SUCCESS_COLOR,
+                        filter: "drop-shadow(0 0 3px rgba(16,185,129,0.8))",
+                      }}
+                      strokeWidth={2.5}
+                      fill={SUCCESS_COLOR}
+                    />
+                  </span>
+                )}
+                {keystoneText}
+                {mode === "active" && (
+                  <ChevronRight
+                    size={14}
+                    className="shrink-0 inline-block ml-1 transition-opacity duration-150"
+                    style={{
+                      opacity: 0.35,
+                      color: "oklch(var(--muted-foreground))",
+                      verticalAlign: "middle",
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+              </h3>
+            </button>
 
-          {/* Lock-In time block badge */}
-          {isLockIn &&
-            lockInStartTime != null &&
-            lockInStartTime !== "" &&
-            lockInEndTime != null &&
-            lockInEndTime !== "" && (
+            {/* Category badge — fixed neutral background, text color follows habit type */}
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide"
+              style={{
+                background: isUncategorized
+                  ? "rgba(75,85,99,0.12)"
+                  : "rgba(107,114,128,0.15)",
+                border: isUncategorized
+                  ? "1px solid rgba(75,85,99,0.25)"
+                  : "1px solid rgba(107,114,128,0.3)",
+                color: isUncategorized
+                  ? "oklch(var(--muted-foreground) / 0.65)"
+                  : categoryBadgeTextColor,
+                boxShadow: isDarkMode
+                  ? "inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(70,70,80,0.25)"
+                  : "inset 1px 1px 2px rgba(0,0,0,0.25), inset -1px -1px 2px rgba(90,90,100,0.2)",
+              }}
+              aria-label={`Category: ${categoryLabel}`}
+              data-ocid={`goal.category_badge.${index + 1}`}
+            >
+              {categoryLabel}
+            </div>
+
+            {/* Lock-In time block badge */}
+            {showLockInTimeBlock && (
               <div
-                className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono"
                 style={{
                   background: "rgba(107,114,128,0.15)",
                   border: "1px solid rgba(107,114,128,0.3)",
@@ -1073,192 +1145,150 @@ export function GoalCard({
               </div>
             )}
 
-          {/* Lock-In live timer */}
-          {isLockIn && lockInTimer && mode === "active" && (
-            <>
-              <style>{`
-                @keyframes lockInPulse {
-                  0%, 100% { opacity: 1; }
-                  50% { opacity: 0.5; }
-                }
-              `}</style>
-              <div
-                className="mt-1.5 mb-0.5 text-xs font-mono font-medium"
-                style={{
-                  color: lockInTimer.color,
-                  animation: lockInTimer.pulse
-                    ? "lockInPulse 1.2s ease-in-out infinite"
-                    : "none",
-                }}
-                aria-live="polite"
-                data-ocid="goal.lockin_timer"
-              >
-                {lockInTimer.text}
-              </div>
-            </>
-          )}
-
-          {/* Lock-In status text */}
-          {isLockIn && lockInState && mode === "active" && (
-            <div
-              className="mt-1 mb-0.5 text-xs font-mono"
-              style={{
-                color:
-                  lockInState === "start-window" || lockInState === "end-window"
-                    ? SUCCESS_COLOR
-                    : lockInState === "completed"
-                      ? SUCCESS_COLOR
-                      : lockInState === "missed-start" ||
-                          lockInState === "missed-checkout" ||
-                          lockInState === "failed-finalized"
-                        ? MISSED_COLOR
-                        : "oklch(var(--muted-foreground))",
-              }}
-            >
-              {lockInState === "waiting" && ""}
-              {lockInState === "start-window" &&
-                "Check-in window open — swipe right to start"}
-              {lockInState === "in-progress" &&
-                lockInEndTime &&
-                `In progress — complete by ${formatTime24h(lockInEndTime)}`}
-              {lockInState === "end-window" &&
-                "Check-out window — swipe right to complete"}
-              {lockInState === "completed" && "Lock-In completed"}
-              {lockInState === "missed-start" &&
-                "Missed Start Window. Tap to log reason."}
-              {lockInState === "missed-checkout" &&
-                "Missed Check-Out. Tap to log reason."}
-              {lockInState === "failed-finalized" && "Obstacle logged"}
-            </div>
-          )}
-
-          {/* Loading spinner */}
-          {(isCheckingIn || isSkipping) && mode === "active" && (
-            <div
-              className="absolute top-4 right-4 w-4 h-4 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: "rgba(16,185,129,0.3)",
-                borderTopColor: SUCCESS_COLOR,
-              }}
-              aria-hidden="true"
-            />
-          )}
-
-          {/* Content: icon + text */}
-          <div className="flex items-start gap-3">
-            <div
-              className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center mt-0.5"
-              style={{
-                background: themeColor
-                  ? `color-mix(in srgb, ${themeColor} 18%, oklch(var(--card)))`
-                  : "oklch(var(--muted) / 0.5)",
-                boxShadow:
-                  "inset 1px 1px 3px rgba(0,0,0,0.55), inset -1px -1px 2px rgba(80,80,85,0.2)",
-              }}
-            >
-              <span className="w-5 h-5 shrink-0" style={{ color: iconColor }}>
-                {goalIcon.svg}
-              </span>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              {/* Habit title as direct tap target for timeline */}
-              <button
-                type="button"
-                className="text-left w-full group"
-                style={{
-                  touchAction: "none",
-                  cursor: "pointer",
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  margin: 0,
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  if (onInsightOpen) {
-                    if (navigator.vibrate) navigator.vibrate([8]);
-                    onInsightOpen(goal);
+            {/* Lock-In live timer */}
+            {isLockIn && lockInTimer && mode === "active" && (
+              <>
+                <style>{`
+                  @keyframes lockInPulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
                   }
-                }}
-                aria-label={`View timeline for ${keystoneText}`}
-                data-ocid={`goal.title_button.${index + 1}`}
-              >
-                <h3 className="font-display text-lg font-semibold text-foreground leading-snug line-clamp-2 active:opacity-70 transition-opacity duration-75 flex items-center gap-1">
-                  <span className="flex-1">{keystoneText}</span>
-                  {mode === "active" && (
-                    <ChevronRight
-                      size={14}
-                      className="shrink-0 transition-opacity duration-150"
-                      style={{
-                        opacity: 0.35,
-                        color: "oklch(var(--muted-foreground))",
-                      }}
-                      aria-hidden="true"
-                    />
-                  )}
-                </h3>
-              </button>
-            </div>
-          </div>
-
-          {/* 7-Day Week Calendar */}
-          <div className="mt-3 flex flex-col items-center gap-1">
-            <div className="flex items-center gap-1.5">
-              {weekHistoryLoading
-                ? WEEK_SLOTS.map((id) => (
-                    <div
-                      key={id}
-                      className="w-2.5 h-2.5 rounded-full animate-pulse"
-                      style={{ backgroundColor: GREY_COLOR }}
-                    />
-                  ))
-                : weekSlotData.map(({ id, status }) => (
-                    <div
-                      key={id}
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor: getBallColor(status),
-                        opacity: status === "none" ? 0.35 : 0.9,
-                      }}
-                      aria-hidden="true"
-                    />
-                  ))}
-            </div>
-            <div className="flex items-center gap-1.5">
-              {weekSlotData.map(({ id, label }) => (
+                `}</style>
                 <div
-                  key={id}
-                  className="w-2.5 text-center"
+                  className="text-xs font-mono font-medium"
                   style={{
-                    fontSize: "9px",
-                    color: "oklch(var(--muted-foreground) / 0.55)",
-                    lineHeight: 1,
+                    color: lockInTimer.color,
+                    animation: lockInTimer.pulse
+                      ? "lockInPulse 1.2s ease-in-out infinite"
+                      : "none",
                   }}
+                  aria-live="polite"
+                  data-ocid="goal.lockin_timer"
                 >
-                  {label}
+                  {lockInTimer.text}
                 </div>
-              ))}
-            </div>
-          </div>
+              </>
+            )}
 
-          {/* Log What Happened button — amber CTA for missed Lock-In windows */}
-          {isLockIn &&
-            (lockInState === "missed-start" ||
-              lockInState === "missed-checkout") &&
-            mode === "active" && (
-              <div className="mt-3 flex justify-start">
+            {/* Lock-In status text */}
+            {isLockIn && lockInState && mode === "active" && (
+              <div
+                className="text-xs font-mono max-w-[90%]"
+                style={{
+                  color:
+                    lockInState === "start-window" ||
+                    lockInState === "end-window"
+                      ? SUCCESS_COLOR
+                      : lockInState === "completed"
+                        ? SUCCESS_COLOR
+                        : lockInState === "missed-start" ||
+                            lockInState === "missed-checkout" ||
+                            lockInState === "failed-finalized"
+                          ? MISSED_COLOR
+                          : "oklch(var(--muted-foreground))",
+                }}
+              >
+                {lockInState === "waiting" && ""}
+                {lockInState === "start-window" &&
+                  "Check-in window open — swipe right to start"}
+                {lockInState === "in-progress" &&
+                  lockInEndTime &&
+                  `In progress — complete by ${formatTime24h(lockInEndTime)}`}
+                {lockInState === "end-window" &&
+                  "Check-out window — swipe right to complete"}
+                {lockInState === "completed" && "Lock-In completed"}
+                {lockInState === "missed-start" &&
+                  "Missed Start Window. Tap to log reason."}
+                {lockInState === "missed-checkout" &&
+                  "Missed Check-Out. Tap to log reason."}
+                {lockInState === "failed-finalized" && "Obstacle logged"}
+              </div>
+            )}
+
+            {/* 7-Day Week Calendar */}
+            <div className="flex flex-col items-center gap-1 mt-1">
+              <div className="flex items-center gap-1.5">
+                {weekHistoryLoading
+                  ? WEEK_SLOTS.map((id) => (
+                      <div
+                        key={id}
+                        className="w-3.5 h-3.5 rounded-full animate-pulse"
+                        style={{ backgroundColor: GREY_COLOR }}
+                      />
+                    ))
+                  : weekSlotData.map(({ id, status }) => (
+                      <div
+                        key={id}
+                        className="w-3.5 h-3.5 rounded-full"
+                        style={{
+                          backgroundColor: getBallColor(status),
+                          opacity: status === "none" ? 0.35 : 0.9,
+                        }}
+                        aria-hidden="true"
+                      />
+                    ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {weekSlotData.map(({ id, label }) => (
+                  <div
+                    key={id}
+                    className="w-3.5 text-center"
+                    style={{
+                      fontSize: "11px",
+                      color: "oklch(var(--muted-foreground) / 0.55)",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Log What Happened button — amber CTA for missed Lock-In windows */}
+            {isLockIn &&
+              (lockInState === "missed-start" ||
+                lockInState === "missed-checkout") &&
+              mode === "active" && (
+                <div className="flex justify-start w-full">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMissedSheet(true);
+                      onMissedWindowTap?.(goal.id);
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      modalOpenedDuringGestureRef.current = true;
+                    }}
+                    onPointerUp={(e) => e.stopPropagation()}
+                    onPointerMove={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-medium transition-smooth select-none"
+                    style={{
+                      backgroundColor: "rgba(245,158,11,0.15)",
+                      color: "#F59E0B",
+                      border: "1px solid rgba(245,158,11,0.4)",
+                      boxShadow:
+                        "-2px -2px 5px rgba(60,60,40,0.25), 3px 3px 7px rgba(0,0,0,0.45)",
+                    }}
+                    aria-label="Log what happened for this missed Lock-In"
+                    data-ocid={`goal.log_missed_button.${index + 1}`}
+                  >
+                    <TriangleAlert size={12} style={{ color: "#F59E0B" }} />
+                    Log What Happened
+                  </button>
+                </div>
+              )}
+
+            {/* Done tab: yellow Undo button — hidden for ALL Lock-In cards (immutable once done) */}
+            {mode === "done" && !isLockIn && (
+              <div className="flex justify-end w-full">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowMissedSheet(true);
-                    onMissedWindowTap?.(goal.id);
+                    onDoneCardTap?.(goal.id);
                   }}
                   onPointerDown={(e) => {
                     e.stopPropagation();
@@ -1266,52 +1296,21 @@ export function GoalCard({
                   }}
                   onPointerUp={(e) => e.stopPropagation()}
                   onPointerMove={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-medium transition-smooth select-none"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-smooth select-none"
                   style={{
-                    backgroundColor: "rgba(245,158,11,0.15)",
-                    color: "#F59E0B",
-                    border: "1px solid rgba(245,158,11,0.4)",
+                    backgroundColor: "#EAB308",
+                    color: "#000",
                     boxShadow:
-                      "-2px -2px 5px rgba(60,60,40,0.25), 3px 3px 7px rgba(0,0,0,0.45)",
+                      "-2px -2px 5px rgba(60,60,60,0.3), 3px 3px 7px rgba(0,0,0,0.55)",
                   }}
-                  aria-label="Log what happened for this missed Lock-In"
-                  data-ocid={`goal.log_missed_button.${index + 1}`}
+                  aria-label="Undo this check-in"
+                  data-ocid={`goal.done_undo_button.${index + 1}`}
                 >
-                  <TriangleAlert size={12} style={{ color: "#F59E0B" }} />
-                  Log What Happened
+                  Undo
                 </button>
               </div>
             )}
-
-          {/* Done tab: yellow Undo button — hidden for ALL Lock-In cards (immutable once done) */}
-          {mode === "done" && !isLockIn && (
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDoneCardTap?.(goal.id);
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  modalOpenedDuringGestureRef.current = true;
-                }}
-                onPointerUp={(e) => e.stopPropagation()}
-                onPointerMove={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-smooth select-none"
-                style={{
-                  backgroundColor: "#EAB308",
-                  color: "#000",
-                  boxShadow:
-                    "-2px -2px 5px rgba(60,60,60,0.3), 3px 3px 7px rgba(0,0,0,0.55)",
-                }}
-                aria-label="Undo this check-in"
-                data-ocid={`goal.done_undo_button.${index + 1}`}
-              >
-                Undo
-              </button>
-            </div>
-          )}
+          </div>
         </button>
       </motion.div>
 
