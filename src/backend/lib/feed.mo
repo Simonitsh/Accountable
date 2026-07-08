@@ -16,6 +16,18 @@ module {
     interactions.values().filter(func(i) { i.checkInId == checkInId }).size();
   };
 
+  /// Resolve the avatar color mode to surface for a feed item's partner.
+  /// Returns the partner's selected `AvatarColorMode`, defaulting to `#Fill`
+  /// when the partner has no profile.
+  public func getPartnerAvatarColorMode(
+    partnerProfile : ?AuthTypes.UserProfile,
+  ) : AuthTypes.AvatarColorMode {
+    switch (partnerProfile) {
+      case (?p) p.avatarColorMode;
+      case null #Fill;
+    };
+  };
+
   public func getPartnerFeed(
     checkIns : List.List<CheckInTypes.CheckIn>,
     goals : List.List<GoalTypes.Goal>,
@@ -30,12 +42,22 @@ module {
         case (?g) g.wish;
         case null "";
       };
-      let partnerDisplayName = switch (profiles.get(c.owner)) {
+      let partnerProfile = profiles.get(c.owner);
+      let partnerDisplayName = switch (partnerProfile) {
         case (?p) p.username;
         case null c.owner.toText();
       };
+      let partnerAvatarShape : AuthTypes.AvatarShape = switch (partnerProfile) {
+        case (?p) p.avatarShape;
+        case null null;
+      };
+      let partnerAvatarColor : AuthTypes.AvatarColor = switch (partnerProfile) {
+        case (?p) p.avatarColor;
+        case null null;
+      };
+      let partnerAvatarColorMode = getPartnerAvatarColorMode(partnerProfile);
       let highFiveCount = getInteractionCount(interactions, c.id);
-      { checkIn = c; goalName; partnerDisplayName; highFiveCount };
+      { checkIn = c; goalName; partnerDisplayName; partnerAvatarShape; partnerAvatarColor; partnerAvatarColorMode; highFiveCount };
     }).toArray();
   };
 

@@ -562,6 +562,24 @@ video {
     /* ── Hold-to-undo tracing border — always white on charcoal ─────────── */
     --hold-duration: 1200ms;
     --trace-color: #ffffff;
+
+    /* ── Avatar system tokens (light charcoal) ─────────────────────────── */
+    /* Container: neutral charcoal, never tinted by avatarColor */
+    --avatar-bg: 0.27 0.005 264;
+    --avatar-default-text: 0.99 0 0; /* white initial on null/null */
+    --avatar-border-width: 2px;
+    --avatar-shape-opacity: 1;
+    /* Seven approved base colors — OKLCH equivalents of #10B981 #0369A1 #F59E0B #8B5CF6 #EC4899 #EF4444 #FDE047 */
+    --avatar-base-emerald: 0.696 0.17 162;
+    --avatar-base-ocean: 0.466 0.14 234;
+    --avatar-base-amber: 0.76 0.16 70;
+    --avatar-base-violet: 0.58 0.21 296;
+    --avatar-base-pink: 0.66 0.22 358;
+    --avatar-base-red: 0.6 0.22 25;
+    --avatar-base-yellow: 0.91 0.17 98;
+    /* Swatch / slider surface */
+    --avatar-swatch-bg: 0.3 0.005 264;
+    --avatar-slider-track: 0.25 0.005 264;
   }
 
   .dark {
@@ -614,6 +632,21 @@ video {
 
     /* ── Hold-to-undo tracing border — white on deep charcoal ──────────── */
     --trace-color: #ffffff;
+
+    /* ── Avatar system tokens (deep charcoal) ─────────────────────────── */
+    --avatar-bg: 0.2 0.008 264;
+    --avatar-default-text: 0.99 0 0;
+    --avatar-border-width: 2px;
+    --avatar-shape-opacity: 1;
+    --avatar-base-emerald: 0.696 0.17 162;
+    --avatar-base-ocean: 0.466 0.14 234;
+    --avatar-base-amber: 0.76 0.16 70;
+    --avatar-base-violet: 0.58 0.21 296;
+    --avatar-base-pink: 0.66 0.22 358;
+    --avatar-base-red: 0.6 0.22 25;
+    --avatar-base-yellow: 0.91 0.17 98;
+    --avatar-swatch-bg: 0.22 0.01 264;
+    --avatar-slider-track: 0.18 0.01 264;
   }
 
   * {
@@ -625,6 +658,19 @@ video {
   color: oklch(var(--foreground));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 2rem;
+  padding-left: 2rem;
+}
+@media (min-width: 1400px) {
+
+  .container {
+    max-width: 1400px;
+  }
 }
 .sr-only {
   position: absolute;
@@ -836,9 +882,6 @@ video {
 .-ml-4 {
   margin-left: -1rem;
 }
-.-mt-1 {
-  margin-top: -0.25rem;
-}
 .-mt-4 {
   margin-top: -1rem;
 }
@@ -1022,9 +1065,6 @@ video {
 .size-full {
   width: 100%;
   height: 100%;
-}
-.h-0\.5 {
-  height: 0.125rem;
 }
 .h-1 {
   height: 0.25rem;
@@ -1323,9 +1363,6 @@ video {
 .flex-1 {
   flex: 1 1 0%;
 }
-.flex-\[2\] {
-  flex: 2;
-}
 .flex-shrink-0 {
   flex-shrink: 0;
 }
@@ -1489,6 +1526,9 @@ video {
 }
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.grid-cols-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 .grid-cols-7 {
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1763,6 +1803,10 @@ video {
 .border-dashed {
   border-style: dashed;
 }
+.border-\[\#10b981\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(16 185 129 / var(--tw-border-opacity, 1));
+}
 .border-\[rgba\(3\2c 105\2c 161\2c 0\.45\)\] {
   border-color: rgba(3,105,161,0.45);
 }
@@ -1846,6 +1890,9 @@ video {
   --tw-border-opacity: 1;
   border-top-color: rgb(255 255 255 / var(--tw-border-opacity, 1));
 }
+.bg-\[\#10b981\]\/10 {
+  background-color: rgb(16 185 129 / 0.1);
+}
 .bg-accent {
   --tw-bg-opacity: 1;
   background-color: oklch(var(--accent) / var(--tw-bg-opacity, 1));
@@ -1860,9 +1907,6 @@ video {
 .bg-accent-success {
   --tw-bg-opacity: 1;
   background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
-}
-.bg-accent-success\/10 {
-  background-color: rgb(16 185 129 / 0.1);
 }
 .bg-accent\/10 {
   background-color: oklch(var(--accent) / 0.1);
@@ -3010,6 +3054,134 @@ video {
 .border-accent-skip {
     border-color: #0369a1;
   }
+/* ─── Avatar system ────────────────────────────────────────────────────── */
+/* Container: ALWAYS a circle, neutral charcoal background, neumorphic inset.
+     avatarColor is applied ONLY to the border (via inline style on the element
+     using the token) and the inner SVG shape fill — never to the background. */
+.avatar-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 9999px;
+    background-color: oklch(var(--avatar-bg));
+    border-width: var(--avatar-border-width);
+    border-style: solid;
+    border-color: transparent; /* overridden inline by avatarColor when set */
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.6), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+}
+.light .avatar-container {
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.5), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.3) !important;
+  }
+/* Default (null/null) avatar: white username initial on neutral circle */
+.avatar-default-initial {
+  font-family: var(--font-display), serif;
+  font-weight: 600;
+  line-height: 1;
+    color: oklch(var(--avatar-default-text));
+}
+/* Inner SVG geometric shape — fill set inline by avatarColor */
+.avatar-shape {
+    opacity: var(--avatar-shape-opacity);
+  }
+/* BorderOnly mode: inner shape renders in a neutral white/light-gray so the
+     colored border ring AND the neutral inner shape are both visible. */
+.avatar-shape-neutral {
+    color: oklch(0.96 0.005 264);
+  }
+.dark .avatar-shape-neutral {
+    color: oklch(0.92 0.005 264);
+  }
+/* Color swatch button — neumorphic chip; active state shows selection ring */
+.avatar-swatch {
+  cursor: pointer;
+  border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-width: 1px;
+    border-color: transparent;
+    background-color: oklch(var(--avatar-swatch-bg));
+    box-shadow: -2px -2px 5px rgba(80, 80, 85, 0.35), 3px 3px 7px
+      rgba(0, 0, 0, 0.7);
+}
+.avatar-swatch:hover {
+    transform: scale(1.05);
+  }
+.avatar-swatch.active {
+    border-color: oklch(var(--foreground));
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+  }
+.avatar-swatch.\!active {
+    border-color: oklch(var(--foreground)) !important;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2) !important;
+  }
+/* RGB offset sliders — neumorphic track, accent-success thumb */
+.avatar-slider {
+  width: 100%;
+  cursor: pointer;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: oklch(var(--avatar-slider-track));
+    height: 6px;
+    border-radius: 9999px;
+    box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.6), inset -1px -1px 3px
+      rgba(80, 80, 85, 0.2);
+}
+.avatar-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+          appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background-color: #10b981;
+    border: 2px solid oklch(var(--foreground));
+    box-shadow: -1px -1px 3px rgba(80, 80, 85, 0.4), 2px 2px 4px
+      rgba(0, 0, 0, 0.6);
+}
+.avatar-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background-color: #10b981;
+    border: 2px solid oklch(var(--foreground));
+    box-shadow: -1px -1px 3px rgba(80, 80, 85, 0.4), 2px 2px 4px
+      rgba(0, 0, 0, 0.6);
+  }
+/* Shape picker button — neumorphic chip, mirrors .chip-neumorphic language */
+.avatar-shape-btn {
+  cursor: pointer;
+  border-radius: var(--radius);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: oklch(var(--card));
+    color: oklch(var(--foreground));
+    border-width: 1px;
+    border-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: -2px -2px 5px rgba(80, 80, 85, 0.35), 3px 3px 7px
+      rgba(0, 0, 0, 0.7);
+}
+.avatar-shape-btn:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+.avatar-shape-btn.active {
+    border: 2px solid #10b981;
+    color: #10b981;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+  }
+.avatar-shape-btn.\!active {
+    border: 2px solid #10b981 !important;
+    color: #10b981 !important;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2) !important;
+  }
 .\[--cell-size\:--spacing\(8\)\] {
   --cell-size: var(--spacing(8));
 }
@@ -3114,6 +3286,37 @@ video {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   padding: 2px;
+}
+
+/* ─── Top "Create Habit" button — subtle premium outer breathing glow ──── */
+/* Only applied to the standalone button shown when there are no active
+   habits, so the glow naturally appears only in the empty state. Uses the
+   Emerald Green accent (var(--color-accent-success) / #10B981) layered on top
+   of the existing neumorphic shadow for a soft, premium pulse — not neon. */
+@keyframes createHabitGlowPulse {
+  0%,
+  100% {
+    box-shadow: -2px -2px 5px rgba(60, 60, 65, 0.35), 3px 3px 8px
+      rgba(0, 0, 0, 0.65), 0 0 0 0 oklch(0.696 0.17 162 / 0.18), 0 0 10px 1px
+      oklch(0.696 0.17 162 / 0.22);
+  }
+  50% {
+    box-shadow:
+      -2px -2px 5px rgba(60, 60, 65, 0.35),
+      3px 3px 8px rgba(0, 0, 0, 0.65),
+      0 0 0 3px oklch(0.696 0.17 162 / 0.12),
+      0 0 18px 4px oklch(0.696 0.17 162 / 0.38);
+  }
+}
+
+.create-habit-glow {
+  animation: createHabitGlowPulse 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-habit-glow {
+    animation: none;
+  }
 }
 
 .selection\:bg-primary *::-moz-selection {
@@ -3254,6 +3457,10 @@ video {
   border-bottom-width: 0px;
 }
 
+.hover\:border-border:hover {
+  border-color: oklch(var(--border));
+}
+
 .hover\:border-destructive\/40:hover {
   border-color: oklch(var(--destructive) / 0.4);
 }
@@ -3264,10 +3471,6 @@ video {
 
 .hover\:border-primary\/30:hover {
   border-color: oklch(var(--primary) / 0.3);
-}
-
-.hover\:border-white\/10:hover {
-  border-color: rgb(255 255 255 / 0.1);
 }
 
 .hover\:bg-\[rgba\(3\2c 105\2c 161\2c 0\.1\)\]:hover {
@@ -3364,6 +3567,10 @@ video {
 
 .hover\:opacity-100:hover {
   opacity: 1;
+}
+
+.hover\:opacity-90:hover {
+  opacity: 0.9;
 }
 
 .hover\:shadow-\[0_0_0_1px_hsl\(var\(--sidebar-accent\)\)\]:hover {
@@ -4622,14 +4829,6 @@ video {
     max-width: 24rem;
   }
 
-  .sm\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .sm\:grid-cols-5 {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
   .sm\:flex-row {
     flex-direction: row;
   }
@@ -4693,10 +4892,6 @@ video {
 
   .md\:w-auto {
     width: auto;
-  }
-
-  .md\:grid-cols-5 {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .md\:flex-row {

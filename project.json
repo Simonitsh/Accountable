@@ -1,17 +1,17 @@
 {
-  "overview": "Cumulative is a behavioral-science-driven social accountability PWA with a premium Neumorphic aesthetic for tracking habits and goals.",
+  "overview": "A Neumorphic dark/light themed habit tracking PWA with a customizable avatar system.",
   "features": [
-    "Habit creation wizard with mandatory category selection",
-    "Dashboard with category badges on habit cards",
-    "Immutable category and habit type fields",
-    "Neumorphic dark theme design"
+    "Customizable avatars with shapes, colors, and fill or border-only modes",
+    "Habit tracking with progress and analytics",
+    "Partner feed for shared activity",
+    "Consistent unsaved-changes prompts across the app"
   ],
   "category": "productivity",
   "tags": [
-    "habit-tracking",
+    "habit-tracker",
+    "pwa",
     "neumorphic",
-    "accountability",
-    "behavioral-science"
+    "avatar-system"
   ],
-  "last_updated": "2026-06-28T18:56:55.533Z"
+  "last_updated": "2026-07-07T11:45:51.142Z"
 }

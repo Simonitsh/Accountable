@@ -23,5 +23,5 @@ extends = true
 args = [ "--default-persistent-actors", "--actor-idl=src/backend/system-idl", "--implicit-package=core", "-no-check-ir", "-E=M0236,M0235,M0223,M0237", "-A=M0198" ]
 
 [dependencies]
-core = "2.5.0"
+core = "2.6.0"
 caffeineai-email = "0.1.1"

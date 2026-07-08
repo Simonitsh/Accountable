@@ -14,9 +14,17 @@ import ConnectionsApi "mixins/connections-api";
 import FeedApi "mixins/feed-api";
 import AnalyticsApi "mixins/analytics-api";
 import EmailNotificationsApi "mixins/email-notifications-api";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
+
+
+
+
+
+
+
+
 actor {
   // Auth & user state
   let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();

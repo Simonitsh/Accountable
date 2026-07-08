@@ -5,7 +5,9 @@ type UserRole =
  };
 type UserProfilePublic = 
  record {
-   avatarArchetype: text;
+   avatarColor: AvatarColor;
+   avatarColorMode: AvatarColorMode;
+   avatarShape: AvatarShape;
    bio: opt text;
    displayName: text;
    email: opt text;
@@ -130,6 +132,9 @@ type FeedItem =
    checkIn: CheckIn;
    goalName: text;
    highFiveCount: nat;
+   partnerAvatarColor: AvatarColor;
+   partnerAvatarColorMode: AvatarColorMode;
+   partnerAvatarShape: AvatarShape;
    partnerDisplayName: text;
  };
 type CreateObstacleRequest = 
@@ -196,6 +201,20 @@ type CheckIn =
    owner: UserId;
    timestamp: Timestamp;
  };
+type AvatarShape = 
+ opt variant {
+       Hexagon;
+       Pentagon;
+       Square;
+       Star;
+       Triangle;
+     };
+type AvatarColorMode = 
+ variant {
+   BorderOnly;
+   Fill;
+ };
+type AvatarColor = opt text;
 type AnalyticsSummary = 
  record {
    dailySuccessRate30Days: vec float64;
@@ -240,7 +259,7 @@ service : {
   recordCheckIn: (request: RecordCheckInRequest) -> (CheckIn);
   recordInteraction: (checkInId: CheckInId, interactionType:
    InteractionType) -> (Interaction);
-  register: (username: text, avatarArchetype: text) -> (UserProfilePublic);
+  register: (username: text) -> (UserProfilePublic);
   respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
   setTimezone: (tz: text) -> ();
@@ -250,7 +269,8 @@ service : {
       ok: GoalPublic;
     });
   updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
-  updateMyProfile: (displayName: opt text, avatarArchetype: opt text, bio:
+  updateMyProfile: (displayName: opt text, avatarShape: AvatarShape,
+   avatarColor: AvatarColor, avatarColorMode: opt AvatarColorMode, bio:
    opt text, email: opt text, timezoneOffsetMinutes: opt int) ->
    (variant {
       err: text;

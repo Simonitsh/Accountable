@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { Menu, User } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useDashboardHeader } from "../hooks/useDashboardHeader";
 import { useTheme } from "../hooks/useTheme";
 import { useUserProfile } from "../hooks/useUserProfile";
-import { ArchetypeAvatar } from "./ArchetypeAvatar";
+import { Avatar } from "./Avatar";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -132,8 +132,8 @@ function HeaderProgressRing({
 export function Header({ onMenuClick }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const dashboardData = useDashboardHeader();
-  const isDashboard = dashboardData !== null;
   const { data: profile } = useUserProfile();
+  const isDashboard = dashboardData !== null;
 
   return (
     <header
@@ -201,22 +201,24 @@ export function Header({ onMenuClick }: HeaderProps) {
             isComplete={dashboardData.isComplete}
           />
         ) : (
-          /* Other pages: profile link with ArchetypeAvatar */
+          /* Other pages: profile link with signed-in user's avatar */
           <Link
             to="/profile"
             data-ocid="header.profile_link"
             aria-label="Go to profile"
             className={cn(
               "flex items-center justify-center rounded-full transition-smooth",
-              "shadow-neumorphic-emboss-dark",
-              "text-muted-foreground hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "shadow-neumorphic-emboss-dark overflow-hidden",
+              "hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
           >
-            <ArchetypeAvatar
-              archetype={profile?.avatarArchetype ?? ""}
-              size={36}
-              showFallback
+            <Avatar
+              username={profile?.username ?? ""}
+              avatarShape={profile?.avatarShape ?? null}
+              avatarColor={profile?.avatarColor ?? null}
+              colorMode={profile?.avatarColorMode ?? "Fill"}
+              size="sm"
+              alt={profile?.username ?? "Your avatar"}
             />
           </Link>
         )}

@@ -240,11 +240,9 @@ function ForcedUsernameModal({ onComplete }: ForcedUsernameModalProps) {
     setApiError("");
     try {
       if (!actor) throw new Error("Backend not available.");
-      await (
-        actor as unknown as {
-          register: (u: string, a: string) => Promise<unknown>;
-        }
-      ).register(username.trim(), "Oak");
+      await (actor as { register: (u: string) => Promise<unknown> }).register(
+        username.trim(),
+      );
       await queryClient.invalidateQueries({ queryKey: ["userProfile"] });
       await queryClient.refetchQueries({ queryKey: ["userProfile"] });
       onComplete();
@@ -1492,34 +1490,14 @@ export function DashboardPage() {
           </p>
         </div>
 
-        {/* Tab pills + Create Habit button in the same row */}
+        {/* Tab pills */}
         {!isLoading && activeGoals.length > 0 && (
-          <div className="flex items-center gap-2">
-            <TabPills
-              activeTab={activeTab}
-              doneCount={done.length}
-              onTabChange={setActiveTab}
-              badgeAnimKey={badgeAnimKey}
-            />
-            <button
-              type="button"
-              onClick={() => setShowWoop(true)}
-              data-ocid="dashboard.create_habit_button"
-              aria-label="Create a new habit"
-              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth ml-auto"
-              style={{
-                background: "#10B981",
-                color: "#022c22",
-                fontFamily: "var(--font-body, inherit)",
-                boxShadow:
-                  "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
-                fontWeight: 500,
-              }}
-            >
-              <Plus size={14} />
-              Create Habit
-            </button>
-          </div>
+          <TabPills
+            activeTab={activeTab}
+            doneCount={done.length}
+            onTabChange={setActiveTab}
+            badgeAnimKey={badgeAnimKey}
+          />
         )}
         {/* Show Create Habit button even when no goals yet */}
         {!isLoading && activeGoals.length === 0 && (
@@ -1529,7 +1507,7 @@ export function DashboardPage() {
               onClick={() => setShowWoop(true)}
               data-ocid="dashboard.create_habit_button"
               aria-label="Create a new habit"
-              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
+              className="create-habit-glow flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
               style={{
                 background: "#10B981",
                 color: "#022c22",

@@ -7,28 +7,6 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface UpdateGoalRequest {
-    startTime?: string;
-    intentTimeMinutes?: bigint;
-    endTimeMinutes?: bigint;
-    emailNotifications?: boolean;
-    endTime?: string;
-    scheduledDays?: Array<string>;
-    timezoneOffsetMinutes: bigint;
-    startTimeMinutes?: bigint;
-    wish?: string;
-    themeColor?: string;
-    isTimeEdit?: boolean;
-    wishDescription?: string;
-    iconName?: string;
-    ifThenPlan?: string;
-    category?: GoalCategory;
-    isLockIn?: boolean;
-    reminderOffset?: bigint;
-    intentTime?: string;
-    outcome?: string;
-    lockInDurationMinutes?: bigint;
-}
 export type Timestamp = bigint;
 export interface RecordCheckInRequest {
     timezoneOffsetMinutes: bigint;
@@ -71,6 +49,40 @@ export interface CreateGoalRequest {
     outcome: string;
     lockInDurationMinutes?: bigint;
 }
+export interface AnalyticsSummary {
+    goals: Array<GoalAnalytics>;
+    dailySuccessRate30Days: Array<number>;
+}
+export interface CheckIn {
+    id: CheckInId;
+    owner: UserId;
+    goalId: GoalId;
+    checkInType: CheckInType;
+    obstacleTemplateId?: ObstacleTemplateId;
+    timestamp: Timestamp;
+    executedIfThen: boolean;
+    lockInStartedAt?: bigint;
+    lockInEndedAt?: bigint;
+    customObstacleNote?: string;
+}
+export type AvatarShape = Variant_Star_Pentagon_Triangle_Hexagon_Square | null;
+export interface ConnectionPublic {
+    id: ConnectionId;
+    status: ConnectionStatus;
+    createdAt: Timestamp;
+    toPrincipal: UserId;
+    fromPrincipal: UserId;
+}
+export type CheckInId = bigint;
+export interface Interaction {
+    id: InteractionId;
+    interactionType: InteractionType;
+    fromPrincipal: UserId;
+    checkInId: CheckInId;
+    timestamp: Timestamp;
+}
+export type AvatarColor = string | null;
+export type GoalId = bigint;
 export type ObstacleTemplateId = bigint;
 export type ConnectionId = bigint;
 export interface GoalPublic {
@@ -101,20 +113,18 @@ export interface GoalPublic {
     lockInDurationMinutes: bigint;
     lastEmailSentAt: bigint;
 }
-export interface AnalyticsSummary {
-    goals: Array<GoalAnalytics>;
-    dailySuccessRate30Days: Array<number>;
-}
 export interface UserProfilePublic {
     id: UserId;
     bio?: string;
-    avatarArchetype: string;
     timezone: string;
     username: string;
     displayName: string;
     timezoneOffsetMinutes: bigint;
     role: UserRole;
     email?: string;
+    avatarColor: AvatarColor;
+    avatarColorMode: AvatarColorMode;
+    avatarShape: AvatarShape;
 }
 export interface CreateObstacleRequest {
     title: string;
@@ -128,40 +138,41 @@ export interface ObstacleTemplate {
     description: string;
 }
 export type InteractionId = bigint;
-export interface CheckIn {
-    id: CheckInId;
-    owner: UserId;
-    goalId: GoalId;
-    checkInType: CheckInType;
-    obstacleTemplateId?: ObstacleTemplateId;
-    timestamp: Timestamp;
-    executedIfThen: boolean;
-    lockInStartedAt?: bigint;
-    lockInEndedAt?: bigint;
-    customObstacleNote?: string;
-}
 export interface FeedItem {
     checkIn: CheckIn;
     goalName: string;
     partnerDisplayName: string;
+    partnerAvatarColor: AvatarColor;
     highFiveCount: bigint;
+    partnerAvatarColorMode: AvatarColorMode;
+    partnerAvatarShape: AvatarShape;
 }
-export interface ConnectionPublic {
-    id: ConnectionId;
-    status: ConnectionStatus;
-    createdAt: Timestamp;
-    toPrincipal: UserId;
-    fromPrincipal: UserId;
+export interface UpdateGoalRequest {
+    startTime?: string;
+    intentTimeMinutes?: bigint;
+    endTimeMinutes?: bigint;
+    emailNotifications?: boolean;
+    endTime?: string;
+    scheduledDays?: Array<string>;
+    timezoneOffsetMinutes: bigint;
+    startTimeMinutes?: bigint;
+    wish?: string;
+    themeColor?: string;
+    isTimeEdit?: boolean;
+    wishDescription?: string;
+    iconName?: string;
+    ifThenPlan?: string;
+    category?: GoalCategory;
+    isLockIn?: boolean;
+    reminderOffset?: bigint;
+    intentTime?: string;
+    outcome?: string;
+    lockInDurationMinutes?: bigint;
 }
-export type CheckInId = bigint;
-export interface Interaction {
-    id: InteractionId;
-    interactionType: InteractionType;
-    fromPrincipal: UserId;
-    checkInId: CheckInId;
-    timestamp: Timestamp;
+export enum AvatarColorMode {
+    Fill = "Fill",
+    BorderOnly = "BorderOnly"
 }
-export type GoalId = bigint;
 export enum CheckInType {
     skip = "skip",
     missedCheckIn = "missedCheckIn",
@@ -193,6 +204,13 @@ export enum InteractionType {
 export enum UserRole {
     admin = "admin",
     user = "user"
+}
+export enum Variant_Star_Pentagon_Triangle_Hexagon_Square {
+    Star = "Star",
+    Pentagon = "Pentagon",
+    Triangle = "Triangle",
+    Hexagon = "Hexagon",
+    Square = "Square"
 }
 export interface backendInterface {
     createGoal(request: CreateGoalRequest): Promise<{
@@ -238,7 +256,7 @@ export interface backendInterface {
     listPendingRequests(): Promise<Array<ConnectionPublic>>;
     recordCheckIn(request: RecordCheckInRequest): Promise<CheckIn>;
     recordInteraction(checkInId: CheckInId, interactionType: InteractionType): Promise<Interaction>;
-    register(username: string, avatarArchetype: string): Promise<UserProfilePublic>;
+    register(username: string): Promise<UserProfilePublic>;
     respondToConnection(connectionId: ConnectionId, accept: boolean): Promise<boolean>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;
     setTimezone(tz: string): Promise<void>;
@@ -250,7 +268,7 @@ export interface backendInterface {
         err: string;
     }>;
     updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
-    updateMyProfile(displayName: string | null, avatarArchetype: string | null, bio: string | null, email: string | null, timezoneOffsetMinutes: bigint | null): Promise<{
+    updateMyProfile(displayName: string | null, avatarShape: AvatarShape, avatarColor: AvatarColor, avatarColorMode: AvatarColorMode | null, bio: string | null, email: string | null, timezoneOffsetMinutes: bigint | null): Promise<{
         __kind__: "ok";
         ok: UserProfilePublic;
     } | {

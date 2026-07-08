@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "connector-googlemail": {
+      "source": "caffeinelabs/skills",
+      "sourceType": "github",
+      "computedHash": "875f9c192dacae900b6a97d094240c0501b1127104e5cf52a1df2c375c82fbcf"
+    },
     "extension-authorization": {
       "source": "caffeinelabs/skills",
       "sourceType": "github",
@@ -14,7 +19,7 @@
     "extension-core-infrastructure": {
       "source": "caffeinelabs/skills",
       "sourceType": "github",
-      "computedHash": "d70e6ac17050ababaa4d91440184912a10115b6e2d581d2436e4507118718833"
+      "computedHash": "80163fc5b6736341f5bb4c0ba1f474b81b93848cc3b8af2b98722936941bb4e6"
     },
     "extension-data-viewer": {
       "source": "caffeinelabs/skills",
@@ -59,7 +64,7 @@
     "extension-object-storage": {
       "source": "caffeinelabs/skills",
       "sourceType": "github",
-      "computedHash": "b6bd04883e13f4a88c9b2a031e316673f71ce56826558782ffd2607d0c6c1e70"
+      "computedHash": "ee60f2a44d504428ebc1224f0ac48870406d0ddb408aed66d47a23a20505cb71"
     },
     "extension-openai": {
       "source": "caffeinelabs/skills",
@@ -69,7 +74,7 @@
     "extension-oql": {
       "source": "caffeinelabs/skills",
       "sourceType": "github",
-      "computedHash": "98176917f22e8380f844f802c713c465a4c608299db279bc42bd069eaaad19f9"
+      "computedHash": "74d0b164eb5fec9efa3a464d739ff0e66c32edca2028e2adf1f985afa80ed9e3"
     },
     "extension-posting-to-x": {
       "source": "caffeinelabs/skills",
@@ -80,6 +85,11 @@
       "source": "caffeinelabs/skills",
       "sourceType": "github",
       "computedHash": "e8db4672e4e3ca1ba21dd8e194dd17c67e4b9d1ce08a227c3de0ad7d303046bd"
+    },
+    "extension-querying-oql": {
+      "source": "caffeinelabs/skills",
+      "sourceType": "github",
+      "computedHash": "42b124e5d0fd199025b981f9e210d82e1ebadda0e5438ab0ac94f008c81b61d1"
     },
     "extension-stripe": {
       "source": "caffeinelabs/skills",

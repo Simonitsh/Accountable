@@ -14,6 +14,7 @@ import { AdminPage as AdminPageImpl } from "./pages/AdminPage";
 import { AnalyticsPage as AnalyticsPageImpl } from "./pages/AnalyticsPage";
 import { ConnectionsPage } from "./pages/ConnectionsPage";
 import { DashboardPage as DashboardPageImpl } from "./pages/DashboardPage";
+import { EditAvatarPage as EditAvatarPageImpl } from "./pages/EditAvatarPage";
 import { EditHabitPage as EditHabitPageImpl } from "./pages/EditHabitPage";
 import { EditProfilePage as EditProfilePageImpl } from "./pages/EditProfilePage";
 import { FeedPage as FeedPageImpl } from "./pages/FeedPage";
@@ -51,6 +52,9 @@ function EditHabitPage() {
 function EditProfilePage() {
   return <EditProfilePageImpl />;
 }
+function EditAvatarPage() {
+  return <EditAvatarPageImpl />;
+}
 
 // ─── Shared spinner ───────────────────────────────────────────────────────────
 function AppSpinner({ ocid, label }: { ocid: string; label?: string }) {
@@ -71,8 +75,8 @@ function AppSpinner({ ocid, label }: { ocid: string; label?: string }) {
 //
 // Three-state machine:
 //   LOADING         → waiting for actor + profile to be ready
-//   NEEDS_ONBOARDING → authenticated, actor ready, but no username or avatarArchetype set
-//   READY           → authenticated, actor ready, username and avatarArchetype confirmed → show app
+//   NEEDS_ONBOARDING → authenticated, actor ready, but no username set
+//   READY           → authenticated, actor ready, username confirmed → show app
 //
 // KEY: The routing decision is latched with a useRef once it's made.
 // Once we decide READY, we never go back to LOADING or NEEDS_ONBOARDING,
@@ -111,27 +115,10 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     // Determine if the user needs onboarding.
     const username = profile?.username ?? "";
     const principalStr = profile?.id?.toString() ?? "";
-    const avatarArchetype = profile?.avatarArchetype ?? "";
-
-    const validArchetypes = [
-      "Oak",
-      "River",
-      "Wolf",
-      "Owl",
-      "Mountain",
-      "Fire",
-      "Bamboo",
-      "Honeycomb",
-      "Wind",
-      "Tide",
-    ];
-
     const needsOnboarding =
       !profile ||
       username.trim().length === 0 ||
-      (principalStr.length > 0 && username === principalStr) ||
-      avatarArchetype.trim().length === 0 ||
-      !validArchetypes.includes(avatarArchetype);
+      (principalStr.length > 0 && username === principalStr);
 
     if (needsOnboarding) {
       // The early return above already handles the case where latched === "READY",
@@ -139,7 +126,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
       latchedStateRef.current = "NEEDS_ONBOARDING";
       setGateState("NEEDS_ONBOARDING");
     } else {
-      // Username and avatarArchetype confirmed — latch READY permanently.
+      // Username confirmed — latch READY permanently.
       latchedStateRef.current = "READY";
       setGateState("READY");
     }
@@ -158,8 +145,8 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     return (
       <OnboardingPage
         onComplete={() => {
-          // After username and avatarArchetype are set, refetch profile — useEffect above will
-          // see the populated username and avatarArchetype and transition gate to READY.
+          // After username is set, refetch profile — useEffect above will
+          // see the populated username and transition gate to READY.
           void refetch();
         }}
       />
@@ -257,6 +244,12 @@ const editProfileRoute = createRoute({
   component: EditProfilePage,
 });
 
+const editAvatarRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile/avatar",
+  component: EditAvatarPage,
+});
+
 const catchAllRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "*",
@@ -274,6 +267,7 @@ const routeTree = rootRoute.addChildren([
   goalsRoute,
   editHabitRoute,
   editProfileRoute,
+  editAvatarRoute,
   catchAllRoute,
 ]);
 

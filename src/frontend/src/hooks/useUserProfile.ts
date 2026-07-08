@@ -91,12 +91,16 @@ export function useUserProfile() {
 }
 
 /**
- * Returns a mutation to update the user's bio.
- * Only updates the displayed bio after the backend confirms success.
- */
-/**
  * Returns a mutation to update the user's profile (displayName, bio, email).
  * Only updates the UI after the backend confirms success.
+ *
+ * CRITICAL: The backend (lib/auth.mo) unconditionally assigns
+ * profile.avatarShape := avatarShape and profile.avatarColor := avatarColor on
+ * every updateMyProfile call. Passing null/null would wipe the user's saved
+ * avatar on every bio/displayName/email edit. To preserve the avatar, we read
+ * the current profile from the query cache and forward its avatarShape /
+ * avatarColor verbatim — the same preservation pattern useUpdateAvatar uses
+ * for the non-avatar fields.
  */
 export function useUpdateBio() {
   const { actor } = useBackend();
@@ -107,33 +111,126 @@ export function useUpdateBio() {
       bio,
       displayName,
       email,
-      avatarArchetype,
     }: {
       bio: string;
       displayName: string;
       email: string;
-      avatarArchetype?: string | null;
     }) => {
       if (!actor) throw new Error("Actor not available");
+      // Read the current profile from the cache so we can forward the existing
+      // avatar fields verbatim — the backend overwrites them unconditionally.
+      const currentProfile = queryClient.getQueryData<UserProfilePublic | null>(
+        ["userProfile"],
+      );
+      const shapeArg = currentProfile?.avatarShape ?? null;
+      const colorArg = currentProfile?.avatarColor ?? null;
       // Explicitly send null for empty strings to clear the field on the backend.
       // Do NOT use `|| undefined` — that silently ignores clearing.
       const nameArg = displayName.trim().length > 0 ? displayName.trim() : null;
       const bioArg = bio.trim().length > 0 ? bio.trim() : null;
       const emailArg = email.trim().length > 0 ? email.trim() : null;
-      const archetypeArg =
-        avatarArchetype && avatarArchetype.trim().length > 0
-          ? avatarArchetype.trim()
-          : null;
       const result = await (
         actor as unknown as {
           updateMyProfile: (...args: unknown[]) => Promise<unknown>;
         }
       ).updateMyProfile(
         nameArg,
-        archetypeArg,
+        shapeArg,
+        colorArg,
         bioArg,
         emailArg,
         BigInt(-new Date().getTimezoneOffset()),
+      );
+      if (
+        result &&
+        typeof result === "object" &&
+        "__kind__" in result &&
+        (result as { __kind__: string }).__kind__ === "err"
+      )
+        throw new Error(String((result as unknown as { err: unknown }).err));
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      queryClient.refetchQueries({ queryKey: ["userProfile"] });
+    },
+  });
+}
+
+/**
+ * Returns a mutation to update ONLY the user's avatar (avatarShape + avatarColor
+ * + avatarColorMode).
+ *
+ * Per the dispatch contract, this calls updateMyProfile with the CURRENT
+ * displayName, the NEW avatarShape, the NEW avatarColor, the NEW
+ * avatarColorMode, the CURRENT bio, the CURRENT email, and the CURRENT
+ * timezoneOffsetMinutes — so the non-avatar fields are preserved verbatim while
+ * the avatar fields are replaced.
+ *
+ * Pass `null` for both avatarShape and avatarColor to clear the avatar back to
+ * the default username-initial state. Pass `null` for avatarColorMode to let
+ * the backend default it (Fill).
+ */
+export function useUpdateAvatar() {
+  const { actor } = useBackend();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      avatarShape,
+      avatarColor,
+      avatarColorMode,
+      currentProfile,
+    }: {
+      avatarShape:
+        | "Triangle"
+        | "Square"
+        | "Pentagon"
+        | "Hexagon"
+        | "Star"
+        | null;
+      avatarColor: string | null;
+      avatarColorMode: "Fill" | "BorderOnly" | null;
+      currentProfile: UserProfilePublic;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      // Preserve the current non-avatar fields verbatim. Empty strings become
+      // null so the backend clears them rather than storing "".
+      const nameArg =
+        currentProfile.displayName &&
+        currentProfile.displayName.trim().length > 0
+          ? currentProfile.displayName.trim()
+          : null;
+      const bioArg =
+        currentProfile.bio && currentProfile.bio.trim().length > 0
+          ? currentProfile.bio.trim()
+          : null;
+      const emailArg =
+        currentProfile.email && currentProfile.email.trim().length > 0
+          ? currentProfile.email.trim()
+          : null;
+      const tzArg = currentProfile.timezoneOffsetMinutes ?? null;
+      // Map the local "Fill" | "BorderOnly" string to the backend enum value.
+      // The backend enum serializes to the same string keys, so a plain string
+      // literal is sufficient here (the actor call is cast to unknown[] below).
+      const modeArg =
+        avatarColorMode === "Fill"
+          ? "Fill"
+          : avatarColorMode === "BorderOnly"
+            ? "BorderOnly"
+            : null;
+      const result = await (
+        actor as unknown as {
+          updateMyProfile: (...args: unknown[]) => Promise<unknown>;
+        }
+      ).updateMyProfile(
+        nameArg,
+        avatarShape,
+        avatarColor,
+        modeArg,
+        bioArg,
+        emailArg,
+        tzArg,
       );
       if (
         result &&

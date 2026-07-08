@@ -1,10 +1,12 @@
 import {
+  AvatarColorMode,
   CheckInType,
   ConnectionStatus,
   GoalCategory,
   GoalState,
   InteractionType,
   UserRole,
+  Variant_Star_Pentagon_Triangle_Hexagon_Square,
 } from "../backend";
 import type { backendInterface } from "../backend";
 
@@ -260,7 +262,9 @@ export const mockBackend: backendInterface = {
     id: mockPrincipal,
     username: "alex_cumulative",
     displayName: "Alex",
-    avatarArchetype: "Oak",
+    avatarShape: Variant_Star_Pentagon_Triangle_Hexagon_Square.Hexagon,
+    avatarColor: "#10B981",
+    avatarColorMode: AvatarColorMode.Fill,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     timezoneOffsetMinutes: 0n,
@@ -271,6 +275,9 @@ export const mockBackend: backendInterface = {
       checkIn: sampleCheckIn,
       goalName: "Run 5K every morning",
       partnerDisplayName: "Jordan",
+      partnerAvatarShape: Variant_Star_Pentagon_Triangle_Hexagon_Square.Star,
+      partnerAvatarColor: "#F59E0B",
+      partnerAvatarColorMode: AvatarColorMode.Fill,
       highFiveCount: BigInt(2),
     },
   ],
@@ -279,7 +286,9 @@ export const mockBackend: backendInterface = {
     id: mockPrincipal,
     username: "alex_cumulative",
     displayName: "Demo User",
-    avatarArchetype: "River",
+    avatarShape: null,
+    avatarColor: null,
+    avatarColorMode: AvatarColorMode.Fill,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     timezoneOffsetMinutes: 0n,
@@ -321,11 +330,13 @@ export const mockBackend: backendInterface = {
     timestamp: BigInt(Date.now()) * BigInt(1_000_000),
   }),
 
-  register: async (username, avatarArchetype) => ({
+  register: async (username) => ({
     id: mockPrincipal,
     username,
     displayName: username,
-    avatarArchetype: avatarArchetype || "Oak",
+    avatarShape: null,
+    avatarColor: null,
+    avatarColorMode: AvatarColorMode.Fill,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     role: UserRole.user,
     timezoneOffsetMinutes: 0n,
@@ -388,18 +399,28 @@ export const mockBackend: backendInterface = {
 
   isUsernameAvailable: async (username: string) => username !== "alex_cumulative",
 
-  updateMyProfile: async (displayName, avatarArchetype, bio, email) => ({
+  updateMyProfile: async (
+    displayName,
+    avatarShape,
+    avatarColor,
+    avatarColorMode,
+    bio,
+    email,
+    timezoneOffsetMinutes,
+  ) => ({
     __kind__: "ok" as const,
     ok: {
       id: mockPrincipal,
       username: "alex_cumulative",
       displayName: displayName ?? "",
-      avatarArchetype: avatarArchetype ?? "Oak",
+      avatarShape: avatarShape ?? null,
+      avatarColor: avatarColor ?? null,
+      avatarColorMode: avatarColorMode ?? AvatarColorMode.Fill,
       bio: bio ?? undefined,
       email: email ?? undefined,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       role: UserRole.user,
-      timezoneOffsetMinutes: 0n,
+      timezoneOffsetMinutes: timezoneOffsetMinutes ?? 0n,
     },
   }),
 };

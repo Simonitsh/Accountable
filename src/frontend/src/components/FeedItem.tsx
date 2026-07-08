@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useBackend } from "../hooks/useBackend";
 import type { FeedItem as FeedItemType } from "../types";
 import { OBSTACLE_TEMPLATES } from "../types";
-import { ArchetypeAvatar } from "./ArchetypeAvatar";
+import { Avatar } from "./Avatar";
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -67,11 +67,16 @@ export function FeedItem({ item, index }: FeedItemProps) {
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <ArchetypeAvatar
-            archetype={item.partnerAvatarArchetype ?? ""}
-            size={36}
-            showFallback
-          />
+          <span data-ocid={`feed.item.${index}.avatar`}>
+            <Avatar
+              username={item.partnerDisplayName}
+              avatarShape={item.partnerAvatarShape ?? null}
+              avatarColor={item.partnerAvatarColor ?? null}
+              colorMode={item.partnerAvatarColorMode ?? "Fill"}
+              size="sm"
+              alt={`${item.partnerDisplayName}'s avatar`}
+            />
+          </span>
           <div className="flex flex-col min-w-0">
             <span className="font-display font-semibold text-foreground truncate leading-tight">
               {item.partnerDisplayName}

@@ -1,4 +1,36 @@
 export type UserRole = "user" | "admin";
+
+/** Avatar shape variants — exactly five values per user instructions. */
+export type AvatarShape =
+  | "Triangle"
+  | "Square"
+  | "Pentagon"
+  | "Hexagon"
+  | "Star"
+  | null;
+
+/** Avatar color — exact hex of one of the approved base palette swatches, or null. */
+export type AvatarColor = string | null;
+
+/**
+ * Avatar color mode — determines how the selected color is applied.
+ *  - 'Fill': color is applied to both the border ring and the inner shape.
+ *  - 'BorderOnly': color is applied to the border ring only; the inner shape
+ *    renders in a neutral white/light-gray.
+ *
+ * Mirrors the backend variant (#Fill / #BorderOnly).
+ */
+export type AvatarColorMode = "Fill" | "BorderOnly";
+
+/** Backend variant mirror for AvatarColorMode (#Fill / #BorderOnly). */
+export type AvatarColorModeVariant =
+  | {
+      __kind__: "Fill";
+    }
+  | {
+      __kind__: "BorderOnly";
+    };
+
 export type GoalState = "active" | "completed" | "archived";
 export type CheckInType =
   | "success"
@@ -18,7 +50,9 @@ export interface UserProfile {
   id: string;
   username: string;
   displayName: string;
-  avatarArchetype: string;
+  avatarShape: AvatarShape;
+  avatarColor: AvatarColor;
+  avatarColorMode: AvatarColorMode;
   role: UserRole;
   goalLimit: number;
 }
@@ -72,7 +106,9 @@ export interface FeedItem {
   checkIn: CheckIn;
   goalName: string;
   partnerDisplayName: string;
-  partnerAvatarArchetype?: string;
+  partnerAvatarShape: AvatarShape;
+  partnerAvatarColor: AvatarColor;
+  partnerAvatarColorMode: AvatarColorMode;
   highFiveCount: number;
 }
 

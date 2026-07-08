@@ -110,6 +110,10 @@ export default {
           "40%": { transform: "scale(0.975)" },
           "100%": { transform: "scale(1)" },
         },
+        "avatar-swatch-pulse": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(16,185,129,0.0)" },
+          "50%": { boxShadow: "0 0 0 3px rgba(16,185,129,0.25)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -117,6 +121,7 @@ export default {
         "trace-border": "trace-border var(--hold-duration, 1200ms) linear forwards",
         "swipe-reveal": "swipe-reveal 0.18s ease-out",
         "card-lock": "card-lock 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "avatar-swatch-pulse": "avatar-swatch-pulse 1.2s ease-in-out",
       },
     },
   },
