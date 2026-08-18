@@ -16,7 +16,7 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   {
-    to: "/feed",
+    to: "/partners",
     icon: Users,
     label: "Partners",
     accentClass: "text-[#EAB308]",

@@ -1,6 +1,8 @@
 import List "mo:core/List";
 import Common "../types/common";
 import GoalTypes "../types/goals";
+import CheckInTypes "../types/checkins";
+import FeedTypes "../types/feed";
 import GoalLib "../lib/goals";
 
 /// Goals Module — single authoritative source for goal storage.
@@ -30,25 +32,49 @@ module {
     nextGoalId : [var Nat],           // ⚠️ MUST be [var Nat], NOT [Nat]
     nextObstacleTemplateId : [var Nat], // ⚠️ MUST be [var Nat], NOT [Nat]
   ) {
-    /// Create a new goal for `caller`.
-    public func createGoal(
+    /// Create a new macro goal (a container) for `caller`.
+    public func createMacroGoal(
       caller : Common.UserId,
-      request : GoalTypes.CreateGoalRequest,
-    ) : { #ok : GoalTypes.GoalPublic; #err : GoalTypes.GoalError } {
-      let id = nextGoalId[0];
-      nextGoalId[0] += 1;
-      GoalLib.createGoal(goals, id, caller, request);
+      request : GoalTypes.CreateMacroGoalRequest,
+    ) : { #ok : GoalTypes.MacroGoalPublic; #err : GoalTypes.GoalError } {
+      let result = GoalLib.createMacroGoal(goals, nextGoalId[0], caller, request);
+      switch (result) {
+        case (#ok _) { nextGoalId[0] += 1 };
+        case (#err _) {};
+      };
+      result;
     };
 
-    /// Retrieve a goal by ID. Only the owning caller can see their goal.
-    public func getGoal(
+    /// Create a new habit linked to an existing macro goal for `caller`.
+    public func createHabit(
+      caller : Common.UserId,
+      request : GoalTypes.CreateHabitRequest,
+    ) : { #ok : GoalTypes.HabitPublic; #err : GoalTypes.GoalError } {
+      let result = GoalLib.createHabit(goals, nextGoalId[0], caller, request);
+      switch (result) {
+        case (#ok _) { nextGoalId[0] += 1 };
+        case (#err _) {};
+      };
+      result;
+    };
+
+    /// Retrieve a macro goal by ID. Only the owning caller can see it.
+    public func getMacroGoal(
       goalId : Common.GoalId,
       caller : Common.UserId,
-    ) : ?GoalTypes.GoalPublic {
-      GoalLib.getGoal(goals, goalId, caller);
+    ) : ?GoalTypes.MacroGoalPublic {
+      GoalLib.getMacroGoal(goals, goalId, caller);
     };
 
-    /// Transition a goal to a new state. Returns #err #goalNotFound or #notOwner on failure.
+    /// Retrieve a habit by ID. Only the owning caller can see it.
+    public func getHabit(
+      habitId : Common.GoalId,
+      caller : Common.UserId,
+    ) : ?GoalTypes.HabitPublic {
+      GoalLib.getHabit(goals, habitId, caller);
+    };
+
+    /// Transition a goal (macro or habit) to a new state.
     public func updateGoalState(
       goalId : Common.GoalId,
       caller : Common.UserId,
@@ -57,18 +83,69 @@ module {
       GoalLib.updateGoalState(goals, goalId, caller, newState);
     };
 
-    /// Update mutable fields (wish, wishDescription, ifThenPlan) of an active/paused goal.
-    public func updateGoal(
+    /// Permanently delete a macro goal and all of its child habits in a single
+    /// atomic operation. `checkIns` and `interactions` are the shared
+    /// collections the cascade purges — they are passed in from the mixin
+    /// (which owns them alongside `goals`) rather than held by the store, so
+    /// the store stays the single owner of goal storage only.
+    public func deleteGoal(
+      checkIns : List.List<CheckInTypes.CheckIn>,
+      interactions : List.List<FeedTypes.Interaction>,
       goalId : Common.GoalId,
       caller : Common.UserId,
-      request : GoalTypes.UpdateGoalRequest,
-    ) : { #ok : GoalTypes.GoalPublic; #err : GoalTypes.GoalError } {
-      GoalLib.updateGoal(goals, goalId, caller, request);
+    ) : { #ok; #err : GoalTypes.GoalError } {
+      GoalLib.deleteGoal(goals, checkIns, interactions, goalId, caller);
     };
 
-    /// List all goals owned by `caller`.
-    public func listOwnedGoals(caller : Common.UserId) : [GoalTypes.GoalPublic] {
-      GoalLib.listOwnedGoals(goals, caller);
+    /// Permanently delete a single habit in one atomic operation. `checkIns`
+    /// and `interactions` are the shared collections the cascade purges —
+    /// passed in from the mixin (which owns them alongside `goals`) rather
+    /// than held by the store, so the store stays the single owner of goal
+    /// storage only. Scoped to one habit — does not touch the parent macro
+    /// goal or sibling habits.
+    public func deleteHabit(
+      checkIns : List.List<CheckInTypes.CheckIn>,
+      interactions : List.List<FeedTypes.Interaction>,
+      habitId : Common.GoalId,
+      caller : Common.UserId,
+    ) : { #ok; #err : GoalTypes.GoalError } {
+      GoalLib.deleteHabit(goals, checkIns, interactions, habitId, caller);
+    };
+
+    /// Update an editable habit.
+    public func updateHabit(
+      habitId : Common.GoalId,
+      caller : Common.UserId,
+      request : GoalTypes.UpdateHabitRequest,
+    ) : { #ok : GoalTypes.HabitPublic; #err : GoalTypes.GoalError } {
+      GoalLib.updateHabit(goals, habitId, caller, request);
+    };
+
+    /// Update an editable macro goal.
+    public func updateMacroGoal(
+      goalId : Common.GoalId,
+      caller : Common.UserId,
+      request : GoalTypes.UpdateMacroGoalRequest,
+    ) : { #ok : GoalTypes.MacroGoalPublic; #err : GoalTypes.GoalError } {
+      GoalLib.updateMacroGoal(goals, goalId, caller, request);
+    };
+
+    /// List the caller's macro goals, each grouped with its linked habits.
+    public func listMyGoalsGrouped(caller : Common.UserId) : [GoalTypes.GoalWithHabitsPublic] {
+      GoalLib.listMyGoalsGrouped(goals, caller);
+    };
+
+    /// List habits linked to a specific macro goal (by parent goalId).
+    public func listHabitsByParent(
+      parentGoalId : Common.GoalId,
+      caller : Common.UserId,
+    ) : { #ok : [GoalTypes.HabitPublic]; #err : GoalTypes.GoalError } {
+      GoalLib.listHabitsByParent(goals, parentGoalId, caller);
+    };
+
+    /// List the caller's reusable macro goals for the wizard chips.
+    public func listReusableGoals(caller : Common.UserId) : [GoalTypes.ReusableGoalPublic] {
+      GoalLib.listReusableGoals(goals, caller);
     };
 
     /// Create an obstacle template for `caller`.
@@ -76,9 +153,9 @@ module {
       caller : Common.UserId,
       request : GoalTypes.CreateObstacleRequest,
     ) : GoalTypes.ObstacleTemplate {
-      let id = nextObstacleTemplateId[0];
+      let template = GoalLib.createObstacleTemplate(obstacleTemplates, nextObstacleTemplateId[0], caller, request);
       nextObstacleTemplateId[0] += 1;
-      GoalLib.createObstacleTemplate(obstacleTemplates, id, caller, request);
+      template;
     };
 
     /// List all obstacle templates owned by `caller`.

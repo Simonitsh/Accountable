@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import type { GoalPublic } from "../backend.d.ts";
+import type { HabitPublic } from "../types";
 import type { ObstacleTemplate } from "../types";
 import { OBSTACLE_TEMPLATES } from "../types";
 
@@ -10,7 +10,7 @@ import { OBSTACLE_TEMPLATES } from "../types";
 const SKIP_COLOR = "#0369A1";
 
 interface SkipModalProps {
-  goal: GoalPublic;
+  goal: HabitPublic;
   open: boolean;
   onClose: () => void;
   onConfirm: (obstacleTemplateId?: bigint, customNote?: string) => void;

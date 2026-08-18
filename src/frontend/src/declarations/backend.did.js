@@ -8,7 +8,30 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const GoalId = IDL.Nat;
 export const ObstacleTemplateId = IDL.Nat;
+export const CreateHabitRequest = IDL.Record({
+  'startTime' : IDL.Opt(IDL.Text),
+  'endTimeMinutes' : IDL.Opt(IDL.Nat),
+  'endTime' : IDL.Opt(IDL.Text),
+  'scheduledDays' : IDL.Opt(IDL.Vec(IDL.Text)),
+  'startTimeMinutes' : IDL.Opt(IDL.Nat),
+  'goalId' : GoalId,
+  'themeColor' : IDL.Opt(IDL.Text),
+  'wishDescription' : IDL.Opt(IDL.Text),
+  'iconName' : IDL.Opt(IDL.Text),
+  'ifThenPlan' : IDL.Text,
+  'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+  'isLockIn' : IDL.Bool,
+  'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
+});
+export const UserId = IDL.Principal;
+export const Timestamp = IDL.Int;
+export const GoalState = IDL.Variant({
+  'active' : IDL.Null,
+  'completed' : IDL.Null,
+  'paused' : IDL.Null,
+});
 export const GoalCategory = IDL.Variant({
   'Productivity' : IDL.Null,
   'Learning' : IDL.Null,
@@ -16,42 +39,10 @@ export const GoalCategory = IDL.Variant({
   'Social' : IDL.Null,
   'Leisure' : IDL.Null,
 });
-export const CreateGoalRequest = IDL.Record({
-  'startTime' : IDL.Opt(IDL.Text),
-  'intentTimeMinutes' : IDL.Opt(IDL.Nat),
-  'endTimeMinutes' : IDL.Opt(IDL.Nat),
-  'emailNotifications' : IDL.Opt(IDL.Bool),
-  'endTime' : IDL.Opt(IDL.Text),
-  'scheduledDays' : IDL.Opt(IDL.Vec(IDL.Text)),
-  'startTimeMinutes' : IDL.Opt(IDL.Nat),
-  'wish' : IDL.Text,
-  'themeColor' : IDL.Opt(IDL.Text),
-  'wishDescription' : IDL.Text,
-  'iconName' : IDL.Opt(IDL.Text),
-  'ifThenPlan' : IDL.Text,
-  'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
-  'category' : GoalCategory,
-  'isLockIn' : IDL.Bool,
-  'reminderOffset' : IDL.Opt(IDL.Int),
-  'intentTime' : IDL.Opt(IDL.Text),
-  'outcome' : IDL.Text,
-  'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
-});
-export const GoalId = IDL.Nat;
-export const UserId = IDL.Principal;
-export const Timestamp = IDL.Int;
-export const GoalState = IDL.Variant({
-  'active' : IDL.Null,
-  'completed' : IDL.Null,
-  'abandoned' : IDL.Null,
-  'paused' : IDL.Null,
-});
-export const GoalPublic = IDL.Record({
+export const HabitPublic = IDL.Record({
   'id' : GoalId,
   'startTime' : IDL.Opt(IDL.Text),
-  'intentTimeMinutes' : IDL.Nat,
   'endTimeMinutes' : IDL.Nat,
-  'emailNotifications' : IDL.Bool,
   'endTime' : IDL.Opt(IDL.Text),
   'scheduledDays' : IDL.Vec(IDL.Text),
   'owner' : UserId,
@@ -59,6 +50,7 @@ export const GoalPublic = IDL.Record({
   'startTimeMinutes' : IDL.Nat,
   'createdAt' : Timestamp,
   'wish' : IDL.Text,
+  'goalId' : GoalId,
   'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Text,
   'iconName' : IDL.Opt(IDL.Text),
@@ -68,11 +60,29 @@ export const GoalPublic = IDL.Record({
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'category' : GoalCategory,
   'isLockIn' : IDL.Bool,
-  'reminderOffset' : IDL.Opt(IDL.Int),
-  'intentTime' : IDL.Opt(IDL.Text),
   'outcome' : IDL.Text,
   'lockInDurationMinutes' : IDL.Nat,
-  'lastEmailSentAt' : IDL.Int,
+});
+export const CreateMacroGoalRequest = IDL.Record({
+  'wish' : IDL.Text,
+  'themeColor' : IDL.Opt(IDL.Text),
+  'wishDescription' : IDL.Text,
+  'iconName' : IDL.Opt(IDL.Text),
+  'category' : GoalCategory,
+  'outcome' : IDL.Text,
+});
+export const MacroGoalPublic = IDL.Record({
+  'id' : GoalId,
+  'owner' : UserId,
+  'createdAt' : Timestamp,
+  'wish' : IDL.Text,
+  'themeColor' : IDL.Opt(IDL.Text),
+  'wishDescription' : IDL.Text,
+  'iconName' : IDL.Opt(IDL.Text),
+  'updatedAt' : Timestamp,
+  'state' : GoalState,
+  'category' : GoalCategory,
+  'outcome' : IDL.Text,
 });
 export const CreateObstacleRequest = IDL.Record({
   'title' : IDL.Text,
@@ -85,6 +95,19 @@ export const ObstacleTemplate = IDL.Record({
   'description' : IDL.Text,
 });
 export const CheckInId = IDL.Nat;
+export const Value = IDL.Variant({
+  'int' : IDL.Int,
+  'nat' : IDL.Nat,
+  'float' : IDL.Float64,
+  'bool' : IDL.Bool,
+  'null' : IDL.Null,
+  'text' : IDL.Text,
+});
+export const Cell = IDL.Record({ 'value' : Value, 'name' : IDL.Text });
+export const Result = IDL.Record({
+  'hasMore' : IDL.Bool,
+  'rows' : IDL.Vec(IDL.Vec(Cell)),
+});
 export const GoalAnalytics = IDL.Record({
   'totalMissed' : IDL.Nat,
   'completionRate' : IDL.Float64,
@@ -155,6 +178,14 @@ export const FeedItem = IDL.Record({
   'partnerAvatarColorMode' : AvatarColorMode,
   'partnerAvatarShape' : AvatarShape,
 });
+export const PartnerHabitDetail = IDL.Record({
+  'habits' : IDL.Vec(HabitPublic),
+  'profile' : UserProfilePublic,
+});
+export const PartnerHabitError = IDL.Variant({
+  'notPartner' : IDL.Null,
+  'profileNotFound' : IDL.Null,
+});
 export const ConnectionId = IDL.Nat;
 export const ConnectionStatus = IDL.Variant({
   'pending' : IDL.Null,
@@ -167,6 +198,22 @@ export const ConnectionPublic = IDL.Record({
   'createdAt' : Timestamp,
   'toPrincipal' : UserId,
   'fromPrincipal' : UserId,
+});
+export const GoalWithHabitsPublic = IDL.Record({
+  'goal' : MacroGoalPublic,
+  'habits' : IDL.Vec(HabitPublic),
+});
+export const ReusableGoalPublic = IDL.Record({
+  'id' : GoalId,
+  'wish' : IDL.Text,
+  'wishDescription' : IDL.Text,
+  'state' : GoalState,
+  'category' : GoalCategory,
+});
+export const PartnerOverview = IDL.Record({
+  'activeHabitCount' : IDL.Nat,
+  'profile' : UserProfilePublic,
+  'currentStreak' : IDL.Nat,
 });
 export const RecordCheckInRequest = IDL.Record({
   'timezoneOffsetMinutes' : IDL.Int,
@@ -187,33 +234,34 @@ export const Interaction = IDL.Record({
   'checkInId' : CheckInId,
   'timestamp' : Timestamp,
 });
-export const UpdateGoalRequest = IDL.Record({
+export const UpdateHabitRequest = IDL.Record({
   'startTime' : IDL.Opt(IDL.Text),
-  'intentTimeMinutes' : IDL.Opt(IDL.Nat),
   'endTimeMinutes' : IDL.Opt(IDL.Nat),
-  'emailNotifications' : IDL.Opt(IDL.Bool),
   'endTime' : IDL.Opt(IDL.Text),
   'scheduledDays' : IDL.Opt(IDL.Vec(IDL.Text)),
   'timezoneOffsetMinutes' : IDL.Int,
   'startTimeMinutes' : IDL.Opt(IDL.Nat),
-  'wish' : IDL.Opt(IDL.Text),
   'themeColor' : IDL.Opt(IDL.Text),
   'isTimeEdit' : IDL.Opt(IDL.Bool),
-  'wishDescription' : IDL.Opt(IDL.Text),
   'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Opt(IDL.Text),
-  'category' : IDL.Opt(GoalCategory),
   'isLockIn' : IDL.Opt(IDL.Bool),
-  'reminderOffset' : IDL.Opt(IDL.Int),
-  'intentTime' : IDL.Opt(IDL.Text),
-  'outcome' : IDL.Opt(IDL.Text),
   'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
+});
+export const UpdateMacroGoalRequest = IDL.Record({
+  'themeColor' : IDL.Opt(IDL.Text),
+  'iconName' : IDL.Opt(IDL.Text),
 });
 
 export const idlService = IDL.Service({
-  'createGoal' : IDL.Func(
-      [CreateGoalRequest],
-      [IDL.Variant({ 'ok' : GoalPublic, 'err' : IDL.Text })],
+  'createHabit' : IDL.Func(
+      [CreateHabitRequest],
+      [IDL.Variant({ 'ok' : HabitPublic, 'err' : IDL.Text })],
+      [],
+    ),
+  'createMacroGoal' : IDL.Func(
+      [CreateMacroGoalRequest],
+      [IDL.Variant({ 'ok' : MacroGoalPublic, 'err' : IDL.Text })],
       [],
     ),
   'createObstacleTemplate' : IDL.Func(
@@ -235,7 +283,18 @@ export const idlService = IDL.Service({
       ],
       [],
     ),
+  'deleteGoal' : IDL.Func(
+      [GoalId],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteHabit' : IDL.Func(
+      [GoalId],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
   'devReset' : IDL.Func([], [], []),
+  'execute' : IDL.Func([IDL.Text], [Result], ['query']),
   'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
   'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
   'getCheckInsForGoalTimeline' : IDL.Func(
@@ -248,10 +307,16 @@ export const idlService = IDL.Service({
       [IDL.Vec(CheckIn)],
       ['query'],
     ),
-  'getGoal' : IDL.Func([GoalId], [IDL.Opt(GoalPublic)], ['query']),
+  'getHabit' : IDL.Func([GoalId], [IDL.Opt(HabitPublic)], ['query']),
   'getInteractionCount' : IDL.Func([CheckInId], [IDL.Nat], ['query']),
+  'getMacroGoal' : IDL.Func([GoalId], [IDL.Opt(MacroGoalPublic)], ['query']),
   'getMyProfile' : IDL.Func([], [UserProfilePublic], ['query']),
   'getPartnerFeed' : IDL.Func([], [IDL.Vec(FeedItem)], ['query']),
+  'getPartnerHabits' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Variant({ 'ok' : PartnerHabitDetail, 'err' : PartnerHabitError })],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [UserId],
       [IDL.Opt(UserProfilePublic)],
@@ -260,13 +325,24 @@ export const idlService = IDL.Service({
   'isUsernameAvailable' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   'listAllUsers' : IDL.Func([], [IDL.Vec(UserProfilePublic)], ['query']),
   'listConnections' : IDL.Func([], [IDL.Vec(ConnectionPublic)], ['query']),
+  'listHabitsByParent' : IDL.Func(
+      [GoalId],
+      [IDL.Variant({ 'ok' : IDL.Vec(HabitPublic), 'err' : IDL.Text })],
+      ['query'],
+    ),
   'listMyCheckIns' : IDL.Func([], [IDL.Vec(CheckIn)], ['query']),
-  'listMyGoals' : IDL.Func([], [IDL.Vec(GoalPublic)], ['query']),
+  'listMyGoals' : IDL.Func([], [IDL.Vec(GoalWithHabitsPublic)], ['query']),
   'listMyObstacleTemplates' : IDL.Func(
       [],
       [IDL.Vec(ObstacleTemplate)],
       ['query'],
     ),
+  'listMyReusableGoals' : IDL.Func(
+      [],
+      [IDL.Vec(ReusableGoalPublic)],
+      ['query'],
+    ),
+  'listPartnerOverviews' : IDL.Func([], [IDL.Vec(PartnerOverview)], ['query']),
   'listPendingRequests' : IDL.Func([], [IDL.Vec(ConnectionPublic)], ['query']),
   'recordCheckIn' : IDL.Func([RecordCheckInRequest], [CheckIn], []),
   'recordInteraction' : IDL.Func(
@@ -276,14 +352,20 @@ export const idlService = IDL.Service({
     ),
   'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
   'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
+  'schema' : IDL.Func([], [IDL.Text], ['query']),
   'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
   'setTimezone' : IDL.Func([IDL.Text], [], []),
-  'updateGoal' : IDL.Func(
-      [GoalId, UpdateGoalRequest],
-      [IDL.Variant({ 'ok' : GoalPublic, 'err' : IDL.Text })],
+  'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
+  'updateHabit' : IDL.Func(
+      [GoalId, UpdateHabitRequest],
+      [IDL.Variant({ 'ok' : HabitPublic, 'err' : IDL.Text })],
       [],
     ),
-  'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
+  'updateMacroGoal' : IDL.Func(
+      [GoalId, UpdateMacroGoalRequest],
+      [IDL.Variant({ 'ok' : MacroGoalPublic, 'err' : IDL.Text })],
+      [],
+    ),
   'updateMyProfile' : IDL.Func(
       [
         IDL.Opt(IDL.Text),
@@ -302,7 +384,30 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const GoalId = IDL.Nat;
   const ObstacleTemplateId = IDL.Nat;
+  const CreateHabitRequest = IDL.Record({
+    'startTime' : IDL.Opt(IDL.Text),
+    'endTimeMinutes' : IDL.Opt(IDL.Nat),
+    'endTime' : IDL.Opt(IDL.Text),
+    'scheduledDays' : IDL.Opt(IDL.Vec(IDL.Text)),
+    'startTimeMinutes' : IDL.Opt(IDL.Nat),
+    'goalId' : GoalId,
+    'themeColor' : IDL.Opt(IDL.Text),
+    'wishDescription' : IDL.Opt(IDL.Text),
+    'iconName' : IDL.Opt(IDL.Text),
+    'ifThenPlan' : IDL.Text,
+    'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+    'isLockIn' : IDL.Bool,
+    'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
+  });
+  const UserId = IDL.Principal;
+  const Timestamp = IDL.Int;
+  const GoalState = IDL.Variant({
+    'active' : IDL.Null,
+    'completed' : IDL.Null,
+    'paused' : IDL.Null,
+  });
   const GoalCategory = IDL.Variant({
     'Productivity' : IDL.Null,
     'Learning' : IDL.Null,
@@ -310,42 +415,10 @@ export const idlFactory = ({ IDL }) => {
     'Social' : IDL.Null,
     'Leisure' : IDL.Null,
   });
-  const CreateGoalRequest = IDL.Record({
-    'startTime' : IDL.Opt(IDL.Text),
-    'intentTimeMinutes' : IDL.Opt(IDL.Nat),
-    'endTimeMinutes' : IDL.Opt(IDL.Nat),
-    'emailNotifications' : IDL.Opt(IDL.Bool),
-    'endTime' : IDL.Opt(IDL.Text),
-    'scheduledDays' : IDL.Opt(IDL.Vec(IDL.Text)),
-    'startTimeMinutes' : IDL.Opt(IDL.Nat),
-    'wish' : IDL.Text,
-    'themeColor' : IDL.Opt(IDL.Text),
-    'wishDescription' : IDL.Text,
-    'iconName' : IDL.Opt(IDL.Text),
-    'ifThenPlan' : IDL.Text,
-    'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
-    'category' : GoalCategory,
-    'isLockIn' : IDL.Bool,
-    'reminderOffset' : IDL.Opt(IDL.Int),
-    'intentTime' : IDL.Opt(IDL.Text),
-    'outcome' : IDL.Text,
-    'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
-  });
-  const GoalId = IDL.Nat;
-  const UserId = IDL.Principal;
-  const Timestamp = IDL.Int;
-  const GoalState = IDL.Variant({
-    'active' : IDL.Null,
-    'completed' : IDL.Null,
-    'abandoned' : IDL.Null,
-    'paused' : IDL.Null,
-  });
-  const GoalPublic = IDL.Record({
+  const HabitPublic = IDL.Record({
     'id' : GoalId,
     'startTime' : IDL.Opt(IDL.Text),
-    'intentTimeMinutes' : IDL.Nat,
     'endTimeMinutes' : IDL.Nat,
-    'emailNotifications' : IDL.Bool,
     'endTime' : IDL.Opt(IDL.Text),
     'scheduledDays' : IDL.Vec(IDL.Text),
     'owner' : UserId,
@@ -353,6 +426,7 @@ export const idlFactory = ({ IDL }) => {
     'startTimeMinutes' : IDL.Nat,
     'createdAt' : Timestamp,
     'wish' : IDL.Text,
+    'goalId' : GoalId,
     'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Text,
     'iconName' : IDL.Opt(IDL.Text),
@@ -362,11 +436,29 @@ export const idlFactory = ({ IDL }) => {
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'category' : GoalCategory,
     'isLockIn' : IDL.Bool,
-    'reminderOffset' : IDL.Opt(IDL.Int),
-    'intentTime' : IDL.Opt(IDL.Text),
     'outcome' : IDL.Text,
     'lockInDurationMinutes' : IDL.Nat,
-    'lastEmailSentAt' : IDL.Int,
+  });
+  const CreateMacroGoalRequest = IDL.Record({
+    'wish' : IDL.Text,
+    'themeColor' : IDL.Opt(IDL.Text),
+    'wishDescription' : IDL.Text,
+    'iconName' : IDL.Opt(IDL.Text),
+    'category' : GoalCategory,
+    'outcome' : IDL.Text,
+  });
+  const MacroGoalPublic = IDL.Record({
+    'id' : GoalId,
+    'owner' : UserId,
+    'createdAt' : Timestamp,
+    'wish' : IDL.Text,
+    'themeColor' : IDL.Opt(IDL.Text),
+    'wishDescription' : IDL.Text,
+    'iconName' : IDL.Opt(IDL.Text),
+    'updatedAt' : Timestamp,
+    'state' : GoalState,
+    'category' : GoalCategory,
+    'outcome' : IDL.Text,
   });
   const CreateObstacleRequest = IDL.Record({
     'title' : IDL.Text,
@@ -379,6 +471,19 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
   });
   const CheckInId = IDL.Nat;
+  const Value = IDL.Variant({
+    'int' : IDL.Int,
+    'nat' : IDL.Nat,
+    'float' : IDL.Float64,
+    'bool' : IDL.Bool,
+    'null' : IDL.Null,
+    'text' : IDL.Text,
+  });
+  const Cell = IDL.Record({ 'value' : Value, 'name' : IDL.Text });
+  const Result = IDL.Record({
+    'hasMore' : IDL.Bool,
+    'rows' : IDL.Vec(IDL.Vec(Cell)),
+  });
   const GoalAnalytics = IDL.Record({
     'totalMissed' : IDL.Nat,
     'completionRate' : IDL.Float64,
@@ -449,6 +554,14 @@ export const idlFactory = ({ IDL }) => {
     'partnerAvatarColorMode' : AvatarColorMode,
     'partnerAvatarShape' : AvatarShape,
   });
+  const PartnerHabitDetail = IDL.Record({
+    'habits' : IDL.Vec(HabitPublic),
+    'profile' : UserProfilePublic,
+  });
+  const PartnerHabitError = IDL.Variant({
+    'notPartner' : IDL.Null,
+    'profileNotFound' : IDL.Null,
+  });
   const ConnectionId = IDL.Nat;
   const ConnectionStatus = IDL.Variant({
     'pending' : IDL.Null,
@@ -461,6 +574,22 @@ export const idlFactory = ({ IDL }) => {
     'createdAt' : Timestamp,
     'toPrincipal' : UserId,
     'fromPrincipal' : UserId,
+  });
+  const GoalWithHabitsPublic = IDL.Record({
+    'goal' : MacroGoalPublic,
+    'habits' : IDL.Vec(HabitPublic),
+  });
+  const ReusableGoalPublic = IDL.Record({
+    'id' : GoalId,
+    'wish' : IDL.Text,
+    'wishDescription' : IDL.Text,
+    'state' : GoalState,
+    'category' : GoalCategory,
+  });
+  const PartnerOverview = IDL.Record({
+    'activeHabitCount' : IDL.Nat,
+    'profile' : UserProfilePublic,
+    'currentStreak' : IDL.Nat,
   });
   const RecordCheckInRequest = IDL.Record({
     'timezoneOffsetMinutes' : IDL.Int,
@@ -481,33 +610,34 @@ export const idlFactory = ({ IDL }) => {
     'checkInId' : CheckInId,
     'timestamp' : Timestamp,
   });
-  const UpdateGoalRequest = IDL.Record({
+  const UpdateHabitRequest = IDL.Record({
     'startTime' : IDL.Opt(IDL.Text),
-    'intentTimeMinutes' : IDL.Opt(IDL.Nat),
     'endTimeMinutes' : IDL.Opt(IDL.Nat),
-    'emailNotifications' : IDL.Opt(IDL.Bool),
     'endTime' : IDL.Opt(IDL.Text),
     'scheduledDays' : IDL.Opt(IDL.Vec(IDL.Text)),
     'timezoneOffsetMinutes' : IDL.Int,
     'startTimeMinutes' : IDL.Opt(IDL.Nat),
-    'wish' : IDL.Opt(IDL.Text),
     'themeColor' : IDL.Opt(IDL.Text),
     'isTimeEdit' : IDL.Opt(IDL.Bool),
-    'wishDescription' : IDL.Opt(IDL.Text),
     'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Opt(IDL.Text),
-    'category' : IDL.Opt(GoalCategory),
     'isLockIn' : IDL.Opt(IDL.Bool),
-    'reminderOffset' : IDL.Opt(IDL.Int),
-    'intentTime' : IDL.Opt(IDL.Text),
-    'outcome' : IDL.Opt(IDL.Text),
     'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
+  });
+  const UpdateMacroGoalRequest = IDL.Record({
+    'themeColor' : IDL.Opt(IDL.Text),
+    'iconName' : IDL.Opt(IDL.Text),
   });
   
   return IDL.Service({
-    'createGoal' : IDL.Func(
-        [CreateGoalRequest],
-        [IDL.Variant({ 'ok' : GoalPublic, 'err' : IDL.Text })],
+    'createHabit' : IDL.Func(
+        [CreateHabitRequest],
+        [IDL.Variant({ 'ok' : HabitPublic, 'err' : IDL.Text })],
+        [],
+      ),
+    'createMacroGoal' : IDL.Func(
+        [CreateMacroGoalRequest],
+        [IDL.Variant({ 'ok' : MacroGoalPublic, 'err' : IDL.Text })],
         [],
       ),
     'createObstacleTemplate' : IDL.Func(
@@ -529,7 +659,18 @@ export const idlFactory = ({ IDL }) => {
         ],
         [],
       ),
+    'deleteGoal' : IDL.Func(
+        [GoalId],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteHabit' : IDL.Func(
+        [GoalId],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
     'devReset' : IDL.Func([], [], []),
+    'execute' : IDL.Func([IDL.Text], [Result], ['query']),
     'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
     'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
     'getCheckInsForGoalTimeline' : IDL.Func(
@@ -542,10 +683,16 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(CheckIn)],
         ['query'],
       ),
-    'getGoal' : IDL.Func([GoalId], [IDL.Opt(GoalPublic)], ['query']),
+    'getHabit' : IDL.Func([GoalId], [IDL.Opt(HabitPublic)], ['query']),
     'getInteractionCount' : IDL.Func([CheckInId], [IDL.Nat], ['query']),
+    'getMacroGoal' : IDL.Func([GoalId], [IDL.Opt(MacroGoalPublic)], ['query']),
     'getMyProfile' : IDL.Func([], [UserProfilePublic], ['query']),
     'getPartnerFeed' : IDL.Func([], [IDL.Vec(FeedItem)], ['query']),
+    'getPartnerHabits' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Variant({ 'ok' : PartnerHabitDetail, 'err' : PartnerHabitError })],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [UserId],
         [IDL.Opt(UserProfilePublic)],
@@ -554,11 +701,26 @@ export const idlFactory = ({ IDL }) => {
     'isUsernameAvailable' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
     'listAllUsers' : IDL.Func([], [IDL.Vec(UserProfilePublic)], ['query']),
     'listConnections' : IDL.Func([], [IDL.Vec(ConnectionPublic)], ['query']),
+    'listHabitsByParent' : IDL.Func(
+        [GoalId],
+        [IDL.Variant({ 'ok' : IDL.Vec(HabitPublic), 'err' : IDL.Text })],
+        ['query'],
+      ),
     'listMyCheckIns' : IDL.Func([], [IDL.Vec(CheckIn)], ['query']),
-    'listMyGoals' : IDL.Func([], [IDL.Vec(GoalPublic)], ['query']),
+    'listMyGoals' : IDL.Func([], [IDL.Vec(GoalWithHabitsPublic)], ['query']),
     'listMyObstacleTemplates' : IDL.Func(
         [],
         [IDL.Vec(ObstacleTemplate)],
+        ['query'],
+      ),
+    'listMyReusableGoals' : IDL.Func(
+        [],
+        [IDL.Vec(ReusableGoalPublic)],
+        ['query'],
+      ),
+    'listPartnerOverviews' : IDL.Func(
+        [],
+        [IDL.Vec(PartnerOverview)],
         ['query'],
       ),
     'listPendingRequests' : IDL.Func(
@@ -574,14 +736,20 @@ export const idlFactory = ({ IDL }) => {
       ),
     'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
     'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
+    'schema' : IDL.Func([], [IDL.Text], ['query']),
     'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
     'setTimezone' : IDL.Func([IDL.Text], [], []),
-    'updateGoal' : IDL.Func(
-        [GoalId, UpdateGoalRequest],
-        [IDL.Variant({ 'ok' : GoalPublic, 'err' : IDL.Text })],
+    'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
+    'updateHabit' : IDL.Func(
+        [GoalId, UpdateHabitRequest],
+        [IDL.Variant({ 'ok' : HabitPublic, 'err' : IDL.Text })],
         [],
       ),
-    'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
+    'updateMacroGoal' : IDL.Func(
+        [GoalId, UpdateMacroGoalRequest],
+        [IDL.Variant({ 'ok' : MacroGoalPublic, 'err' : IDL.Text })],
+        [],
+      ),
     'updateMyProfile' : IDL.Func(
         [
           IDL.Opt(IDL.Text),

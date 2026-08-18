@@ -1,13 +1,15 @@
+import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Plus, Target } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckInType, GoalState } from "../backend";
-import type { CheckIn as BackendCheckIn, GoalPublic } from "../backend.d.ts";
+import type { CheckIn as BackendCheckIn } from "../backend.d.ts";
 import { GoalCard, getLockInState } from "../components/GoalCard";
 import type { DayStatus, LockInCheckIn } from "../components/GoalCard";
 import { GoalInsightSheet } from "../components/GoalInsightSheet";
+import GoalWizard from "../components/GoalWizard";
 import { UndoPopup } from "../components/UndoPopup";
 import WoopWizard from "../components/WoopWizard";
 import { useAuth } from "../hooks/useAuth";
@@ -18,7 +20,14 @@ import {
 } from "../hooks/useDashboardHeader";
 import { useTheme } from "../hooks/useTheme";
 import { useUserProfile } from "../hooks/useUserProfile";
-import type { GoalAnalytics } from "../types";
+import type {
+  GoalAnalytics,
+  GoalWithHabitsPublic,
+  HabitPublic,
+  MacroGoalPublic,
+  ReusableGoalPublic,
+} from "../types";
+import { CATEGORY_DETAILS } from "../types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const NEW_HABIT_KEY = "cumulative-new-habit-id";
@@ -609,10 +618,81 @@ function NewHabitBadge() {
   );
 }
 
+// ─── Goal group header (wish + category badge) ────────────────────────────────
+function GoalGroupHeader({
+  group,
+  groupIndex,
+}: {
+  group: GoalWithHabitsPublic;
+  groupIndex: number;
+}) {
+  const categoryDetail = CATEGORY_DETAILS.find(
+    (c) => c.id === group.goal?.category,
+  );
+  const CategoryIcon = categoryDetail?.icon ?? Target;
+  const categoryColor =
+    categoryDetail?.id != null ? "#10B981" : "oklch(var(--muted-foreground))";
+
+  return (
+    <div
+      className="flex items-start gap-3 px-1"
+      data-ocid={`dashboard.goal_card.header.${groupIndex + 1}`}
+    >
+      <div
+        className="flex items-center justify-center rounded-lg shrink-0 mt-0.5"
+        style={{
+          width: 36,
+          height: 36,
+          background: "oklch(var(--color-accent-success) / 0.12)",
+          boxShadow:
+            "inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 3px rgba(80,80,85,0.2)",
+        }}
+        aria-hidden="true"
+      >
+        <CategoryIcon size={18} style={{ color: categoryColor }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p
+          className="font-display font-semibold leading-snug rounded-md px-1.5 py-0.5 -mx-1.5 inline-block"
+          style={{
+            color: "oklch(var(--foreground))",
+            background: "oklch(var(--color-accent-success) / 0.10)",
+            fontSize: "0.95rem",
+          }}
+        >
+          {group.goal?.wish}
+        </p>
+        {categoryDetail && (
+          <span
+            className="mt-1 ml-1.5 inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full"
+            style={{
+              color: categoryColor,
+              background: "oklch(var(--color-accent-success) / 0.08)",
+            }}
+          >
+            {categoryDetail.title}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Dashboard Page ────────────────────────────────────────────────────────────────
 export function DashboardPage() {
   const [usernameModalDismissed, setUsernameModalDismissed] = useState(false);
   const [showWoop, setShowWoop] = useState(false);
+  // ── Goal creation wizard (Bloom & Flow) — opened from the top-level
+  // "Create Goal" button. Mirrors the wiring on MyGoalsPage.
+  const [showGoalWizard, setShowGoalWizard] = useState(false);
+  // ── Pre-scoped habit wizard: when set, WoopWizard opens pre-scoped to
+  // create a habit inside this goal. Set by the per-goal "Create Habit"
+  // button. Cleared on wizard close. `showWoop` stays true while the wizard
+  // is open; `habitWizardGoalId` carries the preset goal id (undefined when
+  // the wizard was opened from the top-level button without a preset).
+  const [habitWizardGoalId, setHabitWizardGoalId] = useState<
+    bigint | undefined
+  >();
   const { actor, isFetching: actorFetching } = useBackend();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { principalText } = useAuth();
@@ -682,12 +762,12 @@ export function DashboardPage() {
   );
 
   // ── Goal Insight sheet state ─────────────────────────────────────────────
-  const [insightGoal, setInsightGoal] = useState<GoalPublic | null>(null);
+  const [insightGoal, setInsightGoal] = useState<HabitPublic | null>(null);
 
   // ── Undo popup state ─────────────────────────────────────────────────────
   const [undoTarget, setUndoTarget] = useState<{
     goalId: bigint;
-    goal: GoalPublic;
+    goal: HabitPublic;
   } | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
   // Track which goal IDs just returned from Done → Active (for bounce animation)
@@ -734,12 +814,20 @@ export function DashboardPage() {
       (principalText !== null && profile.username === principalText));
 
   // ── Fetch goals ────────────────────────────────────────────────────────────
-  const { data: goals = [], isLoading: goalsLoading } = useQuery<GoalPublic[]>({
+  // listMyGoals() returns GoalWithHabitsPublic[] (macro goals grouped with
+  // their linked habits). We keep the grouped array in `goalGroups` for the
+  // grouped dashboard rendering, AND derive a flat `goals` list
+  // (groups.flatMap(g => g.habits)) so the rest of the dashboard logic
+  // (check-ins, lock-in map, week history, analytics, progress ring) keeps
+  // working with a flat HabitPublic[] list unchanged.
+  const { data: goalGroups = [], isLoading: goalsLoading } = useQuery<
+    GoalWithHabitsPublic[]
+  >({
     queryKey: ["myGoals"],
     queryFn: async () => {
       if (!actor) return [];
       try {
-        return await actor.listMyGoals();
+        return (await actor.listMyGoals()) as GoalWithHabitsPublic[];
       } catch {
         return [];
       }
@@ -749,6 +837,40 @@ export function DashboardPage() {
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
+
+  // Flat habit list derived from the grouped array — used by all the existing
+  // habit-level logic (check-ins, lock-in map, week history, analytics,
+  // progress ring). Recomputed whenever the groups change.
+  const goals = useMemo<HabitPublic[]>(
+    () =>
+      goalGroups
+        .flatMap((g) => g.habits ?? [])
+        .filter((h): h is HabitPublic => h != null),
+    [goalGroups],
+  );
+
+  // ── Reusable goals for the WOOP wizard step-2 goal-reuse chips ──────────────
+  // Fetched via listMyReusableGoals() (canonical ReusableGoalPublic shape:
+  // { id, wish, wishDescription, state }) and passed straight to
+  // WoopWizard.existingGoals without any reshape. The backend has no
+  // abandoned/soft-deleted state — goals are hard-deleted and removed
+  // entirely, so deleted goals never appear as reusable chips. Kept separate
+  // from the myGoals cache so the reuse box only ever shows goals the user
+  // can actually reuse.
+  const { data: reusableGoals = [], isLoading: reusableGoalsLoading } =
+    useQuery<ReusableGoalPublic[]>({
+      queryKey: ["myReusableGoals"],
+      queryFn: async () => {
+        if (!actor || !("listMyReusableGoals" in actor)) return [];
+        try {
+          return (await actor.listMyReusableGoals()) as ReusableGoalPublic[];
+        } catch {
+          return [];
+        }
+      },
+      enabled: !!actor && !actorFetching,
+      staleTime: 30_000,
+    });
 
   // ── Fetch today's check-ins ─────────────────────────────────────────────────
   const { data: checkIns = [], isLoading: checkInsLoading } = useQuery<
@@ -771,7 +893,20 @@ export function DashboardPage() {
   const isLoading = goalsLoading || checkInsLoading;
 
   // Active goals only
-  const activeGoals = goals.filter((g) => g.state === GoalState.active);
+  const activeGoals = goals.filter((g) => g?.state === GoalState.active);
+
+  // ── Macro-goal (goalGroups) source of truth for goal-level messaging ──
+  // The dashboard renders macro goals as cards (activeGroupsForRender derives
+  // from goalGroups), so any "no goals" / count messaging MUST be driven by
+  // the macro-goal list — never by the flattened habit list. A user with 2
+  // visible goal cards but 0 habits must never see a "no goals" state.
+  const activeMacroGoals = useMemo(
+    () =>
+      goalGroups.filter(
+        (g) => g.goal !== undefined && g.goal.state === GoalState.active,
+      ),
+    [goalGroups],
+  );
 
   // Today's day abbreviation for scheduling filter (sun=0, mon=1 ... sat=6)
   const todayAbbr = (
@@ -922,7 +1057,7 @@ export function DashboardPage() {
       }
 
       map.set(key, {
-        goalId: key,
+        goalId: g.id,
         goalName: g.wish,
         successCount,
         skipCount,
@@ -1344,6 +1479,67 @@ export function DashboardPage() {
   // trulyUnswiped: goals not in done AND not mid-exit (used for swipe hint)
   const trulyUnswiped = unswiped.filter((g) => !exitingMap.has(goalKey(g.id)));
 
+  // ── Grouped rendering data ────────────────────────────────────────────────────
+  // Build per-goal-group habit lists for the grouped dashboard. Each group
+  // renders a goal header (wish + category badge + per-goal Create Habit
+  // button) followed by its habits as GoalCards.
+  //
+  // Active groups: groups that have at least one active habit (unswiped or
+  // currently exiting) OR are empty active goals (no habits yet). Empty active
+  // goals render an empty-state with just the per-goal Create Habit button.
+  const activeGroupsWithHabits = useMemo(() => {
+    const unswipedKeys = new Set(unswiped.map((g) => goalKey(g.id)));
+    const exitingKeys = new Set(exitingGoals.map((g) => goalKey(g.id)));
+    return goalGroups
+      .filter((group) => group.goal !== undefined && group.habits !== undefined)
+      .map((group) => {
+        const activeHabits = (group.habits ?? []).filter(
+          (h) =>
+            unswipedKeys.has(goalKey(h.id)) || exitingKeys.has(goalKey(h.id)),
+        );
+        return { group, habits: activeHabits };
+      })
+      .filter((entry) => entry.habits.length > 0);
+  }, [goalGroups, unswiped, exitingGoals]);
+
+  // Empty active goals: macro goals in active state with zero habits. These
+  // render as goal headers with an empty-state Create Habit button.
+  const emptyActiveGroups = useMemo(() => {
+    return goalGroups.filter(
+      (group) =>
+        (group.habits ?? []).length === 0 &&
+        group.habits !== undefined &&
+        group.goal !== undefined &&
+        group.goal.state === GoalState.active,
+    );
+  }, [goalGroups]);
+
+  // Done groups: groups that have at least one completed habit today.
+  const doneGroupsWithHabits = useMemo(() => {
+    const doneKeys = new Set(done.map((g) => goalKey(g.id)));
+    return goalGroups
+      .filter((group) => group.goal !== undefined && group.habits !== undefined)
+      .map((group) => {
+        const doneHabits = (group.habits ?? []).filter((h) =>
+          doneKeys.has(goalKey(h.id)),
+        );
+        return { group, habits: doneHabits };
+      })
+      .filter((entry) => entry.habits.length > 0);
+  }, [goalGroups, done]);
+
+  // Combined active groups (with habits + empty) for rendering order.
+  const activeGroupsForRender = useMemo(
+    () => [
+      ...activeGroupsWithHabits,
+      ...emptyActiveGroups.map((g) => ({
+        group: g,
+        habits: [] as HabitPublic[],
+      })),
+    ],
+    [activeGroupsWithHabits, emptyActiveGroups],
+  );
+
   // ── Derived counts for progress ring ──────────────────────────────────────────
   const todayCompleted = done.filter(
     (g) => mergedDoneMap.get(goalKey(g.id))?.checkInType === "success",
@@ -1404,6 +1600,14 @@ export function DashboardPage() {
   // Determine if displayName is set (not default "friend")
   const hasDisplayName =
     profile?.displayName && profile.displayName.trim() !== "";
+
+  // ── Goal creation handler ────────────────────────────────────────────────
+  // Mirrors MyGoalsPage.handleGoalCreated: invalidate the goals query so the
+  // new goal appears as a container, then close the wizard.
+  function handleGoalCreated() {
+    queryClient.invalidateQueries({ queryKey: ["myGoals"] });
+    setShowGoalWizard(false);
+  }
 
   return (
     <>
@@ -1490,36 +1694,68 @@ export function DashboardPage() {
           </p>
         </div>
 
-        {/* Tab pills */}
-        {!isLoading && activeGoals.length > 0 && (
-          <TabPills
-            activeTab={activeTab}
-            doneCount={done.length}
-            onTabChange={setActiveTab}
-            badgeAnimKey={badgeAnimKey}
-          />
-        )}
-        {/* Show Create Habit button even when no goals yet */}
-        {!isLoading && activeGoals.length === 0 && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowWoop(true)}
-              data-ocid="dashboard.create_habit_button"
-              aria-label="Create a new habit"
-              className="create-habit-glow flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
-              style={{
-                background: "#10B981",
-                color: "#022c22",
-                fontFamily: "var(--font-body, inherit)",
-                boxShadow:
-                  "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
-                fontWeight: 500,
-              }}
-            >
-              <Plus size={14} />
-              Create Habit
-            </button>
+        {/* Tab pills + Create Goal / Create Habit buttons in the same row */}
+        {!isLoading && (
+          <div className="flex items-center gap-2">
+            <TabPills
+              activeTab={activeTab}
+              doneCount={done.length}
+              onTabChange={setActiveTab}
+              badgeAnimKey={badgeAnimKey}
+            />
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                type="button"
+                onClick={() => setShowGoalWizard(true)}
+                data-ocid="dashboard.create_goal_button"
+                aria-label="Create a new goal"
+                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
+                style={{
+                  background: "#EAB308",
+                  color: "#1a1200",
+                  fontFamily: "var(--font-body, inherit)",
+                  boxShadow:
+                    "0 0 10px 1px oklch(var(--color-accent-warning) / 0.45), -2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                  fontWeight: 600,
+                }}
+              >
+                <Plus size={14} />
+                Goal
+              </button>
+              {/* Create Habit only appears once at least one goal exists */}
+              {goalGroups.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Kick off the reusable-goals fetch BEFORE the wizard opens
+                    // so the goal-reuse chips are populated (or at least in
+                    // flight) by the time the GOAL_STEP renders — otherwise the
+                    // async query resolves after the wizard mounts and the
+                    // empty state flashes. The wizard's loading gate covers the
+                    // brief in-flight window.
+                    void queryClient.fetchQuery({
+                      queryKey: ["myReusableGoals"],
+                    });
+                    setShowWoop(true);
+                    setHabitWizardGoalId(undefined);
+                  }}
+                  data-ocid="dashboard.create_habit_button"
+                  aria-label="Create a new habit"
+                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
+                  style={{
+                    background: "#10B981",
+                    color: "#022c22",
+                    fontFamily: "var(--font-body, inherit)",
+                    boxShadow:
+                      "0 0 10px 1px oklch(var(--color-accent-success) / 0.45), -2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                    fontWeight: 500,
+                  }}
+                >
+                  <Plus size={14} />
+                  Habit
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -1571,8 +1807,9 @@ export function DashboardPage() {
           </div>
         )}
 
-        {/* Empty state (no goals at all) */}
-        {!isLoading && activeGoals.length === 0 && (
+        {/* Empty state (no goals at all) — driven by macro goals, not habits.
+            A user with visible goal cards but zero habits must never see this. */}
+        {!isLoading && activeMacroGoals.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1598,34 +1835,37 @@ export function DashboardPage() {
               />
             </div>
             <h2 className="font-display text-xl font-bold text-foreground mb-2">
-              No active habits yet
+              No goals yet
             </h2>
             <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-4">
-              Create your first keystone habit using the WOOP framework.
+              Create your first goal to get started. Once a goal exists, you can
+              add habits to it using the WOOP framework.
             </p>
             <button
               type="button"
-              onClick={() => setShowWoop(true)}
-              data-ocid="dashboard.empty_create_habit_button"
-              className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full transition-smooth"
+              onClick={() => setShowGoalWizard(true)}
+              data-ocid="dashboard.empty_create_goal_button"
+              aria-label="Create a new goal"
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth"
               style={{
-                background: "#10B981",
-                color: "#022c22",
-                fontWeight: 700,
+                background: "#EAB308",
+                color: "#1a1200",
+                fontFamily: "var(--font-body, inherit)",
                 boxShadow:
-                  "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                  "0 0 10px 1px oklch(var(--color-accent-warning) / 0.45), -2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
+                fontWeight: 600,
               }}
             >
-              <Plus size={12} />
-              Create Habit
+              <Plus size={14} />
+              Goal
             </button>
           </motion.div>
         )}
 
-        {/* Active tab: un-swiped habits + currently-exiting ones (mid-animation) */}
+        {/* Active tab: grouped rendering — goal headers with nested habit cards */}
         {!isLoading && activeTab === "active" && (
           <AnimatePresence mode="popLayout">
-            {unswiped.length === 0 &&
+            {activeGroupsForRender.length === 0 &&
             exitingGoals.length === 0 &&
             activeGoals.length > 0 ? (
               <motion.div
@@ -1645,61 +1885,99 @@ export function DashboardPage() {
                   All habits logged today. Check the <strong>Done</strong> tab.
                 </p>
               </motion.div>
-            ) : (
-              // Render unswiped goals + any currently-exiting goals
-              [...unswiped, ...exitingGoals].map((goal, index) => {
-                const key = goalKey(goal.id);
-                const isExiting = exitingMap.has(key);
-                const isNewHabit = newHabitId === key;
+            ) : activeGroupsForRender.length === 0 &&
+              activeGoals.length === 0 ? null : (
+              activeGroupsForRender.map((entry, groupIndex) => {
+                const { group, habits } = entry;
+                const isEmptyGoal = habits.length === 0;
                 return (
-                  <div key={key} className="relative">
-                    <GoalCard
-                      goal={goal}
-                      checkInToday={undefined}
-                      analytics={analyticsMap.get(key)}
-                      index={index}
-                      weekHistory={weekHistoryMap.get(key)}
-                      weekHistoryLoading={weekHistoryLoading}
-                      mode="active"
-                      onCheckIn={handleGoalCardCheckIn}
-                      onExitComplete={handleCardExitComplete}
-                      onInsightOpen={setInsightGoal}
-                      isDarkMode={isDarkMode}
-                      isCheckingIn={
-                        pendingGoalId === key && checkInMutation.isPending
-                      }
-                      isSkipping={
-                        pendingGoalId === key && checkInMutation.isPending
-                      }
-                      animateIn={recentlyUndone.has(key)}
-                      exitDirection={
-                        isExiting
-                          ? (exitingMap.get(key) ?? null)
-                          : (swipeDirectionMap.get(key) ?? null)
-                      }
-                      isExiting={isExiting}
-                      inProgressPulse={inProgressPulseMap.has(key)}
-                      isLockIn={goal.isLockIn}
-                      lockInStartTime={goal.startTime}
-                      lockInEndTime={goal.endTime}
-                      lockInTodayCheckIn={lockInCheckInMap.get(key)}
-                      onMissedWindowTap={() => {
-                        /* handled inside GoalCard via MissedWindowSheet */
-                      }}
-                    />
-                    {isNewHabit && <NewHabitGlow />}
-                    {isNewHabit && <NewHabitBadge />}
-                  </div>
+                  <motion.div
+                    key={`goal-group-${group.goal?.id ?? "unknown"}`}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.32, ease: "easeOut" }}
+                    className="flex flex-col"
+                    style={{ gap: "0.75rem" }}
+                    data-ocid={`dashboard.goal_group.${groupIndex + 1}`}
+                  >
+                    <GoalGroupHeader group={group} groupIndex={groupIndex} />
+                    {isEmptyGoal ? (
+                      <div
+                        className="flex flex-col items-center justify-center text-center py-8 px-6 rounded-2xl"
+                        style={{
+                          backgroundColor: "oklch(var(--card))",
+                          boxShadow:
+                            "-4px -4px 10px rgba(60,60,65,0.4), 6px 6px 12px rgba(0,0,0,0.8)",
+                        }}
+                        data-ocid={`dashboard.goal_card.empty_state.${groupIndex + 1}`}
+                      >
+                        <p className="text-sm text-muted-foreground mb-4">
+                          No habits yet — create one to get started
+                        </p>
+                      </div>
+                    ) : (
+                      <AnimatePresence mode="popLayout">
+                        {habits.map((goal, index) => {
+                          const key = goalKey(goal.id);
+                          const isExiting = exitingMap.has(key);
+                          const isNewHabit = newHabitId === key;
+                          return (
+                            <div key={key} className="relative">
+                              <GoalCard
+                                goal={goal}
+                                checkInToday={undefined}
+                                analytics={analyticsMap.get(key)}
+                                index={index}
+                                weekHistory={weekHistoryMap.get(key)}
+                                weekHistoryLoading={weekHistoryLoading}
+                                mode="active"
+                                onCheckIn={handleGoalCardCheckIn}
+                                onExitComplete={handleCardExitComplete}
+                                onInsightOpen={setInsightGoal}
+                                isDarkMode={isDarkMode}
+                                isCheckingIn={
+                                  pendingGoalId === key &&
+                                  checkInMutation.isPending
+                                }
+                                isSkipping={
+                                  pendingGoalId === key &&
+                                  checkInMutation.isPending
+                                }
+                                animateIn={recentlyUndone.has(key)}
+                                exitDirection={
+                                  isExiting
+                                    ? (exitingMap.get(key) ?? null)
+                                    : (swipeDirectionMap.get(key) ?? null)
+                                }
+                                isExiting={isExiting}
+                                inProgressPulse={inProgressPulseMap.has(key)}
+                                isLockIn={goal.isLockIn}
+                                lockInStartTime={goal.startTime}
+                                lockInEndTime={goal.endTime}
+                                lockInTodayCheckIn={lockInCheckInMap.get(key)}
+                                onMissedWindowTap={() => {
+                                  /* handled inside GoalCard via MissedWindowSheet */
+                                }}
+                              />
+                              {isNewHabit && <NewHabitGlow />}
+                              {isNewHabit && <NewHabitBadge />}
+                            </div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    )}
+                  </motion.div>
                 );
               })
             )}
           </AnimatePresence>
         )}
 
-        {/* Done tab: swiped habits */}
+        {/* Done tab: grouped rendering — goal headers with nested completed habits */}
         {!isLoading && activeTab === "done" && (
           <AnimatePresence mode="popLayout">
-            {done.length === 0 ? (
+            {doneGroupsWithHabits.length === 0 ? (
               <motion.div
                 key="done-empty"
                 initial={{ opacity: 0, y: 8 }}
@@ -1719,37 +1997,58 @@ export function DashboardPage() {
                 </p>
               </motion.div>
             ) : (
-              done.map((goal, index) => {
-                const key = goalKey(goal.id);
-                const entry = mergedDoneMap.get(key);
-                const swipeDir = swipeDirectionMap.get(key) ?? null;
+              doneGroupsWithHabits.map((entry, groupIndex) => {
+                const { group, habits } = entry;
                 return (
-                  <GoalCard
-                    key={key}
-                    goal={goal}
-                    checkInToday={
-                      entry
-                        ? {
-                            checkInType: entry.checkInType,
-                            obstacleTemplateId: entry.obstacleTemplateId,
-                            customObstacleNote: entry.customObstacleNote,
-                          }
-                        : undefined
-                    }
-                    analytics={analyticsMap.get(key)}
-                    index={index}
-                    weekHistory={weekHistoryMap.get(key)}
-                    weekHistoryLoading={weekHistoryLoading}
-                    mode="done"
-                    onDoneCardTap={handleDoneCardTap}
-                    onInsightOpen={setInsightGoal}
-                    isDarkMode={isDarkMode}
-                    entryFrom={swipeDir}
-                    isLockIn={goal.isLockIn}
-                    lockInStartTime={goal.startTime}
-                    lockInEndTime={goal.endTime}
-                    executedIfThen={entry?.executedIfThen ?? false}
-                  />
+                  <motion.div
+                    key={`done-group-${group.goal?.id ?? "unknown"}`}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.32, ease: "easeOut" }}
+                    className="flex flex-col"
+                    style={{ gap: "0.75rem" }}
+                    data-ocid={`dashboard.done_goal_group.${groupIndex + 1}`}
+                  >
+                    <GoalGroupHeader group={group} groupIndex={groupIndex} />
+                    <AnimatePresence mode="popLayout">
+                      {habits.map((goal, index) => {
+                        const key = goalKey(goal.id);
+                        const entryDone = mergedDoneMap.get(key);
+                        const swipeDir = swipeDirectionMap.get(key) ?? null;
+                        return (
+                          <GoalCard
+                            key={key}
+                            goal={goal}
+                            checkInToday={
+                              entryDone
+                                ? {
+                                    checkInType: entryDone.checkInType,
+                                    obstacleTemplateId:
+                                      entryDone.obstacleTemplateId,
+                                    customObstacleNote:
+                                      entryDone.customObstacleNote,
+                                  }
+                                : undefined
+                            }
+                            analytics={analyticsMap.get(key)}
+                            index={index}
+                            weekHistory={weekHistoryMap.get(key)}
+                            weekHistoryLoading={weekHistoryLoading}
+                            mode="done"
+                            onDoneCardTap={handleDoneCardTap}
+                            onInsightOpen={setInsightGoal}
+                            isDarkMode={isDarkMode}
+                            entryFrom={swipeDir}
+                            isLockIn={goal.isLockIn}
+                            lockInStartTime={goal.startTime}
+                            lockInEndTime={goal.endTime}
+                            executedIfThen={entryDone?.executedIfThen ?? false}
+                          />
+                        );
+                      })}
+                    </AnimatePresence>
+                  </motion.div>
                 );
               })
             )}
@@ -1771,8 +2070,15 @@ export function DashboardPage() {
 
       {/* WOOP Wizard — opened from dashboard Create Habit button */}
       <WoopWizard
+        mode="habit"
         open={showWoop}
-        onClose={() => setShowWoop(false)}
+        presetGoalId={habitWizardGoalId}
+        onClose={() => {
+          setShowWoop(false);
+          setHabitWizardGoalId(undefined);
+        }}
+        existingGoals={reusableGoals}
+        existingGoalsLoading={reusableGoalsLoading}
         existingLockInGoals={activeGoals
           .filter((g) => g.isLockIn && g.startTime && g.endTime)
           .map((g) => ({
@@ -1794,6 +2100,14 @@ export function DashboardPage() {
             setNewHabitId(goalId);
           }
         }}
+      />
+
+      {/* Goal Wizard — opened from the dashboard Create Goal button */}
+      <GoalWizard
+        open={showGoalWizard}
+        onClose={() => setShowGoalWizard(false)}
+        onGoalCreated={handleGoalCreated}
+        existingGoals={reusableGoals}
       />
     </>
   );

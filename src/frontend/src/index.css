@@ -67,6 +67,61 @@
     --hold-duration: 1200ms;
     --trace-color: #ffffff;
 
+    /* ── Goal wizard visual system (Bloom & Flow) ────────────────────────── */
+    /* Distinct from the WOOP habit wizard: emerald→gold gradient accents,
+       Fraunces display font, blooming tiles, flowing SVG progress path, and
+       text-reveal clip wipes. All built ON TOP of the existing neumorphic
+       charcoal canvas — no existing tokens are modified. */
+    /* Primary accent: Emerald Green #10B981 → oklch(0.696 0.17 162) — reuses
+       the app's success token so goal creation reads as a positive act. */
+    --goal-wizard-emerald: 0.696 0.17 162;
+    /* Secondary accent: Golden Amber #D4AF37 → oklch(0.74 0.13 85). Chosen over
+       #F59E0B (oklch 0.76 0.16 70) for a more refined, less-saturated gold that
+       reads as premium against charcoal rather than caution-yellow. */
+    --goal-wizard-gold: 0.74 0.13 85;
+    /* Soft gold for bloom rings and path glow — lower chroma, warmer hue. */
+    --goal-wizard-gold-soft: 0.78 0.09 85;
+    /* Reusable emerald→gold gradient token for the flowing progress path,
+       bloom selection ring, and text-reveal underline. Consumed via
+       .goal-wizard-gradient utility and inline SVG gradient defs. */
+    --goal-wizard-gradient: linear-gradient(
+      90deg,
+      oklch(0.696 0.17 162) 0%,
+      oklch(0.72 0.15 130) 45%,
+      oklch(0.74 0.13 85) 100%
+    );
+    /* Inset surface for the wizard shell — slightly warmer than --card so the
+       goal wizard feels like its own room without breaking the charcoal family. */
+    --goal-wizard-surface: 0.26 0.008 140;
+    /* Bloom ring stroke color (gold) — used by the SVG selection halo. */
+    --goal-wizard-bloom-ring: 0.74 0.13 85;
+    /* Flowing path stroke width and dash rhythm. */
+    --goal-wizard-path-width: 3px;
+    --goal-wizard-path-dash: 8 6;
+    /* Choreography durations — tuned to feel organic, not snappy. WOOP wizard
+       uses 180–420ms; goal wizard uses 500–900ms for a slower, blooming feel. */
+    --goal-wizard-bloom-duration: 620ms;
+    --goal-wizard-path-draw-duration: 820ms;
+    --goal-wizard-text-reveal-duration: 540ms;
+    --goal-wizard-step-settle-duration: 480ms;
+    /* Display font for the goal wizard ONLY — Fraunces (serif, editorial).
+       The rest of the app keeps Bricolage Grotesque via --font-display. */
+    --font-goal-wizard: "Fraunces";
+
+    /* ── Goal reuse tokens (WOOP wizard step 2) ──────────────────────────── */
+    /* Accent for goal-reuse chips, fill glow, and clear button — Emerald Green,
+       same hue as --primary, tuned for chip surface legibility. */
+    --goal-reuse-accent: 0.696 0.17 162;
+    --goal-reuse-accent-soft: 0.696 0.17 162; /* used at low opacity for hover wash */
+    /* Transient emerald ring shown on inputs the instant a reused goal lands */
+    --goal-fill-glow: 0.696 0.17 162;
+    /* Vertical rhythm between wrapped goal chips */
+    --goal-chips-gap: 0.625rem; /* 10px */
+    /* Choreography durations */
+    --goal-chips-out-duration: 280ms;
+    --goal-chips-in-duration: 320ms;
+    --goal-fill-pop-duration: 420ms;
+
     /* ── Avatar system tokens (light charcoal) ─────────────────────────── */
     /* Container: neutral charcoal, never tinted by avatarColor */
     --avatar-bg: 0.27 0.005 264;
@@ -137,6 +192,35 @@
     /* ── Hold-to-undo tracing border — white on deep charcoal ──────────── */
     --trace-color: #ffffff;
 
+    /* ── Goal wizard visual system (Bloom & Flow) — dark ───────────────── */
+    --goal-wizard-emerald: 0.696 0.17 162;
+    --goal-wizard-gold: 0.74 0.13 85;
+    --goal-wizard-gold-soft: 0.78 0.09 85;
+    --goal-wizard-gradient: linear-gradient(
+      90deg,
+      oklch(0.696 0.17 162) 0%,
+      oklch(0.72 0.15 130) 45%,
+      oklch(0.74 0.13 85) 100%
+    );
+    --goal-wizard-surface: 0.19 0.008 140;
+    --goal-wizard-bloom-ring: 0.74 0.13 85;
+    --goal-wizard-path-width: 3px;
+    --goal-wizard-path-dash: 8 6;
+    --goal-wizard-bloom-duration: 620ms;
+    --goal-wizard-path-draw-duration: 820ms;
+    --goal-wizard-text-reveal-duration: 540ms;
+    --goal-wizard-step-settle-duration: 480ms;
+    --font-goal-wizard: "Fraunces";
+
+    /* ── Goal reuse tokens (dark) ───────────────────────────────────────── */
+    --goal-reuse-accent: 0.696 0.17 162;
+    --goal-reuse-accent-soft: 0.696 0.17 162;
+    --goal-fill-glow: 0.696 0.17 162;
+    --goal-chips-gap: 0.625rem;
+    --goal-chips-out-duration: 280ms;
+    --goal-chips-in-duration: 320ms;
+    --goal-fill-pop-duration: 420ms;
+
     /* ── Avatar system tokens (deep charcoal) ─────────────────────────── */
     --avatar-bg: 0.2 0.008 264;
     --avatar-default-text: 0.99 0 0;
@@ -176,6 +260,16 @@
 @font-face {
   font-family: "JetBrains Mono";
   src: url("/assets/fonts/JetBrainsMono.woff2") format("woff2");
+  font-display: swap;
+}
+
+/* Goal wizard display font — Fraunces (serif, editorial). Distinct from the
+   app's Bricolage Grotesque display font so the goal wizard reads as its own
+   surface. Loaded alongside the existing fonts; only applied inside
+   .goal-wizard-root via the --font-goal-wizard token. */
+@font-face {
+  font-family: "Fraunces";
+  src: url("/assets/fonts/Fraunces.woff2") format("woff2");
   font-display: swap;
 }
 
@@ -312,8 +406,17 @@
     outline-offset: 2px;
   }
 
-  .input-neumorphic::placeholder {
-    @apply text-muted-foreground;
+  /* Subtle placeholder styling — smaller, greyer, more transparent than
+     the input text so it reads as a hint rather than prominent content.
+     Applied to every input-neumorphic field and any element using the
+     .placeholder-subtle utility (e.g. the WoopWizard ifThenPlan textarea). */
+  .input-neumorphic::placeholder,
+  .placeholder-subtle::placeholder {
+    color: oklch(var(--muted-foreground));
+    opacity: 0.45;
+    font-size: 0.8125rem; /* 13px — visibly smaller than the input text */
+    font-weight: 400;
+    letter-spacing: 0.01em;
   }
 
   /* ─── Chip / toggle for obstacles ──────────────────────────────────────── */
@@ -333,6 +436,260 @@
   .chip-neumorphic.active {
     border: 2px solid #10b981;
     color: #10b981;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+  }
+
+  /* ─── Goal reuse chips (WOOP wizard step 2 — Macro Goal) ──────────────── */
+  /* Full-width, wrapping neumorphic chips that show the COMPLETE goal text.
+     Reuses .chip-neumorphic shadow language but adds a left accent bar hint
+     and a touch-larger padding so the full goal reads as a tappable card. */
+  .chip-goal-reuse {
+    @apply px-4 py-3 rounded-lg transition-smooth;
+    @apply bg-card text-foreground;
+    @apply border border-transparent;
+    @apply cursor-pointer text-left w-full;
+    @apply leading-snug;
+    box-shadow: -2px -2px 5px rgba(80, 80, 85, 0.35), 3px 3px 7px
+      rgba(0, 0, 0, 0.7);
+    /* Subtle emerald left bar — reads as "selectable" without a full border */
+    border-left: 3px solid oklch(var(--goal-reuse-accent) / 0.35);
+  }
+
+  .chip-goal-reuse:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    border-left-color: oklch(var(--goal-reuse-accent));
+    transform: translateY(-1px);
+    box-shadow: -3px -3px 7px rgba(80, 80, 85, 0.4), 5px 5px 12px
+      rgba(0, 0, 0, 0.75);
+  }
+
+  .chip-goal-reuse:active {
+    transform: translateY(0);
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+  }
+
+  /* The chip the user just tapped — flashes emerald before fading out.
+     Mirrors .chip-neumorphic.active inset language. */
+  .chip-goal-reuse.filled {
+    border: 2px solid oklch(var(--goal-reuse-accent));
+    border-left: 3px solid oklch(var(--goal-reuse-accent));
+    color: oklch(var(--goal-reuse-accent));
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+  }
+
+  /* ─── Goal-reuse choreography keyframes ──────────────────────────────── */
+  /* Chips exit: fade + slide down + slight scale collapse. Framer Motion
+     AnimatePresence drives the JS side; this keyframe is the CSS fallback /
+     design reference for the easing curve. */
+  @keyframes goal-chips-out {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+  }
+
+  /* Chips re-enter after Clear: fade + slide up + slight scale-in. */
+  @keyframes goal-chips-in {
+    0% {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Tap-to-fill: the two Macro Goal inputs pop as their values land.
+     Reuses the card-lock bounce easing (cubic-bezier(0.34,1.56,0.64,1))
+     for a satisfying tactile settle. */
+  @keyframes goal-fill-pop {
+    0% {
+      transform: scale(1);
+      box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+        rgba(80, 80, 85, 0.25);
+    }
+    40% {
+      transform: scale(1.015);
+      box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+        rgba(80, 80, 85, 0.25), 0 0 0 2px oklch(var(--goal-fill-glow) / 0.55);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+        rgba(80, 80, 85, 0.25);
+    }
+  }
+
+  /* Applied momentarily to .input-neumorphic when a reused goal fills it. */
+  .input-goal-filled {
+    animation: goal-fill-pop var(--goal-fill-pop-duration)
+      cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* ─── Macro Goal box soft green vibrating border ──────────────────────── */
+  /* Slow, subtle pulse of the box border color/opacity using the emerald
+     token. The vibration is intentionally soft — a gentle breathing border
+     that draws the eye without being jarring. Animates only border-color and
+     border-opacity (plus a faint matching glow), never layout properties. */
+  @keyframes soft-green-vibrate {
+    0%,
+    100% {
+      border-color: oklch(var(--goal-reuse-accent) / 0.25);
+      box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.65), inset -3px -3px 7px
+        rgba(80, 80, 85, 0.25), 0 0 0 0 oklch(var(--goal-reuse-accent) / 0);
+    }
+    50% {
+      border-color: oklch(var(--goal-reuse-accent) / 0.6);
+      box-shadow:
+        inset 4px 4px 8px rgba(0, 0, 0, 0.65),
+        inset -3px -3px 7px rgba(80, 80, 85, 0.25),
+        0 0 14px 1px oklch(var(--goal-reuse-accent) / 0.22);
+    }
+  }
+
+  /* Applied to the Macro Goal box container in addition to its existing
+     classes. Slow ~2.8s duration, ease-in-out, infinite. Honors reduced
+     motion: users who prefer less motion get a static soft-emerald border
+     instead of the pulsing animation. */
+  .macrogoal-vibrate {
+    animation: soft-green-vibrate 2.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .macrogoal-vibrate {
+      animation: none;
+      border-color: oklch(var(--goal-reuse-accent) / 0.4);
+    }
+  }
+
+  /* ─── Macro Goal box reused-state background ─────────────────────────── */
+  /* Applied to the Macro Goal container ONLY when a previously-made goal is
+     reused (selectedGoalId !== null). Gives the whole input box a subtle,
+     opaque emerald tint using the existing --goal-reuse-accent token so the
+     user sees the macro goal input is done. Replaces the default bg-muted/30
+     surface in this state. Opaque (no alpha blend) per spec, but kept subtle
+     by choosing a low-lightness emerald that reads as a soft wash on the
+     charcoal neumorphic surface. */
+  .macrogoal-reused-bg {
+    background: oklch(var(--goal-reuse-accent) / 0.12);
+  }
+
+  /* ─── Lock-In box soft yellow vibrating border ─────────────────────────── */
+  /* Mirrors .macrogoal-vibrate / soft-green-vibrate but in yellow (amber),
+     using --avatar-base-yellow oklch(0.91 0.17 98). The base .lockin-vibrate
+     class uses the SAME border-width and box-shadow spread as the green
+     macrogoal-vibrate. The .lockin-vibrate-active modifier (appended only
+     when the user toggles Lock-In ON) makes the border 50% THICKER and the
+     glow box-shadow spread 50% larger so the yellow glow visibly intensifies
+     when Lock-In is enabled. */
+  @keyframes soft-yellow-vibrate {
+    0%,
+    100% {
+      border-color: oklch(var(--avatar-base-yellow) / 0.25);
+      box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.65), inset -3px -3px 7px
+        rgba(80, 80, 85, 0.25), 0 0 0 0 oklch(var(--avatar-base-yellow) / 0);
+    }
+    50% {
+      border-color: oklch(var(--avatar-base-yellow) / 0.6);
+      box-shadow:
+        inset 4px 4px 8px rgba(0, 0, 0, 0.65),
+        inset -3px -3px 7px rgba(80, 80, 85, 0.25),
+        0 0 14px 1px oklch(var(--avatar-base-yellow) / 0.22);
+    }
+  }
+
+  /* Active (Lock-In ON) variant — 50% thicker border + 50% larger glow spread.
+     The base keyframe uses a 1px-equivalent border-color pulse and a 14px glow
+     spread (matching green). The active modifier overrides the keyframe's
+     50% keyframe with a 1.5x border-width (via border declaration) and a 21px
+     (14 * 1.5) box-shadow spread so the yellow glow visibly intensifies. */
+  @keyframes soft-yellow-vibrate-active {
+    0%,
+    100% {
+      border-color: oklch(var(--avatar-base-yellow) / 0.375);
+      border-width: 1.5px;
+      box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.65), inset -3px -3px 7px
+        rgba(80, 80, 85, 0.25), 0 0 0 0 oklch(var(--avatar-base-yellow) / 0);
+    }
+    50% {
+      border-color: oklch(var(--avatar-base-yellow) / 0.9);
+      border-width: 1.5px;
+      box-shadow:
+        inset 4px 4px 8px rgba(0, 0, 0, 0.65),
+        inset -3px -3px 7px rgba(80, 80, 85, 0.25),
+        0 0 21px 1.5px oklch(var(--avatar-base-yellow) / 0.33);
+    }
+  }
+
+  /* Base yellow vibrate — same thickness as green macrogoal-vibrate. */
+  .lockin-vibrate {
+    animation: soft-yellow-vibrate 2.8s ease-in-out infinite;
+  }
+
+  /* Active modifier — appended only when form.isLockIn === true. Swaps to the
+     thicker-border / larger-spread keyframe so the glow intensifies on toggle. */
+  .lockin-vibrate-active {
+    animation: soft-yellow-vibrate-active 2.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lockin-vibrate {
+      animation: none;
+      border-color: oklch(var(--avatar-base-yellow) / 0.4);
+    }
+    .lockin-vibrate-active {
+      animation: none;
+      border-color: oklch(var(--avatar-base-yellow) / 0.6);
+      border-width: 1.5px;
+    }
+  }
+
+  /* ─── Goal wizard (Bloom & Flow) reduced-motion fallback ───────────────── */
+  /* The six goal-wizard animations are applied via Tailwind utility classes
+     (animate-goal-wizard-*) defined in tailwind.config.js. None of them have
+     a built-in prefers-reduced-motion guard, so we disable them here: users
+     who prefer less motion get the final static state of each animation
+     (bloom tiles visible, path fully drawn, text revealed, underline grown,
+     step settled) with no motion. animation: none is sufficient because each
+     keyframe's 100% state matches the element's resting CSS. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-goal-wizard-bloom,
+    .animate-goal-wizard-path-draw,
+    .animate-goal-wizard-path-pulse,
+    .animate-goal-wizard-text-reveal,
+    .animate-goal-wizard-underline-grow,
+    .animate-goal-wizard-step-settle {
+      animation: none;
+    }
+  }
+
+  /* ─── Clear button (goal reuse) ──────────────────────────────────────── */
+  /* Mirrors .button-secondary-neon neumorphic language but ghosted + smaller,
+     with an emerald-tinted caret so it reads as the "undo my pick" affordance. */
+  .button-clear-neumorphic {
+    @apply inline-flex items-center gap-1.5;
+    @apply px-3 py-1.5 rounded-lg transition-smooth;
+    @apply bg-secondary text-secondary-foreground;
+    @apply border border-transparent;
+    @apply text-sm font-medium cursor-pointer;
+    box-shadow: -2px -2px 5px rgba(80, 80, 85, 0.35), 3px 3px 7px
+      rgba(0, 0, 0, 0.7);
+  }
+
+  .button-clear-neumorphic:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    color: oklch(var(--goal-reuse-accent));
+  }
+
+  .button-clear-neumorphic:active {
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
       rgba(80, 80, 85, 0.2);
   }
@@ -695,33 +1052,21 @@
   padding: 2px;
 }
 
-/* ─── Top "Create Habit" button — subtle premium outer breathing glow ──── */
-/* Only applied to the standalone button shown when there are no active
-   habits, so the glow naturally appears only in the empty state. Uses the
-   Emerald Green accent (var(--color-accent-success) / #10B981) layered on top
-   of the existing neumorphic shadow for a soft, premium pulse — not neon. */
-@keyframes createHabitGlowPulse {
-  0%,
-  100% {
-    box-shadow: -2px -2px 5px rgba(60, 60, 65, 0.35), 3px 3px 8px
-      rgba(0, 0, 0, 0.65), 0 0 0 0 oklch(0.696 0.17 162 / 0.18), 0 0 10px 1px
-      oklch(0.696 0.17 162 / 0.22);
-  }
-  50% {
-    box-shadow:
-      -2px -2px 5px rgba(60, 60, 65, 0.35),
-      3px 3px 8px rgba(0, 0, 0, 0.65),
-      0 0 0 3px oklch(0.696 0.17 162 / 0.12),
-      0 0 18px 4px oklch(0.696 0.17 162 / 0.38);
-  }
-}
-
-.create-habit-glow {
-  animation: createHabitGlowPulse 2.6s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .create-habit-glow {
-    animation: none;
-  }
+/* ── QR scanner: force injected <video> to fill the square wrapper ──────────
+ * html5-qrcode injects its own <video> into #qr-scan-region and positions the
+ * qrbox frame relative to that <video>'s rendered dimensions, NOT the visible
+ * square CSS wrapper. When the camera stream has a different aspect ratio
+ * (4:3 or 16:9) than the square wrapper, the <video> overflows the square
+ * container asymmetrically and the qrbox frame appears off-center (sitting at
+ * the lower end of the visible square).
+ *
+ * Forcing the <video> to width:100% / height:100% with object-fit:cover makes
+ * the video element itself render as a square that matches the wrapper, so the
+ * qrbox function receives equal width/height and the frame centers with equal
+ * padding on all four sides. !important overrides html5-qrcode's inline styles.
+ */
+#qr-scan-region video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
 }

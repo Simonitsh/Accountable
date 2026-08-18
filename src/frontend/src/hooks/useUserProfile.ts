@@ -124,11 +124,16 @@ export function useUpdateBio() {
       );
       const shapeArg = currentProfile?.avatarShape ?? null;
       const colorArg = currentProfile?.avatarColor ?? null;
+      // Preserve avatarColorMode verbatim too — the backend overwrites it
+      // unconditionally on every updateMyProfile call, so a missing 4th arg
+      // would wipe the user's saved color mode. Mirrors useUpdateAvatar.
+      const modeArg = currentProfile?.avatarColorMode ?? null;
       // Explicitly send null for empty strings to clear the field on the backend.
       // Do NOT use `|| undefined` — that silently ignores clearing.
       const nameArg = displayName.trim().length > 0 ? displayName.trim() : null;
       const bioArg = bio.trim().length > 0 ? bio.trim() : null;
       const emailArg = email.trim().length > 0 ? email.trim() : null;
+      const tzArg = currentProfile?.timezoneOffsetMinutes ?? null;
       const result = await (
         actor as unknown as {
           updateMyProfile: (...args: unknown[]) => Promise<unknown>;
@@ -137,9 +142,10 @@ export function useUpdateBio() {
         nameArg,
         shapeArg,
         colorArg,
+        modeArg,
         bioArg,
         emailArg,
-        BigInt(-new Date().getTimezoneOffset()),
+        tzArg,
       );
       if (
         result &&

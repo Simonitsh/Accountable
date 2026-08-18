@@ -2,8 +2,9 @@ import { X, Zap } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { CheckInType } from "../backend";
-import type { CheckIn, GoalPublic } from "../backend.d.ts";
+import type { CheckIn } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
+import type { HabitPublic } from "../types";
 import { OBSTACLE_TEMPLATES } from "../types";
 import { getGoalIcon } from "../utils/goalIcons";
 
@@ -256,7 +257,7 @@ function TimelineSkeleton() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export interface GoalInsightSheetProps {
-  goal: GoalPublic;
+  goal: HabitPublic;
   isOpen: boolean;
   onClose: () => void;
 }

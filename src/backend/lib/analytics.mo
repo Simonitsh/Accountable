@@ -18,7 +18,7 @@ module {
   };
 
   public func computeGoalAnalytics(
-    goal : GoalTypes.GoalPublic,
+    goal : GoalTypes.HabitPublic,
     checkIns : [CheckInTypes.CheckIn],
     now : Common.Timestamp,
   ) : AnalyticsTypes.GoalAnalytics {
@@ -153,12 +153,16 @@ module {
     caller : Common.UserId,
     now : Common.Timestamp,
   ) : AnalyticsTypes.AnalyticsSummary {
-    let ownedGoals = goals.values().filter(func(g) { g.owner == caller }).toArray();
-    let goalIds = ownedGoals.map(func(g) { g.id });
+    // Analytics are per-habit (check-ins are recorded against habits, not
+    // macro goals). Filter to habits only (goalId set).
+    let ownedHabits = goals.values().filter(func(g) {
+      g.owner == caller and g.goalId != null
+    }).toArray();
+    let goalIds = ownedHabits.map(func(g) { g.id });
     let allCheckIns = checkIns.values().filter(func(c) { c.owner == caller }).toArray();
 
-    let goalAnalytics = ownedGoals.map(func(g) {
-      let gPublic = GoalLib.toPublic(g);
+    let goalAnalytics = ownedHabits.map(func(g) {
+      let gPublic = GoalLib.toHabitPublic(g);
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
       computeGoalAnalytics(gPublic, goalCheckIns, now);
     });

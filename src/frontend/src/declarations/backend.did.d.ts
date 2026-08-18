@@ -24,6 +24,7 @@ export type AvatarShape = [] | [
     { 'Hexagon' : null } |
     { 'Square' : null }
 ];
+export interface Cell { 'value' : Value, 'name' : string }
 export interface CheckIn {
   'id' : CheckInId,
   'owner' : UserId,
@@ -53,26 +54,28 @@ export interface ConnectionPublic {
 export type ConnectionStatus = { 'pending' : null } |
   { 'rejected' : null } |
   { 'accepted' : null };
-export interface CreateGoalRequest {
+export interface CreateHabitRequest {
   'startTime' : [] | [string],
-  'intentTimeMinutes' : [] | [bigint],
   'endTimeMinutes' : [] | [bigint],
-  'emailNotifications' : [] | [boolean],
   'endTime' : [] | [string],
   'scheduledDays' : [] | [Array<string>],
   'startTimeMinutes' : [] | [bigint],
+  'goalId' : GoalId,
+  'themeColor' : [] | [string],
+  'wishDescription' : [] | [string],
+  'iconName' : [] | [string],
+  'ifThenPlan' : string,
+  'obstacleTemplateId' : [] | [ObstacleTemplateId],
+  'isLockIn' : boolean,
+  'lockInDurationMinutes' : [] | [bigint],
+}
+export interface CreateMacroGoalRequest {
   'wish' : string,
   'themeColor' : [] | [string],
   'wishDescription' : string,
   'iconName' : [] | [string],
-  'ifThenPlan' : string,
-  'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'category' : GoalCategory,
-  'isLockIn' : boolean,
-  'reminderOffset' : [] | [bigint],
-  'intentTime' : [] | [string],
   'outcome' : string,
-  'lockInDurationMinutes' : [] | [bigint],
 }
 export interface CreateObstacleRequest {
   'title' : string,
@@ -103,12 +106,17 @@ export type GoalCategory = { 'Productivity' : null } |
   { 'Social' : null } |
   { 'Leisure' : null };
 export type GoalId = bigint;
-export interface GoalPublic {
+export type GoalState = { 'active' : null } |
+  { 'completed' : null } |
+  { 'paused' : null };
+export interface GoalWithHabitsPublic {
+  'goal' : MacroGoalPublic,
+  'habits' : Array<HabitPublic>,
+}
+export interface HabitPublic {
   'id' : GoalId,
   'startTime' : [] | [string],
-  'intentTimeMinutes' : bigint,
   'endTimeMinutes' : bigint,
-  'emailNotifications' : boolean,
   'endTime' : [] | [string],
   'scheduledDays' : Array<string>,
   'owner' : UserId,
@@ -116,6 +124,7 @@ export interface GoalPublic {
   'startTimeMinutes' : bigint,
   'createdAt' : Timestamp,
   'wish' : string,
+  'goalId' : GoalId,
   'themeColor' : [] | [string],
   'wishDescription' : string,
   'iconName' : [] | [string],
@@ -125,16 +134,9 @@ export interface GoalPublic {
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'category' : GoalCategory,
   'isLockIn' : boolean,
-  'reminderOffset' : [] | [bigint],
-  'intentTime' : [] | [string],
   'outcome' : string,
   'lockInDurationMinutes' : bigint,
-  'lastEmailSentAt' : bigint,
 }
-export type GoalState = { 'active' : null } |
-  { 'completed' : null } |
-  { 'abandoned' : null } |
-  { 'paused' : null };
 export interface Interaction {
   'id' : InteractionId,
   'interactionType' : InteractionType,
@@ -144,6 +146,19 @@ export interface Interaction {
 }
 export type InteractionId = bigint;
 export type InteractionType = { 'highFive' : null };
+export interface MacroGoalPublic {
+  'id' : GoalId,
+  'owner' : UserId,
+  'createdAt' : Timestamp,
+  'wish' : string,
+  'themeColor' : [] | [string],
+  'wishDescription' : string,
+  'iconName' : [] | [string],
+  'updatedAt' : Timestamp,
+  'state' : GoalState,
+  'category' : GoalCategory,
+  'outcome' : string,
+}
 export interface ObstacleTemplate {
   'id' : ObstacleTemplateId,
   'title' : string,
@@ -151,6 +166,17 @@ export interface ObstacleTemplate {
   'description' : string,
 }
 export type ObstacleTemplateId = bigint;
+export interface PartnerHabitDetail {
+  'habits' : Array<HabitPublic>,
+  'profile' : UserProfilePublic,
+}
+export type PartnerHabitError = { 'notPartner' : null } |
+  { 'profileNotFound' : null };
+export interface PartnerOverview {
+  'activeHabitCount' : bigint,
+  'profile' : UserProfilePublic,
+  'currentStreak' : bigint,
+}
 export interface RecordCheckInRequest {
   'timezoneOffsetMinutes' : bigint,
   'goalId' : GoalId,
@@ -161,28 +187,32 @@ export interface RecordCheckInRequest {
   'lockInEndedAt' : [] | [bigint],
   'customObstacleNote' : [] | [string],
 }
+export interface Result { 'hasMore' : boolean, 'rows' : Array<Array<Cell>> }
+export interface ReusableGoalPublic {
+  'id' : GoalId,
+  'wish' : string,
+  'wishDescription' : string,
+  'state' : GoalState,
+  'category' : GoalCategory,
+}
 export type Timestamp = bigint;
-export interface UpdateGoalRequest {
+export interface UpdateHabitRequest {
   'startTime' : [] | [string],
-  'intentTimeMinutes' : [] | [bigint],
   'endTimeMinutes' : [] | [bigint],
-  'emailNotifications' : [] | [boolean],
   'endTime' : [] | [string],
   'scheduledDays' : [] | [Array<string>],
   'timezoneOffsetMinutes' : bigint,
   'startTimeMinutes' : [] | [bigint],
-  'wish' : [] | [string],
   'themeColor' : [] | [string],
   'isTimeEdit' : [] | [boolean],
-  'wishDescription' : [] | [string],
   'iconName' : [] | [string],
   'ifThenPlan' : [] | [string],
-  'category' : [] | [GoalCategory],
   'isLockIn' : [] | [boolean],
-  'reminderOffset' : [] | [bigint],
-  'intentTime' : [] | [string],
-  'outcome' : [] | [string],
   'lockInDurationMinutes' : [] | [bigint],
+}
+export interface UpdateMacroGoalRequest {
+  'themeColor' : [] | [string],
+  'iconName' : [] | [string],
 }
 export type UserId = Principal;
 export interface UserProfilePublic {
@@ -200,10 +230,21 @@ export interface UserProfilePublic {
 }
 export type UserRole = { 'admin' : null } |
   { 'user' : null };
+export type Value = { 'int' : bigint } |
+  { 'nat' : bigint } |
+  { 'float' : number } |
+  { 'bool' : boolean } |
+  { 'null' : null } |
+  { 'text' : string };
 export interface _SERVICE {
-  'createGoal' : ActorMethod<
-    [CreateGoalRequest],
-    { 'ok' : GoalPublic } |
+  'createHabit' : ActorMethod<
+    [CreateHabitRequest],
+    { 'ok' : HabitPublic } |
+      { 'err' : string }
+  >,
+  'createMacroGoal' : ActorMethod<
+    [CreateMacroGoalRequest],
+    { 'ok' : MacroGoalPublic } |
       { 'err' : string }
   >,
   'createObstacleTemplate' : ActorMethod<
@@ -219,7 +260,10 @@ export interface _SERVICE {
           { 'unauthorized' : null }
       }
   >,
+  'deleteGoal' : ActorMethod<[GoalId], { 'ok' : null } | { 'err' : string }>,
+  'deleteHabit' : ActorMethod<[GoalId], { 'ok' : null } | { 'err' : string }>,
   'devReset' : ActorMethod<[], undefined>,
+  'execute' : ActorMethod<[string], Result>,
   'getAnalytics' : ActorMethod<[], AnalyticsSummary>,
   'getCheckInsForGoal' : ActorMethod<[GoalId], Array<CheckIn>>,
   'getCheckInsForGoalTimeline' : ActorMethod<[GoalId, bigint], Array<CheckIn>>,
@@ -227,30 +271,49 @@ export interface _SERVICE {
     [GoalId, bigint, bigint],
     Array<CheckIn>
   >,
-  'getGoal' : ActorMethod<[GoalId], [] | [GoalPublic]>,
+  'getHabit' : ActorMethod<[GoalId], [] | [HabitPublic]>,
   'getInteractionCount' : ActorMethod<[CheckInId], bigint>,
+  'getMacroGoal' : ActorMethod<[GoalId], [] | [MacroGoalPublic]>,
   'getMyProfile' : ActorMethod<[], UserProfilePublic>,
   'getPartnerFeed' : ActorMethod<[], Array<FeedItem>>,
+  'getPartnerHabits' : ActorMethod<
+    [Principal],
+    { 'ok' : PartnerHabitDetail } |
+      { 'err' : PartnerHabitError }
+  >,
   'getUserProfile' : ActorMethod<[UserId], [] | [UserProfilePublic]>,
   'isUsernameAvailable' : ActorMethod<[string], boolean>,
   'listAllUsers' : ActorMethod<[], Array<UserProfilePublic>>,
   'listConnections' : ActorMethod<[], Array<ConnectionPublic>>,
+  'listHabitsByParent' : ActorMethod<
+    [GoalId],
+    { 'ok' : Array<HabitPublic> } |
+      { 'err' : string }
+  >,
   'listMyCheckIns' : ActorMethod<[], Array<CheckIn>>,
-  'listMyGoals' : ActorMethod<[], Array<GoalPublic>>,
+  'listMyGoals' : ActorMethod<[], Array<GoalWithHabitsPublic>>,
   'listMyObstacleTemplates' : ActorMethod<[], Array<ObstacleTemplate>>,
+  'listMyReusableGoals' : ActorMethod<[], Array<ReusableGoalPublic>>,
+  'listPartnerOverviews' : ActorMethod<[], Array<PartnerOverview>>,
   'listPendingRequests' : ActorMethod<[], Array<ConnectionPublic>>,
   'recordCheckIn' : ActorMethod<[RecordCheckInRequest], CheckIn>,
   'recordInteraction' : ActorMethod<[CheckInId, InteractionType], Interaction>,
   'register' : ActorMethod<[string], UserProfilePublic>,
   'respondToConnection' : ActorMethod<[ConnectionId, boolean], boolean>,
+  'schema' : ActorMethod<[], string>,
   'sendConnectionRequest' : ActorMethod<[UserId], ConnectionPublic>,
   'setTimezone' : ActorMethod<[string], undefined>,
-  'updateGoal' : ActorMethod<
-    [GoalId, UpdateGoalRequest],
-    { 'ok' : GoalPublic } |
+  'updateGoalState' : ActorMethod<[GoalId, GoalState], boolean>,
+  'updateHabit' : ActorMethod<
+    [GoalId, UpdateHabitRequest],
+    { 'ok' : HabitPublic } |
       { 'err' : string }
   >,
-  'updateGoalState' : ActorMethod<[GoalId, GoalState], boolean>,
+  'updateMacroGoal' : ActorMethod<
+    [GoalId, UpdateMacroGoalRequest],
+    { 'ok' : MacroGoalPublic } |
+      { 'err' : string }
+  >,
   'updateMyProfile' : ActorMethod<
     [
       [] | [string],

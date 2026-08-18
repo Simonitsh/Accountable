@@ -1,11 +1,10 @@
 import List "mo:core/List";
+import Set "mo:core/Set";
 import Time "mo:core/Time";
 import Common "../types/common";
 import GoalTypes "../types/goals";
-import Text "mo:core/Text";
-import Nat "mo:core/Nat";
-import Int "mo:core/Int";
-import Debug "mo:core/Debug";
+import CheckInTypes "../types/checkins";
+import FeedTypes "../types/feed";
 
 /// Goals — pure domain logic module.
 ///
@@ -13,80 +12,47 @@ import Debug "mo:core/Debug";
 /// from the caller (main.mo via the Goals module). No state is held here.
 /// This module returns typed Result<T, GoalError> values — callers must handle
 /// all error variants explicitly.
+///
+/// MACRO GOAL vs HABIT
+/// ───────────────────
+/// `createMacroGoal` creates a container (goalId = null) with category, wish,
+/// outcome. `createHabit` creates a habit linked to an existing macro goal
+/// (goalId required); the habit inherits the parent's category and its
+/// wish/wishDescription/outcome are sourced from the parent (read-only).
 module {
-  /// Returns true if two HH:MM time blocks overlap.
-  /// Overlap condition: newStart < existingEnd AND newEnd > existingStart.
-  func timesOverlap(newStart : Text, newEnd : Text, exStart : Text, exEnd : Text) : Bool {
-    newStart < exEnd and newEnd > exStart;
+  // 86400 seconds in nanoseconds
+  let DAY_NS : Int = 86_400_000_000_000;
+
+  func sameDay(a : Common.Timestamp, b : Common.Timestamp, timezoneOffsetMinutes : Int) : Bool {
+    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
+    ((a + offsetNs) / DAY_NS) == ((b + offsetNs) / DAY_NS);
   };
 
-  /// Finds any active Lock-In goal owned by `caller` whose time block overlaps
-  /// [newStart, newEnd]. Excludes the goal with `excludeId` (for updates).
-  func findOverlappingLockIn(
-    goals : List.List<GoalTypes.Goal>,
-    caller : Common.UserId,
-    newStart : Text,
-    newEnd : Text,
-    excludeId : ?Common.GoalId,
-  ) : ?GoalTypes.Goal {
-    goals.find(func(g) {
-      if (g.owner != caller) return false;
-      if (not g.isLockIn) return false;
-      switch (g.state) {
-        case (#active or #paused) {};
-        case _ { return false };
-      };
-      switch (excludeId) {
-        case (?eid) { if (g.id == eid) return false };
-        case null {};
-      };
-      switch (g.startTime, g.endTime) {
-        case (?gs, ?ge) timesOverlap(newStart, newEnd, gs, ge);
-        case _ false;
-      };
-    });
-  };
-
-  /// Parses "HH:MM" into minutes-from-midnight. Returns null if format is invalid.
-  func parseMinutes(t : Text) : ?Nat {
-    let parts = t.split(#char ':');
-    switch (parts.next(), parts.next()) {
-      case (?hh, ?mm) {
-        switch (Nat.fromText(hh), Nat.fromText(mm)) {
-          case (?h, ?m) { ?(h * 60 + m) };
-          case _ null;
-        };
-      };
-      case _ null;
-    };
-  };
-
-  /// Returns true if the current server time-of-day falls within the
-  /// Lock-In active window: [startMinutes - 5, endMinutes + 5] (inclusive).
-  /// Handles midnight crossover when endMinutes + 5 >= 1440.
-  func isInActiveWindow(startTime : Text, endTime : Text) : Bool {
-    switch (parseMinutes(startTime), parseMinutes(endTime)) {
-      case (?startMin, ?endMin) {
-        let nowNs : Int = Time.now();
-        let nowSec : Int = Int.rem(nowNs / 1_000_000_000, 86400);
-        let nowMin : Nat = Int.abs(nowSec) / 60;
-        let windowStart : Nat = if (startMin >= 5) { startMin - 5 } else { 0 };
-        let windowEnd : Nat = endMin + 5;
-        if (windowEnd >= 1440) {
-          // Midnight crossover: active if nowMin >= windowStart OR nowMin <= (windowEnd - 1440)
-          nowMin >= windowStart or nowMin <= (windowEnd - 1440)
-        } else {
-          nowMin >= windowStart and nowMin <= windowEnd
-        };
-      };
-      case _ false;
-    };
-  };
-
-  public func toPublic(goal : GoalTypes.Goal) : GoalTypes.GoalPublic {
+  /// Projects a stored Goal to its macro-goal public form.
+  /// Caller must ensure the Goal is a macro goal (goalId = null).
+  public func toMacroGoalPublic(goal : GoalTypes.Goal) : GoalTypes.MacroGoalPublic {
     {
       id = goal.id;
       owner = goal.owner;
+      wish = goal.wish;
+      wishDescription = goal.wishDescription;
+      outcome = goal.outcome;
+      state = goal.state;
+      createdAt = goal.createdAt;
+      updatedAt = goal.updatedAt;
+      iconName = goal.iconName;
+      themeColor = goal.themeColor;
+      category = goal.category;
+    };
+  };
+
+  /// Projects a stored Goal to its habit public form.
+  /// Caller must ensure the Goal is a habit (goalId set).
+  public func toHabitPublic(goal : GoalTypes.Goal) : GoalTypes.HabitPublic {
+    {
+      id = goal.id;
+      owner = goal.owner;
+      goalId = switch (goal.goalId) { case null 0; case (?n) n };
       wish = goal.wish;
       wishDescription = goal.wishDescription;
       outcome = goal.outcome;
@@ -101,46 +67,112 @@ module {
       startTime = goal.startTime;
       endTime = goal.endTime;
       lastEditedAt = goal.lastEditedAt;
-      emailNotifications = goal.emailNotifications;
-      intentTime = goal.intentTime;
-      reminderOffset = goal.reminderOffset;
-      lastEmailSentAt = goal.lastEmailSentAt;
       lockInDurationMinutes = goal.lockInDurationMinutes;
       startTimeMinutes = goal.startTimeMinutes;
       endTimeMinutes = goal.endTimeMinutes;
-      intentTimeMinutes = goal.intentTimeMinutes;
       scheduledDays = goal.scheduledDays;
       category = goal.category;
     };
   };
 
-  public func createGoal(
+  /// Creates a new macro goal (a container). Validates that wish is non-empty.
+  /// Lock-In and schedule fields are NOT accepted — macro goals do not carry
+  /// them. Returns the macro goal in its public form.
+  public func createMacroGoal(
     goals : List.List<GoalTypes.Goal>,
     nextId : Nat,
     caller : Common.UserId,
-    request : GoalTypes.CreateGoalRequest,
-  ) : { #ok : GoalTypes.GoalPublic; #err : GoalTypes.GoalError } {
-    // Overlap validation for Lock-In habits
-    if (request.isLockIn) {
-      switch (request.startTime, request.endTime) {
-        case (?newStart, ?newEnd) {
-          switch (findOverlappingLockIn(goals, caller, newStart, newEnd, null)) {
-            case (?conflict) {
-              return #err(#lockInOverlap("This time overlaps with your existing Lock-In: " # conflict.wish));
-            };
-            case null {};
-          };
-        };
-        case _ {};
-      };
-    };
+    request : GoalTypes.CreateMacroGoalRequest,
+  ) : { #ok : GoalTypes.MacroGoalPublic; #err : GoalTypes.GoalError } {
+    if (request.wish == "") return #err(#invalidInput);
     let now = Time.now();
     let goal : GoalTypes.Goal = {
       id = nextId;
       owner = caller;
+      var goalId = null;
       var wish = request.wish;
       var wishDescription = request.wishDescription;
       outcome = request.outcome;
+      obstacleTemplateId = null;
+      var ifThenPlan = "";
+      var state = #active;
+      createdAt = now;
+      var updatedAt = now;
+      var iconName = request.iconName;
+      var themeColor = request.themeColor;
+      var isLockIn = false;
+      var startTime = null;
+      var endTime = null;
+      var lastEditedAt = null;
+      var lockInDurationMinutes = 0;
+      var startTimeMinutes = 0;
+      var endTimeMinutes = 0;
+      var scheduledDays = [] : [Text];
+      var category = request.category;
+    };
+    goals.add(goal);
+    #ok(toMacroGoalPublic(goal));
+  };
+
+  /// Creates a new habit linked to an existing macro goal.
+  /// `request.goalId` is REQUIRED — the habit must reference an existing
+  /// macro goal owned by `caller`. The habit inherits the parent's category
+  /// and its wish/outcome are sourced from the parent (read-only). The habit's
+  /// wishDescription (displayed name) defaults to the parent's, but is
+  /// overridden by `request.wishDescription` when the caller supplies one.
+  /// Validates Lock-In overlap against the caller's other habits.
+  public func createHabit(
+    goals : List.List<GoalTypes.Goal>,
+    nextId : Nat,
+    caller : Common.UserId,
+    request : GoalTypes.CreateHabitRequest,
+  ) : { #ok : GoalTypes.HabitPublic; #err : GoalTypes.GoalError } {
+    // Look up the parent macro goal.
+    let parent = switch (goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == request.goalId and g.owner == caller and g.goalId == null;
+    })) {
+      case null return #err(#parentGoalRequired);
+      case (?p) p;
+    };
+
+    let isLockIn = request.isLockIn;
+    let lockInDurationMinutes = switch (request.lockInDurationMinutes) { case null 0; case (?n) n };
+    let startTimeMinutes = switch (request.startTimeMinutes) { case null 0; case (?n) n };
+    let endTimeMinutes = switch (request.endTimeMinutes) { case null 0; case (?n) n };
+    let scheduledDays = switch (request.scheduledDays) { case null GoalTypes.DEFAULT_SCHEDULED_DAYS; case (?d) d };
+    // Habit name: prefer the user's typed wishDescription when supplied;
+    // otherwise fall back to the parent macro goal's wishDescription.
+    let wishDescription = switch (request.wishDescription) {
+      case null parent.wishDescription;
+      case (?name) name;
+    };
+
+    // Validate Lock-In overlap against the caller's other habits.
+    if (isLockIn and startTimeMinutes > 0 and endTimeMinutes > 0) {
+      let overlap = goals.find(func(g : GoalTypes.Goal) : Bool {
+        g.owner == caller and
+        g.id != nextId and
+        g.goalId != null and
+        g.isLockIn and
+        g.startTimeMinutes > 0 and g.endTimeMinutes > 0 and
+        // Two [start, end] windows overlap iff startA < endB and startB < endA.
+        startTimeMinutes < g.endTimeMinutes and
+        g.startTimeMinutes < endTimeMinutes;
+      });
+      switch (overlap) {
+        case (?g) return #err(#lockInOverlap("Lock-In window overlaps with another habit"));
+        case null {};
+      };
+    };
+
+    let now = Time.now();
+    let habit : GoalTypes.Goal = {
+      id = nextId;
+      owner = caller;
+      var goalId = ?request.goalId;
+      var wish = parent.wish;
+      var wishDescription = wishDescription;
+      outcome = parent.outcome;
       obstacleTemplateId = request.obstacleTemplateId;
       var ifThenPlan = request.ifThenPlan;
       var state = #active;
@@ -148,248 +180,289 @@ module {
       var updatedAt = now;
       var iconName = request.iconName;
       var themeColor = request.themeColor;
-      var isLockIn = request.isLockIn;
+      var isLockIn = isLockIn;
       var startTime = request.startTime;
       var endTime = request.endTime;
       var lastEditedAt = null;
-      var emailNotifications = switch (request.emailNotifications) { case (?v) v; case null false };
-      var intentTime = switch (request.intentTime) { case (?t) ?t; case null null };
-      var reminderOffset = switch (request.reminderOffset) { case (?o) ?o; case null null };
-      var lastEmailSentAt = 0;
-      var lockInDurationMinutes = switch (request.lockInDurationMinutes) { case (?v) v; case null 0 };
-      var startTimeMinutes = switch (request.startTimeMinutes) {
-        case (?v) v;
-        case null switch (request.startTime) { case (?t) switch (parseMinutes(t)) { case (?m) m; case null 0 }; case null 0 };
-      };
-      var endTimeMinutes = switch (request.endTimeMinutes) {
-        case (?v) v;
-        case null switch (request.endTime) { case (?t) switch (parseMinutes(t)) { case (?m) m; case null 0 }; case null 0 };
-      };
-      var intentTimeMinutes = switch (request.intentTimeMinutes) {
-        case (?v) v;
-        case null switch (request.intentTime) { case (?t) switch (parseMinutes(t)) { case (?m) m; case null 0 }; case null 0 };
-      };
-      // scheduledDays: use request value or default to all 7 days
-      var scheduledDays : [Text] = switch (request.scheduledDays) {
-        case (?days) days;
-        case null GoalTypes.DEFAULT_SCHEDULED_DAYS;
-      };
-      var category = request.category;
+      var lockInDurationMinutes = lockInDurationMinutes;
+      var startTimeMinutes = startTimeMinutes;
+      var endTimeMinutes = endTimeMinutes;
+      var scheduledDays = scheduledDays;
+      var category = parent.category;
     };
-    goals.add(goal);
-    #ok(toPublic(goal));
+    goals.add(habit);
+    #ok(toHabitPublic(habit));
   };
 
-  public func getGoal(
+  /// Retrieves a macro goal by ID. Only the owning caller can see it.
+  /// Returns null if the record is a habit or not owned by the caller.
+  public func getMacroGoal(
     goals : List.List<GoalTypes.Goal>,
     goalId : Common.GoalId,
     caller : Common.UserId,
-  ) : ?GoalTypes.GoalPublic {
-    switch (goals.find(func(g) { g.id == goalId and g.owner == caller })) {
-      case (?g) ?toPublic(g);
+  ) : ?GoalTypes.MacroGoalPublic {
+    switch (goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == goalId and g.owner == caller and g.goalId == null;
+    })) {
       case null null;
+      case (?g) ?toMacroGoalPublic(g);
     };
   };
 
+  /// Retrieves a habit by ID. Only the owning caller can see it.
+  /// Returns null if the record is a macro goal or not owned by the caller.
+  public func getHabit(
+    goals : List.List<GoalTypes.Goal>,
+    habitId : Common.GoalId,
+    caller : Common.UserId,
+  ) : ?GoalTypes.HabitPublic {
+    switch (goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == habitId and g.owner == caller and g.goalId != null;
+    })) {
+      case null null;
+      case (?g) ?toHabitPublic(g);
+    };
+  };
+
+  /// Transitions a goal (macro or habit) to a new state.
   public func updateGoalState(
     goals : List.List<GoalTypes.Goal>,
     goalId : Common.GoalId,
     caller : Common.UserId,
     newState : Common.GoalState,
   ) : { #ok : Bool; #err : GoalTypes.GoalError } {
-    switch (goals.find(func(g) { g.id == goalId })) {
-      case null { #err(#goalNotFound) };
+    switch (goals.find(func(g : GoalTypes.Goal) : Bool { g.id == goalId and g.owner == caller })) {
+      case null #err(#goalNotFound);
       case (?g) {
-        if (g.owner != caller) return #err(#notOwner);
         g.state := newState;
         g.updatedAt := Time.now();
-        #ok true;
+        #ok(true);
       };
     };
   };
 
-  public func listOwnedGoals(
+  /// Lists all macro goals owned by `caller` (goalId = null records).
+  public func listOwnedMacroGoals(
     goals : List.List<GoalTypes.Goal>,
     caller : Common.UserId,
-  ) : [GoalTypes.GoalPublic] {
-    goals.values().filter(func(g) { g.owner == caller }).map(
-      func(g) { toPublic(g) }
-    ).toArray();
+  ) : [GoalTypes.MacroGoalPublic] {
+    goals.values()
+      .filter(func(g : GoalTypes.Goal) : Bool { g.owner == caller and g.goalId == null })
+      .map(func(g) { toMacroGoalPublic(g) })
+      .toArray();
   };
 
-  public func updateGoal(
+  /// Lists all habits owned by `caller` (goalId set records).
+  public func listOwnedHabits(
+    goals : List.List<GoalTypes.Goal>,
+    caller : Common.UserId,
+  ) : [GoalTypes.HabitPublic] {
+    goals.values()
+      .filter(func(g : GoalTypes.Goal) : Bool { g.owner == caller and g.goalId != null })
+      .map(func(g) { toHabitPublic(g) })
+      .toArray();
+  };
+
+  /// Lists the caller's macro goals, each grouped with its linked habits.
+  /// Supports the dashboard grouping requirement: a macro goal appears once
+  /// with all habits whose `goalId` points at it. Hard-deleted goals are
+  /// removed entirely by the cascade delete, so no orphaned habits remain —
+  /// every habit returned here has a live parent macro goal.
+  public func listMyGoalsGrouped(
+    goals : List.List<GoalTypes.Goal>,
+    caller : Common.UserId,
+  ) : [GoalTypes.GoalWithHabitsPublic] {
+    let snapshot = goals.toArray();
+    // Macro goals owned by caller.
+    let macroGoals = snapshot.filter(func(g : GoalTypes.Goal) : Bool {
+      g.owner == caller and g.goalId == null;
+    });
+    // Habits owned by caller — grouped under their parent macro goal below.
+    let callerHabits = snapshot.filter(func(g : GoalTypes.Goal) : Bool {
+      g.owner == caller and g.goalId != null;
+    });
+    macroGoals.map(func(mg) {
+      let linked = callerHabits
+        .filter(func(h : GoalTypes.Goal) : Bool {
+          switch (h.goalId) { case null false; case (?pid) pid == mg.id };
+        })
+        .map(func(h) { toHabitPublic(h) });
+      { goal = toMacroGoalPublic(mg); habits = linked };
+    });
+  };
+
+  /// Lists habits linked to a specific macro goal (by parent goalId).
+  /// Only habits owned by `caller` are returned. Returns #err #goalNotFound
+  /// if the macro goal does not exist or is not owned by the caller.
+  public func listHabitsByParent(
+    goals : List.List<GoalTypes.Goal>,
+    parentGoalId : Common.GoalId,
+    caller : Common.UserId,
+  ) : { #ok : [GoalTypes.HabitPublic]; #err : GoalTypes.GoalError } {
+    // Verify the parent macro goal exists and is owned by caller.
+    let parentExists = switch (goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == parentGoalId and g.owner == caller and g.goalId == null;
+    })) {
+      case null false;
+      case (?_) true;
+    };
+    if (not parentExists) return #err(#goalNotFound);
+
+    let habits = goals.values()
+      .filter(func(g : GoalTypes.Goal) : Bool {
+        g.owner == caller and
+        g.goalId != null and
+        (switch (g.goalId) { case null false; case (?pid) pid == parentGoalId });
+      })
+      .map(func(g) { toHabitPublic(g) })
+      .toArray();
+    #ok(habits);
+  };
+
+  /// Updates an editable habit. Enforces:
+  ///   • wish/wishDescription/outcome/category are immutable (sourced from
+  ///     the parent macro goal) — any non-null value that differs is rejected
+  ///     with #reusedGoalReadOnly.
+  ///   • isLockIn and category are immutable after creation (#immutableType).
+  ///   • Daily edit lockout (when isTimeEdit = ?true).
+  ///   • Strict Lock-In active-window lockout.
+  ///   • Lock-In overlap check against the caller's other habits.
+  public func updateHabit(
+    goals : List.List<GoalTypes.Goal>,
+    habitId : Common.GoalId,
+    caller : Common.UserId,
+    request : GoalTypes.UpdateHabitRequest,
+  ) : { #ok : GoalTypes.HabitPublic; #err : GoalTypes.GoalError } {
+    let habit = switch (goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == habitId and g.owner == caller and g.goalId != null;
+    })) {
+      case null return #err(#goalNotFound);
+      case (?h) h;
+    };
+
+    // isLockIn is immutable after creation.
+    switch (request.isLockIn) {
+      case null {};
+      case (?v) {
+        if (v != habit.isLockIn) return #err(#immutableType);
+      };
+    };
+
+    // Daily edit lockout: when isTimeEdit = ?true, the habit may only be
+    // edited once per day (timezone-aware). General-tab saves (isTimeEdit
+    // null/false) are unlimited.
+    switch (request.isTimeEdit) {
+      case null {};
+      case (?true) {
+        let now = Time.now();
+        switch (habit.lastEditedAt) {
+          case null {};
+          case (?last) {
+            if (sameDay(last, now, request.timezoneOffsetMinutes)) {
+              return #err(#dailyEditLockout);
+            };
+          };
+        };
+      };
+      case (?false) {};
+    };
+
+    // Resolve new schedule values (fall back to existing when not supplied).
+    let newLockInDurationMinutes = switch (request.lockInDurationMinutes) {
+      case null habit.lockInDurationMinutes;
+      case (?n) n;
+    };
+    let newStartTimeMinutes = switch (request.startTimeMinutes) {
+      case null habit.startTimeMinutes;
+      case (?n) n;
+    };
+    let newEndTimeMinutes = switch (request.endTimeMinutes) {
+      case null habit.endTimeMinutes;
+      case (?n) n;
+    };
+
+    // Lock-In overlap check against the caller's OTHER habits.
+    if (habit.isLockIn and newStartTimeMinutes > 0 and newEndTimeMinutes > 0) {
+      let overlap = goals.find(func(g : GoalTypes.Goal) : Bool {
+        g.owner == caller and
+        g.id != habit.id and
+        g.goalId != null and
+        g.isLockIn and
+        g.startTimeMinutes > 0 and g.endTimeMinutes > 0 and
+        newStartTimeMinutes < g.endTimeMinutes and
+        g.startTimeMinutes < newEndTimeMinutes;
+      });
+      switch (overlap) {
+        case (?_) return #err(#lockInOverlap("Lock-In window overlaps with another habit"));
+        case null {};
+      };
+    };
+
+    // Apply edits.
+    switch (request.ifThenPlan) {
+      case null {};
+      case (?v) { habit.ifThenPlan := v };
+    };
+    switch (request.iconName) {
+      case null {};
+      case (?v) { habit.iconName := ?v };
+    };
+    switch (request.themeColor) {
+      case null {};
+      case (?v) { habit.themeColor := ?v };
+    };
+    switch (request.startTime) {
+      case null {};
+      case (?v) { habit.startTime := ?v };
+    };
+    switch (request.endTime) {
+      case null {};
+      case (?v) { habit.endTime := ?v };
+    };
+    habit.lockInDurationMinutes := newLockInDurationMinutes;
+    habit.startTimeMinutes := newStartTimeMinutes;
+    habit.endTimeMinutes := newEndTimeMinutes;
+    switch (request.scheduledDays) {
+      case null {};
+      case (?d) { habit.scheduledDays := d };
+    };
+
+    let now = Time.now();
+    habit.updatedAt := now;
+    // Track last edit time only when the time-tab lockout was applied.
+    switch (request.isTimeEdit) {
+      case (?true) { habit.lastEditedAt := ?now };
+      case _ {};
+    };
+
+    #ok(toHabitPublic(habit));
+  };
+
+  /// Updates an editable macro goal. Only cosmetic fields (iconName,
+  /// themeColor) are editable; wish/wishDescription/outcome/category are
+  /// immutable after creation.
+  public func updateMacroGoal(
     goals : List.List<GoalTypes.Goal>,
     goalId : Common.GoalId,
     caller : Common.UserId,
-    request : GoalTypes.UpdateGoalRequest,
-  ) : { #ok : GoalTypes.GoalPublic; #err : GoalTypes.GoalError } {
-    switch (goals.find(func(g) { g.id == goalId })) {
-      case null { #err(#goalNotFound) };
-      case (?g) {
-        if (g.owner != caller) return #err(#notOwner);
-        // Daily edit lockout: only enforced for Time-tab saves (isTimeEdit == ?true).
-        // General-tab saves (isTimeEdit == null or ?false) bypass this check entirely.
-        let applyLockout = switch (request.isTimeEdit) { case (?true) true; case _ false };
-        if (applyLockout) {
-          switch (g.lastEditedAt) {
-            case (?lea) {
-              let nowMs : Int = Time.now() / 1_000_000;
-              let tzOffsetMs : Int = request.timezoneOffsetMinutes * 60 * 1000;
-              let lastEditedAdjusted : Int = (lea / 1_000_000) + tzOffsetMs;
-              let nowAdjusted : Int = nowMs + tzOffsetMs;
-              let lastEditedDay : Int = lastEditedAdjusted / 86_400_000;
-              let todayDay : Int = nowAdjusted / 86_400_000;
-              if (lastEditedDay == todayDay) {
-                return #err(#dailyEditLockout);
-              };
-            };
-            case null {};
-          };
-        };
-        // Strict Lock-In edit lockout: reject any edit while the active window is open
-        if (g.isLockIn) {
-          switch (g.startTime, g.endTime) {
-            case (?st, ?et) {
-              if (isInActiveWindow(st, et)) {
-                return #err(#strictLockActive);
-              };
-            };
-            case _ {};
-          };
-        };
-        switch (g.state) {
-          case (#active or #paused) {};
-          case _ { return #err(#goalNotEditable) };
-        };
-        // Determine post-update Lock-In status and times for overlap check
-        let willBeLockIn = switch (request.isLockIn) { case (?v) v; case null g.isLockIn };
-        let willStart = switch (request.startTime) { case (?t) ?t; case null g.startTime };
-        let willEnd = switch (request.endTime) { case (?t) ?t; case null g.endTime };
-        if (willBeLockIn) {
-          switch (willStart, willEnd) {
-            case (?ns, ?ne) {
-              switch (findOverlappingLockIn(goals, caller, ns, ne, ?goalId)) {
-                case (?conflict) {
-                  return #err(#lockInOverlap("This time overlaps with your existing Lock-In: " # conflict.wish));
-                };
-                case null {};
-              };
-            };
-            case _ {};
-          };
-        };
-        switch (request.wish) {
-          case (?w) { g.wish := w };
-          case null {};
-        };
-        switch (request.wishDescription) {
-          case (?wd) { g.wishDescription := wd };
-          case null {};
-        };
-        switch (request.ifThenPlan) {
-          case (?p) { g.ifThenPlan := p };
-          case null {};
-        };
-        switch (request.iconName) {
-          case (?i) { g.iconName := ?i };
-          case null {};
-        };
-        switch (request.themeColor) {
-          case (?c) { g.themeColor := ?c };
-          case null {};
-        };
-        switch (request.isLockIn) {
-          case (?v) {
-            if (v != g.isLockIn) { return #err(#immutableType) };
-          };
-          case null {};
-        };
-        switch (request.category) {
-          case (?cat) {
-            if (cat != g.category) { return #err(#immutableType) };
-          };
-          case null {};
-        };
-        switch (request.startTime) {
-          case (?t) { g.startTime := ?t };
-          case null {};
-        };
-        switch (request.endTime) {
-          case (?t) { g.endTime := ?t };
-          case null {};
-        };
-        switch (request.emailNotifications) {
-          case (?v) { g.emailNotifications := v };
-          case null {};
-        };
-        switch (request.intentTime) {
-          case (?t) { g.intentTime := ?t };
-          case null {};
-        };
-        switch (request.reminderOffset) {
-          case (?o) { g.reminderOffset := ?o };
-          case null {};
-        };
-        switch (request.lockInDurationMinutes) {
-          case (?v) { g.lockInDurationMinutes := v };
-          case null {};
-        };
-        switch (request.startTimeMinutes) {
-          case (?v) { g.startTimeMinutes := v };
-          case null {
-            switch (request.startTime) {
-              case (?t) {
-                switch (parseMinutes(t)) {
-                  case (?m) { g.startTimeMinutes := m };
-                  case null {};
-                };
-              };
-              case null {};
-            };
-          };
-        };
-        switch (request.endTimeMinutes) {
-          case (?v) { g.endTimeMinutes := v };
-          case null {
-            switch (request.endTime) {
-              case (?t) {
-                switch (parseMinutes(t)) {
-                  case (?m) { g.endTimeMinutes := m };
-                  case null {};
-                };
-              };
-              case null {};
-            };
-          };
-        };
-        switch (request.intentTimeMinutes) {
-          case (?v) { g.intentTimeMinutes := v };
-          case null {
-            switch (request.intentTime) {
-              case (?t) {
-                switch (parseMinutes(t)) {
-                  case (?m) { g.intentTimeMinutes := m };
-                  case null {};
-                };
-              };
-              case null {};
-            };
-          };
-        };
-        // scheduledDays: update if provided, enforcing at least one day selected
-        switch (request.scheduledDays) {
-          case (?days) {
-            if (days.size() == 0) { return #err(#invalidInput) };
-            g.scheduledDays := days;
-          };
-          case null {};
-        };
-        let now = Time.now();
-        g.updatedAt := now;
-        g.lastEditedAt := ?now;
-        #ok(toPublic(g));
-      };
+    request : GoalTypes.UpdateMacroGoalRequest,
+  ) : { #ok : GoalTypes.MacroGoalPublic; #err : GoalTypes.GoalError } {
+    let goal = switch (goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == goalId and g.owner == caller and g.goalId == null;
+    })) {
+      case null return #err(#goalNotFound);
+      case (?g) g;
     };
+    switch (request.iconName) {
+      case null {};
+      case (?v) { goal.iconName := ?v };
+    };
+    switch (request.themeColor) {
+      case null {};
+      case (?v) { goal.themeColor := ?v };
+    };
+    goal.updatedAt := Time.now();
+    #ok(toMacroGoalPublic(goal));
   };
 
   public func createObstacleTemplate(
@@ -398,20 +471,232 @@ module {
     caller : Common.UserId,
     request : GoalTypes.CreateObstacleRequest,
   ) : GoalTypes.ObstacleTemplate {
-    let tmpl : GoalTypes.ObstacleTemplate = {
+    let template : GoalTypes.ObstacleTemplate = {
       id = nextId;
       owner = caller;
       title = request.title;
       description = request.description;
     };
-    templates.add(tmpl);
-    tmpl;
+    templates.add(template);
+    template;
   };
 
   public func listObstacleTemplates(
     templates : List.List<GoalTypes.ObstacleTemplate>,
     caller : Common.UserId,
   ) : [GoalTypes.ObstacleTemplate] {
-    templates.values().filter(func(t) { t.owner == caller }).toArray();
+    templates.values()
+      .filter(func(t : GoalTypes.ObstacleTemplate) : Bool { t.owner == caller })
+      .toArray();
+  };
+
+  /// Returns the caller's reusable macro goals for the wizard chips.
+  /// Each entry exposes id, wish, wishDescription, state, and category.
+  public func listReusableGoals(
+    goals : List.List<GoalTypes.Goal>,
+    caller : Common.UserId,
+  ) : [GoalTypes.ReusableGoalPublic] {
+    goals.values()
+      .filter(func(g : GoalTypes.Goal) : Bool {
+        g.owner == caller and g.goalId == null;
+      })
+      .map(func(g) {
+        {
+          id = g.id;
+          wish = g.wish;
+          wishDescription = g.wishDescription;
+          state = g.state;
+          category = g.category;
+        };
+      })
+      .toArray();
+  };
+
+  /// Permanently removes a macro goal and all of its child habits in a single
+  /// atomic operation. Before removing the habits and the goal itself, this
+  /// deletes every child habit's check-ins, timeline entries, and feed
+  /// interactions. All-or-nothing: partial failure cannot leave dangling
+  /// habits pointing at a deleted goal.
+  ///
+  /// `goalId` must reference a macro goal (goalId = null) owned by `caller`.
+  /// `checkIns` and `interactions` are the shared collections this operation
+  /// mutates to purge dependent records.
+  ///
+  /// All removals are synchronous (no `await` between them), so the cascade
+  /// is atomic: either every dependent record is purged or none is. The
+  /// `List.retain` primitive filters each collection in place in one pass.
+  public func deleteGoal(
+    goals : List.List<GoalTypes.Goal>,
+    checkIns : List.List<CheckInTypes.CheckIn>,
+    interactions : List.List<FeedTypes.Interaction>,
+    goalId : Common.GoalId,
+    caller : Common.UserId,
+  ) : { #ok; #err : GoalTypes.GoalError } {
+    // 1. Verify the macro goal exists, is a macro goal (goalId null), and is
+    //    owned by the caller. A habit id or a missing id yields #goalNotFound.
+    let macroGoal = goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == goalId and g.owner == caller and g.goalId == null;
+    });
+    switch (macroGoal) {
+      case null return #err(#goalNotFound);
+      case (?_) {};
+    };
+
+    // 2. Collect the set of goal ids to remove: the macro goal itself plus
+    //    every child habit whose goalId points at it. We snapshot first so
+    //    the retain pass below has a stable predicate.
+    let goalsSnapshot = goals.toArray();
+    let purgeGoalIds = Set.empty<Common.GoalId>();
+    purgeGoalIds.add(goalId);
+    for (g in goalsSnapshot.values()) {
+      switch (g.goalId) {
+        case null {};
+        case (?parentId) {
+          if (parentId == goalId) {
+            purgeGoalIds.add(g.id);
+          };
+        };
+      };
+    };
+
+    // 3. Snapshot the check-in ids that will be removed (check-ins whose
+    //    goalId is one of the purged habits/goal). We need these ids to
+    //    filter interactions BEFORE we mutate the checkIns list.
+    let checkInsSnapshot = checkIns.toArray();
+    let removedCheckInIds = Set.empty<Common.CheckInId>();
+    for (c in checkInsSnapshot.values()) {
+      if (purgeGoalIds.contains(c.goalId)) {
+        removedCheckInIds.add(c.id);
+      };
+    };
+
+    // 4. Atomically remove the linked interactions (those whose checkInId is
+    //    in the removed set). Rebuild from a snapshot — List.retain is unsafe
+    //    (IC0503 'Array index out of bounds') when the list grows during the
+    //    in-place pass, so we rebuild instead. No await — the whole cascade is
+    //    one synchronous transaction.
+    let interactionsSnapshot = interactions.toArray();
+    interactions.clear();
+    for (i in interactionsSnapshot.values()) {
+      if (not removedCheckInIds.contains(i.checkInId)) {
+        interactions.add(i);
+      };
+    };
+
+    // 5. Atomically remove the linked check-ins (those whose goalId is one
+    //    of the purged goals). Rebuild from a snapshot for the same reason.
+    let checkInsSnapshot2 = checkIns.toArray();
+    checkIns.clear();
+    for (c in checkInsSnapshot2.values()) {
+      if (not purgeGoalIds.contains(c.goalId)) {
+        checkIns.add(c);
+      };
+    };
+
+    // 6. Atomically remove the habits and the macro goal itself. Rebuild from
+    //    a snapshot, dropping both the child habits (goalId points at the
+    //    macro goal) and the macro goal (id == goalId).
+    let goalsSnapshot2 = goals.toArray();
+    goals.clear();
+    for (g in goalsSnapshot2.values()) {
+      let isMacroGoal = g.goalId == null;
+      let isTargetMacro = g.id == goalId and isMacroGoal;
+      let isChildHabit = switch (g.goalId) { case null false; case (?pid) pid == goalId };
+      if (not isTargetMacro and not isChildHabit) {
+        goals.add(g);
+      };
+    };
+
+    #ok;
+  };
+
+  /// Permanently removes a single habit in one atomic operation. Before
+  /// removing the habit itself, this deletes the habit's check-ins, their
+  /// timeline entries, and feed interactions. All-or-nothing: partial failure
+  /// cannot leave dangling check-ins pointing at a deleted habit.
+  ///
+  /// `habitId` must reference a habit (goalId set) owned by `caller`.
+  /// `checkIns` and `interactions` are the shared collections this operation
+  /// mutates to purge dependent records.
+  ///
+  /// All removals are synchronous (no `await` between them), so the cascade
+  /// is atomic: either every dependent record is purged or none is. The
+  /// `List.retain` primitive filters each collection in place in one pass.
+  ///
+  /// Scoped to a single habit — does NOT touch the parent macro goal or any
+  /// sibling habits. The habit is removed from its parent goal's habit list
+  /// implicitly (habits are linked by `goalId` on the habit record, not by a
+  /// list on the parent — removing the habit record is sufficient).
+  public func deleteHabit(
+    goals : List.List<GoalTypes.Goal>,
+    checkIns : List.List<CheckInTypes.CheckIn>,
+    interactions : List.List<FeedTypes.Interaction>,
+    habitId : Common.GoalId,
+    caller : Common.UserId,
+  ) : { #ok; #err : GoalTypes.GoalError } {
+    // 1. Find the habit record by habitId. We look for any goal owned by the
+    //    caller with the matching id — then discriminate by goalId below.
+    let habit = switch (goals.find(func(g : GoalTypes.Goal) : Bool {
+      g.id == habitId and g.owner == caller;
+    })) {
+      case null return #err(#goalNotFound);
+      case (?h) h;
+    };
+
+    // 2. Verify the record is a habit (goalId set), not a macro goal. A macro
+    //    goal id passed here is a caller bug — surface #wrongGoalKind so the
+    //    frontend can route to deleteGoal instead.
+    switch (habit.goalId) {
+      case null return #err(#wrongGoalKind);
+      case (?_) {};
+    };
+
+    // 3. Snapshot the check-in ids that belong to this habit (checkIns whose
+    //    goalId == habitId). We need these ids to filter interactions BEFORE
+    //    we mutate the checkIns list.
+    let checkInsSnapshot = checkIns.toArray();
+    let removedCheckInIds = Set.empty<Common.CheckInId>();
+    for (c in checkInsSnapshot.values()) {
+      if (c.goalId == habitId) {
+        removedCheckInIds.add(c.id);
+      };
+    };
+
+    // 4. Atomically remove the linked interactions (those whose checkInId is
+    //    in the removed set). Rebuild from a snapshot — List.retain is unsafe
+    //    (IC0503 'Array index out of bounds') when the list grows during the
+    //    in-place pass, so we rebuild instead. No await — the whole cascade is
+    //    one synchronous transaction.
+    let interactionsSnapshot = interactions.toArray();
+    interactions.clear();
+    for (i in interactionsSnapshot.values()) {
+      if (not removedCheckInIds.contains(i.checkInId)) {
+        interactions.add(i);
+      };
+    };
+
+    // 5. Atomically remove the habit's check-ins (those whose goalId == habitId).
+    //    Rebuild from a snapshot for the same reason.
+    let checkInsSnapshot2 = checkIns.toArray();
+    checkIns.clear();
+    for (c in checkInsSnapshot2.values()) {
+      if (c.goalId != habitId) {
+        checkIns.add(c);
+      };
+    };
+
+    // 6. Atomically remove the habit record itself. Rebuild from a snapshot.
+    //    The habit is detached from its parent macro goal implicitly: habits
+    //    are linked by `goalId` on the habit record, not by a list on the
+    //    parent, so removing the record is sufficient. No parent mutation.
+    let goalsSnapshot2 = goals.toArray();
+    goals.clear();
+    for (g in goalsSnapshot2.values()) {
+      if (g.id != habitId) {
+        goals.add(g);
+      };
+    };
+
+    #ok;
   };
 };

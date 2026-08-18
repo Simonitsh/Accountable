@@ -17,10 +17,11 @@ import { DashboardPage as DashboardPageImpl } from "./pages/DashboardPage";
 import { EditAvatarPage as EditAvatarPageImpl } from "./pages/EditAvatarPage";
 import { EditHabitPage as EditHabitPageImpl } from "./pages/EditHabitPage";
 import { EditProfilePage as EditProfilePageImpl } from "./pages/EditProfilePage";
-import { FeedPage as FeedPageImpl } from "./pages/FeedPage";
 import { GoalsPage as GoalsPageImpl } from "./pages/GoalsPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MyGoalsPage as MyGoalsPageImpl } from "./pages/MyGoalsPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
+import { PartnersPage as PartnersPageImpl } from "./pages/PartnersPage";
 import { ProfilePage as ProfilePageImpl } from "./pages/ProfilePage";
 import { SettingsPage as SettingsPageImpl } from "./pages/SettingsPage";
 
@@ -28,8 +29,8 @@ import { SettingsPage as SettingsPageImpl } from "./pages/SettingsPage";
 function DashboardPage() {
   return <DashboardPageImpl />;
 }
-function FeedPage() {
-  return <FeedPageImpl />;
+function PartnersPage() {
+  return <PartnersPageImpl />;
 }
 function AnalyticsPage() {
   return <AnalyticsPageImpl />;
@@ -45,6 +46,9 @@ function AdminPage() {
 }
 function GoalsPage() {
   return <GoalsPageImpl />;
+}
+function MyGoalsPage() {
+  return <MyGoalsPageImpl />;
 }
 function EditHabitPage() {
   return <EditHabitPageImpl />;
@@ -195,7 +199,13 @@ const indexRoute = createRoute({
 const feedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/feed",
-  component: FeedPage,
+  component: () => <Navigate to="/partners" />,
+});
+
+const partnersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/partners",
+  component: PartnersPage,
 });
 
 const analyticsRoute = createRoute({
@@ -233,6 +243,11 @@ const goalsRoute = createRoute({
   path: "/goals",
   component: GoalsPage,
 });
+const myGoalsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/my-goals",
+  component: MyGoalsPage,
+});
 const editHabitRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/edit-habit/$id",
@@ -259,11 +274,13 @@ const catchAllRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   feedRoute,
+  partnersRoute,
   analyticsRoute,
   connectionsRoute,
   profileRoute,
   settingsRoute,
   adminRoute,
+  myGoalsRoute,
   goalsRoute,
   editHabitRoute,
   editProfileRoute,

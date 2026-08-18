@@ -17,7 +17,7 @@
     "sharp": "^0.34.5"
   },
   "dependencies": {
-    "@caffeineai/core-infrastructure": "^1.0.0",
-    "@caffeineai/object-storage": "^1.1.0"
+    "@caffeineai/core-infrastructure": "^1.2.0",
+    "@caffeineai/object-storage": "^1.1.1"
   }
 }

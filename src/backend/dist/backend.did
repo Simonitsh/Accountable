@@ -1,3 +1,12 @@
+type Value = 
+ variant {
+   "bool": bool;
+   float: float64;
+   "int": int;
+   "nat": nat;
+   "null";
+   "text": text;
+ };
 type UserRole = 
  variant {
    admin;
@@ -18,30 +27,40 @@ type UserProfilePublic =
    username: text;
  };
 type UserId = principal;
-type UpdateGoalRequest = 
+type UpdateMacroGoalRequest = 
  record {
-   category: opt GoalCategory;
-   emailNotifications: opt bool;
+   iconName: opt text;
+   themeColor: opt text;
+ };
+type UpdateHabitRequest = 
+ record {
    endTime: opt text;
    endTimeMinutes: opt nat;
    iconName: opt text;
    ifThenPlan: opt text;
-   intentTime: opt text;
-   intentTimeMinutes: opt nat;
    isLockIn: opt bool;
    isTimeEdit: opt bool;
    lockInDurationMinutes: opt nat;
-   outcome: opt text;
-   reminderOffset: opt int;
    scheduledDays: opt vec text;
    startTime: opt text;
    startTimeMinutes: opt nat;
    themeColor: opt text;
    timezoneOffsetMinutes: int;
-   wish: opt text;
-   wishDescription: opt text;
  };
 type Timestamp = int;
+type ReusableGoalPublic = 
+ record {
+   category: GoalCategory;
+   id: GoalId;
+   state: GoalState;
+   wish: text;
+   wishDescription: text;
+ };
+type Result = 
+ record {
+   hasMore: bool;
+   rows: vec vec Cell;
+ };
 type RecordCheckInRequest = 
  record {
    checkInType: CheckInType;
@@ -53,6 +72,22 @@ type RecordCheckInRequest =
    obstacleTemplateId: opt ObstacleTemplateId;
    timezoneOffsetMinutes: int;
  };
+type PartnerOverview = 
+ record {
+   activeHabitCount: nat;
+   currentStreak: nat;
+   profile: UserProfilePublic;
+ };
+type PartnerHabitError = 
+ variant {
+   notPartner;
+   profileNotFound;
+ };
+type PartnerHabitDetail = 
+ record {
+   habits: vec HabitPublic;
+   profile: UserProfilePublic;
+ };
 type ObstacleTemplateId = nat;
 type ObstacleTemplate = 
  record {
@@ -60,6 +95,20 @@ type ObstacleTemplate =
    id: ObstacleTemplateId;
    owner: UserId;
    title: text;
+ };
+type MacroGoalPublic = 
+ record {
+   category: GoalCategory;
+   createdAt: Timestamp;
+   iconName: opt text;
+   id: GoalId;
+   outcome: text;
+   owner: UserId;
+   state: GoalState;
+   themeColor: opt text;
+   updatedAt: Timestamp;
+   wish: text;
+   wishDescription: text;
  };
 type InteractionType = variant {highFive;};
 type InteractionId = nat;
@@ -71,33 +120,22 @@ type Interaction =
    interactionType: InteractionType;
    timestamp: Timestamp;
  };
-type GoalState = 
- variant {
-   abandoned;
-   active;
-   completed;
-   paused;
- };
-type GoalPublic = 
+type HabitPublic = 
  record {
    category: GoalCategory;
    createdAt: Timestamp;
-   emailNotifications: bool;
    endTime: opt text;
    endTimeMinutes: nat;
+   goalId: GoalId;
    iconName: opt text;
    id: GoalId;
    ifThenPlan: text;
-   intentTime: opt text;
-   intentTimeMinutes: nat;
    isLockIn: bool;
    lastEditedAt: opt Timestamp;
-   lastEmailSentAt: int;
    lockInDurationMinutes: nat;
    obstacleTemplateId: opt ObstacleTemplateId;
    outcome: text;
    owner: UserId;
-   reminderOffset: opt int;
    scheduledDays: vec text;
    startTime: opt text;
    startTimeMinutes: nat;
@@ -106,6 +144,17 @@ type GoalPublic =
    updatedAt: Timestamp;
    wish: text;
    wishDescription: text;
+ };
+type GoalWithHabitsPublic = 
+ record {
+   goal: MacroGoalPublic;
+   habits: vec HabitPublic;
+ };
+type GoalState = 
+ variant {
+   active;
+   completed;
+   paused;
  };
 type GoalId = nat;
 type GoalCategory = 
@@ -142,27 +191,30 @@ type CreateObstacleRequest =
    description: text;
    title: text;
  };
-type CreateGoalRequest = 
+type CreateMacroGoalRequest = 
  record {
    category: GoalCategory;
-   emailNotifications: opt bool;
+   iconName: opt text;
+   outcome: text;
+   themeColor: opt text;
+   wish: text;
+   wishDescription: text;
+ };
+type CreateHabitRequest = 
+ record {
    endTime: opt text;
    endTimeMinutes: opt nat;
+   goalId: GoalId;
    iconName: opt text;
    ifThenPlan: text;
-   intentTime: opt text;
-   intentTimeMinutes: opt nat;
    isLockIn: bool;
    lockInDurationMinutes: opt nat;
    obstacleTemplateId: opt ObstacleTemplateId;
-   outcome: text;
-   reminderOffset: opt int;
    scheduledDays: opt vec text;
    startTime: opt text;
    startTimeMinutes: opt nat;
    themeColor: opt text;
-   wish: text;
-   wishDescription: text;
+   wishDescription: opt text;
  };
 type ConnectionStatus = 
  variant {
@@ -201,6 +253,11 @@ type CheckIn =
    owner: UserId;
    timestamp: Timestamp;
  };
+type Cell = 
+ record {
+   name: text;
+   value: Value;
+ };
 type AvatarShape = 
  opt variant {
        Hexagon;
@@ -221,10 +278,15 @@ type AnalyticsSummary =
    goals: vec GoalAnalytics;
  };
 service : {
-  createGoal: (request: CreateGoalRequest) ->
+  createHabit: (request: CreateHabitRequest) ->
    (variant {
       err: text;
-      ok: GoalPublic;
+      ok: HabitPublic;
+    });
+  createMacroGoal: (request: CreateMacroGoalRequest) ->
+   (variant {
+      err: text;
+      ok: MacroGoalPublic;
     });
   createObstacleTemplate: (request: CreateObstacleRequest) ->
    (ObstacleTemplate);
@@ -237,38 +299,66 @@ service : {
            };
       ok;
     });
+  deleteGoal: (goalId: GoalId) -> (variant {
+                                     err: text;
+                                     ok;
+                                   });
+  deleteHabit: (habitId: GoalId) -> (variant {
+                                       err: text;
+                                       ok;
+                                     });
   devReset: () -> ();
+  execute: (qJson: text) -> (Result) query;
   getAnalytics: () -> (AnalyticsSummary) query;
   getCheckInsForGoal: (goalId: GoalId) -> (vec CheckIn) query;
   getCheckInsForGoalTimeline: (goalId: GoalId, fromTimestamp: int) ->
    (vec CheckIn) query;
   getCheckInsForPeriod: (goalId: GoalId, fromTimestamp: int, toTimestamp:
    int) -> (vec CheckIn) query;
-  getGoal: (goalId: GoalId) -> (opt GoalPublic) query;
+  getHabit: (habitId: GoalId) -> (opt HabitPublic) query;
   getInteractionCount: (checkInId: CheckInId) -> (nat) query;
+  getMacroGoal: (goalId: GoalId) -> (opt MacroGoalPublic) query;
   getMyProfile: () -> (UserProfilePublic) query;
   getPartnerFeed: () -> (vec FeedItem) query;
+  getPartnerHabits: (target: principal) ->
+   (variant {
+      err: PartnerHabitError;
+      ok: PartnerHabitDetail;
+    }) query;
   getUserProfile: (target: UserId) -> (opt UserProfilePublic) query;
   isUsernameAvailable: (username: text) -> (bool) query;
   listAllUsers: () -> (vec UserProfilePublic) query;
   listConnections: () -> (vec ConnectionPublic) query;
+  listHabitsByParent: (parentGoalId: GoalId) ->
+   (variant {
+      err: text;
+      ok: vec HabitPublic;
+    }) query;
   listMyCheckIns: () -> (vec CheckIn) query;
-  listMyGoals: () -> (vec GoalPublic) query;
+  listMyGoals: () -> (vec GoalWithHabitsPublic) query;
   listMyObstacleTemplates: () -> (vec ObstacleTemplate) query;
+  listMyReusableGoals: () -> (vec ReusableGoalPublic) query;
+  listPartnerOverviews: () -> (vec PartnerOverview) query;
   listPendingRequests: () -> (vec ConnectionPublic) query;
   recordCheckIn: (request: RecordCheckInRequest) -> (CheckIn);
   recordInteraction: (checkInId: CheckInId, interactionType:
    InteractionType) -> (Interaction);
   register: (username: text) -> (UserProfilePublic);
   respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);
+  schema: () -> (text) query;
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
   setTimezone: (tz: text) -> ();
-  updateGoal: (goalId: GoalId, request: UpdateGoalRequest) ->
+  updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
+  updateHabit: (habitId: GoalId, request: UpdateHabitRequest) ->
    (variant {
       err: text;
-      ok: GoalPublic;
+      ok: HabitPublic;
     });
-  updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
+  updateMacroGoal: (goalId: GoalId, request: UpdateMacroGoalRequest) ->
+   (variant {
+      err: text;
+      ok: MacroGoalPublic;
+    });
   updateMyProfile: (displayName: opt text, avatarShape: AvatarShape,
    avatarColor: AvatarColor, avatarColorMode: opt AvatarColorMode, bio:
    opt text, email: opt text, timezoneOffsetMinutes: opt int) ->

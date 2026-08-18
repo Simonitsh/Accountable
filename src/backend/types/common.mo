@@ -11,5 +11,5 @@ module {
   public type CheckInType = { #success; #skip; #inProgress; #missedCheckIn; #missedCheckOut };
   public type ConnectionStatus = { #pending; #accepted; #rejected };
   public type InteractionType = { #highFive };
-  public type GoalState = { #active; #paused; #completed; #abandoned };
+  public type GoalState = { #active; #paused; #completed };
 };

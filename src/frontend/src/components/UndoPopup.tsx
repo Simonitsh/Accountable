@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import type { GoalPublic } from "../backend.d.ts";
+import type { HabitPublic } from "../types";
 import { getGoalIcon } from "../utils/goalIcons";
 
 const SUCCESS_COLOR = "#10B981";
@@ -8,7 +8,7 @@ const SKIP_COLOR = "#0369A1";
 
 interface UndoPopupProps {
   open: boolean;
-  goal: GoalPublic | null;
+  goal: HabitPublic | null;
   checkInType: "success" | "skip" | null;
   isLoading?: boolean;
   onUndo: () => void;

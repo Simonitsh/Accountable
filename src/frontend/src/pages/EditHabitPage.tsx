@@ -1,14 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { Check, ChevronLeft, Lock, Tag, X } from "lucide-react";
+import { Check, ChevronLeft, Lock, RotateCw, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { UpdateGoalRequest } from "../backend.d.ts";
+import type {
+  GoalWithHabitsPublic,
+  HabitPublic,
+  UpdateHabitRequest,
+} from "../types";
 
 import { DayPickerRow } from "../components/DayPickerRow";
 import { ScrollWheelPicker } from "../components/ScrollWheelPicker";
+import SuggestionButton from "../components/SuggestionButton";
 import { useBackend } from "../hooks/useBackend";
-import { useUserProfile } from "../hooks/useUserProfile";
+import { getPlaceholder } from "../lib/placeholders";
 import { OBSTACLE_TEMPLATES } from "../types/index";
 import { GOAL_ICONS } from "../utils/goalIcons";
 
@@ -22,18 +27,6 @@ const THEME_COLORS = [
   { id: "copper", label: "Copper", value: "#C2410C" },
   { id: "teal", label: "Teal", value: "#0D9488" },
 ];
-
-function buildOffsetOptions(min: number, max: number): number[] {
-  const opts: number[] = [];
-  for (let v = min; v <= max; v += 5) opts.push(v);
-  return opts;
-}
-
-function formatOffsetLabel(v: number): string {
-  if (v === 0) return "0 min (at time)";
-  if (v < 0) return `${Math.abs(v)} min before`;
-  return `+${v} min after`;
-}
 
 function isLockInActiveWindow(startTime: string, endTime: string): boolean {
   const now = Date.now();
@@ -101,10 +94,6 @@ export function EditHabitPage() {
   const navigate = useNavigate();
   const { actor } = useBackend();
   const queryClient = useQueryClient();
-  const { data: userProfile } = useUserProfile();
-  const hasEmail = Boolean(
-    (userProfile as unknown as { email?: string })?.email,
-  );
 
   // ── Tabs ───────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"general" | "time">("general");
@@ -112,11 +101,15 @@ export function EditHabitPage() {
   const [showTimeConfirmation, setShowTimeConfirmation] = useState(false);
 
   // ── Fetch habit ────────────────────────────────────────────────────────────
-  const { data: goals, isLoading } = useQuery({
+  // listMyGoals() returns GoalWithHabitsPublic[] (macro goals grouped with
+  // their linked habits). Flatten the groups into a single habit list and find
+  // the habit matching the route id.
+  const { data: goals, isLoading } = useQuery<HabitPublic[]>({
     queryKey: ["myGoals"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.listMyGoals();
+      const groups = (await actor.listMyGoals()) as GoalWithHabitsPublic[];
+      return groups.flatMap((g) => g.habits);
     },
     enabled: !!actor,
   });
@@ -125,6 +118,20 @@ export function EditHabitPage() {
     () => goals?.find((g) => g.id === BigInt(id)),
     [goals, id],
   );
+
+  // ── Goal-reuse awareness ──────────────────────────────────────────────────
+  // When the habit has a goalId set, it reuses a previously-made goal. This
+  // flag drives the "Reusing a previous goal" badge and explanatory text only.
+  const isReusedGoal = !!(
+    habit?.goalId !== undefined && habit?.goalId !== null
+  );
+
+  // EditHabitPage is only reached for existing habits (creation happens
+  // elsewhere), so every loaded habit is an existing goal. Per the user
+  // instruction, wish (goal text) and wishDescription (habit name) are
+  // immutable for ALL existing goals — render them read-only unconditionally.
+  // All other fields (duration, scheduledDays, ifThenPlan, obstacles, icon,
+  // theme color) stay fully editable regardless of goalId.
 
   // ── Section 1: General fields ──────────────────────────────────────────────
   const [wish, setWish] = useState("");
@@ -150,11 +157,6 @@ export function EditHabitPage() {
   const [lockInDurationHours, setLockInDurationHours] = useState(0);
   const [lockInDurationMinutes, setLockInDurationMinutes] = useState(0);
   const [overlapError, setOverlapError] = useState<string | null>(null);
-
-  // ── Section 2: Email reminder fields ──────────────────────────────────────
-  const [emailNotifications, setEmailNotifications] = useState(false);
-  const [intentTime, setIntentTime] = useState("");
-  const [reminderOffset, setReminderOffset] = useState(0);
 
   // ── Populate form from habit ──────────────────────────────────────────────
   useEffect(() => {
@@ -198,11 +200,6 @@ export function EditHabitPage() {
     }
     setObstacles(builtinChips);
 
-    setEmailNotifications(habit.emailNotifications ?? false);
-    setIntentTime(habit.intentTime ?? "");
-    setReminderOffset(
-      habit.reminderOffset !== undefined ? Number(habit.reminderOffset) : 0,
-    );
     const rawDays = (habit as unknown as { scheduledDays?: string[] })
       .scheduledDays;
     setScheduledDays(
@@ -277,21 +274,6 @@ export function EditHabitPage() {
   const maxLockInMinAtMaxHour =
     lockInDurationHours === maxLockInHours ? maxLockInMinutes % 60 : 59;
 
-  // ── Max positive reminder offset (normal habits) ──────────────────────────
-  const maxPositiveOffset = useMemo(() => {
-    if (!intentTime) return 60;
-    const [h, m] = intentTime.split(":").map(Number);
-    return Math.min(60, Math.max(0, 1435 - (h * 60 + m)));
-  }, [intentTime]);
-
-  const offsetMin = -60;
-  const offsetMax = habit?.isLockIn ? 0 : maxPositiveOffset;
-  const clampedOffset = Math.min(
-    offsetMax,
-    Math.max(offsetMin, reminderOffset),
-  );
-  const offsetOptions = buildOffsetOptions(offsetMin, offsetMax);
-
   // ── Obstacle helpers ───────────────────────────────────────────────────────
   const allObstacleChips: SelectedObstacle[] = [
     ...OBSTACLE_TEMPLATES.map((o) => ({
@@ -310,9 +292,9 @@ export function EditHabitPage() {
 
   // ── Save mutation ─────────────────────────────────────────────────────────
   const saveMutation = useMutation({
-    mutationFn: async (payload: UpdateGoalRequest) => {
+    mutationFn: async (payload: UpdateHabitRequest) => {
       if (!actor) throw new Error("Not connected");
-      const result = await actor.updateGoal(BigInt(id), payload);
+      const result = await actor.updateHabit(BigInt(id), payload);
       if ("err" in result) {
         throw new Error(
           typeof result.err === "string" ? result.err : "Failed to save",
@@ -327,14 +309,15 @@ export function EditHabitPage() {
   });
 
   function buildPayload(
-    overrides?: Partial<UpdateGoalRequest>,
-  ): UpdateGoalRequest {
+    overrides?: Partial<UpdateHabitRequest>,
+  ): UpdateHabitRequest {
     const outcomeStr = obstacles.map((o) => o.label).join(", ");
     void outcomeStr;
+    // wish (goal text) and wishDescription (habit name) are immutable for ALL
+    // existing goals after creation. EditHabitPage only edits existing habits,
+    // so we never send these fields on update — the backend preserves them.
     return {
       timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
-      wish: wish.trim(),
-      wishDescription: wishDescription.trim(),
       ifThenPlan: ifThenPlan.trim(),
       iconName,
       themeColor,
@@ -343,9 +326,6 @@ export function EditHabitPage() {
       startTime:
         habit?.isLockIn && lockInStartTime ? lockInStartTime : undefined,
       endTime: habit?.isLockIn && lockInEndTime ? lockInEndTime : undefined,
-      emailNotifications,
-      intentTime: emailNotifications && intentTime ? intentTime : undefined,
-      reminderOffset: emailNotifications ? BigInt(clampedOffset) : undefined,
       lockInDurationMinutes: habit?.isLockIn
         ? BigInt(lockInDurationHours * 60 + lockInDurationMinutes)
         : BigInt(0),
@@ -364,16 +344,13 @@ export function EditHabitPage() {
               ),
             )
           : BigInt(0),
-      intentTimeMinutes:
-        emailNotifications && intentTime
-          ? BigInt(parseHHMMToMinutes(intentTime))
-          : BigInt(0),
       ...overrides,
     };
   }
 
   function canSaveGeneral(): boolean {
-    if (!wish.trim()) return false;
+    // wish is read-only for all existing goals and already populated from the
+    // habit, so we don't require the local wish state to be non-empty.
     if (overlapError) return false;
     return true;
   }
@@ -388,7 +365,6 @@ export function EditHabitPage() {
     )
       return false;
     if (overlapError) return false;
-    if (emailNotifications && !habit?.isLockIn && !intentTime) return false;
     return true;
   }
 
@@ -430,27 +406,6 @@ export function EditHabitPage() {
     { length: maxLockInMinAtMaxHour + 1 },
     (_, i) => String(i).padStart(2, "0"),
   );
-
-  const offsetWheelValues = offsetOptions.map((v) => formatOffsetLabel(v));
-  const offsetSelectedLabel = formatOffsetLabel(clampedOffset);
-
-  // ── Live preview helpers ──────────────────────────────────────────────────
-  const liveSendTime = useMemo(() => {
-    if (!emailNotifications) return null;
-    const baseTime = habit?.isLockIn ? lockInStartTime : intentTime;
-    if (!baseTime) return null;
-    const baseMins = parseHHMMToMinutes(baseTime);
-    const sendMins = Math.max(0, Math.min(1439, baseMins + clampedOffset));
-    const sendH = Math.floor(sendMins / 60);
-    const sendM = sendMins % 60;
-    return `${String(sendH).padStart(2, "0")}:${String(sendM).padStart(2, "0")}`;
-  }, [
-    emailNotifications,
-    habit?.isLockIn,
-    lockInStartTime,
-    intentTime,
-    clampedOffset,
-  ]);
 
   const accentColor = habit?.isLockIn ? "#F59E0B" : "#10B981";
 
@@ -599,31 +554,48 @@ export function EditHabitPage() {
               <div className="space-y-5">
                 {/* Macro Goal */}
                 <div className="space-y-2" style={insetCard}>
-                  <label htmlFor="edit-wish" className={sectionLabel}>
-                    Macro Goal
-                  </label>
-                  <input
-                    id="edit-wish"
-                    data-ocid="edit_habit.wish_input"
-                    value={wish}
-                    maxLength={140}
-                    onChange={(e) => setWish(e.target.value.slice(0, 140))}
-                    onFocus={() => setFocusedField("wish")}
-                    onBlur={() => setFocusedField(null)}
-                    className="w-full rounded-xl px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    style={{
-                      background: "oklch(var(--muted) / 0.4)",
-                      boxShadow:
-                        "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.07)",
-                    }}
-                    placeholder="I want to run a marathon so that I can…"
-                  />
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="edit-wish" className={sectionLabel}>
+                      Macro Goal
+                    </label>
+                    {isReusedGoal && (
+                      <span
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono tracking-widest uppercase font-semibold"
+                        style={{
+                          background: "oklch(var(--goal-reuse-accent) / 0.15)",
+                          border:
+                            "1px solid oklch(var(--goal-reuse-accent) / 0.45)",
+                          color: "oklch(var(--goal-reuse-accent))",
+                          boxShadow:
+                            "0 0 10px oklch(var(--goal-reuse-accent) / 0.25)",
+                        }}
+                        data-ocid="edit_habit.reusing_goal_badge"
+                      >
+                        <RotateCw size={10} />
+                        Reusing a previous goal
+                      </span>
+                    )}
+                  </div>
                   <p
-                    className={`text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`}
+                    data-ocid="edit_habit.wish_readonly"
+                    className="rounded-xl px-4 py-3 text-base text-foreground/90 leading-snug cursor-not-allowed select-text"
+                    style={{
+                      background: "oklch(var(--muted) / 0.3)",
+                      boxShadow:
+                        "inset 2px 2px 5px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(255,255,255,0.03)",
+                      border:
+                        "1px solid oklch(var(--goal-reuse-accent) / 0.25)",
+                    }}
                   >
-                    {wish.length}/140
+                    {wish || getPlaceholder(habit.category, "wish")}
                   </p>
+                  {isReusedGoal && (
+                    <p className="text-xs text-muted-foreground/70 leading-snug">
+                      This habit reuses a previously made goal. The goal text
+                      and habit name are read-only — create a separate new goal
+                      if you want different text.
+                    </p>
+                  )}
                 </div>
 
                 {/* Keystone Habit */}
@@ -631,30 +603,19 @@ export function EditHabitPage() {
                   <label htmlFor="edit-desc" className={sectionLabel}>
                     Keystone Habit
                   </label>
-                  <textarea
-                    id="edit-desc"
-                    data-ocid="edit_habit.wish_description_input"
-                    value={wishDescription}
-                    maxLength={140}
-                    rows={2}
-                    onChange={(e) =>
-                      setWishDescription(e.target.value.slice(0, 140))
-                    }
-                    onFocus={() => setFocusedField("wishDescription")}
-                    onBlur={() => setFocusedField(null)}
-                    className="w-full rounded-xl px-4 py-3 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    style={{
-                      background: "oklch(var(--muted) / 0.4)",
-                      boxShadow:
-                        "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.07)",
-                    }}
-                    placeholder="I will run for X minutes"
-                  />
                   <p
-                    className={`text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`}
+                    data-ocid="edit_habit.wish_description_readonly"
+                    className="rounded-xl px-4 py-3 text-base text-foreground/90 leading-snug cursor-not-allowed select-text whitespace-pre-wrap"
+                    style={{
+                      background: "oklch(var(--muted) / 0.3)",
+                      boxShadow:
+                        "inset 2px 2px 5px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(255,255,255,0.03)",
+                      border:
+                        "1px solid oklch(var(--goal-reuse-accent) / 0.25)",
+                    }}
                   >
-                    {wishDescription.length}/140
+                    {wishDescription ||
+                      getPlaceholder(habit.category, "wishDescription")}
                   </p>
                 </div>
 
@@ -663,26 +624,34 @@ export function EditHabitPage() {
                   <label htmlFor="edit-ifthen" className={sectionLabel}>
                     If-Then Plan
                   </label>
-                  <textarea
-                    id="edit-ifthen"
-                    data-ocid="edit_habit.if_then_plan_input"
-                    value={ifThenPlan}
-                    maxLength={140}
-                    rows={2}
-                    onChange={(e) =>
-                      setIfThenPlan(e.target.value.slice(0, 140))
-                    }
-                    onFocus={() => setFocusedField("ifThenPlan")}
-                    onBlur={() => setFocusedField(null)}
-                    className="w-full rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    style={{
-                      background: "oklch(var(--muted) / 0.4)",
-                      boxShadow:
-                        "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.07)",
-                    }}
-                    placeholder="If [obstacle], then I will…"
-                  />
+                  <div className="relative flex items-start gap-2">
+                    <textarea
+                      id="edit-ifthen"
+                      data-ocid="edit_habit.if_then_plan_input"
+                      value={ifThenPlan}
+                      maxLength={140}
+                      rows={2}
+                      onChange={(e) =>
+                        setIfThenPlan(e.target.value.slice(0, 140))
+                      }
+                      onFocus={() => setFocusedField("ifThenPlan")}
+                      onBlur={() => setFocusedField(null)}
+                      className="flex-1 min-w-0 rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      style={{
+                        background: "oklch(var(--muted) / 0.4)",
+                        boxShadow:
+                          "inset 1px 1px 3px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                      placeholder={getPlaceholder(habit.category, "ifThenPlan")}
+                    />
+                    <SuggestionButton
+                      category={habit.category}
+                      field="ifThenPlan"
+                      onSelect={(value) => setIfThenPlan(value)}
+                      alignTop
+                    />
+                  </div>
                   <p
                     className={`text-right text-xs text-muted-foreground/60 font-mono transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`}
                   >
@@ -1046,147 +1015,6 @@ export function EditHabitPage() {
                     )}
                   </div>
                 )}
-
-                {/* Regular Habit: Intent Time */}
-                {!habit.isLockIn && (
-                  <div className="space-y-2" style={insetCard}>
-                    <p className={sectionLabel}>When do you plan to do this?</p>
-                    <input
-                      type="time"
-                      value={intentTime}
-                      onChange={(e) => setIntentTime(e.target.value)}
-                      disabled={isTimeLocked}
-                      data-ocid="edit_habit.intent_time_input"
-                      className={`w-full transition-opacity duration-200 ${isTimeLocked ? "opacity-50 cursor-not-allowed" : ""}`}
-                      style={{
-                        background: "oklch(var(--card))",
-                        boxShadow:
-                          "2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                        border: "1px solid rgba(16,185,129,0.4)",
-                        borderRadius: "0.75rem",
-                        padding: "10px 14px",
-                        color: "oklch(var(--foreground))",
-                        fontFamily: "monospace",
-                        fontSize: "1.1rem",
-                        colorScheme: "dark",
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Email Notifications */}
-                <div className="space-y-4" style={insetCard}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        Enable Email Reminders
-                      </p>
-                      {!hasEmail && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Requires an email address.{" "}
-                          <a
-                            href="/profile"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline"
-                            style={{ color: "#10B981" }}
-                          >
-                            Update Profile
-                          </a>
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={emailNotifications}
-                      data-ocid="edit_habit.email_notifications_toggle"
-                      disabled={!hasEmail || isTimeLocked}
-                      onClick={() => {
-                        if (!hasEmail || isTimeLocked) return;
-                        setEmailNotifications((v) => !v);
-                      }}
-                      className="relative shrink-0 w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{
-                        background:
-                          emailNotifications && hasEmail
-                            ? accentColor
-                            : "oklch(var(--muted))",
-                        boxShadow:
-                          emailNotifications && hasEmail
-                            ? `0 0 10px ${accentColor}66`
-                            : "inset 2px 2px 5px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05)",
-                      }}
-                    >
-                      <span
-                        className="inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-all duration-200"
-                        style={{
-                          marginLeft:
-                            emailNotifications && hasEmail
-                              ? "calc(100% - 20px)"
-                              : "4px",
-                        }}
-                      />
-                    </button>
-                  </div>
-
-                  <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${emailNotifications && hasEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}
-                  >
-                    {/* Reminder Offset */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className={sectionLabel} style={{ marginBottom: 0 }}>
-                          Reminder Offset
-                        </p>
-                        <span
-                          className="text-sm font-mono"
-                          style={{ color: accentColor }}
-                          data-ocid="edit_habit.reminder_offset_display"
-                        >
-                          {formatOffsetLabel(clampedOffset)}
-                        </span>
-                      </div>
-                      {habit?.isLockIn ? (
-                        <p className="text-xs text-muted-foreground/70 italic">
-                          Lock-In reminders can only be sent before the start
-                          time (up to 60 min before).
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground/70 italic">
-                          Normal habits: −60 to +60 min relative to intent time
-                          (capped at 23:55).
-                        </p>
-                      )}
-                      <ScrollWheelPicker
-                        values={offsetWheelValues}
-                        selectedValue={offsetSelectedLabel}
-                        onChange={(val) => {
-                          const idx = offsetWheelValues.indexOf(val);
-                          if (idx >= 0) {
-                            setReminderOffset(offsetOptions[idx]);
-                          }
-                        }}
-                        accentColor={accentColor}
-                        disabled={isTimeLocked}
-                        data-ocid="edit_habit.reminder_offset_wheel"
-                      />
-                      {liveSendTime && (
-                        <p className="text-xs font-mono text-muted-foreground/70 mt-1 text-center">
-                          Email sends at{" "}
-                          <span style={{ color: accentColor }}>
-                            {liveSendTime}
-                          </span>
-                        </p>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-muted-foreground/70">
-                      Note: You can only adjust intent-time and email reminders
-                      once per day after creation.
-                    </p>
-                  </div>
-                </div>
 
                 {/* Time Tab Save */}
                 {showTimeConfirmation && !isTimeLocked && (

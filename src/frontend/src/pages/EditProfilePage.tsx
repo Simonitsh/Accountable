@@ -28,9 +28,17 @@ export function EditProfilePage() {
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  // justSaved: set to true after a successful save so the useEffect below can
-  // navigate only after isDirty has settled to false. This prevents the blocker
-  // from ever seeing a dirty+navigating state after a successful save.
+  // justSaved: set to true in the save onSuccess path, then a deferred
+  // useEffect navigates back to /profile once a render commits with
+  // justSaved=true AND isDirty=false. useState (NOT useRef) is required here
+  // because useBlocker's condition is a render-captured closure — it does NOT
+  // re-read the condition synchronously at navigation time. Setting a ref
+  // before navigate() does not refresh the condition value the blocker uses to
+  // evaluate the in-flight navigation. By deferring navigate() to a useEffect
+  // that fires after a render commits with justSaved=true && isDirty=false,
+  // the blocker's condition closure is refreshed on a committed render where
+  // condition = isDirty && !justSaved = false && !true = false, so the
+  // deferred navigate() is evaluated against a NON-blocking condition.
   const [justSaved, setJustSaved] = useState(false);
   // Use a ref to seed initialValues only once — prevents re-seed when profile
   // refetches after a successful save, which would incorrectly reset the dirty state.
@@ -46,15 +54,6 @@ export function EditProfilePage() {
     displayName !== initialValues.displayName ||
     bio !== initialValues.bio ||
     email !== initialValues.email;
-
-  // Navigate only after isDirty has settled to false following a successful save.
-  // Using useEffect here ensures the blocker condition (isDirty && !justSaved)
-  // is false before the navigation fires, so the discard prompt never appears.
-  useEffect(() => {
-    if (justSaved && !isDirty) {
-      navigate({ to: "/profile" });
-    }
-  }, [justSaved, isDirty, navigate]);
 
   useEffect(() => {
     if (profile && !initializedRef.current) {
@@ -72,8 +71,14 @@ export function EditProfilePage() {
   }, [profile]);
 
   // Block TanStack Router navigation when there are unsaved changes.
-  // justSaved stays false until after mutateAsync succeeds AND handleSaveSuccess
-  // has been called, so the blocker only fires for genuine unsaved-change navigations.
+  // condition is a render-captured closure re-evaluated on every render. After
+  // a save, setJustSaved(true) schedules a re-render where justSaved=true, and
+  // setInitialValues(saved) makes isDirty=false on the same/next render. The
+  // deferred navigation useEffect below waits for a committed render where
+  // justSaved=true && isDirty=false before calling navigate(), so the blocker
+  // sees condition=false on that committed render and does not intercept.
+  // onChange handlers reset justSaved=false so genuine later edits still
+  // trigger the discard prompt.
   const blocker = useBlocker({
     condition: isDirty && !justSaved,
   });
@@ -88,6 +93,19 @@ export function EditProfilePage() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
+
+  // Deferred post-save navigation. Fires AFTER a render commits with
+  // justSaved=true AND isDirty=false (setInitialValues(saved) in
+  // handleSaveSuccess makes isDirty=false on the next render). By the time
+  // this effect runs, useBlocker's condition closure has been refreshed on a
+  // committed render where condition = isDirty && !justSaved = false, so the
+  // deferred navigate() is evaluated against a NON-blocking condition and the
+  // discard prompt cannot fire. This mirrors the EditAvatarPage pattern.
+  useEffect(() => {
+    if (justSaved && !isDirty) {
+      navigate({ to: "/profile" });
+    }
+  }, [justSaved, isDirty, navigate]);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const emailError =
@@ -118,11 +136,16 @@ export function EditProfilePage() {
         bio: bio,
         email: email,
       });
-      // Reset initialValues first so isDirty becomes false in the next render.
-      // Then set justSaved — the useEffect above will navigate once isDirty=false,
-      // guaranteeing the blocker never fires on a post-save navigation.
+      // Reset initialValues so isDirty clears (form state is no longer "dirty").
+      // This is a React state update — isDirty becomes false on the NEXT render.
       handleSaveSuccess();
       toast.success("Profile updated.");
+      // Mark saved and let the deferred navigation useEffect fire once a
+      // render commits with justSaved=true && isDirty=false. Do NOT call
+      // navigate() synchronously here — useBlocker's condition is a
+      // render-captured closure, so a synchronous navigate() would be
+      // evaluated against the stale condition from the last committed render
+      // (isDirty=true, justSaved=false) and the discard prompt would fire.
       setJustSaved(true);
     } catch (err) {
       toast.error(
@@ -235,7 +258,10 @@ export function EditProfilePage() {
                 id="displayName"
                 type="text"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value.slice(0, 40))}
+                onChange={(e) => {
+                  setJustSaved(false);
+                  setDisplayName(e.target.value.slice(0, 40));
+                }}
                 onFocus={() => setFocusedField("displayName")}
                 onBlur={() => setFocusedField(null)}
                 placeholder="Optional"
@@ -251,7 +277,10 @@ export function EditProfilePage() {
               {displayName && (
                 <button
                   type="button"
-                  onClick={() => setDisplayName("")}
+                  onClick={() => {
+                    setJustSaved(false);
+                    setDisplayName("");
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors duration-200"
                   aria-label="Clear display name"
                   data-ocid="edit_profile.clear_display_name_button"
@@ -303,7 +332,10 @@ export function EditProfilePage() {
             <textarea
               id="bio"
               value={bio}
-              onChange={(e) => setBio(e.target.value.slice(0, 160))}
+              onChange={(e) => {
+                setJustSaved(false);
+                setBio(e.target.value.slice(0, 160));
+              }}
               onFocus={() => setFocusedField("bio")}
               onBlur={() => setFocusedField(null)}
               placeholder="What is your overarching goal in life?"
@@ -320,7 +352,10 @@ export function EditProfilePage() {
             {bio && (
               <button
                 type="button"
-                onClick={() => setBio("")}
+                onClick={() => {
+                  setJustSaved(false);
+                  setBio("");
+                }}
                 className="absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground transition-colors duration-200"
                 aria-label="Clear bio"
                 data-ocid="edit_profile.clear_bio_button"
@@ -350,7 +385,10 @@ export function EditProfilePage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setJustSaved(false);
+                setEmail(e.target.value);
+              }}
               onFocus={() => setFocusedField("email")}
               onBlur={() => setFocusedField(null)}
               placeholder="your@email.com"
@@ -368,7 +406,10 @@ export function EditProfilePage() {
             {email && (
               <button
                 type="button"
-                onClick={() => setEmail("")}
+                onClick={() => {
+                  setJustSaved(false);
+                  setEmail("");
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors duration-200"
                 aria-label="Clear email"
                 data-ocid="edit_profile.clear_email_button"

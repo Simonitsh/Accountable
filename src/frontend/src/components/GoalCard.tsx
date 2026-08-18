@@ -9,8 +9,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import type { GoalPublic } from "../backend.d.ts";
-import type { GoalAnalytics } from "../types";
+import type { GoalAnalytics, HabitPublic } from "../types";
 
 import { MissedWindowSheet } from "./MissedWindowSheet";
 import { SkipModal } from "./SkipModal";
@@ -186,7 +185,7 @@ function useLockInTimer(
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface GoalCardProps {
-  goal: GoalPublic;
+  goal: HabitPublic;
   checkInToday?:
     | {
         checkInType:
@@ -215,7 +214,7 @@ interface GoalCardProps {
   ) => void;
   onDoneCardTap?: (goalId: bigint) => void;
   onExitComplete?: (goalId: bigint) => void;
-  onInsightOpen?: (goal: GoalPublic) => void;
+  onInsightOpen?: (goal: HabitPublic) => void;
   isDarkMode: boolean;
   isCheckingIn?: boolean;
   isSkipping?: boolean;

@@ -1,12 +1,12 @@
 import { Flame, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import type { GoalPublic } from "../backend.d.ts";
+import type { HabitPublic } from "../types";
 
 // Emerald Green — success accent
 const SUCCESS_COLOR = "#10B981";
 
 interface WoopCatchSheetProps {
-  goal: GoalPublic;
+  goal: HabitPublic;
   open: boolean;
   onClose: () => void;
   /** User tapped "I did my If-Then Plan" → log as success with executedIfThen:true */

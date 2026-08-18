@@ -1,13 +1,3 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,13 +24,27 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GoalState } from "../backend";
-import type {
-  GoalPublic,
-  GoalState as GoalStateType,
-  UpdateGoalRequest,
-} from "../backend.d.ts";
+import SuggestionButton from "../components/SuggestionButton";
 import WoopWizard from "../components/WoopWizard";
-import { useBackend } from "../hooks/useBackend";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
+import { useBackend, useDeleteHabit } from "../hooks/useBackend";
+import { getPlaceholder } from "../lib/placeholders";
+import type {
+  GoalState as GoalStateType,
+  GoalWithHabitsPublic,
+  HabitPublic,
+  ReusableGoalPublic,
+  UpdateHabitRequest,
+} from "../types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function stateLabel(state: GoalStateType): string {
@@ -181,7 +185,7 @@ function addMinutesToTime(timeStr: string, minutes: number): string {
  * [startTime - 5 min, endTime + 5 min].
  * Returns false if the goal is not a Lock-In or is missing times.
  */
-function isLockInActiveWindow(goal: GoalPublic): boolean {
+function isLockInActiveWindow(goal: HabitPublic): boolean {
   if (!goal.isLockIn || !goal.startTime || !goal.endTime) return false;
   const now = Date.now();
   const [sh, sm] = goal.startTime.split(":").map(Number);
@@ -244,8 +248,8 @@ interface EditFormData {
 }
 
 interface GoalEditFormProps {
-  goal: GoalPublic;
-  onSave: (req: UpdateGoalRequest) => void;
+  goal: HabitPublic;
+  onSave: (req: UpdateHabitRequest) => void;
   onCancel: () => void;
   isSaving: boolean;
   existingLockInGoals?: LockInGoalRef[];
@@ -324,12 +328,9 @@ function GoalEditForm({
   }
 
   function handleSave() {
-    const req: UpdateGoalRequest = {
+    const req: UpdateHabitRequest = {
       timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
     };
-    if (form.wish.trim() !== goal.wish) req.wish = form.wish.trim();
-    if (form.wishDescription.trim() !== goal.wishDescription)
-      req.wishDescription = form.wishDescription.trim();
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
       req.ifThenPlan = form.ifThenPlan.trim();
     if (form.iconName !== (goal.iconName ?? "target"))
@@ -351,8 +352,6 @@ function GoalEditForm({
     form.lockInDurationHours === 0 &&
     form.lockInDurationMinutes === 0;
   const hasChanges =
-    form.wish.trim() !== goal.wish ||
-    form.wishDescription.trim() !== goal.wishDescription ||
     form.ifThenPlan.trim() !== goal.ifThenPlan ||
     form.iconName !== (goal.iconName ?? "target") ||
     form.themeColor !== (goal.themeColor ?? "#2563EB") ||
@@ -376,20 +375,29 @@ function GoalEditForm({
         >
           Keystone Habit
         </Label>
-        <Textarea
-          id="edit-desc"
-          data-ocid="goals.edit_description_input"
-          value={form.wishDescription}
-          maxLength={140}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, wishDescription: e.target.value }))
-          }
-          onFocus={() => setFocusedField("wishDescription")}
-          onBlur={() => setFocusedField(null)}
-          rows={2}
-          placeholder="Every day, I will…"
-          className="bg-muted/60 border-border focus:border-primary resize-none text-sm"
-        />
+        <div className="flex items-start gap-2">
+          <Textarea
+            id="edit-desc"
+            data-ocid="goals.edit_description_input"
+            value={form.wishDescription}
+            maxLength={140}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, wishDescription: e.target.value }))
+            }
+            onFocus={() => setFocusedField("wishDescription")}
+            onBlur={() => setFocusedField(null)}
+            rows={2}
+            placeholder={getPlaceholder(goal.category, "wishDescription")}
+            className="flex-1 bg-muted/60 border-border focus:border-primary resize-none text-sm"
+          />
+          <SuggestionButton
+            category={goal.category}
+            field="wishDescription"
+            onSelect={(value) =>
+              setForm((f) => ({ ...f, wishDescription: value }))
+            }
+          />
+        </div>
         <p
           className={`text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`}
         >
@@ -430,20 +438,27 @@ function GoalEditForm({
         >
           If-Then Plan
         </Label>
-        <Textarea
-          id="edit-plan"
-          data-ocid="goals.edit_ifthen_input"
-          value={form.ifThenPlan}
-          maxLength={140}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, ifThenPlan: e.target.value }))
-          }
-          onFocus={() => setFocusedField("ifThenPlan")}
-          onBlur={() => setFocusedField(null)}
-          rows={2}
-          placeholder="If [obstacle], then I will…"
-          className="bg-muted/60 border-border focus:border-primary resize-none text-sm font-mono"
-        />
+        <div className="flex items-start gap-2">
+          <Textarea
+            id="edit-plan"
+            data-ocid="goals.edit_ifthen_input"
+            value={form.ifThenPlan}
+            maxLength={140}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, ifThenPlan: e.target.value }))
+            }
+            onFocus={() => setFocusedField("ifThenPlan")}
+            onBlur={() => setFocusedField(null)}
+            rows={2}
+            placeholder={getPlaceholder(goal.category, "ifThenPlan")}
+            className="flex-1 bg-muted/60 border-border focus:border-primary resize-none text-sm font-mono"
+          />
+          <SuggestionButton
+            category={goal.category}
+            field="ifThenPlan"
+            onSelect={(value) => setForm((f) => ({ ...f, ifThenPlan: value }))}
+          />
+        </div>
         <p
           className={`text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "ifThenPlan" ? "opacity-100" : "opacity-0"}`}
         >
@@ -900,14 +915,12 @@ function GoalEditForm({
 
 // ─── Goal Detail Panel ────────────────────────────────────────────────────────
 interface GoalDetailProps {
-  goal: GoalPublic;
+  goal: HabitPublic;
   onClose: () => void;
   onStateChange: (goalId: bigint, newState: GoalStateType) => void;
   isChangingState: boolean;
-  onUpdateGoal: (goalId: bigint, req: UpdateGoalRequest) => void;
+  onUpdateGoal: (goalId: bigint, req: UpdateHabitRequest) => void;
   isUpdating: boolean;
-  onDeleteGoal: (goalId: bigint) => void;
-  isDeleting: boolean;
   existingLockInGoals?: LockInGoalRef[];
   onEditNavigate: (id: bigint) => void;
 }
@@ -919,13 +932,10 @@ function GoalDetailPanel({
   isChangingState,
   onUpdateGoal,
   isUpdating,
-  onDeleteGoal,
-  isDeleting,
   existingLockInGoals = [],
   onEditNavigate,
 }: GoalDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isLocked, setIsLocked] = useState(() => isLockInActiveWindow(goal));
   const [showLockTooltip, setShowLockTooltip] = useState(false);
 
@@ -947,294 +957,357 @@ function GoalDetailPanel({
   const isPaused = goal.state === GoalState.paused;
   const isCompleted = goal.state === GoalState.completed;
 
-  function handleSaveEdit(req: UpdateGoalRequest) {
+  function handleSaveEdit(req: UpdateHabitRequest) {
     onUpdateGoal(goal.id, req);
     setIsEditing(false);
   }
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 8 }}
-        className="rounded-2xl border border-border/20 bg-card p-5 space-y-4"
-        style={{
-          boxShadow:
-            "-5px -5px 14px rgba(65,65,75,0.5), 8px 8px 22px rgba(0,0,0,0.88)",
-          borderTop: "1px solid rgba(255,255,255,0.12)",
-          borderLeft: "1px solid rgba(255,255,255,0.06)",
-        }}
-        data-ocid="goals.detail_panel"
-      >
-        {/* Header — Keystone Habit first (prominent), Macro Goal below (secondary) */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            {goal.wishDescription && (
-              <>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 mb-1">
-                  Keystone Habit
-                </p>
-                <h3 className="font-display text-xl font-bold text-foreground leading-tight mb-2">
-                  {goal.wishDescription}
-                </h3>
-              </>
-            )}
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-0.5">
-              Macro Goal
-            </p>
-            <p className="text-sm text-muted-foreground leading-snug">
-              {goal.wish}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {!isEditing &&
-              (isActive || isPaused) &&
-              (isLocked ? (
-                /* ── Locked Edit Button ───────────────────────────────────────── */
-                <div className="relative">
-                  <button
-                    type="button"
-                    disabled
-                    aria-label="Edit locked — Lock-In window is active"
-                    data-ocid="goals.detail_edit_button"
-                    onMouseEnter={() => setShowLockTooltip(true)}
-                    onMouseLeave={() => setShowLockTooltip(false)}
-                    onFocus={() => setShowLockTooltip(true)}
-                    onBlur={() => setShowLockTooltip(false)}
-                    onClick={() => {
-                      toast.warning(
-                        `🔒 Locked: You cannot edit a Lock-In habit while it is in progress. Window ends at ${lockWindowEndLabel}.`,
-                        { duration: 5000 },
-                      );
-                    }}
-                    className="w-8 h-8 rounded-full flex items-center justify-center transition-smooth"
-                    style={{
-                      background: "oklch(var(--muted) / 0.25)",
-                      color: "oklch(var(--muted-foreground) / 0.45)",
-                      cursor: "not-allowed",
-                      opacity: 0.6,
-                      boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
-                    }}
-                  >
-                    <Lock size={12} />
-                  </button>
-                  {/* CSS tooltip — visible on hover/focus */}
-                  {showLockTooltip && (
-                    <div
-                      role="tooltip"
-                      className="absolute right-0 bottom-full mb-2 z-50 w-64 rounded-xl px-3 py-2.5 text-xs leading-relaxed pointer-events-none"
-                      style={{
-                        background: "oklch(var(--card))",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        boxShadow:
-                          "-3px -3px 10px rgba(60,60,70,0.4), 5px 5px 16px rgba(0,0,0,0.75)",
-                        color: "oklch(var(--foreground) / 0.85)",
-                      }}
-                    >
-                      🔒 <span className="font-medium">Locked:</span> You cannot
-                      edit a Lock-In habit while it is in progress.{" "}
-                      <span style={{ color: "#F97316" }}>
-                        Window ends at {lockWindowEndLabel}.
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* ── Normal Edit Button ───────────────────────────────────────── */
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      className="rounded-2xl border border-border/20 bg-card p-5 space-y-4"
+      style={{
+        boxShadow:
+          "-5px -5px 14px rgba(65,65,75,0.5), 8px 8px 22px rgba(0,0,0,0.88)",
+        borderTop: "1px solid rgba(255,255,255,0.12)",
+        borderLeft: "1px solid rgba(255,255,255,0.06)",
+      }}
+      data-ocid="goals.detail_panel"
+    >
+      {/* Header — Keystone Habit first (prominent), Macro Goal below (secondary) */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          {goal.wishDescription && (
+            <>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 mb-1">
+                Keystone Habit
+              </p>
+              <h3 className="font-display text-xl font-bold text-foreground leading-tight mb-2">
+                {goal.wishDescription}
+              </h3>
+            </>
+          )}
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-0.5">
+            Macro Goal
+          </p>
+          <p className="text-sm text-muted-foreground leading-snug">
+            {goal.wish}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {!isEditing &&
+            (isActive || isPaused) &&
+            (isLocked ? (
+              /* ── Locked Edit Button ───────────────────────────────────────── */
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={() => onEditNavigate(goal.id)}
-                  className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
-                  aria-label="Edit goal"
+                  disabled
+                  aria-label="Edit locked — Lock-In window is active"
                   data-ocid="goals.detail_edit_button"
+                  onMouseEnter={() => setShowLockTooltip(true)}
+                  onMouseLeave={() => setShowLockTooltip(false)}
+                  onFocus={() => setShowLockTooltip(true)}
+                  onBlur={() => setShowLockTooltip(false)}
+                  onClick={() => {
+                    toast.warning(
+                      `🔒 Locked: You cannot edit a Lock-In habit while it is in progress. Window ends at ${lockWindowEndLabel}.`,
+                      { duration: 5000 },
+                    );
+                  }}
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-smooth"
+                  style={{
+                    background: "oklch(var(--muted) / 0.25)",
+                    color: "oklch(var(--muted-foreground) / 0.45)",
+                    cursor: "not-allowed",
+                    opacity: 0.6,
+                    boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.35)",
+                  }}
                 >
-                  <Edit3 size={13} />
+                  <Lock size={12} />
                 </button>
-              ))}
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
-              aria-label="Close detail"
-              data-ocid="goals.detail_close_button"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* State badge + dates */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span
-            className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-full"
-            style={stateBadgeStyle(goal.state)}
-          >
-            {goal.state === GoalState.active && <Flame size={10} />}
-            {goal.state === GoalState.paused && <Pause size={10} />}
-            {goal.state === GoalState.completed && <CheckCircle2 size={10} />}
-            {stateLabel(goal.state)}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            Created {formatDate(goal.createdAt)}
-          </span>
-        </div>
-
-        {/* Edit form OR read view */}
-        <AnimatePresence mode="wait">
-          {isEditing ? (
-            <GoalEditForm
-              key="edit"
-              goal={goal}
-              onSave={handleSaveEdit}
-              onCancel={() => setIsEditing(false)}
-              isSaving={isUpdating}
-              existingLockInGoals={existingLockInGoals}
-            />
-          ) : (
-            <motion.div
-              key="view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3"
-              data-ocid="goals.detail_view"
-            >
-              {goal.outcome && (
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
-                    Obstacles
-                  </p>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {goal.outcome}
-                  </p>
-                </div>
-              )}
-              {goal.ifThenPlan && (
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
-                    If-Then Plan
-                  </p>
-                  <p className="text-sm font-mono text-foreground leading-relaxed bg-muted/40 rounded-lg px-3 py-2">
-                    {goal.ifThenPlan}
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* State actions — hidden while editing */}
-        {!isEditing && (
-          <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
-            {isActive && (
-              <>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onStateChange(goal.id, GoalState.paused)}
-                  disabled={isChangingState || isDeleting}
-                  className="gap-1.5 text-xs"
-                  data-ocid="goals.pause_button"
-                >
-                  <Pause size={12} />
-                  Pause
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onStateChange(goal.id, GoalState.completed)}
-                  disabled={isChangingState || isDeleting}
-                  className="gap-1.5 text-xs"
-                  data-ocid="goals.complete_button"
-                >
-                  <CheckCircle2 size={12} />
-                  Mark Complete
-                </Button>
-              </>
-            )}
-            {isPaused && (
-              <Button
+                {/* CSS tooltip — visible on hover/focus */}
+                {showLockTooltip && (
+                  <div
+                    role="tooltip"
+                    className="absolute right-0 bottom-full mb-2 z-50 w-64 rounded-xl px-3 py-2.5 text-xs leading-relaxed pointer-events-none"
+                    style={{
+                      background: "oklch(var(--card))",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      boxShadow:
+                        "-3px -3px 10px rgba(60,60,70,0.4), 5px 5px 16px rgba(0,0,0,0.75)",
+                      color: "oklch(var(--foreground) / 0.85)",
+                    }}
+                  >
+                    🔒 <span className="font-medium">Locked:</span> You cannot
+                    edit a Lock-In habit while it is in progress.{" "}
+                    <span style={{ color: "#F97316" }}>
+                      Window ends at {lockWindowEndLabel}.
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ── Normal Edit Button ───────────────────────────────────────── */
+              <button
                 type="button"
-                size="sm"
-                onClick={() => onStateChange(goal.id, GoalState.active)}
-                disabled={isChangingState || isDeleting}
-                className="gap-1.5 text-xs button-primary-neon"
-                data-ocid="goals.reactivate_button"
+                onClick={() => onEditNavigate(goal.id)}
+                className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
+                aria-label="Edit goal"
+                data-ocid="goals.detail_edit_button"
               >
-                <Play size={12} />
-                Reactivate
-              </Button>
+                <Edit3 size={13} />
+              </button>
+            ))}
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
+            aria-label="Close detail"
+            data-ocid="goals.detail_close_button"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* State badge + dates */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span
+          className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-full"
+          style={stateBadgeStyle(goal.state)}
+        >
+          {goal.state === GoalState.active && <Flame size={10} />}
+          {goal.state === GoalState.paused && <Pause size={10} />}
+          {goal.state === GoalState.completed && <CheckCircle2 size={10} />}
+          {stateLabel(goal.state)}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Created {formatDate(goal.createdAt)}
+        </span>
+      </div>
+
+      {/* Edit form OR read view */}
+      <AnimatePresence mode="wait">
+        {isEditing ? (
+          <GoalEditForm
+            key="edit"
+            goal={goal}
+            onSave={handleSaveEdit}
+            onCancel={() => setIsEditing(false)}
+            isSaving={isUpdating}
+            existingLockInGoals={existingLockInGoals}
+          />
+        ) : (
+          <motion.div
+            key="view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-3"
+            data-ocid="goals.detail_view"
+          >
+            {goal.outcome && (
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
+                  Obstacles
+                </p>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {goal.outcome}
+                </p>
+              </div>
             )}
-            {isCompleted && (
+            {goal.ifThenPlan && (
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
+                  If-Then Plan
+                </p>
+                <p className="text-sm font-mono text-foreground leading-relaxed bg-muted/40 rounded-lg px-3 py-2">
+                  {goal.ifThenPlan}
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* State actions — hidden while editing */}
+      {!isEditing && (
+        <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
+          {isActive && (
+            <>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => onStateChange(goal.id, GoalState.active)}
-                disabled={isChangingState || isDeleting}
+                onClick={() => onStateChange(goal.id, GoalState.paused)}
+                disabled={isChangingState}
                 className="gap-1.5 text-xs"
-                data-ocid="goals.restore_button"
+                data-ocid="goals.pause_button"
               >
-                <Play size={12} />
-                Restore as Active
+                <Pause size={12} />
+                Pause
               </Button>
-            )}
-            {/* Delete Goal — available for all states */}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onStateChange(goal.id, GoalState.completed)}
+                disabled={isChangingState}
+                className="gap-1.5 text-xs"
+                data-ocid="goals.complete_button"
+              >
+                <CheckCircle2 size={12} />
+                Mark Complete
+              </Button>
+            </>
+          )}
+          {isPaused && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onStateChange(goal.id, GoalState.active)}
+              disabled={isChangingState}
+              className="gap-1.5 text-xs button-primary-neon"
+              data-ocid="goals.reactivate_button"
+            >
+              <Play size={12} />
+              Reactivate
+            </Button>
+          )}
+          {isCompleted && (
             <Button
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={isChangingState || isDeleting}
-              className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
-              data-ocid="goals.delete_button"
+              onClick={() => onStateChange(goal.id, GoalState.active)}
+              disabled={isChangingState}
+              className="gap-1.5 text-xs"
+              data-ocid="goals.restore_button"
             >
-              <Trash2 size={12} />
-              Delete Goal
+              <Play size={12} />
+              Restore as Active
             </Button>
-            {(isChangingState || isDeleting) && (
-              <span
-                className="text-xs text-muted-foreground flex items-center gap-1.5"
-                data-ocid="goals.state_change_loading_state"
-              >
-                <span className="w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" />
-                {isDeleting ? "Deleting…" : "Updating…"}
-              </span>
-            )}
-          </div>
-        )}
-      </motion.div>
-
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent data-ocid="goals.delete_dialog">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this goal?</AlertDialogTitle>
-            <AlertDialogDescription>
-              "{goal.wish}" will be permanently deleted. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-ocid="goals.delete_cancel_button">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowDeleteConfirm(false);
-                onDeleteGoal(goal.id);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-ocid="goals.delete_confirm_button"
+          )}
+          {isChangingState && (
+            <span
+              className="text-xs text-muted-foreground flex items-center gap-1.5"
+              data-ocid="goals.state_change_loading_state"
             >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+              <span className="w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" />
+              Updating…
+            </span>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ─── Delete confirmation dialog ──────────────────────────────────────────────
+//
+// Confirms a single-habit hard-delete. Warns the user that deleting the habit
+// will also remove all of its check-in history. Confirming triggers the
+// atomic hard-delete via useDeleteHabit; canceling closes the dialog with no
+// change. The AlertDialogAction calls e.preventDefault() to stop Radix's
+// auto-close from racing the mutation — the same root cause that previously
+// broke goal deletion (see DeleteGoalDialog in MyGoalsPage.tsx).
+
+interface DeleteHabitDialogProps {
+  habit: HabitPublic | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (habitId: bigint) => void;
+  isDeleting: boolean;
+}
+
+function DeleteHabitDialog({
+  habit,
+  open,
+  onOpenChange,
+  onConfirm,
+  isDeleting,
+}: DeleteHabitDialogProps) {
+  if (!habit) return null;
+  const label = habit.wishDescription || habit.wish;
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent
+        data-ocid="my_habits.delete_dialog"
+        className="max-w-md"
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display text-foreground flex items-center gap-2">
+            <span
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full"
+              style={{
+                backgroundColor: "oklch(var(--destructive) / 0.12)",
+                color: "oklch(var(--destructive))",
+              }}
+            >
+              <Trash2 size={16} />
+            </span>
+            Delete habit permanently?
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="text-muted-foreground text-sm leading-relaxed">
+              <p>
+                You're about to permanently delete{" "}
+                <span className="font-semibold text-foreground">{label}</span>.
+                This cannot be undone.
+              </p>
+              <p
+                className="mt-3"
+                data-ocid="my_habits.delete_dialog.checkin_warning"
+              >
+                Deleting this habit will also permanently remove{" "}
+                <span className="font-semibold text-foreground">
+                  all of its check-in history
+                </span>
+                , including streaks and progress records.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel
+            data-ocid="my_habits.delete_dialog.cancel_button"
+            disabled={isDeleting}
+          >
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            data-ocid="my_habits.delete_dialog.confirm_button"
+            disabled={isDeleting}
+            // Radix's AlertDialogAction auto-closes the dialog on click. That
+            // close races (and can short-circuit) the onClick handler that
+            // fires deleteHabitMutation.mutate, so the mutation never reliably
+            // runs and the habit is never deleted. preventDefault() stops the
+            // auto-close; the mutation fires, the dialog stays open while
+            // pending (showing the loading state below), and the hook's
+            // onSettled closes the dialog after the delete settles — on
+            // success OR error — so a failed delete stays visible (toast).
+            onClick={(e) => {
+              e.preventDefault();
+              onConfirm(habit.id);
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? (
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-current/40 border-t-current rounded-full animate-spin" />
+                Deleting…
+              </span>
+            ) : (
+              "Delete permanently"
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -1244,17 +1317,22 @@ export function GoalsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>(GoalState.active);
   const [expandedGoalId, setExpandedGoalId] = useState<bigint | null>(null);
   const [changingStateId, setChangingStateId] = useState<bigint | null>(null);
-  const [deletingGoalId, setDeletingGoalId] = useState<bigint | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<HabitPublic | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { actor, isFetching } = useBackend();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: goals = [], isLoading } = useQuery<GoalPublic[]>({
+  // listMyGoals() returns GoalWithHabitsPublic[] (macro goals grouped with
+  // their linked habits). Flatten the groups into a single habit list so the
+  // rest of the page can keep treating each row as a habit-level record.
+  const { data: goals = [], isLoading } = useQuery<HabitPublic[]>({
     queryKey: ["myGoals"],
     queryFn: async () => {
       if (!actor || !("listMyGoals" in actor)) return [];
       try {
-        return (await actor.listMyGoals()) as GoalPublic[];
+        const groups = (await actor.listMyGoals()) as GoalWithHabitsPublic[];
+        return groups.flatMap((g) => g.habits);
       } catch (err) {
         console.error("[GoalsPage] listMyGoals error:", err);
         return [];
@@ -1263,6 +1341,29 @@ export function GoalsPage() {
     enabled: !!actor && !isFetching,
     staleTime: 30_000,
   });
+
+  // Reusable goals for the WOOP wizard step-2 goal-reuse chips. Fetched via
+  // listMyReusableGoals() (canonical ReusableGoalPublic shape: { id, wish,
+  // wishDescription, state }) and passed straight to WoopWizard.existingGoals
+  // without any reshape — the wizard's handleReuseGoal reads wishDescription
+  // to fill the keystone habit name and parses wish back into goalAction +
+  // goalReason. Kept separate from the myGoals cache so a goal list refetch
+  // never disturbs the reuse chips mid-selection.
+  const { data: reusableGoals = [], isLoading: reusableGoalsLoading } =
+    useQuery<ReusableGoalPublic[]>({
+      queryKey: ["myReusableGoals"],
+      queryFn: async () => {
+        if (!actor || !("listMyReusableGoals" in actor)) return [];
+        try {
+          return (await actor.listMyReusableGoals()) as ReusableGoalPublic[];
+        } catch (err) {
+          console.error("[GoalsPage] listMyReusableGoals error:", err);
+          return [];
+        }
+      },
+      enabled: !!actor && !isFetching,
+      staleTime: 30_000,
+    });
 
   const updateStateMutation = useMutation({
     mutationFn: async ({
@@ -1290,39 +1391,40 @@ export function GoalsPage() {
     mutationFn: async ({
       goalId,
       req,
-    }: { goalId: bigint; req: UpdateGoalRequest }) => {
+    }: { goalId: bigint; req: UpdateHabitRequest }) => {
       if (!actor) throw new Error("Actor not ready");
-      const result = await actor.updateGoal(goalId, req);
+      const result = await actor.updateHabit(goalId, req);
       if (result.__kind__ === "err") throw new Error(result.err);
       return result.ok;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myGoals"] });
-      toast.success("Goal updated successfully.");
+      toast.success("Habit updated successfully.");
     },
     onError: (err: Error) => {
-      console.error("[GoalsPage] updateGoal error:", err);
-      toast.error("Failed to update goal. Please try again.");
+      console.error("[GoalsPage] updateHabit error:", err);
+      toast.error("Failed to update habit. Please try again.");
     },
   });
 
-  const deleteGoalMutation = useMutation({
-    mutationFn: async ({ goalId }: { goalId: bigint }) => {
-      if (!actor) throw new Error("Actor not ready");
-      // Backend uses "abandoned" state as deletion; these goals are hidden from the UI
-      return actor.updateGoalState(goalId, GoalState.abandoned);
-    },
+  // Hard-delete a single habit via the shared useDeleteHabit hook. The hook
+  // invalidates the myGoals, myReusableGoals, myCheckIns, and analytics caches
+  // on success, so the deleted habit disappears from the list and its
+  // check-in history is cleared everywhere.
+  const deleteHabitMutation = useDeleteHabit({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["myGoals"] });
-      toast.success("Goal deleted.");
-      setExpandedGoalId(null);
+      toast.success("Habit deleted permanently.");
     },
     onError: (err: Error) => {
-      console.error("[GoalsPage] deleteGoal error:", err);
-      toast.error("Failed to delete goal. Please try again.");
+      toast.error(
+        err.message?.trim().length > 0
+          ? err.message
+          : "Failed to delete habit. Please try again.",
+      );
     },
     onSettled: () => {
-      setDeletingGoalId(null);
+      setDeleteTarget(null);
+      setDeleteDialogOpen(false);
     },
   });
 
@@ -1331,18 +1433,23 @@ export function GoalsPage() {
     updateStateMutation.mutate({ goalId, newState });
   }
 
-  function handleUpdateGoal(goalId: bigint, req: UpdateGoalRequest) {
+  function handleUpdateGoal(goalId: bigint, req: UpdateHabitRequest) {
     if (Object.keys(req).length === 0) return;
     updateGoalMutation.mutate({ goalId, req });
   }
 
-  function handleDeleteGoal(goalId: bigint) {
-    setDeletingGoalId(goalId);
-    deleteGoalMutation.mutate({ goalId });
+  function handleDeleteRequest(habit: HabitPublic) {
+    setDeleteTarget(habit);
+    setDeleteDialogOpen(true);
   }
 
-  // Exclude abandoned goals from the list entirely
-  const visibleGoals = goals.filter((g) => g.state !== GoalState.abandoned);
+  function handleDeleteConfirm(habitId: bigint) {
+    deleteHabitMutation.mutate({ habitId });
+  }
+
+  // Hard-deleted goals are removed from the backend entirely, so every goal
+  // returned by listMyGoals is visible — no client-side filtering needed.
+  const visibleGoals = goals;
 
   const filtered = visibleGoals.filter((g) =>
     activeFilter === "all" ? true : g.state === activeFilter,
@@ -1362,25 +1469,6 @@ export function GoalsPage() {
           <h1 className="font-display text-2xl font-bold text-foreground">
             My Habits
           </h1>
-          <button
-            type="button"
-            onClick={() => setShowWoop(true)}
-            data-ocid="goals.add_goal_button"
-            aria-label="Create a new habit"
-            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full transition-smooth shrink-0"
-            style={{
-              background: "#10B981",
-              color: "#022c22",
-              fontWeight: 500,
-              fontFamily: "var(--font-body, inherit)",
-              boxShadow:
-                "-2px -2px 5px rgba(60,60,65,0.35), 3px 3px 8px rgba(0,0,0,0.65)",
-              border: "none",
-            }}
-          >
-            <Plus size={14} />
-            Create Habit
-          </button>
         </div>
         {activeCount > 0 && (
           <p className="text-sm text-muted-foreground mt-1">
@@ -1487,7 +1575,14 @@ export function GoalsPage() {
           </p>
           <Button
             type="button"
-            onClick={() => setShowWoop(true)}
+            onClick={() => {
+              // Kick off the reusable-goals fetch BEFORE the wizard opens so
+              // the goal-reuse chips are populated (or in flight) by the time
+              // the GOAL_STEP renders — the wizard's loading gate covers the
+              // brief in-flight window instead of flashing the empty state.
+              void queryClient.fetchQuery({ queryKey: ["myReusableGoals"] });
+              setShowWoop(true);
+            }}
             className="gap-2 button-primary-neon"
             data-ocid="goals.create_first_habit_button"
           >
@@ -1512,7 +1607,10 @@ export function GoalsPage() {
             <button
               type="button"
               className="underline underline-offset-2 hover:text-foreground transition-colors"
-              onClick={() => setShowWoop(true)}
+              onClick={() => {
+                void queryClient.fetchQuery({ queryKey: ["myReusableGoals"] });
+                setShowWoop(true);
+              }}
               data-ocid="goals.filter_empty_create_button"
             >
               Create one now
@@ -1529,16 +1627,11 @@ export function GoalsPage() {
               const isExpanded = expandedGoalId === goal.id;
               return (
                 <div key={String(goal.id)}>
-                  <motion.button
-                    type="button"
+                  <motion.div
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
                     transition={{ delay: index * 0.06, duration: 0.3 }}
-                    onClick={() =>
-                      setExpandedGoalId((prev) =>
-                        prev === goal.id ? null : goal.id,
-                      )
-                    }
                     className={`w-full text-left rounded-2xl border p-4 transition-smooth card-neumorphic ${
                       isExpanded
                         ? "border-primary/40 bg-primary/5"
@@ -1551,7 +1644,20 @@ export function GoalsPage() {
                     data-ocid={`goals.goal_item.${index + 1}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
+                      {/* Clickable region — toggles expand/collapse. Kept as a
+                          button so the card stays keyboard-accessible while the
+                          sibling delete button handles its own click. */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedGoalId((prev) =>
+                            prev === goal.id ? null : goal.id,
+                          )
+                        }
+                        aria-expanded={isExpanded}
+                        aria-label={`${goal.wishDescription || goal.wish} — ${isExpanded ? "collapse" : "expand"}`}
+                        className="flex-1 min-w-0 text-left bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-lg"
+                      >
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span
                             className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
@@ -1586,8 +1692,36 @@ export function GoalsPage() {
                             So that I can {goal.outcome}
                           </p>
                         )}
-                      </div>
+                      </button>
+
+                      {/* Action column — delete button + expand affordance icon.
+                          Delete is a separate button so its click never toggles
+                          the card. Mirrors GoalCard in MyGoalsPage.tsx. */}
                       <div className="shrink-0 flex items-center gap-1.5 text-muted-foreground">
+                        <button
+                          type="button"
+                          aria-label={`Delete habit ${goal.wishDescription || goal.wish}`}
+                          data-ocid={`my_habits.delete_button.${index + 1}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteRequest(goal);
+                          }}
+                          className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground transition-smooth hover:text-foreground"
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor =
+                              "oklch(var(--destructive) / 0.15)";
+                            e.currentTarget.style.color =
+                              "oklch(var(--destructive))";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor =
+                              "oklch(var(--muted) / 0.4)";
+                            e.currentTarget.style.color =
+                              "oklch(var(--muted-foreground))";
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                         <Edit3
                           size={14}
                           className={`transition-smooth ${
@@ -1596,7 +1730,7 @@ export function GoalsPage() {
                         />
                       </div>
                     </div>
-                  </motion.button>
+                  </motion.div>
                   {isExpanded && (
                     <motion.div
                       key={`detail-${goal.id}`}
@@ -1617,11 +1751,6 @@ export function GoalsPage() {
                         }
                         onUpdateGoal={handleUpdateGoal}
                         isUpdating={updateGoalMutation.isPending}
-                        onDeleteGoal={handleDeleteGoal}
-                        isDeleting={
-                          deletingGoalId === goal.id &&
-                          deleteGoalMutation.isPending
-                        }
                         existingLockInGoals={visibleGoals
                           .filter(
                             (g) =>
@@ -1654,8 +1783,11 @@ export function GoalsPage() {
 
       {/* WOOP Wizard */}
       <WoopWizard
+        mode="habit"
         open={showWoop}
         onClose={() => setShowWoop(false)}
+        existingGoals={reusableGoals}
+        existingGoalsLoading={reusableGoalsLoading}
         existingLockInGoals={visibleGoals
           .filter(
             (g) =>
@@ -1686,6 +1818,20 @@ export function GoalsPage() {
           // Redirect to dashboard
           void navigate({ to: "/" });
         }}
+      />
+
+      {/* Delete confirmation dialog — mirrors DeleteGoalDialog render in
+          MyGoalsPage.tsx. onOpenChange clears deleteTarget when closed so a
+          stale reference doesn't linger after the dialog dismisses. */}
+      <DeleteHabitDialog
+        habit={deleteTarget}
+        open={deleteDialogOpen}
+        onOpenChange={(next) => {
+          setDeleteDialogOpen(next);
+          if (!next) setDeleteTarget(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={deleteHabitMutation.isPending}
       />
     </div>
   );

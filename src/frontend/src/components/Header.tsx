@@ -153,12 +153,12 @@ export function Header({ onMenuClick }: HeaderProps) {
           data-ocid="header.menu_button"
           aria-label="Open navigation menu"
           className={cn(
-            "flex items-center justify-center w-10 h-10 rounded-xl transition-smooth",
+            "flex items-center justify-center w-10 h-10 rounded-xl transition-smooth p-1",
             "text-muted-foreground hover:text-foreground hover:bg-muted/30",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >
-          <Menu size={20} />
+          <Menu size={22} aria-hidden="true" />
         </button>
       </div>
 
@@ -173,6 +173,15 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       {/* ── Right side ── */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Dashboard: show compact progress ring — even at 0/0 */}
+        {isDashboard && (
+          <HeaderProgressRing
+            completed={dashboardData.progressCompleted}
+            total={dashboardData.progressTotal}
+            isComplete={dashboardData.isComplete}
+          />
+        )}
+
         {/* Theme toggle */}
         <button
           type="button"
@@ -193,35 +202,26 @@ export function Header({ onMenuClick }: HeaderProps) {
           {theme === "dark" ? <SunIcon /> : <MoonIcon />}
         </button>
 
-        {/* Dashboard: always show compact progress ring — even at 0/0 */}
-        {isDashboard ? (
-          <HeaderProgressRing
-            completed={dashboardData.progressCompleted}
-            total={dashboardData.progressTotal}
-            isComplete={dashboardData.isComplete}
+        {/* Profile link with signed-in user's avatar (all pages) */}
+        <Link
+          to="/profile"
+          data-ocid="header.profile_link"
+          aria-label="Go to profile"
+          className={cn(
+            "flex items-center justify-center rounded-full transition-smooth",
+            "shadow-neumorphic-emboss-dark overflow-hidden",
+            "hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <Avatar
+            username={profile?.username ?? ""}
+            avatarShape={profile?.avatarShape ?? null}
+            avatarColor={profile?.avatarColor ?? null}
+            colorMode={profile?.avatarColorMode ?? "Fill"}
+            size="sm"
+            alt={profile?.username ?? "Your avatar"}
           />
-        ) : (
-          /* Other pages: profile link with signed-in user's avatar */
-          <Link
-            to="/profile"
-            data-ocid="header.profile_link"
-            aria-label="Go to profile"
-            className={cn(
-              "flex items-center justify-center rounded-full transition-smooth",
-              "shadow-neumorphic-emboss-dark overflow-hidden",
-              "hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            )}
-          >
-            <Avatar
-              username={profile?.username ?? ""}
-              avatarShape={profile?.avatarShape ?? null}
-              avatarColor={profile?.avatarColor ?? null}
-              colorMode={profile?.avatarColorMode ?? "Fill"}
-              size="sm"
-              alt={profile?.username ?? "Your avatar"}
-            />
-          </Link>
-        )}
+        </Link>
       </div>
     </header>
   );

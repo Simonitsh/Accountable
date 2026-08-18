@@ -28,30 +28,44 @@ export interface GoalAnalytics {
     totalSuccesses: bigint;
     currentStreak: bigint;
 }
-export interface CreateGoalRequest {
-    startTime?: string;
-    intentTimeMinutes?: bigint;
-    endTimeMinutes?: bigint;
-    emailNotifications?: boolean;
-    endTime?: string;
-    scheduledDays?: Array<string>;
-    startTimeMinutes?: bigint;
+export interface AnalyticsSummary {
+    goals: Array<GoalAnalytics>;
+    dailySuccessRate30Days: Array<number>;
+}
+export interface CreateMacroGoalRequest {
     wish: string;
     themeColor?: string;
     wishDescription: string;
     iconName?: string;
+    category: GoalCategory;
+    outcome: string;
+}
+export interface ReusableGoalPublic {
+    id: GoalId;
+    wish: string;
+    wishDescription: string;
+    state: GoalState;
+    category: GoalCategory;
+}
+export interface PartnerOverview {
+    activeHabitCount: bigint;
+    profile: UserProfilePublic;
+    currentStreak: bigint;
+}
+export interface CreateHabitRequest {
+    startTime?: string;
+    endTimeMinutes?: bigint;
+    endTime?: string;
+    scheduledDays?: Array<string>;
+    startTimeMinutes?: bigint;
+    goalId: GoalId;
+    themeColor?: string;
+    wishDescription?: string;
+    iconName?: string;
     ifThenPlan: string;
     obstacleTemplateId?: ObstacleTemplateId;
-    category: GoalCategory;
     isLockIn: boolean;
-    reminderOffset?: bigint;
-    intentTime?: string;
-    outcome: string;
     lockInDurationMinutes?: bigint;
-}
-export interface AnalyticsSummary {
-    goals: Array<GoalAnalytics>;
-    dailySuccessRate30Days: Array<number>;
 }
 export interface CheckIn {
     id: CheckInId;
@@ -66,6 +80,10 @@ export interface CheckIn {
     customObstacleNote?: string;
 }
 export type AvatarShape = Variant_Star_Pentagon_Triangle_Hexagon_Square | null;
+export interface Cell {
+    value: Value;
+    name: string;
+}
 export interface ConnectionPublic {
     id: ConnectionId;
     status: ConnectionStatus;
@@ -74,6 +92,25 @@ export interface ConnectionPublic {
     fromPrincipal: UserId;
 }
 export type CheckInId = bigint;
+export type Value = {
+    __kind__: "int";
+    int: bigint;
+} | {
+    __kind__: "nat";
+    nat: bigint;
+} | {
+    __kind__: "float";
+    float: number;
+} | {
+    __kind__: "bool";
+    bool: boolean;
+} | {
+    __kind__: "null";
+    null: null;
+} | {
+    __kind__: "text";
+    text: string;
+};
 export interface Interaction {
     id: InteractionId;
     interactionType: InteractionType;
@@ -81,37 +118,27 @@ export interface Interaction {
     checkInId: CheckInId;
     timestamp: Timestamp;
 }
-export type AvatarColor = string | null;
+export interface UpdateHabitRequest {
+    startTime?: string;
+    endTimeMinutes?: bigint;
+    endTime?: string;
+    scheduledDays?: Array<string>;
+    timezoneOffsetMinutes: bigint;
+    startTimeMinutes?: bigint;
+    themeColor?: string;
+    isTimeEdit?: boolean;
+    iconName?: string;
+    ifThenPlan?: string;
+    isLockIn?: boolean;
+    lockInDurationMinutes?: bigint;
+}
 export type GoalId = bigint;
+export type AvatarColor = string | null;
 export type ObstacleTemplateId = bigint;
 export type ConnectionId = bigint;
-export interface GoalPublic {
-    id: GoalId;
-    startTime?: string;
-    intentTimeMinutes: bigint;
-    endTimeMinutes: bigint;
-    emailNotifications: boolean;
-    endTime?: string;
-    scheduledDays: Array<string>;
-    owner: UserId;
-    lastEditedAt?: Timestamp;
-    startTimeMinutes: bigint;
-    createdAt: Timestamp;
-    wish: string;
+export interface UpdateMacroGoalRequest {
     themeColor?: string;
-    wishDescription: string;
     iconName?: string;
-    ifThenPlan: string;
-    updatedAt: Timestamp;
-    state: GoalState;
-    obstacleTemplateId?: ObstacleTemplateId;
-    category: GoalCategory;
-    isLockIn: boolean;
-    reminderOffset?: bigint;
-    intentTime?: string;
-    outcome: string;
-    lockInDurationMinutes: bigint;
-    lastEmailSentAt: bigint;
 }
 export interface UserProfilePublic {
     id: UserId;
@@ -137,7 +164,15 @@ export interface ObstacleTemplate {
     owner: UserId;
     description: string;
 }
+export interface Result {
+    hasMore: boolean;
+    rows: Array<Array<Cell>>;
+}
 export type InteractionId = bigint;
+export interface GoalWithHabitsPublic {
+    goal: MacroGoalPublic;
+    habits: Array<HabitPublic>;
+}
 export interface FeedItem {
     checkIn: CheckIn;
     goalName: string;
@@ -147,27 +182,46 @@ export interface FeedItem {
     partnerAvatarColorMode: AvatarColorMode;
     partnerAvatarShape: AvatarShape;
 }
-export interface UpdateGoalRequest {
-    startTime?: string;
-    intentTimeMinutes?: bigint;
-    endTimeMinutes?: bigint;
-    emailNotifications?: boolean;
-    endTime?: string;
-    scheduledDays?: Array<string>;
-    timezoneOffsetMinutes: bigint;
-    startTimeMinutes?: bigint;
-    wish?: string;
+export interface PartnerHabitDetail {
+    habits: Array<HabitPublic>;
+    profile: UserProfilePublic;
+}
+export interface MacroGoalPublic {
+    id: GoalId;
+    owner: UserId;
+    createdAt: Timestamp;
+    wish: string;
     themeColor?: string;
-    isTimeEdit?: boolean;
-    wishDescription?: string;
+    wishDescription: string;
     iconName?: string;
-    ifThenPlan?: string;
-    category?: GoalCategory;
-    isLockIn?: boolean;
-    reminderOffset?: bigint;
-    intentTime?: string;
-    outcome?: string;
-    lockInDurationMinutes?: bigint;
+    updatedAt: Timestamp;
+    state: GoalState;
+    category: GoalCategory;
+    outcome: string;
+}
+export interface HabitPublic {
+    id: GoalId;
+    startTime?: string;
+    endTimeMinutes: bigint;
+    endTime?: string;
+    scheduledDays: Array<string>;
+    owner: UserId;
+    lastEditedAt?: Timestamp;
+    startTimeMinutes: bigint;
+    createdAt: Timestamp;
+    wish: string;
+    goalId: GoalId;
+    themeColor?: string;
+    wishDescription: string;
+    iconName?: string;
+    ifThenPlan: string;
+    updatedAt: Timestamp;
+    state: GoalState;
+    obstacleTemplateId?: ObstacleTemplateId;
+    category: GoalCategory;
+    isLockIn: boolean;
+    outcome: string;
+    lockInDurationMinutes: bigint;
 }
 export enum AvatarColorMode {
     Fill = "Fill",
@@ -195,11 +249,14 @@ export enum GoalCategory {
 export enum GoalState {
     active = "active",
     completed = "completed",
-    abandoned = "abandoned",
     paused = "paused"
 }
 export enum InteractionType {
     highFive = "highFive"
+}
+export enum PartnerHabitError {
+    notPartner = "notPartner",
+    profileNotFound = "profileNotFound"
 }
 export enum UserRole {
     admin = "admin",
@@ -213,9 +270,16 @@ export enum Variant_Star_Pentagon_Triangle_Hexagon_Square {
     Square = "Square"
 }
 export interface backendInterface {
-    createGoal(request: CreateGoalRequest): Promise<{
+    createHabit(request: CreateHabitRequest): Promise<{
         __kind__: "ok";
-        ok: GoalPublic;
+        ok: HabitPublic;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    createMacroGoal(request: CreateMacroGoalRequest): Promise<{
+        __kind__: "ok";
+        ok: MacroGoalPublic;
     } | {
         __kind__: "err";
         err: string;
@@ -237,37 +301,77 @@ export interface backendInterface {
             unauthorized: null;
         };
     }>;
+    deleteGoal(goalId: GoalId): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteHabit(habitId: GoalId): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     devReset(): Promise<void>;
+    execute(qJson: string): Promise<Result>;
     getAnalytics(): Promise<AnalyticsSummary>;
     getCheckInsForGoal(goalId: GoalId): Promise<Array<CheckIn>>;
     getCheckInsForGoalTimeline(goalId: GoalId, fromTimestamp: bigint): Promise<Array<CheckIn>>;
     getCheckInsForPeriod(goalId: GoalId, fromTimestamp: bigint, toTimestamp: bigint): Promise<Array<CheckIn>>;
-    getGoal(goalId: GoalId): Promise<GoalPublic | null>;
+    getHabit(habitId: GoalId): Promise<HabitPublic | null>;
     getInteractionCount(checkInId: CheckInId): Promise<bigint>;
+    getMacroGoal(goalId: GoalId): Promise<MacroGoalPublic | null>;
     getMyProfile(): Promise<UserProfilePublic>;
     getPartnerFeed(): Promise<Array<FeedItem>>;
+    getPartnerHabits(target: Principal): Promise<{
+        __kind__: "ok";
+        ok: PartnerHabitDetail;
+    } | {
+        __kind__: "err";
+        err: PartnerHabitError;
+    }>;
     getUserProfile(target: UserId): Promise<UserProfilePublic | null>;
     isUsernameAvailable(username: string): Promise<boolean>;
     listAllUsers(): Promise<Array<UserProfilePublic>>;
     listConnections(): Promise<Array<ConnectionPublic>>;
+    listHabitsByParent(parentGoalId: GoalId): Promise<{
+        __kind__: "ok";
+        ok: Array<HabitPublic>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     listMyCheckIns(): Promise<Array<CheckIn>>;
-    listMyGoals(): Promise<Array<GoalPublic>>;
+    listMyGoals(): Promise<Array<GoalWithHabitsPublic>>;
     listMyObstacleTemplates(): Promise<Array<ObstacleTemplate>>;
+    listMyReusableGoals(): Promise<Array<ReusableGoalPublic>>;
+    listPartnerOverviews(): Promise<Array<PartnerOverview>>;
     listPendingRequests(): Promise<Array<ConnectionPublic>>;
     recordCheckIn(request: RecordCheckInRequest): Promise<CheckIn>;
     recordInteraction(checkInId: CheckInId, interactionType: InteractionType): Promise<Interaction>;
     register(username: string): Promise<UserProfilePublic>;
     respondToConnection(connectionId: ConnectionId, accept: boolean): Promise<boolean>;
+    schema(): Promise<string>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;
     setTimezone(tz: string): Promise<void>;
-    updateGoal(goalId: GoalId, request: UpdateGoalRequest): Promise<{
+    updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
+    updateHabit(habitId: GoalId, request: UpdateHabitRequest): Promise<{
         __kind__: "ok";
-        ok: GoalPublic;
+        ok: HabitPublic;
     } | {
         __kind__: "err";
         err: string;
     }>;
-    updateGoalState(goalId: GoalId, newState: GoalState): Promise<boolean>;
+    updateMacroGoal(goalId: GoalId, request: UpdateMacroGoalRequest): Promise<{
+        __kind__: "ok";
+        ok: MacroGoalPublic;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     updateMyProfile(displayName: string | null, avatarShape: AvatarShape, avatarColor: AvatarColor, avatarColorMode: AvatarColorMode | null, bio: string | null, email: string | null, timezoneOffsetMinutes: bigint | null): Promise<{
         __kind__: "ok";
         ok: UserProfilePublic;

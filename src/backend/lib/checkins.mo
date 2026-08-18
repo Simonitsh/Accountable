@@ -212,16 +212,6 @@ module {
     count;
   };
 
-  /// Public wrapper for isScheduledDay — used by email-notifications-api.
-  public func isScheduledDayPublic(dayAbbr : Text, scheduledDays : [Text]) : Bool {
-    isScheduledDay(dayAbbr, scheduledDays);
-  };
-
-  /// Public wrapper for dayOfWeekAbbr — used by email-notifications-api.
-  public func dayOfWeekAbbrPublic(timestampNs : Int, timezoneOffsetMinutes : Int) : Text {
-    dayOfWeekAbbr(timestampNs, timezoneOffsetMinutes);
-  };
-
   public func listCheckIns(
     checkIns : List.List<CheckInTypes.CheckIn>,
     caller : Common.UserId,

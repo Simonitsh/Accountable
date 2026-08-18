@@ -1,17 +1,18 @@
 {
-  "overview": "A Neumorphic dark/light themed habit tracking PWA with a customizable avatar system.",
+  "overview": "A goal and habit tracking app that separates goals from habits, with permanent goal deletion managed from the My Goals page.",
   "features": [
-    "Customizable avatars with shapes, colors, and fill or border-only modes",
-    "Habit tracking with progress and analytics",
-    "Partner feed for shared activity",
-    "Consistent unsaved-changes prompts across the app"
+    "Create and manage goals with a guided wizard",
+    "Track habits grouped under goals",
+    "Daily check-ins with streaks and timeline",
+    "Dashboard with calm view-only goal grouping",
+    "Permanent goal deletion with confirmation from My Goals page"
   ],
   "category": "productivity",
   "tags": [
-    "habit-tracker",
-    "pwa",
-    "neumorphic",
-    "avatar-system"
+    "productivity",
+    "goals",
+    "habits",
+    "tracking"
   ],
-  "last_updated": "2026-07-07T11:45:51.142Z"
+  "last_updated": "2026-08-15T22:06:19.942Z"
 }

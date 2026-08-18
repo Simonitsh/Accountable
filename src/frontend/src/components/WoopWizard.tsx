@@ -2,21 +2,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronLeft, Plus, X, Zap } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, ChevronLeft, Lock, Plus, X, Zap } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { ObstacleTemplate as BackendObstacleTemplate } from "../backend.d.ts";
+import type {
+  ObstacleTemplate as BackendObstacleTemplate,
+  ReusableGoalPublic,
+} from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
-import { useUserProfile } from "../hooks/useUserProfile";
+import { getPlaceholder } from "../lib/placeholders";
 import { CATEGORY_DETAILS, OBSTACLE_TEMPLATES } from "../types/index";
 import { GOAL_ICONS } from "../utils/goalIcons";
 import { DayPickerRow } from "./DayPickerRow";
-import { ScrollWheelPicker } from "./ScrollWheelPicker";
+import ExistingGoalChip, {
+  type ExistingGoalChipGoal,
+} from "./ExistingGoalChip";
+import SuggestionButton from "./SuggestionButton";
 
 interface WoopWizardProps {
   open: boolean;
   onClose: () => void;
   onGoalCreated?: (goalId?: string) => void;
+  /**
+   * Explicit creation mode for the wizard.
+   *   - 'habit' (default 'goal'): the wizard MUST create a habit inside an
+   *     existing macro goal. It never falls back to createMacroGoal. The
+   *     GOAL_STEP becomes required (the user must select an existing goal),
+   *     the DOMAIN_STEP is skipped entirely (habits inherit their category
+   *     from the selected parent goal), and the icon selector in REVIEW_STEP
+   *     is hidden (only goals get icons; habits do not). The color picker
+   *     stays available. The submit handler calls createHabit only.
+   *   - 'goal': the wizard creates a macro goal as before (existing
+   *     behavior). Omitted is treated as 'goal' for backward compatibility.
+   * When `presetGoalId` is provided AND mode === 'habit', the GOAL_STEP is
+   * skipped (the goal is already known) and the wizard starts at the first
+   * habit-relevant step; the preset goal's category is still inherited.
+   */
+  mode?: "habit" | "goal";
   /** Existing active Lock-In goals — used for real-time overlap validation */
   existingLockInGoals?: Array<{
     id: bigint;
@@ -24,8 +47,56 @@ interface WoopWizardProps {
     endTime?: string;
     wishDescription: string;
   }>;
+  /**
+   * Reusable goals fetched via listMyReusableGoals() — used for read-only
+   * goal reuse in step 2 (Macro Goal). Each chip parses the stored `wish`
+   * back into goalAction/goalReason AND fills wishDescription from the
+   * referenced goal's wishDescription (the keystone habit name). The
+   * goalAction, goalReason, and wishDescription/habit-name fields then
+   * become READ-ONLY because the goal is immutable and there is no forking.
+   *
+   * Distinct from `existingLockInGoals` (which is filtered to active Lock-Ins
+   * and used for overlap validation). Parent pages pass this from their
+   * `useQuery(['myReusableGoals'])` cache.
+   *
+   * Typed as `ReusableGoalPublic[]` (the canonical backend type returned by
+   * listMyReusableGoals()) so parent pages can pass reusable goals straight
+   * from their query cache without any reshape and without falling back to
+   * `any`. ReusableGoalPublic carries { id, wish, wishDescription, state }.
+   */
+  existingGoals?: ReusableGoalPublic[];
+  /**
+   * True while the parent's reusable-goals query (['myReusableGoals']) is still
+   * fetching. When true, the GOAL_STEP renders a loading indicator instead of
+   * the 'no goals yet' empty state, so goals are never hidden behind a
+   * premature empty state on first open (the query resolves asynchronously
+   * AFTER the wizard mounts). Only once this is false AND existingGoals is
+   * empty does the true empty state render.
+   */
+  existingGoalsLoading?: boolean;
   /** ID of the goal being edited — excluded from the overlap check */
   editingGoalId?: bigint;
+  /**
+   * Optional macro goal ID that pre-scopes the wizard to create a habit
+   * inside an existing goal. When provided:
+   *   - `selectedGoalId` is initialized to `String(presetGoalId)` so the
+   *     wizard treats the macro goal as already-selected (locked).
+   *   - The goal-reuse chips in step 2 do NOT render (the user cannot pick
+   *     a different goal); instead a locked indicator shows the habit is
+   *     being created inside goal `presetGoalId`.
+   *   - The macro goal's category is inherited so step 1 auto-advances with
+   *     that category selected (the user can still change it).
+   *   - The user still fills in habit-specific fields: type (Lock-In toggle),
+   *     duration, schedule, obstacle, and if-then plan.
+   *   - The macro goal text fields (goalAction/goalReason) are NOT shown
+   *     because the goal is already chosen.
+   *   - `createHabit` is called with `goalId: toBigInt(presetGoalId)` (or the
+   *     reused/selected goal id if the user somehow changed it — but the
+   *     locked UI prevents that).
+   * Per the user instruction "Create Habit inside goal card opens habit
+   * wizard pre-scoped to that goal".
+   */
+  presetGoalId?: bigint;
 }
 
 interface SelectedObstacle {
@@ -58,10 +129,6 @@ interface FormState {
   // Step 5 — Icon + Color + Review
   iconName: string;
   themeColor: string;
-  // Email Notifications
-  emailNotifications: boolean;
-  intentTime: string;
-  reminderOffset: number;
 }
 
 type StepError = Partial<Record<string, string>>;
@@ -75,14 +142,6 @@ const THEME_COLORS = [
   { id: "slate", label: "Slate", value: "#475569" },
   { id: "copper", label: "Copper", value: "#C2410C" },
   { id: "teal", label: "Teal", value: "#0D9488" },
-];
-
-const STEPS = [
-  { id: 1, label: "Domain" },
-  { id: 2, label: "Wish" },
-  { id: 3, label: "Obstacle" },
-  { id: 4, label: "Plan" },
-  { id: 5, label: "Review" },
 ];
 
 const ALL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -103,10 +162,17 @@ const EMPTY: FormState = {
   ifThenPlan: "",
   iconName: "target",
   themeColor: "#2563EB",
-  emailNotifications: false,
-  intentTime: "",
-  reminderOffset: 0,
 };
+
+/**
+ * Returns a FRESH FormState object each call by spreading the EMPTY defaults.
+ * Used for every wizard open/reset so two wizard sessions never share the
+ * same form object reference — this avoids stale habitAction (and any other
+ * field) carrying over from a previously created habit. The EMPTY constant
+ * stays the single source of defaults; the factory just produces a new
+ * shallow copy per invocation.
+ */
+const getEmptyForm = (): FormState => ({ ...EMPTY });
 
 /** Returns the conflicting Lock-In goal name if newStart/newEnd overlaps any existing block. */
 /** Returns the conflicting Lock-In goal name if the new block overlaps any existing one.
@@ -155,13 +221,60 @@ function parseHHMMToMinutes(time: string): number {
   return h * 60 + m;
 }
 
+/**
+ * Parses a stored goal `wish` string ("I want to X so that I can Y") back into
+ * its two FormState parts: goalAction (X) and goalReason (Y). Returns null when
+ * the wish doesn't match the assembled format (e.g. legacy or hand-edited
+ * goals), so the caller can skip reuse gracefully instead of mis-fillinging.
+ *
+ * The regex is non-greedy on X so that "so that I can" inside X is consumed by
+ * the literal separator, not by the capture group.
+ */
+function parseWish(
+  wish: string,
+): { goalAction: string; goalReason: string } | null {
+  const match = /^I want to (.+?) so that I can (.+)$/.exec(wish.trim());
+  if (!match) return null;
+  const [, goalAction, goalReason] = match;
+  if (!goalAction || !goalReason) return null;
+  return { goalAction: goalAction.trim(), goalReason: goalReason.trim() };
+}
+
+/**
+ * Defensive BigInt coercion for goal ids. BigInt() throws when the value is
+ * already a bigint, and BigInt(null) throws too — both crash the wizard when
+ * editing a habit (presetGoalId arrives as bigint from the backend) or when
+ * selectedGoalId is somehow null at submit time. This helper:
+ *  (a) returns the value unchanged when typeof value === 'bigint',
+ *  (b) returns undefined when the value is null or undefined,
+ *  (c) otherwise calls BigInt(value).
+ * Callers must still guard against undefined when a value is required.
+ */
+function toBigInt(
+  value: bigint | string | number | null | undefined,
+): bigint | undefined {
+  if (typeof value === "bigint") return value;
+  if (value === null || value === undefined) return undefined;
+  return BigInt(value);
+}
+
 export default function WoopWizard({
   open,
   onClose,
   onGoalCreated,
+  mode = "goal",
   existingLockInGoals = [],
+  existingGoals = [],
+  existingGoalsLoading = false,
   editingGoalId,
+  presetGoalId,
 }: WoopWizardProps) {
+  // Resolve the explicit creation mode. 'habit' forces createHabit (never
+  // createMacroGoal); 'goal' (the default when omitted, for backward
+  // compatibility) creates a macro goal as before. All habit-vs-goal
+  // branching in the wizard reads this single resolved value instead of
+  // inferring from presetGoalId/selectedGoalId.
+  const isHabitMode = mode === "habit";
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [animDir, setAnimDir] = useState<"fwd" | "bwd">("fwd");
@@ -170,29 +283,164 @@ export default function WoopWizard({
   const [form, setForm] = useState<FormState>(EMPTY);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState<string | null>(null);
+  /**
+   * ID of the goal currently reused in step 2 (Macro Goal). Null means no goal
+   * is reused and the chip list is visible. Reset on every wizard open so a
+   * previous session's selection never leaks into a new one.
+   */
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  /**
+   * Monotonic counter bumped on every goal-reuse tap. Appended as a `key` to
+   * the two Macro Goal input wrappers so React remounts them and the
+   * one-shot `.input-goal-filled` CSS animation (goal-fill-pop) replays —
+   * giving the satisfying "pop as the values land" feel. Manual typing does
+   * NOT bump this key, so editing the inputs after reuse never re-triggers
+   * the pop. Reset on wizard open alongside selectedGoalId.
+   */
+  const [goalFillKey, setGoalFillKey] = useState(0);
+  /**
+   * In-component "Discard changes?" confirmation overlay state. Set to true
+   * when the user presses the red X exit button (or Escape) AND the form is
+   * dirty (isDirty). The overlay is rendered inside the wizard dialog (NOT
+   * the route-based UnsavedChangesDialog, which uses TanStack Router
+   * useBlocker and is unsuitable for a modal). "Discard" calls the existing
+   * reset + onClose flow; "Keep editing" dismisses the overlay.
+   */
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { actor, isFetching } = useBackend();
   const queryClient = useQueryClient();
-  const { data: userProfile } = useUserProfile();
-  const hasEmail = Boolean(
-    (userProfile as unknown as { email?: string })?.email,
-  );
 
-  // Slide-up entrance animation + full reset on open
+  // ── Dynamic step model ─────────────────────────────────────────────────────
+  // The step layout depends on TWO independent flags:
+  //   - hasPreset: when the wizard is opened WITH a preset goal, the GOAL_STEP
+  //     (goal selection) is skipped because the goal is already locked.
+  //   - isHabitMode: when mode === 'habit', the DOMAIN_STEP (category selection)
+  //     is skipped entirely because habits inherit their category from the
+  //     selected parent goal.
+  // The four resulting layouts:
+  //   goal mode, no preset:  GOAL → DOMAIN → WISH → OBSTACLE → PLAN → REVIEW
+  //   goal mode, preset:     DOMAIN → WISH → OBSTACLE → PLAN → REVIEW
+  //   habit mode, no preset: GOAL → WISH → OBSTACLE → PLAN → REVIEW
+  //   habit mode, preset:    WISH → OBSTACLE → PLAN → REVIEW
+  // All downstream step references use these constants so the rest of the
+  // wizard behaves identically across all four layouts.
+  const hasPreset = presetGoalId !== undefined && presetGoalId !== null;
+  const showGoalStep = !hasPreset;
+  const showDomainStep = !isHabitMode;
+  // Build the ordered list of step ids, then derive each named step constant
+  // from its position so the rest of the wizard can reference them by name.
+  const stepSequence = useMemo(() => {
+    const seq: string[] = [];
+    if (showGoalStep) seq.push("GOAL");
+    if (showDomainStep) seq.push("DOMAIN");
+    seq.push("WISH", "OBSTACLE", "PLAN", "REVIEW");
+    return seq;
+  }, [showGoalStep, showDomainStep]);
+  const stepIndex = useMemo(() => {
+    const m: Record<string, number> = {};
+    stepSequence.forEach((name, i) => {
+      m[name] = i + 1;
+    });
+    return m;
+  }, [stepSequence]);
+  const GOAL_STEP = stepIndex.GOAL ?? -1;
+  const DOMAIN_STEP = stepIndex.DOMAIN ?? -1;
+  const WISH_STEP = stepIndex.WISH;
+  const OBSTACLE_STEP = stepIndex.OBSTACLE;
+  const PLAN_STEP = stepIndex.PLAN;
+  const REVIEW_STEP = stepIndex.REVIEW;
+  const steps = useMemo(() => {
+    const labelFor = (name: string): string => {
+      switch (name) {
+        case "GOAL":
+          return "Goal";
+        case "DOMAIN":
+          return "Domain";
+        case "WISH":
+          return "Wish";
+        case "OBSTACLE":
+          return "Obstacle";
+        case "PLAN":
+          return "Plan";
+        case "REVIEW":
+          return "Review";
+        default:
+          return name;
+      }
+    };
+    return stepSequence.map((name, i) => ({
+      id: i + 1,
+      label: labelFor(name),
+    }));
+  }, [stepSequence]);
+  const totalSteps = steps.length;
+
+  // Slide-up entrance animation + full reset on open.
+  //
+  // This effect runs EXACTLY ONCE per wizard open: its dependency array is
+  // [open, presetGoalId] ONLY. It deliberately does NOT depend on
+  // existingGoals, because existingGoals is sourced from an async React Query
+  // (['myReusableGoals']) that resolves AFTER the wizard mounts. Listing it
+  // here caused this effect to re-fire when the query resolved, which
+  // (a) disrupted the dialog entrance transition so the first tap on a goal
+  // chip missed (Bug 1), and (b) re-clobbered form state with setForm(EMPTY)
+  // at unexpected times, racing with the preset-goal category fill and
+  // letting stale habitAction persist across sessions (Bug 2).
+  //
+  // The async preset-goal category fill (which DOES need existingGoals) lives
+  // in a separate effect below.
   useEffect(() => {
     if (!open) {
       setMounted(false);
       return;
     }
     // Full reset every time the wizard opens so custom obstacles never leak
-    // between sessions. EMPTY already has customChips: [] and selectedObstacles: [].
-    setForm(EMPTY);
+    // between sessions. Use a FRESH empty form each open (not the shared EMPTY
+    // reference) so two wizard sessions never share form object identity —
+    // this is what stops a previously created habit's name from carrying over.
+    setForm(getEmptyForm());
     setStep(1);
     setErrors({});
+    // Reset the reused-goal selection so a previous session's chip pick never
+    // leaks into a new one. Placed AFTER the form reset above so the
+    // empty-state reset fires first, then the goal-reuse state is cleared on
+    // top.
+    setSelectedGoalId(null);
+    setGoalFillKey(0);
+    // When presetGoalId is provided, lock selectedGoalId to the preset
+    // immediately so step 2 hides the chips + macro inputs and shows the
+    // locked indicator. The preset goal's CATEGORY fill is deferred to the
+    // second effect below (it needs existingGoals, which may not be loaded
+    // yet). Per the user instruction "Create Habit inside goal card opens
+    // habit wizard pre-scoped to that goal".
+    if (presetGoalId !== undefined && presetGoalId !== null) {
+      setSelectedGoalId(String(presetGoalId));
+    }
     // Tiny delay lets the browser paint the initial off-screen position first
     const t = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(t);
-  }, [open]);
+  }, [open, presetGoalId]);
+
+  // Preset-goal category fill — the async half of the old open effect.
+  //
+  // Depends on [open, presetGoalId, existingGoals] and ONLY fills the preset
+  // goal's category once the goals list has loaded. It must NOT call
+  // setForm(getEmptyForm()), setStep, setSelectedGoalId(null), or
+  // setGoalFillKey — those belong to the one-time open reset above, and
+  // re-running them here would re-introduce both bugs. It uses the functional
+  // setForm spread so it only touches `category` and preserves any habit name
+  // or other field the user may have already entered before the query
+  // resolved.
+  useEffect(() => {
+    if (!open) return;
+    if (presetGoalId === undefined || presetGoalId === null) return;
+    const presetGoal = existingGoals.find((g) => g.id === presetGoalId);
+    if (presetGoal) {
+      setForm((f) => ({ ...f, category: presetGoal.category }));
+    }
+  }, [open, presetGoalId, existingGoals]);
 
   // Lock body scroll while open
   useEffect(() => {
@@ -208,6 +456,17 @@ export default function WoopWizard({
     form.goalAction.trim() && form.goalReason.trim()
       ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}`
       : "";
+  /**
+   * The preset goal object (looked up in existingGoals by Number(id) match)
+   * when presetGoalId is provided. Used to render the locked indicator in
+   * step 2 — shows the preset goal's wish text read-only so the user sees
+   * which goal their new habit is being created inside. Undefined when no
+   * presetGoalId is set or when the goal isn't found in existingGoals.
+   */
+  const presetGoal =
+    presetGoalId !== undefined && presetGoalId !== null
+      ? existingGoals.find((g) => g.id === presetGoalId)
+      : undefined;
   const effectiveHabitMinutes = form.isLockIn
     ? form.lockInDurationHours * 60 + form.lockInDurationMinutes
     : Number(form.habitMinutes) || 0;
@@ -227,14 +486,6 @@ export default function WoopWizard({
   // Derived caps for the wheels
   const maxLockInHours = Math.floor(maxLockInMinutes / 60);
 
-  // Max positive reminder offset so intentTime + reminderOffset never exceeds 23:55
-  const maxPositiveOffset = useMemo(() => {
-    if (!form.intentTime) return 60;
-    const [h, m] = form.intentTime.split(":").map(Number);
-    const intentMins = h * 60 + m;
-    const calculated = Math.max(0, 1435 - intentMins);
-    return form.isLockIn ? calculated : Math.min(60, calculated);
-  }, [form.intentTime, form.isLockIn]);
   const maxLockInMinutesAtMaxHour =
     form.lockInDurationHours === maxLockInHours
       ? Math.floor((maxLockInMinutes % 60) / 5) * 5
@@ -338,57 +589,87 @@ export default function WoopWizard({
       );
       const obstacleTemplateId = primaryUserObs?.backendId;
 
-      const created = (await (actor as any).createGoal({
+      // Branch on the explicit mode prop (NOT on inferred presetGoalId /
+      // selectedGoalId). When mode === 'habit' the wizard MUST create a habit
+      // — it never falls back to createMacroGoal. When mode === 'goal' it
+      // creates a macro goal as before. The createMacroGoal fallback has been
+      // removed from the habit path entirely.
+      if (isHabitMode) {
+        // goalId is required as BigInt. Prefer presetGoalId (the wizard was
+        // opened pre-scoped to a goal); fall back to selectedGoalId when the
+        // user picked a reuse chip in the GOAL_STEP. In habit mode the
+        // GOAL_STEP validation guarantees selectedGoalId !== null when there
+        // is no preset, so this is always defined.
+        const goalId =
+          presetGoalId !== undefined && presetGoalId !== null
+            ? toBigInt(presetGoalId)
+            : selectedGoalId !== null
+              ? toBigInt(selectedGoalId)
+              : undefined;
+        if (goalId === undefined)
+          throw new Error("No goal selected — cannot create habit.");
+
+        const created = await actor.createHabit({
+          goalId,
+          // The habit's stored name is the user's typed daily action
+          // (assembledHabit = "I will <habitAction> for <N> minutes"), NOT the
+          // parent goal's wishDescription. Without this the saved habit fell
+          // back to the parent goal's keystone-habit name. The backend's
+          // CreateHabitRequest now accepts an optional wishDescription for
+          // exactly this. Pass the trimmed typed habit name here.
+          wishDescription:
+            assembledHabit || form.habitAction.trim() || undefined,
+          ifThenPlan: form.ifThenPlan.trim(),
+          obstacleTemplateId,
+          isLockIn: form.isLockIn,
+          scheduledDays: form.scheduledDays,
+          startTime:
+            form.isLockIn && form.lockInStartTime
+              ? form.lockInStartTime
+              : undefined,
+          endTime:
+            form.isLockIn && form.lockInEndTime
+              ? form.lockInEndTime
+              : undefined,
+          lockInDurationMinutes: form.isLockIn
+            ? BigInt(form.lockInDurationHours * 60 + form.lockInDurationMinutes)
+            : BigInt(0),
+          startTimeMinutes:
+            form.isLockIn && form.lockInStartTime
+              ? BigInt(parseHHMMToMinutes(form.lockInStartTime))
+              : BigInt(0),
+          endTimeMinutes:
+            form.isLockIn && form.lockInStartTime
+              ? BigInt(
+                  Math.min(
+                    1435,
+                    parseHHMMToMinutes(form.lockInStartTime) +
+                      form.lockInDurationHours * 60 +
+                      form.lockInDurationMinutes,
+                  ),
+                )
+              : BigInt(0),
+          // Habits do not get an icon (only goals do). iconName is omitted
+          // entirely in habit mode so the backend stores nothing for it.
+          iconName: undefined,
+          themeColor: form.themeColor || undefined,
+        });
+        if (created.__kind__ === "err") throw new Error(created.err);
+        return created.ok;
+      }
+
+      // Macro goal creation (mode === 'goal') — carries only the macro-level
+      // fields. The category, wish, wishDescription, and outcome come from
+      // the form; habit-level fields (schedule, Lock-In, obstacle, ifThenPlan)
+      // are NOT sent because they belong to habits linked to this goal later.
+      const created = await actor.createMacroGoal({
+        category: form.category,
         wish: assembledWish,
         wishDescription: assembledHabit,
         outcome: assembledObstacles,
-        obstacleTemplateId,
-        ifThenPlan: form.ifThenPlan.trim(),
-        category: form.category,
         iconName: form.iconName || undefined,
         themeColor: form.themeColor || undefined,
-        isLockIn: form.isLockIn,
-        scheduledDays: form.scheduledDays,
-        startTime:
-          form.isLockIn && form.lockInStartTime
-            ? form.lockInStartTime
-            : undefined,
-        endTime:
-          form.isLockIn && form.lockInEndTime ? form.lockInEndTime : undefined,
-        timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
-        emailNotifications: form.emailNotifications,
-        intentTime:
-          form.emailNotifications && !form.isLockIn
-            ? form.intentTime
-            : undefined,
-        reminderOffset: form.emailNotifications
-          ? form.reminderOffset
-          : undefined,
-        lockInDurationMinutes: form.isLockIn
-          ? BigInt(form.lockInDurationHours * 60 + form.lockInDurationMinutes)
-          : BigInt(0),
-        startTimeMinutes:
-          form.isLockIn && form.lockInStartTime
-            ? BigInt(parseHHMMToMinutes(form.lockInStartTime))
-            : BigInt(0),
-        endTimeMinutes:
-          form.isLockIn && form.lockInStartTime
-            ? BigInt(
-                Math.min(
-                  1435,
-                  parseHHMMToMinutes(form.lockInStartTime) +
-                    form.lockInDurationHours * 60 +
-                    form.lockInDurationMinutes,
-                ),
-              )
-            : BigInt(0),
-        intentTimeMinutes:
-          form.emailNotifications && form.intentTime
-            ? BigInt(parseHHMMToMinutes(form.intentTime))
-            : BigInt(0),
-      })) as unknown as
-        | { __kind__: "ok"; ok: { id: bigint } }
-        | { __kind__: "err"; err: string };
+      });
       if (created.__kind__ === "err") throw new Error(created.err);
       return created.ok;
     },
@@ -399,16 +680,23 @@ export default function WoopWizard({
       });
       await queryClient.refetchQueries({ queryKey: ["myGoals"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      toast.success("Habit created! Check it out on your dashboard.", {
-        description: assembledHabit,
-        duration: 5000,
-      });
+      // The success toast uses the explicit mode: 'Habit created!' when
+      // mode === 'habit', 'Goal created!' when mode === 'goal'.
+      toast.success(
+        isHabitMode
+          ? "Habit created! Check it out on your dashboard."
+          : "Goal created! Check it out on your dashboard.",
+        {
+          description: assembledHabit,
+          duration: 5000,
+        },
+      );
       const goalIdStr = data?.id !== undefined ? String(data.id) : undefined;
       onGoalCreated?.(goalIdStr);
       handleClose();
     },
     onError: (error: Error) => {
-      toast.error("Failed to create habit. Please try again.", {
+      toast.error("Failed to create. Please try again.", {
         description: error.message,
       });
     },
@@ -416,20 +704,98 @@ export default function WoopWizard({
 
   const handleClose = useCallback(() => {
     setStep(1);
-    setForm(EMPTY);
+    setForm(getEmptyForm());
     setErrors({});
+    setShowExitConfirm(false);
     onClose();
   }, [onClose]);
 
+  /**
+   * Deep-compares the current form state against the EMPTY baseline across
+   * every FormState field (scalars, the scheduledDays string array, and the
+   * selectedObstacles array of objects). Returns true when ANY field differs
+   * from its empty baseline value. Also treats step > 1 as dirty so a user
+   * who advanced past step 1 (even without filling anything) is prompted
+   * before exiting — advancing is itself an unsaved change.
+   */
+  const isFormDirty = useCallback((): boolean => {
+    if (step > 1) return true;
+    if (form.category !== EMPTY.category) return true;
+    if (form.goalAction !== EMPTY.goalAction) return true;
+    if (form.goalReason !== EMPTY.goalReason) return true;
+    if (form.habitAction !== EMPTY.habitAction) return true;
+    if (form.habitMinutes !== EMPTY.habitMinutes) return true;
+    if (form.isLockIn !== EMPTY.isLockIn) return true;
+    if (form.lockInStartTime !== EMPTY.lockInStartTime) return true;
+    if (form.lockInEndTime !== EMPTY.lockInEndTime) return true;
+    if (form.lockInDurationHours !== EMPTY.lockInDurationHours) return true;
+    if (form.lockInDurationMinutes !== EMPTY.lockInDurationMinutes) return true;
+    if (form.ifThenPlan !== EMPTY.ifThenPlan) return true;
+    if (form.iconName !== EMPTY.iconName) return true;
+    if (form.themeColor !== EMPTY.themeColor) return true;
+    // Array deep-compare: scheduledDays (order-insensitive since it's a set of days)
+    const emptyDays = new Set(EMPTY.scheduledDays);
+    if (form.scheduledDays.length !== EMPTY.scheduledDays.length) return true;
+    for (const d of form.scheduledDays) {
+      if (!emptyDays.has(d)) return true;
+    }
+    // Array deep-compare: selectedObstacles (compare by id, label, kind, backendId)
+    if (form.selectedObstacles.length !== EMPTY.selectedObstacles.length)
+      return true;
+    for (const o of form.selectedObstacles) {
+      const match = EMPTY.selectedObstacles.find((e) => e.id === o.id);
+      if (!match) return true;
+      if (
+        match.label !== o.label ||
+        match.kind !== o.kind ||
+        match.backendId !== o.backendId
+      )
+        return true;
+    }
+    return false;
+  }, [step, form]);
+
+  /**
+   * Exit request handler shared by the red X button and the Escape key. When
+   * the form is dirty, opens the in-component confirmation overlay instead of
+   * closing immediately; when clean, closes immediately (existing behavior).
+   */
+  const requestClose = useCallback(() => {
+    if (isFormDirty()) {
+      setShowExitConfirm(true);
+    } else {
+      handleClose();
+    }
+  }, [isFormDirty, handleClose]);
+
   const validate = (s: number): boolean => {
     const e: StepError = {};
-    if (s === 1) {
+    if (s === GOAL_STEP) {
+      // In habit mode the GOAL_STEP is a hard gate: the user MUST select an
+      // existing goal (the habit has to live inside one). There is no
+      // "continue to create a new goal" path in habit mode — if there are
+      // no existing goals the empty-state message tells the user to create a
+      // goal first and the Next button is disabled (see goNext / nav bar).
+      // In goal mode the GOAL_STEP remains a question, not a gate: the user
+      // may pick an existing goal OR proceed to create a fresh one.
+      if (isHabitMode && selectedGoalId === null) {
+        e.goal = "Select an existing goal to build this habit inside.";
+      }
+    }
+    if (s === DOMAIN_STEP) {
       if (!form.category) e.category = "Select a category for your habit.";
     }
-    if (s === 2) {
-      if (!form.goalAction.trim())
-        e.goalAction = "Tell us what you want to achieve.";
-      if (!form.goalReason.trim()) e.goalReason = "What's your deeper reason?";
+    if (s === WISH_STEP) {
+      // The macro goal free-text inputs (goalAction/goalReason) only render
+      // in goal mode — in habit mode the parent goal is chosen in GOAL_STEP,
+      // so these fields are never shown and must not be validated. Skipping
+      // them here lets the user advance past WISH_STEP in habit mode.
+      if (!isHabitMode) {
+        if (!form.goalAction.trim())
+          e.goalAction = "Tell us what you want to achieve.";
+        if (!form.goalReason.trim())
+          e.goalReason = "What's your deeper reason?";
+      }
       if (!form.habitAction.trim()) e.habitAction = "Name the daily action.";
       if (!effectiveHabitMinutes) e.habitMinutes = "How many minutes?";
       if (form.isLockIn) {
@@ -451,23 +817,22 @@ export default function WoopWizard({
         }
       }
     }
-    if (s === 3 && form.selectedObstacles.length === 0) {
+    if (s === OBSTACLE_STEP && form.selectedObstacles.length === 0) {
       e.obstacles = "Select at least one obstacle you might face.";
     }
-    if (s === 4 && !form.ifThenPlan.trim()) {
+    if (s === PLAN_STEP && !form.ifThenPlan.trim()) {
       e.ifThenPlan = "Write your backup plan.";
-    }
-    if (
-      s === 5 &&
-      form.emailNotifications &&
-      !form.isLockIn &&
-      !form.intentTime
-    ) {
-      e.intentTime = "Please set your intended time for the reminder";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
+
+  // Scroll the wizard content back to the top whenever the step changes
+  useEffect(() => {
+    // step is intentionally read so the effect re-runs on step changes
+    void step;
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [step]);
 
   const navigate = (dir: "fwd" | "bwd") => {
     setAnimDir(dir);
@@ -475,16 +840,17 @@ export default function WoopWizard({
     setTimeout(() => {
       setStep((s) => (dir === "fwd" ? s + 1 : s - 1));
       setAnimating(false);
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
     }, 180);
   };
 
   const goNext = () => {
-    if (step === 5) {
+    if (step === REVIEW_STEP) {
       createGoalMutation.mutate();
       return;
     }
     if (!validate(step)) return;
-    if (step === 2 && overlapError) return;
+    if (step === WISH_STEP && overlapError) return;
     navigate("fwd");
   };
 
@@ -504,6 +870,92 @@ export default function WoopWizard({
     });
     setErrors((e) => ({ ...e, obstacles: undefined }));
   };
+
+  /**
+   * Handles a tap on an ExistingGoalChip in step 2 (Macro Goal). Parses the
+   * stored goal `wish` ("I want to X so that I can Y") back into its two
+   * FormState parts (goalAction + goalReason) AND fills wishDescription from
+   * the referenced goal's wishDescription (the keystone habit name). Sets
+   * selectedGoalId to the referenced goal's real id (a goalId reference,
+   * not just text prefill) so createGoalMutation can link the new habit to
+   * the reused goal object.
+   *
+   * Habit-level duration fields (habitMinutes, lockInDurationHours/Minutes)
+   * are NEVER prefilled from the reused goal — the user explicitly enters
+   * duration. Day-of-week schedule is also untouched (stays fully editable).
+   * Obstacles, plan, icon, and color stay empty for the user to complete.
+   *
+   * Goal selection is decoupled from wish parsing: setSelectedGoalId and the
+   * goal-field error clear run unconditionally so the chip reflects the pick
+   * and the Next button enables for ANY goal, including free-text goals from
+   * GoalWizard whose wish does not match the parseWish regex. Only the
+   * goalAction/goalReason text pre-fill (and the fill-pop animation) is gated
+   * on parseWish succeeding, so legacy or hand-edited goals never mis-fill.
+   */
+  const handleReuseGoal = useCallback(
+    (goal: ExistingGoalChipGoal | ReusableGoalPublic) => {
+      // Goal selection is decoupled from wish parsing: the chip must reflect
+      // the pick and the Next button must enable for ANY tapped goal,
+      // including free-text goals created via GoalWizard whose wish does not
+      // match the parseWish regex. Only the goalAction/goalReason text
+      // pre-fill is gated on parseWish succeeding.
+      setSelectedGoalId(String(goal.id));
+      // Clear every goal-field error unconditionally on every tap so stale
+      // validation never blocks a freshly selected goal.
+      setErrors((e) => ({
+        ...e,
+        goal: undefined,
+        goalAction: undefined,
+        goalReason: undefined,
+        habitAction: undefined,
+      }));
+      const parsed = parseWish(goal.wish);
+      if (!parsed) return;
+      setForm((f) => ({
+        ...f,
+        goalAction: parsed.goalAction,
+        goalReason: parsed.goalReason,
+        // The habit input (habitAction) is intentionally NOT filled from the
+        // reused goal — it must start fresh and empty so the user enters the
+        // new habit's own action. Only the Macro Goal fields are populated.
+        // The new habit is still linked to the selected goal via
+        // selectedGoalId (set above) when it is created.
+      }));
+      // Bump the fill key so the two Macro Goal input wrappers remount and
+      // the one-shot .input-goal-filled (goal-fill-pop) animation replays —
+      // the satisfying "pop as the values land" feel. Only fires on reuse,
+      // never on manual typing (typing doesn't touch this key).
+      setGoalFillKey((k) => k + 1);
+    },
+    [],
+  );
+
+  /**
+   * Clears the reused-goal selection: empties the two Macro Goal fields
+   * (goalAction + goalReason) AND the keystone habit name (habitAction, which
+   * was filled from the reused goal's wishDescription), clears selectedGoalId
+   * (so the chip list gate `selectedGoalId === null` re-opens and the
+   * AnimatePresence enter animation replays the chips back in), and clears
+   * any pending goal-field errors. Habit-level duration fields (habitMinutes,
+   * lockInDurationHours/Minutes) and the day-of-week schedule are untouched —
+   * Clear only undoes the Macro Goal pick, per the user instruction "Fill in
+   * ONLY the Macro Goal fields when reusing a goal".
+   */
+  const handleClearGoal = useCallback(() => {
+    setForm((f) => ({
+      ...f,
+      goalAction: "",
+      goalReason: "",
+      habitAction: "",
+    }));
+    setSelectedGoalId(null);
+    setErrors((e) => ({
+      ...e,
+      goalAction: undefined,
+      goalReason: undefined,
+      habitAction: undefined,
+    }));
+  }, []);
 
   if (!open) return null;
 
@@ -551,14 +1003,6 @@ export default function WoopWizard({
   const isSelected = (id: string) =>
     form.selectedObstacles.some((o) => o.id === id);
 
-  const stepTitles = [
-    "Choose a category",
-    "Plant your wish",
-    "Name your obstacle",
-    "Write your plan",
-    "Your commitment",
-  ];
-
   return (
     <>
       {/* Full-screen takeover — slides up from the bottom */}
@@ -569,7 +1013,7 @@ export default function WoopWizard({
         data-ocid="woop_wizard.dialog"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === "Escape") handleClose();
+          if (e.key === "Escape") requestClose();
         }}
         style={{
           transform: mounted ? "translateY(0)" : "translateY(100%)",
@@ -577,33 +1021,10 @@ export default function WoopWizard({
         }}
         className="fixed inset-0 z-[300] flex flex-col bg-card overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none"
       >
-        {/* ── Top Bar ── */}
-        <div className="shrink-0 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border">
-          <div>
-            <p className="text-xs font-mono tracking-widest text-muted-foreground uppercase mb-1">
-              WOOP Habit Builder
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight">
-              {stepTitles[step - 1]}
-            </h1>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            data-ocid="woop_wizard.close_button"
-            aria-label="Close goal builder"
-            className="text-muted-foreground hover:text-foreground shrink-0 w-11 h-11"
-          >
-            <X size={22} />
-          </Button>
-        </div>
-
-        {/* ── Step Indicator ── */}
+        {/* ── Step Indicator ── rendered at the very TOP of the dialog ── */}
         <div
-          className="shrink-0 px-6 pt-5 pb-4"
-          aria-label={`Step ${step} of 5`}
+          className="shrink-0 px-6 pt-2 pb-3"
+          aria-label={`Step ${step} of ${totalSteps}`}
         >
           <div className="relative flex items-center max-w-2xl mx-auto">
             {/* Background track — starts at the leftmost edge of the first circle
@@ -626,14 +1047,14 @@ export default function WoopWizard({
               className="absolute h-[2px] top-10 rounded-full transition-all duration-500 ease-out"
               style={{
                 left: "calc(10% - 20px)",
-                right: `calc(${(5 - step) * 20}% + 20px)`,
+                right: `calc(${(totalSteps - step) * (100 / totalSteps)}% + 20px)`,
                 background: "oklch(var(--color-accent-success))",
                 boxShadow:
                   "0 0 8px 1px oklch(var(--color-accent-success) / 0.45)",
               }}
               aria-hidden="true"
             />
-            {STEPS.map((s) => {
+            {steps.map((s) => {
               const isActive = step === s.id;
               const isComplete = step > s.id;
               return (
@@ -711,12 +1132,93 @@ export default function WoopWizard({
         </div>
 
         {/* ── Scrollable Step Content ── */}
-        <div className="flex-1 overflow-y-auto">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
           <div
-            className={`max-w-2xl mx-auto px-6 sm:px-10 py-8 transition-all duration-180 ${slideClass}`}
+            className={`max-w-2xl mx-auto px-6 sm:px-10 pt-5 pb-8 transition-all duration-180 ${slideClass}`}
           >
+            {/* STEP 1 — Goal Selection (only when no preset goal) */}
+            {step === GOAL_STEP && (
+              <div className="space-y-8">
+                <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
+                  {isHabitMode
+                    ? "Every habit belongs to a goal. Pick the goal you want to build this habit inside."
+                    : "Every habit belongs to a goal. Pick an existing goal to build this habit inside it, or continue to create a fresh goal."}
+                </p>
+
+                <div className="space-y-4">
+                  <p className="text-base font-semibold font-mono tracking-widest text-foreground uppercase">
+                    {isHabitMode
+                      ? "Which goal does this habit belong to?"
+                      : "Which goal does this habit belong to?"}
+                  </p>
+
+                  {existingGoalsLoading ? (
+                    <div
+                      className="flex items-center gap-3 py-2"
+                      data-ocid="woop_wizard.existing_goals_loading_state"
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full border-2 animate-spin shrink-0"
+                        style={{
+                          borderColor: "oklch(var(--muted-foreground) / 0.3)",
+                          borderTopColor: "oklch(var(--muted-foreground))",
+                        }}
+                      />
+                      <span className="text-base text-muted-foreground">
+                        Loading your goals…
+                      </span>
+                    </div>
+                  ) : existingGoals.length > 0 ? (
+                    <div
+                      className="flex flex-col gap-2"
+                      data-ocid="woop_wizard.existing_goal_chips"
+                    >
+                      {existingGoals.map((g, i) => (
+                        <ExistingGoalChip
+                          key={String(g.id)}
+                          goal={g}
+                          selected={selectedGoalId === String(g.id)}
+                          onSelect={handleReuseGoal}
+                          index={i + 1}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p
+                      className="text-base text-muted-foreground"
+                      data-ocid="woop_wizard.no_existing_goals_state"
+                    >
+                      {isHabitMode
+                        ? "You don't have any goals yet. Create a goal first, then add a habit to it."
+                        : "You don't have any goals yet. Continue to create a new goal."}
+                    </p>
+                  )}
+
+                  {selectedGoalId !== null && (
+                    <button
+                      type="button"
+                      onClick={handleClearGoal}
+                      data-ocid="woop_wizard.clear_goal_button"
+                      className="button-clear-neumorphic"
+                    >
+                      Clear selection
+                    </button>
+                  )}
+
+                  {errors.goal && (
+                    <p
+                      className="text-base text-destructive"
+                      data-ocid="woop_wizard.goal_step.field_error"
+                    >
+                      {errors.goal}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* STEP 1 — Category Selection */}
-            {step === 1 && (
+            {step === DOMAIN_STEP && (
               <div className="space-y-8">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Every habit belongs to a domain of your life. Pick the one
@@ -750,34 +1252,59 @@ export default function WoopWizard({
                         }}
                         aria-pressed={isSelected}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3
-                            className="text-xl font-display font-semibold"
+                        <div className="flex items-start gap-4">
+                          <span
+                            className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-200"
                             style={{
+                              background: isSelected
+                                ? "oklch(var(--color-accent-success) / 0.15)"
+                                : "oklch(var(--background))",
+                              border: isSelected
+                                ? "1.5px solid oklch(var(--color-accent-success) / 0.5)"
+                                : "1px solid oklch(var(--border))",
                               color: isSelected
                                 ? "oklch(var(--color-accent-success))"
-                                : "oklch(var(--foreground))",
+                                : "oklch(var(--muted-foreground))",
                             }}
+                            aria-hidden="true"
                           >
-                            {cat.title}
-                          </h3>
-                          {isSelected && (
-                            <div
-                              className="w-6 h-6 rounded-full flex items-center justify-center"
-                              style={{
-                                backgroundColor:
-                                  "oklch(var(--color-accent-success))",
-                                boxShadow:
-                                  "0 0 8px oklch(var(--color-accent-success) / 0.5)",
-                              }}
-                            >
-                              <Check size={14} color="#000" strokeWidth={3} />
+                            <cat.icon size={22} strokeWidth={1.5} />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3
+                                className="text-xl font-display font-semibold"
+                                style={{
+                                  color: isSelected
+                                    ? "oklch(var(--color-accent-success))"
+                                    : "oklch(var(--foreground))",
+                                }}
+                              >
+                                {cat.title}
+                              </h3>
+                              {isSelected && (
+                                <div
+                                  className="w-6 h-6 rounded-full flex items-center justify-center"
+                                  style={{
+                                    backgroundColor:
+                                      "oklch(var(--color-accent-success))",
+                                    boxShadow:
+                                      "0 0 8px oklch(var(--color-accent-success) / 0.5)",
+                                  }}
+                                >
+                                  <Check
+                                    size={14}
+                                    color="#000"
+                                    strokeWidth={3}
+                                  />
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {cat.description}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {cat.description}
-                        </p>
                       </button>
                     );
                   })}
@@ -795,7 +1322,7 @@ export default function WoopWizard({
             )}
 
             {/* STEP 2 — Wish + Keystone Habit */}
-            {step === 2 && (
+            {step === WISH_STEP && (
               <div className="space-y-10">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Your keystone habit is the daily action. Your goal is the
@@ -803,137 +1330,382 @@ export default function WoopWizard({
                 </p>
 
                 <div className="space-y-4">
-                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
-                    Macro Goal
-                  </p>
-                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset">
-                    <div className="flex flex-wrap items-center gap-3 text-xl">
-                      <span className="text-muted-foreground shrink-0">
-                        I want to
-                      </span>
-                      <input
-                        data-ocid="woop_wizard.goal_action_input"
-                        value={form.goalAction}
-                        onChange={(e) => {
-                          const val = e.target.value.slice(0, 40);
-                          setForm((f) => ({ ...f, goalAction: val }));
-                          setErrors((er) => ({ ...er, goalAction: undefined }));
-                        }}
-                        onFocus={() => setFocusedField("goalAction")}
-                        onBlur={() => setFocusedField(null)}
-                        placeholder="run a marathon"
-                        maxLength={40}
-                        className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
-                        aria-label="What do you want to achieve"
-                      />
-                      <span className="text-muted-foreground shrink-0">
-                        so that I can
-                      </span>
-                      <input
-                        data-ocid="woop_wizard.goal_reason_input"
-                        value={form.goalReason}
-                        onChange={(e) => {
-                          const val = e.target.value.slice(0, 40);
-                          setForm((f) => ({ ...f, goalReason: val }));
-                          setErrors((er) => ({ ...er, goalReason: undefined }));
-                        }}
-                        onFocus={() => setFocusedField("goalReason")}
-                        onBlur={() => setFocusedField(null)}
-                        placeholder="feel unstoppable"
-                        maxLength={40}
-                        className="input-neumorphic flex-1 min-w-32 text-foreground text-xl font-medium"
-                        aria-label="Your deeper reason"
-                      />
-                    </div>
-                    <div className="flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono">
-                      <span
-                        className={`transition-opacity duration-200 ${focusedField === "goalAction" ? "opacity-100" : "opacity-0"}`}
-                      >
-                        {form.goalAction.length}/40
-                      </span>
-                      <span
-                        className={`transition-opacity duration-200 ${focusedField === "goalReason" ? "opacity-100" : "opacity-0"}`}
-                      >
-                        {form.goalReason.length}/40
-                      </span>
-                    </div>
-                    {(errors.goalAction || errors.goalReason) && (
-                      <p
-                        className="text-base text-destructive"
-                        data-ocid="woop_wizard.goal.field_error"
-                      >
-                        {errors.goalAction || errors.goalReason}
+                  {/* In habit mode the macro goal free-text inputs are removed
+                      entirely (the parent goal is chosen in GOAL_STEP). The
+                      "The Macro goal" section is still rendered when there is
+                      a preset goal so the locked indicator below can show
+                      which goal the habit is being created inside; in habit
+                      mode without a preset the user already selected a goal in
+                      GOAL_STEP so this whole section is hidden. */}
+                  {(!isHabitMode || hasPreset) && (
+                    <>
+                      <p className="text-base font-semibold font-mono tracking-widest text-foreground uppercase">
+                        The Macro goal
                       </p>
-                    )}
-                    {assembledWish && (
-                      <p className="text-base text-accent-success font-medium leading-relaxed">
-                        {assembledWish}
-                      </p>
-                    )}
-                  </div>
+                      <div
+                        className={`rounded-2xl border border-border/20 p-5 space-y-4 shadow-neumorphic-inset macrogoal-vibrate${selectedGoalId !== null ? " macrogoal-reused-bg" : " bg-muted/30"}`}
+                      >
+                        {/*
+                      Goal-reuse chips — visible only when no goal is currently
+                      reused (selectedGoalId === null) AND the parent passed at
+                      least one existing goal. Tapping a chip fills ONLY the Macro
+                      Goal fields (goalAction + goalReason); habit-level fields
+                      stay empty. AnimatePresence wraps the list so each chip
+                      animates in (goal-chips-in: slide + fade with bounce easing,
+                      staggered for a cascade) when the list mounts, and animates
+                      out (goal-chips-out: fade + slight slide down) when a goal
+                      is selected and the list unmounts. The Clear button
+                      re-opens the gate and replays the enter animation.
+                    */}
+                        <AnimatePresence>
+                          {selectedGoalId === null &&
+                            existingGoals.length > 0 && (
+                              <motion.div
+                                key="goal-reuse-chips"
+                                className="space-y-3"
+                                data-ocid="woop_wizard.existing_goal_chips"
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                              >
+                                <motion.p
+                                  className="text-sm font-mono tracking-widest text-muted-foreground uppercase"
+                                  variants={{
+                                    hidden: { opacity: 0, y: -6 },
+                                    visible: { opacity: 1, y: 0 },
+                                    exit: { opacity: 0, y: -4 },
+                                  }}
+                                  transition={{
+                                    duration: 0.18,
+                                    ease: "easeOut",
+                                  }}
+                                >
+                                  Reuse an existing goal
+                                </motion.p>
+                                <div className="flex flex-col gap-2">
+                                  {/*
+                              Bug 1 fix: the goal-reuse chips are rendered in
+                              their FINAL visible state with NO per-chip enter
+                              animation (no opacity/scale/y transition, no
+                              stagger delay). Previously each chip was wrapped in
+                              a motion.div with initial='hidden'
+                              (opacity:0, y:-8, scale:0.96) -> animate='visible'
+                              over 320ms with bounce easing and a stagger delay
+                              of i*0.05. Because the dialog itself was still
+                              sliding up (translateY 100%->0 over 300ms) when
+                              the chips mounted, the chips were still
+                              transforming (opacity<1, scale<1, y offset) when
+                              the user's first tap landed. Pointer-event
+                              hit-testing during an active transform/opacity
+                              transition is unreliable, so the first tap missed
+                              the still-animating target. Navigating away and
+                              back re-mounted the chips after the dialog
+                              transform had settled, so the tap landed cleanly.
+
+                              The fix renders the chips statically (plain div
+                              wrapper, no motion variants) so they are
+                              immediately interactive on first render. The
+                              dialog's own slide-up animation and the outer
+                              list container's enter/exit are kept intact. The
+                              chip component itself (ExistingGoalChip.tsx) is
+                              unchanged.
+                            */}
+                                  {existingGoals.map((g, i) => (
+                                    <div key={String(g.id)}>
+                                      <ExistingGoalChip
+                                        goal={g}
+                                        selected={
+                                          selectedGoalId === String(g.id)
+                                        }
+                                        onSelect={handleReuseGoal}
+                                        index={i + 1}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/*
+                      Preset-goal locked indicator — shown ONLY when the wizard
+                      was opened pre-scoped to a goal (presetGoalId set). The
+                      goal-reuse chips and the macro goal inputs are already
+                      hidden (selectedGoalId is initialized to the preset, so
+                      the `selectedGoalId === null` gates below stay closed).
+                      This badge replaces them: a lock icon + "Creating habit
+                      inside:" label + the preset goal's wish text rendered
+                      read-only on a subtle opaque emerald background (the
+                      existing --goal-reuse-accent token, the same emerald used
+                      for the reused-goal state, applied via the
+                      .macrogoal-reused-bg utility already on the parent box
+                      plus an inset neumorphic shadow for the soft "locked
+                      well" feel). Per the user instruction "Create Habit
+                      inside goal card opens habit wizard pre-scoped to that
+                      goal".
+                    */}
+                        {presetGoalId !== undefined &&
+                          presetGoalId !== null &&
+                          presetGoal && (
+                            <div
+                              data-ocid="woop_wizard.preset_goal_locked_indicator"
+                              className="rounded-2xl p-4 space-y-2"
+                              style={{
+                                background:
+                                  "oklch(var(--goal-reuse-accent) / 0.10)",
+                                border:
+                                  "1px solid oklch(var(--goal-reuse-accent) / 0.35)",
+                                boxShadow:
+                                  "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(80,80,85,0.12), 0 0 12px oklch(var(--goal-reuse-accent) / 0.10)",
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                                  style={{
+                                    background:
+                                      "oklch(var(--goal-reuse-accent) / 0.18)",
+                                    border:
+                                      "1px solid oklch(var(--goal-reuse-accent) / 0.5)",
+                                    color: "oklch(var(--goal-reuse-accent))",
+                                  }}
+                                >
+                                  <Lock size={13} aria-hidden="true" />
+                                </span>
+                                <span
+                                  className="text-xs font-mono tracking-widest uppercase"
+                                  style={{
+                                    color: "oklch(var(--goal-reuse-accent))",
+                                  }}
+                                >
+                                  Creating habit inside
+                                </span>
+                              </div>
+                              <p
+                                className="text-base font-medium leading-relaxed break-words"
+                                style={{
+                                  color: "oklch(var(--goal-reuse-accent))",
+                                }}
+                              >
+                                {presetGoal.wish}
+                              </p>
+                            </div>
+                          )}
+
+                        {/* `relative` anchors the SuggestionButton dropdown under
+                        the full input-row width (see SuggestionButton contract).
+                        When a reused goal is selected (selectedGoalId !== null),
+                        the 'I want to... so that I can...' inputs are hidden
+                        entirely so the macro goal appears only once, as the green
+                        rendered version below.
+                        Gated by `!isHabitMode` — in habit mode the parent goal is
+                        chosen in GOAL_STEP and the free-text macro goal inputs
+                        must never render (per the goals/habits separation). */}
+                        {!isHabitMode && selectedGoalId === null && (
+                          <div className="relative flex flex-wrap items-center gap-3 text-xl">
+                            <span className="text-muted-foreground shrink-0">
+                              I want to
+                            </span>
+                            <div
+                              key={`goalAction-${goalFillKey}`}
+                              className="relative flex flex-1 min-w-32 items-center"
+                            >
+                              <input
+                                data-ocid="woop_wizard.goal_action_input"
+                                value={form.goalAction}
+                                onChange={(e) => {
+                                  const val = e.target.value.slice(0, 40);
+                                  setForm((f) => ({ ...f, goalAction: val }));
+                                  setErrors((er) => ({
+                                    ...er,
+                                    goalAction: undefined,
+                                  }));
+                                }}
+                                onFocus={() => setFocusedField("goalAction")}
+                                onBlur={() => setFocusedField(null)}
+                                placeholder={getPlaceholder(
+                                  form.category,
+                                  "goalAction",
+                                )}
+                                maxLength={40}
+                                readOnly={selectedGoalId !== null}
+                                className={`input-neumorphic w-full text-foreground text-xl font-medium${selectedGoalId !== null ? " input-goal-filled" : ""}`}
+                                aria-label="What do you want to achieve"
+                                aria-readonly={selectedGoalId !== null}
+                              />
+                            </div>
+                            <span className="text-muted-foreground shrink-0">
+                              so that I can
+                            </span>
+                            <div
+                              key={`goalReason-${goalFillKey}`}
+                              className="relative flex flex-1 min-w-32 items-center"
+                            >
+                              <input
+                                data-ocid="woop_wizard.goal_reason_input"
+                                value={form.goalReason}
+                                onChange={(e) => {
+                                  const val = e.target.value.slice(0, 40);
+                                  setForm((f) => ({ ...f, goalReason: val }));
+                                  setErrors((er) => ({
+                                    ...er,
+                                    goalReason: undefined,
+                                  }));
+                                }}
+                                onFocus={() => setFocusedField("goalReason")}
+                                onBlur={() => setFocusedField(null)}
+                                placeholder={getPlaceholder(
+                                  form.category,
+                                  "goalReason",
+                                )}
+                                maxLength={40}
+                                readOnly={selectedGoalId !== null}
+                                className={`input-neumorphic w-full text-foreground text-xl font-medium${selectedGoalId !== null ? " input-goal-filled" : ""}`}
+                                aria-label="Your deeper reason"
+                                aria-readonly={selectedGoalId !== null}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {/* The char counter, goal-field errors, assembled-wish
+                        preview, and Clear-selection button are all coupled to
+                        the free-text macro goal inputs above. They are gated
+                        by `!isHabitMode` for the same reason: in habit mode
+                        the macro goal is chosen in GOAL_STEP, not here. */}
+                        {!isHabitMode && (
+                          <>
+                            <div className="flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono">
+                              <span
+                                className={`transition-opacity duration-200 ${focusedField === "goalAction" ? "opacity-100" : "opacity-0"}`}
+                              >
+                                {form.goalAction.length}/40
+                              </span>
+                              <span
+                                className={`transition-opacity duration-200 ${focusedField === "goalReason" ? "opacity-100" : "opacity-0"}`}
+                              >
+                                {form.goalReason.length}/40
+                              </span>
+                            </div>
+                            {(errors.goalAction || errors.goalReason) && (
+                              <p
+                                className="text-base text-destructive"
+                                data-ocid="woop_wizard.goal.field_error"
+                              >
+                                {errors.goalAction || errors.goalReason}
+                              </p>
+                            )}
+                            {assembledWish && (
+                              <p className="text-base text-accent-success font-medium leading-relaxed">
+                                {assembledWish}
+                              </p>
+                            )}
+                            {selectedGoalId !== null &&
+                              presetGoalId === undefined && (
+                                <button
+                                  type="button"
+                                  onClick={handleClearGoal}
+                                  data-ocid="woop_wizard.clear_goal_button"
+                                  className="button-clear-neumorphic"
+                                >
+                                  Clear selection
+                                </button>
+                              )}
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-4">
-                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-2">
+                  <p className="text-base font-semibold font-mono tracking-widest text-foreground uppercase flex items-center gap-2">
                     <Zap size={13} className="text-accent-success" />
-                    Keystone Habit — shown on your dashboard
+                    the habit
                   </p>
-                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset">
-                    <div className="flex flex-wrap items-center gap-3 text-xl">
+                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 space-y-4 shadow-neumorphic-inset macrogoal-vibrate">
+                    {/* `relative` anchors the SuggestionButton dropdown under
+                        the full input-row width (see SuggestionButton contract). */}
+                    <div className="relative flex flex-wrap items-center gap-3 text-xl">
                       <span className="text-muted-foreground shrink-0">
                         Every day, I will
                       </span>
-                      <input
-                        data-ocid="woop_wizard.habit_action_input"
-                        value={form.habitAction}
-                        onChange={(e) => {
-                          const val = e.target.value.slice(0, 40);
-                          setForm((f) => ({ ...f, habitAction: val }));
-                          setErrors((er) => ({
-                            ...er,
-                            habitAction: undefined,
-                          }));
-                        }}
-                        onFocus={() => setFocusedField("habitAction")}
-                        onBlur={() => setFocusedField(null)}
-                        placeholder="run"
-                        maxLength={40}
-                        className="input-neumorphic flex-1 min-w-24 text-foreground text-xl font-medium"
-                        aria-label="Daily habit action"
-                      />
+                      <div className="relative flex flex-1 min-w-24 items-center gap-2">
+                        <input
+                          data-ocid="woop_wizard.habit_action_input"
+                          value={form.habitAction}
+                          onChange={(e) => {
+                            const val = e.target.value.slice(0, 40);
+                            setForm((f) => ({ ...f, habitAction: val }));
+                            setErrors((er) => ({
+                              ...er,
+                              habitAction: undefined,
+                            }));
+                          }}
+                          onFocus={() => setFocusedField("habitAction")}
+                          onBlur={() => setFocusedField(null)}
+                          placeholder={getPlaceholder(
+                            form.category,
+                            "habitAction",
+                          )}
+                          maxLength={40}
+                          className="input-neumorphic w-full text-foreground text-xl font-medium"
+                          aria-label="Daily habit action"
+                        />
+                        <SuggestionButton
+                          category={form.category}
+                          field="habitAction"
+                          onSelect={(value) =>
+                            setForm((f) => ({ ...f, habitAction: value }))
+                          }
+                          disabled={false}
+                        />
+                      </div>
                       <span className="text-muted-foreground shrink-0">
                         for
                       </span>
-                      <input
-                        data-ocid="woop_wizard.habit_minutes_input"
-                        value={
-                          effectiveHabitMinutes > 0
-                            ? String(effectiveHabitMinutes)
-                            : form.habitMinutes
-                        }
-                        readOnly={form.isLockIn}
-                        onChange={(e) => {
-                          if (form.isLockIn) return;
-                          const raw = e.target.value.replace(/[^0-9]/g, "");
-                          const num = Number.parseInt(raw, 10);
-                          const capped = Number.isNaN(num)
-                            ? ""
-                            : String(Math.min(num, 1440));
-                          setForm((f) => ({ ...f, habitMinutes: capped }));
-                          setErrors((er) => ({
-                            ...er,
-                            habitMinutes: undefined,
-                          }));
-                        }}
-                        placeholder="15"
-                        inputMode="numeric"
-                        style={{
-                          opacity: form.isLockIn ? 0.5 : 1,
-                          cursor: form.isLockIn ? "not-allowed" : "auto",
-                        }}
-                        className="input-neumorphic w-20 text-foreground text-xl font-medium text-center"
-                        aria-label="Minutes per day"
-                      />
+                      <div className="relative flex w-28 items-center gap-2">
+                        <input
+                          data-ocid="woop_wizard.habit_minutes_input"
+                          value={
+                            effectiveHabitMinutes > 0
+                              ? String(effectiveHabitMinutes)
+                              : form.habitMinutes
+                          }
+                          readOnly={form.isLockIn}
+                          onChange={(e) => {
+                            if (form.isLockIn) return;
+                            const raw = e.target.value.replace(/[^0-9]/g, "");
+                            const num = Number.parseInt(raw, 10);
+                            const capped = Number.isNaN(num)
+                              ? ""
+                              : String(Math.min(num, 1440));
+                            setForm((f) => ({ ...f, habitMinutes: capped }));
+                            setErrors((er) => ({
+                              ...er,
+                              habitMinutes: undefined,
+                            }));
+                          }}
+                          placeholder={getPlaceholder(
+                            form.category,
+                            "habitMinutes",
+                          )}
+                          inputMode="numeric"
+                          style={{
+                            opacity: form.isLockIn ? 0.5 : 1,
+                            cursor: form.isLockIn ? "not-allowed" : "auto",
+                          }}
+                          className="input-neumorphic w-full text-foreground text-xl font-medium text-center"
+                          aria-label="Minutes per day"
+                        />
+                        <SuggestionButton
+                          category={form.category}
+                          field="habitMinutes"
+                          onSelect={(value) =>
+                            setForm((f) => ({ ...f, habitMinutes: value }))
+                          }
+                          disabled={form.isLockIn}
+                        />
+                      </div>
                       <span className="text-muted-foreground shrink-0">
                         minutes
                       </span>
@@ -969,7 +1741,9 @@ export default function WoopWizard({
 
                 {/* Lock-In Mode Toggle */}
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4">
+                  <div
+                    className={`rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-4 lockin-vibrate${form.isLockIn ? " lockin-vibrate-active" : ""}`}
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-base font-display font-semibold text-foreground">
@@ -1376,7 +2150,7 @@ export default function WoopWizard({
             )}
 
             {/* Active Days */}
-            {step === 2 && (
+            {step === WISH_STEP && (
               <div className="mt-6 px-1">
                 <p className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                   Active Days
@@ -1393,7 +2167,7 @@ export default function WoopWizard({
               </div>
             )}
             {/* STEP 3 — Obstacles */}
-            {step === 3 && (
+            {step === OBSTACLE_STEP && (
               <div className="space-y-8">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Unlike wishful thinking, WOOP asks you to name what stands
@@ -1459,7 +2233,7 @@ export default function WoopWizard({
             )}
 
             {/* STEP 4 — If-Then Plan */}
-            {step === 4 && (
+            {step === PLAN_STEP && (
               <div className="space-y-8">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Implementation intentions double follow-through. When you
@@ -1499,14 +2273,20 @@ export default function WoopWizard({
                         onChange={(e) => {
                           const val = e.target.value.slice(0, 40);
                           setForm((f) => ({ ...f, ifThenPlan: val }));
-                          setErrors((er) => ({ ...er, ifThenPlan: undefined }));
+                          setErrors((er) => ({
+                            ...er,
+                            ifThenPlan: undefined,
+                          }));
                         }}
                         onFocus={() => setFocusedField("ifThenPlan")}
                         onBlur={() => setFocusedField(null)}
-                        placeholder="do a 15-min home workout instead"
+                        placeholder={getPlaceholder(
+                          form.category,
+                          "ifThenPlan",
+                        )}
                         maxLength={40}
                         rows={4}
-                        className="w-full bg-transparent border-0 p-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground/60 shadow-none"
+                        className="placeholder-subtle w-full bg-transparent border-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none shadow-none"
                         aria-label="Your If-Then plan"
                       />
                     </div>
@@ -1549,7 +2329,7 @@ export default function WoopWizard({
             )}
 
             {/* STEP 5 — Review + Icon + Color */}
-            {step === 5 && (
+            {step === REVIEW_STEP && (
               <div className="space-y-8">
                 <p className="text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed">
                   Review your commitment and personalize your goal. This is the
@@ -1622,54 +2402,58 @@ export default function WoopWizard({
                   </div>
                 </div>
 
-                {/* Goal Icon Selector */}
-                <div className="space-y-4">
-                  <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
-                    Choose an Icon
-                  </p>
-                  <div
-                    className="grid grid-cols-7 gap-3"
-                    data-ocid="woop_wizard.icon_selector"
-                  >
-                    {GOAL_ICONS.map((icon) => {
-                      const isIconSelected = form.iconName === icon.id;
-                      return (
-                        <button
-                          key={icon.id}
-                          type="button"
-                          onClick={() =>
-                            setForm((f) => ({ ...f, iconName: icon.id }))
-                          }
-                          aria-label={`Select ${icon.label} icon`}
-                          aria-pressed={isIconSelected}
-                          data-ocid={`woop_wizard.icon.${icon.id}`}
-                          className="relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5"
-                          style={
-                            isIconSelected
-                              ? {
-                                  backgroundColor:
-                                    "oklch(var(--color-accent-success) / 0.15)",
-                                  border:
-                                    "2.5px solid oklch(var(--color-accent-success))",
-                                  color: "oklch(var(--color-accent-success))",
-                                  boxShadow:
-                                    "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)",
-                                }
-                              : {
-                                  backgroundColor: "oklch(var(--card))",
-                                  border: "1.5px solid oklch(var(--border))",
-                                  color: "oklch(var(--muted-foreground))",
-                                  boxShadow:
-                                    "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)",
-                                }
-                          }
-                        >
-                          <span className="w-6 h-6 block">{icon.svg}</span>
-                        </button>
-                      );
-                    })}
+                {/* Goal Icon Selector — hidden in habit mode. Only goals get
+                    icons now, not habits. The color picker below stays
+                    available for habits. */}
+                {!isHabitMode && (
+                  <div className="space-y-4">
+                    <p className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
+                      Choose an Icon
+                    </p>
+                    <div
+                      className="grid grid-cols-7 gap-3"
+                      data-ocid="woop_wizard.icon_selector"
+                    >
+                      {GOAL_ICONS.map((icon) => {
+                        const isIconSelected = form.iconName === icon.id;
+                        return (
+                          <button
+                            key={icon.id}
+                            type="button"
+                            onClick={() =>
+                              setForm((f) => ({ ...f, iconName: icon.id }))
+                            }
+                            aria-label={`Select ${icon.label} icon`}
+                            aria-pressed={isIconSelected}
+                            data-ocid={`woop_wizard.icon.${icon.id}`}
+                            className="relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5"
+                            style={
+                              isIconSelected
+                                ? {
+                                    backgroundColor:
+                                      "oklch(var(--color-accent-success) / 0.15)",
+                                    border:
+                                      "2.5px solid oklch(var(--color-accent-success))",
+                                    color: "oklch(var(--color-accent-success))",
+                                    boxShadow:
+                                      "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)",
+                                  }
+                                : {
+                                    backgroundColor: "oklch(var(--card))",
+                                    border: "1.5px solid oklch(var(--border))",
+                                    color: "oklch(var(--muted-foreground))",
+                                    boxShadow:
+                                      "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)",
+                                  }
+                            }
+                          >
+                            <span className="w-6 h-6 block">{icon.svg}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Theme Color Picker */}
                 <div className="space-y-4">
@@ -1718,201 +2502,6 @@ export default function WoopWizard({
                   </div>
                 </div>
 
-                {/* Email Notifications - Step 4 */}
-                <div
-                  className="rounded-2xl p-5 space-y-4"
-                  style={{
-                    background: "oklch(var(--card))",
-                    boxShadow:
-                      "inset 2px 2px 6px rgba(0,0,0,0.4), inset -2px -2px 6px rgba(255,255,255,0.04)",
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        Enable Email Reminders
-                      </p>
-                      {!hasEmail && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Requires an email address.{" "}
-                          <a
-                            href="/profile"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-400 underline hover:text-emerald-300"
-                          >
-                            Update Profile
-                          </a>
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      disabled={!hasEmail}
-                      onClick={() =>
-                        hasEmail &&
-                        setForm((f) => ({
-                          ...f,
-                          emailNotifications: !f.emailNotifications,
-                        }))
-                      }
-                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                        form.emailNotifications && hasEmail
-                          ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
-                          : "bg-muted shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]"
-                      } ${!hasEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      aria-label="Toggle email reminders"
-                      data-ocid="woop_wizard.email_notifications.toggle"
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
-                          form.emailNotifications && hasEmail
-                            ? "translate-x-6"
-                            : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out space-y-4 ${form.emailNotifications && hasEmail ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}
-                  >
-                    {!form.isLockIn && (
-                      <div className="space-y-2">
-                        <p className="block text-xs text-muted-foreground uppercase tracking-wide">
-                          When do you plan to do this?
-                        </p>
-                        <input
-                          type="time"
-                          data-ocid="woop_wizard.intent_time.input"
-                          value={form.intentTime || "08:00"}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              intentTime: e.target.value,
-                            }))
-                          }
-                          style={{
-                            background: "oklch(var(--card))",
-                            border: "1px solid rgba(16,185,129,0.4)",
-                            borderRadius: "0.75rem",
-                            padding: "10px 14px",
-                            color: "oklch(var(--foreground))",
-                            fontFamily: "monospace",
-                            fontSize: "1.1rem",
-                            colorScheme: "dark",
-                            boxShadow:
-                              "inset 2px 2px 6px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(80,80,85,0.15)",
-                            width: "100%",
-                            outline: "none",
-                          }}
-                        />
-                        {(errors as Record<string, string>).intentTime && (
-                          <p
-                            className="text-xs text-red-400"
-                            data-ocid="woop_wizard.intent_time.field_error"
-                          >
-                            {(errors as Record<string, string>).intentTime}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label
-                          htmlFor="reminder-offset"
-                          className="block text-xs text-muted-foreground uppercase tracking-wide"
-                        >
-                          Send reminder
-                        </label>
-                        <span
-                          className="text-sm text-emerald-400 font-mono"
-                          data-ocid="woop_wizard.reminder_offset.display"
-                        >
-                          {form.reminderOffset < 0
-                            ? `${Math.abs(form.reminderOffset)} min before`
-                            : form.reminderOffset === 0
-                              ? "At start time"
-                              : `${form.reminderOffset} min after`}
-                        </span>
-                      </div>
-                      {/* Scroll wheel for reminder offset — 5-min increments */}
-                      {(() => {
-                        const maxVal = form.isLockIn ? 0 : maxPositiveOffset;
-                        const offsetValues: string[] = [];
-                        for (let v = -60; v <= maxVal; v += 5) {
-                          offsetValues.push(
-                            v < 0
-                              ? `${Math.abs(v)} min before`
-                              : v === 0
-                                ? "At start time"
-                                : `${v} min after`,
-                          );
-                        }
-                        const currentLabel =
-                          form.reminderOffset < 0
-                            ? `${Math.abs(form.reminderOffset)} min before`
-                            : form.reminderOffset === 0
-                              ? "At start time"
-                              : `${form.reminderOffset} min after`;
-                        return (
-                          <ScrollWheelPicker
-                            data-ocid="woop_wizard.reminder_offset.input"
-                            values={offsetValues}
-                            selectedValue={
-                              offsetValues.includes(currentLabel)
-                                ? currentLabel
-                                : offsetValues[0]
-                            }
-                            onChange={(label) => {
-                              const idx = offsetValues.indexOf(label);
-                              if (idx === -1) return;
-                              const numericValue = -60 + idx * 5;
-                              setForm((f) => ({
-                                ...f,
-                                reminderOffset: Math.max(
-                                  -60,
-                                  Math.min(maxVal, numericValue),
-                                ),
-                              }));
-                            }}
-                            accentColor={form.isLockIn ? "#F59E0B" : "#10B981"}
-                          />
-                        );
-                      })()}
-                      {form.emailNotifications &&
-                        (() => {
-                          const baseTime = form.isLockIn
-                            ? form.lockInStartTime
-                            : form.intentTime;
-                          if (!baseTime) return null;
-                          const baseMins = parseHHMMToMinutes(baseTime);
-                          const sendMins = Math.max(
-                            0,
-                            Math.min(1439, baseMins + form.reminderOffset),
-                          );
-                          const sendH = Math.floor(sendMins / 60);
-                          const sendM = sendMins % 60;
-                          const sendTime = `${String(sendH).padStart(2, "0")}:${String(sendM).padStart(2, "0")}`;
-                          return (
-                            <p className="text-xs font-mono text-muted-foreground/70 mt-1">
-                              Email sends at{" "}
-                              <span style={{ color: "#10B981" }}>
-                                {sendTime}
-                              </span>
-                            </p>
-                          );
-                        })()}
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground">
-                    Note: You can only adjust your intent-time and email
-                    reminders once per day after creation.
-                  </p>
-                </div>
-
                 {createGoalMutation.isError &&
                   !createGoalMutation.error?.message?.includes("limit") && (
                     <p
@@ -1927,65 +2516,198 @@ export default function WoopWizard({
           </div>
         </div>
 
-        {/* ── Fixed Footer ── */}
-        <div className="shrink-0 flex items-center justify-between px-6 py-5 border-t border-border bg-card">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            data-ocid="woop_wizard.back_button"
-            onClick={
-              step === 5
-                ? () => {
-                    setErrors({});
-                    setStep(4);
-                  }
-                : goBack
-            }
-            disabled={step === 1}
-            className="gap-2 button-primary-neon text-base min-w-[100px]"
-          >
-            <ChevronLeft size={16} />
-            {step === 5 ? "Edit" : "Back"}
-          </Button>
+        {/* ── Back / Next Nav Bar ── rendered at the BOTTOM of the dialog ── */}
+        {/* Last child of the dialog content (after the step indicator at the top
+            and the scrollable step body in the middle). Single horizontal row
+            using a 3-column flex layout so the page indicator is EXACTLY
+            centered between Back and Next with equal spacing on both sides:
+              [red X (shrink-0, outside the 3-col group)] [Back (flex-1 justify-start)] [indicator (flex-1 justify-center)] [Next (flex-1 justify-end)]
+            The red X sits to the LEFT of Back in its own shrink-0 wrapper so it
+            does not disturb the equal Back/indicator/Next spacing. border-t
+            (not border-b) since the bar is now at the bottom. */}
+        <div className="shrink-0 flex items-stretch gap-3 px-6 py-4 border-t border-border bg-card">
+          {/* Red icon-only Exit/Close button — far LEFT corner of the nav bar,
+              in its own shrink-0 wrapper OUTSIDE the 3-column equal-spacing
+              group so it does not disturb the Back/indicator/Next centering.
+              Destructive variant, square icon button (no text label). Uses
+              requestClose so a dirty form opens the in-component confirm
+              overlay instead of closing immediately. */}
+          <div className="flex items-center shrink-0">
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              onClick={requestClose}
+              data-ocid="woop_wizard.close_button"
+              aria-label="Close goal builder"
+              className="w-10 h-10 p-0"
+            >
+              <X size={18} />
+            </Button>
+          </div>
 
-          <span className="text-sm font-mono text-muted-foreground">
-            {step} / 5
-          </span>
+          {/* 3-column equal-spacing group: Back (left), indicator (center), Next (right) */}
+          <div className="flex-1 flex items-center gap-3">
+            {/* Left column — Back button, justify-start */}
+            <div className="flex-1 flex items-center justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                data-ocid="woop_wizard.back_button"
+                onClick={
+                  step === REVIEW_STEP
+                    ? () => {
+                        setErrors({});
+                        setStep(PLAN_STEP);
+                      }
+                    : goBack
+                }
+                disabled={step === GOAL_STEP}
+                className="gap-2 button-primary-neon text-base min-w-[100px]"
+              >
+                <ChevronLeft size={16} />
+                {step === REVIEW_STEP ? "Edit" : "Back"}
+              </Button>
+            </div>
 
-          <Button
-            type="button"
-            size="lg"
-            data-ocid={
-              step === 5
-                ? "woop_wizard.commit_button"
-                : "woop_wizard.next_button"
-            }
-            onClick={goNext}
-            disabled={
-              createGoalMutation.isPending ||
-              (step === 5 && !actor) ||
-              (step === 2 && !!overlapError)
-            }
-            className="gap-2 button-primary-neon text-base min-w-[130px]"
-          >
-            {step === 5 ? (
-              createGoalMutation.isPending ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" />
-                  Committing…
-                </>
-              ) : (
-                <>
-                  <Check size={16} />
-                  Commit →
-                </>
-              )
-            ) : (
-              "Next →"
-            )}
-          </Button>
+            {/* Center column — page indicator, justify-center (exactly centered
+                between Back and Next with equal spacing on both sides) */}
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-sm font-mono text-muted-foreground whitespace-nowrap">
+                {step} / {totalSteps}
+              </span>
+            </div>
+
+            {/* Right column — Next button, justify-end */}
+            <div className="flex-1 flex items-center justify-end">
+              <Button
+                type="button"
+                size="lg"
+                data-ocid={
+                  step === REVIEW_STEP
+                    ? "woop_wizard.commit_button"
+                    : "woop_wizard.next_button"
+                }
+                onClick={goNext}
+                disabled={
+                  createGoalMutation.isPending ||
+                  (step === REVIEW_STEP && !actor) ||
+                  (step === WISH_STEP && !!overlapError) ||
+                  // In habit mode the GOAL_STEP is a hard gate: disable Next
+                  // until the user selects an existing goal. This also covers
+                  // the empty-state (no existing goals) — the user is told to
+                  // create a goal first and cannot proceed.
+                  (step === GOAL_STEP && isHabitMode && selectedGoalId === null)
+                }
+                className="gap-2 button-primary-neon text-base min-w-[130px]"
+              >
+                {step === REVIEW_STEP ? (
+                  createGoalMutation.isPending ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" />
+                      Committing…
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      Commit →
+                    </>
+                  )
+                ) : (
+                  "Next →"
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
+
+        {/* ── In-component "Discard changes?" confirmation overlay ── */}
+        {/* Rendered inside the wizard dialog (NOT the route-based
+            UnsavedChangesDialog, which uses TanStack Router useBlocker and is
+            unsuitable for a modal). Shown when the user presses the red X
+            exit button (or Escape) AND the form is dirty. "Discard" calls the
+            existing reset + onClose flow; "Keep editing" dismisses the overlay. */}
+        {showExitConfirm && (
+          <dialog
+            open
+            className="absolute inset-0 z-[400] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            aria-label="Discard changes confirmation"
+            data-ocid="woop_wizard.exit_confirm_modal"
+            onClick={(e) => {
+              // Clicking the backdrop (the dialog itself, not its contents)
+              // dismisses the overlay (keep editing).
+              if (e.target === e.currentTarget) {
+                setShowExitConfirm(false);
+              }
+            }}
+            onKeyDown={(e) => {
+              // Keyboard equivalent of the backdrop click: Enter or Space on
+              // the dialog (when the backdrop itself has focus) dismisses it.
+              if (
+                (e.key === "Enter" || e.key === " ") &&
+                e.target === e.currentTarget
+              ) {
+                e.preventDefault();
+                setShowExitConfirm(false);
+              }
+            }}
+            onCancel={(e) => {
+              // Escape key dismisses the overlay (keep editing).
+              e.preventDefault();
+              setShowExitConfirm(false);
+            }}
+          >
+            <div className="mx-6 max-w-sm w-full rounded-2xl border border-border bg-card p-6 shadow-neumorphic-emboss">
+              <div className="flex items-start gap-3 mb-4">
+                <div
+                  className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: "oklch(var(--destructive) / 0.15)",
+                    border: "1px solid oklch(var(--destructive) / 0.4)",
+                  }}
+                >
+                  <X
+                    size={18}
+                    className="text-destructive"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-display font-semibold text-foreground">
+                    Discard changes?
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    You have unsaved input. Discarding will close the wizard and
+                    lose your progress.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  data-ocid="woop_wizard.exit_confirm.keep_editing_button"
+                  onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 gap-2 button-primary-neon text-base"
+                >
+                  Keep editing
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="lg"
+                  data-ocid="woop_wizard.exit_confirm.discard_button"
+                  onClick={handleClose}
+                  className="flex-1 gap-2 text-base"
+                >
+                  Discard
+                </Button>
+              </div>
+            </div>
+          </dialog>
+        )}
       </dialog>
     </>
   );

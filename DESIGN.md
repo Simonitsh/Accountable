@@ -111,3 +111,81 @@ Dual-shadow neumorphic card pattern — convex emboss (top-left highlight + bott
 
 ## Signature Detail
 The avatar is a small piece of sculpture: a neutral neumorphic charcoal disc holding a single flat geometric shape, with the user's chosen color appearing in exactly two places — the thin border ring and the shape fill — leaving the rest of the calm charcoal canvas untouched. Default users get a crisp white initial in Bricolage Grotesque, signaling identity without committing to a shape until they're ready.
+
+## Feature — Existing Goal Reuse (WOOP Wizard Step 2: Macro Goal)
+
+### Purpose
+When a user creates a new habit, their previously-stored goals (active AND completed) resurface as tappable chips in the Macro Goal step. Tapping one parses the stored "I want to X so that I can Y" string back into action + reason and fills both Macro Goal inputs with a satisfying choreography — no re-typing. A Clear button resets the pick and re-reveals the chips.
+
+### Goal-Reuse Chips
+- Full-width neumorphic chips (`.chip-goal-reuse`) showing the COMPLETE goal text; wrap naturally across lines.
+- Reuse `.chip-neumorphic` shadow language (embossed raised) but with `px-4 py-3`, `text-left`, `w-full`, `leading-snug` for readability.
+- Subtle 3px emerald-tinted left bar (`--goal-reuse-accent` @ 0.35 opacity) — reads as "selectable" without a full border.
+- Hover: emerald border + 1px lift + deeper shadow. Active (press): inset shadow (mirrors `.chip-neumorphic.active`).
+- `.chip-goal-reuse.filled` — the just-tapped chip flashes emerald border + inset before fading out.
+- Stack vertically with `--goal-chips-gap` (10px) rhythm; show ALL goals, not just active ones.
+
+### Tap-to-Fill Choreography
+- On tap: tapped chip → `.filled` state → chips animate out (`goal-chips-out`: fade + 8px slide-down + scale 0.96, 280ms ease).
+- Both Macro Goal inputs receive parsed values and run `.input-goal-filled` → `goal-fill-pop` keyframe (420ms, `cubic-bezier(0.34,1.56,0.64,1)` — same bounce easing as `card-lock`).
+- Pop = scale 1 → 1.015 → 1 with a transient emerald ring (`--goal-fill-glow` @ 0.55) — satisfying tactile settle, no neon.
+- Filled input text uses `.madlib-field` emerald treatment to match the wizard's existing emphasis language.
+
+### Clear Button
+- `.button-clear-neumorphic` — ghosted secondary neumorphic button (mirrors `.button-secondary-neon` shadow language, smaller `px-3 py-1.5`).
+- Appears only after a goal is reused; presses inset (active state) for tactile feedback.
+- Hover: emerald border + emerald text. Emerald-tinted caret icon signals "undo my pick".
+- On press: empties both Macro Goal inputs and re-reveals chips via `goal-chips-in` (fade + 8px slide-up + scale 1, 320ms bounce easing).
+
+### Motion Tokens
+| Keyframe | Duration | Easing | Purpose |
+|----------|----------|--------|---------|
+| `goal-chips-out` | 280ms | `cubic-bezier(0.4,0,0.2,1)` | Chips fade + collapse on selection |
+| `goal-chips-in` | 320ms | `cubic-bezier(0.34,1.56,0.64,1)` | Chips re-enter after Clear (bounce) |
+| `goal-fill-pop` | 420ms | `cubic-bezier(0.34,1.56,0.64,1)` | Inputs pop as values land (bounce, reuses card-lock easing) |
+
+### Scope Boundaries
+- Fills ONLY Macro Goal fields (goalAction + goalReason) — habit-level fields stay empty.
+- No smart deduplication, no fuzzy matching, no typing-time suggestions (per `doNotBuild`).
+- Read-only reuse of `listMyGoals` backend query — no endpoint changes.
+- Framer Motion `AnimatePresence` drives chip enter/exit; CSS keyframes provide easing + fallback.
+
+## Feature — Goal Wizard (Bloom & Flow)
+
+### Purpose
+A premium full-screen goal-creation experience that reframes goal-setting as a calm, blooming ritual. Categories bloom into a tactile grid, a flowing SVG path draws the user's progress between steps, and Fraunces serif display type signals "this is the meaningful part" — distinct from the everyday Bricolage Grotesque app chrome. Extends the existing neumorphic canvas; the WOOP wizard tokens remain untouched.
+
+### Palette
+| Token | OKLCH | Purpose |
+|-------|-------|---------|
+| `--gw-emerald` | `oklch(0.696 0.17 162)` | Primary accent — bloom rings, path stroke, active step |
+| `--gw-gold` | `oklch(0.74 0.13 85)` | Highlight — selected category glow, headline emphasis |
+| `--gw-gold-soft` | `oklch(0.78 0.09 85)` | Secondary — path pulse, soft hover wash |
+| `--gw-warm-surface` | `oklch(0.26 0.008 140)` | Wizard shell background — warmer than canvas charcoal |
+| `--gw-gradient` | `linear-gradient(135deg, oklch(0.696 0.17 162), oklch(0.74 0.13 85))` | Bloom ring + path stroke fill |
+
+### Typography
+- **Display (wizard only)**: Fraunces — optical serif, warm and editorial; used for wizard headlines, step prompts, and category labels. Replaces Bricolage Grotesque inside the wizard shell only; the rest of the app keeps Bricolage Grotesque.
+
+### Motion Tokens
+| Keyframe | Duration | Easing | Purpose |
+|----------|----------|--------|---------|
+| `goal-wizard-bloom` | 600ms | `cubic-bezier(0.34,1.56,0.64,1)` | Category tiles scale + fade in with staggered bloom |
+| `goal-wizard-path-draw` | 800ms | `cubic-bezier(0.4,0,0.2,1)` | SVG progress path stroke draws via dashoffset |
+| `goal-wizard-path-pulse` | 1400ms | `cubic-bezier(0.4,0,0.6,1)` | Gold-soft pulse travels along completed path segments |
+| `goal-wizard-text-reveal` | 500ms | `cubic-bezier(0.16,1,0.3,1)` | Fraunces headline words fade + 4px rise on step enter |
+| `goal-wizard-underline-grow` | 450ms | `cubic-bezier(0.4,0,0.2,1)` | Emerald underline scales from left under active prompt |
+| `goal-wizard-step-settle` | 380ms | `cubic-bezier(0.34,1.56,0.64,1)` | Step content settles with subtle bounce after transition |
+
+### Wizard Shell (Structural Zone)
+- Full-screen overlay on `--gw-warm-surface`; neumorphic emboss preserved via inherited shadow tokens.
+- **Blooming category grid**: neumorphic embossed tiles arranged in a responsive grid; each tile blooms in with `goal-wizard-bloom` stagger (60ms per tile). Selected tile gets `--gw-gold` ring + inset shadow.
+- **Flowing SVG progress path**: a curved path connecting step nodes, drawn with `goal-wizard-path-draw`; completed segments pulse via `goal-wizard-path-pulse`. Path stroke uses `--gw-gradient`.
+- Step prompts render in Fraunces with `goal-wizard-text-reveal` + `goal-wizard-underline-grow`.
+- Honors `prefers-reduced-motion` — blooms and path draws become instant fades.
+
+### Scope Boundaries
+- Extends the existing neumorphic canvas and shadow system; introduces no new structural color tokens beyond the `--gw-*` palette above.
+- Does NOT modify WOOP wizard tokens, the dashboard swipe model, or avatar system.
+- Designed for extensibility: future inputs beyond category / wish / outcome slot in as additional step nodes on the same SVG path without restructuring the shell.
+- No backend contract changes — wizard composes inputs and hands off to the existing goal-creation flow.

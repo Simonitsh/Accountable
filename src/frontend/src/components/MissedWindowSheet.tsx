@@ -1,13 +1,13 @@
 import { AlertTriangle, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import type { GoalPublic } from "../backend.d.ts";
+import type { HabitPublic } from "../types";
 import { OBSTACLE_TEMPLATES, type ObstacleTemplate } from "../types";
 
 const OCEAN_BLUE = "#0369A1"; // Ocean Blue for Lock-In missed state
 
 interface MissedWindowSheetProps {
-  goal: GoalPublic;
+  goal: HabitPublic;
   open: boolean;
   onClose: () => void;
   onConfirm: (obstacleTemplateId?: bigint, customNote?: string) => void;
