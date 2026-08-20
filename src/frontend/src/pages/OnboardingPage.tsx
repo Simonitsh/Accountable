@@ -352,7 +352,10 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                   value={username}
                   maxLength={20}
                   autoComplete="username"
+                  name="username"
+                  autoCorrect="off"
                   spellCheck={false}
+                  autoCapitalize="off"
                   style={usernameInputStyle}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\s/g, "");

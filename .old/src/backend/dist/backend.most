@@ -497,7 +497,20 @@ type ObstacleTemplate__71724481 =
   {description : Text; id : Nat; owner : Principal; title : Text};
 type ObstacleTemplate__814147267 =
   {description : Text; id : Nat; owner : Principal; title : Text};
-type OldActor__1057455195 = {};
+type OldActor__1057455195 =
+  {
+    checkIns : List__89170296<CheckIn__85332932>;
+    connections : List__89170296<Connection__495383401>;
+    goals : List__89170296<Goal__684986154>;
+    interactions : List__89170296<Interaction__699697562>;
+    nextCheckInId : [var Nat];
+    nextConnectionId : [var Nat];
+    nextGoalId : [var Nat];
+    nextInteractionId : [var Nat];
+    nextObstacleTemplateId : [var Nat];
+    obstacleTemplates : List__89170296<ObstacleTemplate__71724481>;
+    profiles : Map__386906547<Principal, UserProfile__442158699>
+  };
 type OldActor__227222829 =
   {
     checkIns : List__89170296<CheckIn__1031332090>;

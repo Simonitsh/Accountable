@@ -10,8 +10,27 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import type { UserProfilePublic } from "../backend.d.ts";
+import type { UserProfilePublic, UserRole } from "../backend.d.ts";
 import { Avatar } from "./Avatar";
+
+// The backend exposes `UserRole` two different ways depending on which
+// generated binding is active at runtime:
+//   - backend.d.ts          → enum UserRole { admin = "admin", user = "user" }
+//   - declarations/backend.did.d.ts → Candid variant { admin: null } | { user: null }
+//
+// A single string comparison (`role === "admin"`) only matches the enum shape;
+// a variant-object comparison only matches the Candid shape. `isAdminRole`
+// handles BOTH (plus a defensive string-coercion path) so the admin nav item
+// shows for real admins no matter which binding the actor serializes through.
+function isAdminRole(role: UserRole | null | undefined): boolean {
+  if (role == null) return false;
+  if (typeof role === "string") return role === "admin";
+  if (typeof role === "object") {
+    const r = role as { admin?: unknown; user?: unknown };
+    return "admin" in r && r.admin != null;
+  }
+  return false;
+}
 
 interface DrawerProps {
   isOpen: boolean;
@@ -62,7 +81,7 @@ export function Drawer({ isOpen, onClose, profile, onLogout }: DrawerProps) {
   }, [isOpen, onClose]);
 
   const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.adminOnly || profile?.role === "admin",
+    (item) => !item.adminOnly || isAdminRole(profile?.role),
   );
 
   const displayName =

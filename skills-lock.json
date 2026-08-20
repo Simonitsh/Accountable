@@ -11,6 +11,11 @@
       "sourceType": "github",
       "computedHash": "af327fce44737cf1166fb600ddba74f583a9ed57a708ee759bdece32cd3f6400"
     },
+    "connector-slack": {
+      "source": "caffeinelabs/skills",
+      "sourceType": "github",
+      "computedHash": "319aacf657c15355af70cf5b59a324cadb136e081b7cc13172b32e54038648e7"
+    },
     "extension-authorization": {
       "source": "caffeinelabs/skills",
       "sourceType": "github",
@@ -79,7 +84,7 @@
     "extension-oql": {
       "source": "caffeinelabs/skills",
       "sourceType": "github",
-      "computedHash": "124b7c830167f4c462b980d974831f2f0ccc9b6a2b2baf0898465722c5f7088b"
+      "computedHash": "a1dbf33e321331c47ec6f22cc21b08acaf170718802da5574f84de701586b205"
     },
     "extension-posting-to-x": {
       "source": "caffeinelabs/skills",
@@ -94,7 +99,7 @@
     "extension-querying-oql": {
       "source": "caffeinelabs/skills",
       "sourceType": "github",
-      "computedHash": "d3cddea06f0a7c4be4e1850100866a77b18fd981a8dc99b4a4f933d76217b755"
+      "computedHash": "21c8e1e6cb8f7110c53744d0f09cd3d7441e13a7b388ece55ddd8ea9b133d89e"
     },
     "extension-stripe": {
       "source": "caffeinelabs/skills",

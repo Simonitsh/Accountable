@@ -7,22 +7,13 @@ import {
   Pause,
   Play,
   Target,
-  Trash2,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { GoalState } from "../backend";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../components/ui/alert-dialog";
+import { DeleteConfirmationDialog } from "../components/DeleteConfirmationDialog";
+import { GoalCardShell } from "../components/GoalCardShell";
 import { useBackend, useDeleteGoal } from "../hooks/useBackend";
 import {
   CATEGORY_DETAILS,
@@ -32,47 +23,10 @@ import {
   type HabitPublic,
   type MacroGoalPublic,
 } from "../types";
+import { formatDate, stateBadgeStyle, stateLabel } from "../utils/goalDisplay";
 import { GOAL_ICONS } from "../utils/goalIcons";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function stateLabel(state: GoalStateType): string {
-  switch (state) {
-    case GoalState.active:
-      return "Active";
-    case GoalState.completed:
-      return "Completed";
-    case GoalState.paused:
-      return "Paused";
-    default:
-      return "Unknown";
-  }
-}
-
-function stateBadgeStyle(state: GoalStateType): React.CSSProperties {
-  switch (state) {
-    case GoalState.active:
-      return {
-        backgroundColor: "oklch(var(--color-accent-success) / 0.12)",
-        color: "oklch(var(--color-accent-success))",
-        border: "1px solid oklch(var(--color-accent-success) / 0.25)",
-      };
-    case GoalState.completed:
-      return {
-        backgroundColor: "oklch(var(--color-accent-skip) / 0.12)",
-        color: "oklch(var(--color-accent-skip))",
-        border: "1px solid oklch(var(--color-accent-skip) / 0.25)",
-      };
-    case GoalState.paused:
-      return {
-        backgroundColor: "oklch(var(--color-accent-missed) / 0.12)",
-        color: "oklch(var(--color-accent-missed))",
-        border: "1px solid oklch(var(--color-accent-missed) / 0.25)",
-      };
-    default:
-      return {};
-  }
-}
 
 function stateIcon(state: GoalStateType, size = 10) {
   switch (state) {
@@ -85,15 +39,6 @@ function stateIcon(state: GoalStateType, size = 10) {
     default:
       return null;
   }
-}
-
-function formatDate(ts: bigint): string {
-  const ms = Number(ts / 1_000_000n);
-  return new Date(ms).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 function categoryDetail(category: GoalCategory) {
@@ -286,98 +231,48 @@ function DeleteGoalDialog({
   const hasHabits = habits.length > 0;
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent
-        data-ocid="my_goals.delete_dialog"
-        className="max-w-md"
-      >
-        <AlertDialogHeader>
-          <AlertDialogTitle className="font-display text-foreground flex items-center gap-2">
-            <span
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full"
-              style={{
-                backgroundColor: "oklch(var(--destructive) / 0.12)",
-                color: "oklch(var(--destructive))",
-              }}
-            >
-              <Trash2 size={16} />
-            </span>
-            Delete goal permanently?
-          </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="text-muted-foreground text-sm leading-relaxed">
-              <p>
-                You're about to permanently delete{" "}
-                <span className="font-semibold text-foreground">
-                  {goal.wish}
-                </span>
-                . This cannot be undone.
+    <DeleteConfirmationDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      onConfirm={() => onConfirm(goal.id)}
+      isDeleting={isDeleting}
+      title="Delete goal permanently?"
+      dataOcid="my_goals.delete_dialog"
+      description={
+        <>
+          <p>
+            You're about to permanently delete{" "}
+            <span className="font-semibold text-foreground">{goal.wish}</span>.
+            This cannot be undone.
+          </p>
+          {hasHabits ? (
+            <div className="mt-3">
+              <p className="mb-2">
+                The following{" "}
+                {habits.length === 1 ? "habit" : `${habits.length} habits`} will
+                also be permanently deleted:
               </p>
-              {hasHabits ? (
-                <div className="mt-3">
-                  <p className="mb-2">
-                    The following{" "}
-                    {habits.length === 1 ? "habit" : `${habits.length} habits`}{" "}
-                    will also be permanently deleted:
-                  </p>
-                  <ul
-                    className="space-y-1.5 max-h-44 overflow-y-auto pr-1"
-                    data-ocid="my_goals.delete_dialog.habit_list"
-                  >
-                    {habits.map((habit, i) => (
-                      <HabitListItem
-                        key={String(habit.id)}
-                        habit={habit}
-                        index={i}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p
-                  className="mt-3"
-                  data-ocid="my_goals.delete_dialog.no_habits"
-                >
-                  This goal has no habits and will be permanently deleted.
-                </p>
-              )}
+              <ul
+                className="space-y-1.5 max-h-44 overflow-y-auto pr-1"
+                data-ocid="my_goals.delete_dialog.habit_list"
+              >
+                {habits.map((habit, i) => (
+                  <HabitListItem
+                    key={String(habit.id)}
+                    habit={habit}
+                    index={i}
+                  />
+                ))}
+              </ul>
             </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel
-            data-ocid="my_goals.delete_dialog.cancel_button"
-            disabled={isDeleting}
-          >
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            data-ocid="my_goals.delete_dialog.confirm_button"
-            disabled={isDeleting}
-            // Mirror the working DeleteHabitDialog in GoalsPage.tsx: use
-            // onClick (not onSelect, which is the DOM 'select' event and never
-            // fires on a button click) with e.preventDefault() so the delete
-            // mutation actually runs. The hook's onSettled closes the dialog
-            // after the delete settles — on success OR error — so a failed
-            // delete stays visible (toast).
-            onClick={(e) => {
-              e.preventDefault();
-              onConfirm(goal.id);
-            }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {isDeleting ? (
-              <span className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 border-2 border-current/40 border-t-current rounded-full animate-spin" />
-                Deleting…
-              </span>
-            ) : (
-              "Delete permanently"
-            )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          ) : (
+            <p className="mt-3" data-ocid="my_goals.delete_dialog.no_habits">
+              This goal has no habits and will be permanently deleted.
+            </p>
+          )}
+        </>
+      }
+    />
   );
 }
 
@@ -437,117 +332,83 @@ function GoalCard({
   const accent = goal.themeColor ?? "oklch(var(--color-accent-success))";
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ delay: index * 0.06, duration: 0.3 }}
-      className="rounded-2xl p-4 card-neumorphic"
-      style={{
-        borderLeftWidth: "4px",
-        borderLeftColor: accent,
-      }}
-      data-ocid={`my_goals.goal_card.${index + 1}`}
+    <GoalCardShell
+      accent={accent}
+      index={index}
+      dataOcid={`my_goals.goal_card.${index + 1}`}
+      onDelete={onDelete}
+      deleteLabel={`Delete goal ${goal.wish}`}
+      deleteDataOcid={`my_goals.delete_button.${index + 1}`}
+      actions={
+        <StateMenu
+          goal={goal}
+          onStateChange={onStateChange}
+          pending={isChangingState}
+        />
+      }
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          {/* State badge + date */}
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span
-              className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
-              style={stateBadgeStyle(goal.state)}
-            >
-              {stateIcon(goal.state, 8)}
-              {stateLabel(goal.state)}
-            </span>
-            <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-0.5">
-              <Clock size={8} />
-              {formatDate(goal.createdAt)}
-            </span>
-          </div>
-
-          {/* Title — the wish */}
-          <h3 className="font-display font-semibold text-foreground leading-tight line-clamp-2 flex items-start gap-2">
-            {iconSvg ? (
-              <span
-                className="shrink-0 mt-0.5 w-4 h-4"
-                style={{ color: accent }}
-                aria-hidden="true"
-              >
-                {iconSvg}
-              </span>
-            ) : null}
-            <span className="min-w-0">{goal.wish}</span>
-          </h3>
-
-          {/* Subtitle — the outcome (wishDescription is the keystone habit name) */}
-          {goal.outcome && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-              {goal.outcome}
-            </p>
-          )}
-
-          {/* Category badge + habit count */}
-          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-            <span
-              className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "oklch(var(--muted) / 0.5)",
-                color: "oklch(var(--muted-foreground))",
-                border: "1px solid oklch(var(--border) / 0.4)",
-              }}
-            >
-              <CatIcon size={9} />
-              {cat.title}
-            </span>
-            <span
-              className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "oklch(var(--color-accent-success) / 0.08)",
-                color: "oklch(var(--color-accent-success))",
-                border: "1px solid oklch(var(--color-accent-success) / 0.2)",
-              }}
-            >
-              <Target size={9} />
-              {habitCount} {habitCount === 1 ? "habit" : "habits"}
-            </span>
-          </div>
-        </div>
-
-        {/* State change menu + delete button */}
-        <div className="shrink-0 flex items-center gap-1.5">
-          <button
-            type="button"
-            aria-label={`Delete goal ${goal.wish}`}
-            data-ocid={`my_goals.delete_button.${index + 1}`}
-            onClick={onDelete}
-            className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground transition-smooth hover:text-foreground"
-            style={
-              {
-                // Destructive tint on hover so the delete affordance reads as dangerous
-              }
-            }
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "oklch(var(--destructive) / 0.15)";
-              e.currentTarget.style.color = "oklch(var(--destructive))";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "oklch(var(--muted) / 0.4)";
-              e.currentTarget.style.color = "oklch(var(--muted-foreground))";
-            }}
-          >
-            <Trash2 size={14} />
-          </button>
-          <StateMenu
-            goal={goal}
-            onStateChange={onStateChange}
-            pending={isChangingState}
-          />
-        </div>
+      {/* State badge + date */}
+      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+        <span
+          className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
+          style={stateBadgeStyle(goal.state)}
+        >
+          {stateIcon(goal.state, 8)}
+          {stateLabel(goal.state)}
+        </span>
+        <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-0.5">
+          <Clock size={8} />
+          {formatDate(goal.createdAt)}
+        </span>
       </div>
-    </motion.article>
+
+      {/* Title — the wish */}
+      <h3 className="font-display font-semibold text-foreground leading-tight line-clamp-2 flex items-start gap-2">
+        {iconSvg ? (
+          <span
+            className="shrink-0 mt-0.5 w-4 h-4"
+            style={{ color: accent }}
+            aria-hidden="true"
+          >
+            {iconSvg}
+          </span>
+        ) : null}
+        <span className="min-w-0">{goal.wish}</span>
+      </h3>
+
+      {/* Subtitle — the outcome (wishDescription is the keystone habit name) */}
+      {goal.outcome && (
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+          {goal.outcome}
+        </p>
+      )}
+
+      {/* Category badge + habit count */}
+      <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+        <span
+          className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
+          style={{
+            backgroundColor: "oklch(var(--muted) / 0.5)",
+            color: "oklch(var(--muted-foreground))",
+            border: "1px solid oklch(var(--border) / 0.4)",
+          }}
+        >
+          <CatIcon size={9} />
+          {cat.title}
+        </span>
+        <span
+          className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full"
+          style={{
+            backgroundColor: "oklch(var(--color-accent-success) / 0.08)",
+            color: "oklch(var(--color-accent-success))",
+            border: "1px solid oklch(var(--color-accent-success) / 0.2)",
+          }}
+        >
+          <Target size={9} />
+          {habitCount} {habitCount === 1 ? "habit" : "habits"}
+        </span>
+      </div>
+    </GoalCardShell>
   );
 }
 

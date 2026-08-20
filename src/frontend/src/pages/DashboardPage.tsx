@@ -375,7 +375,10 @@ function ForcedUsernameModal({ onComplete }: ForcedUsernameModalProps) {
                   value={username}
                   maxLength={20}
                   autoComplete="username"
+                  name="username"
+                  autoCorrect="off"
                   spellCheck={false}
+                  autoCapitalize="off"
                   style={inputBorderStyle}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\s/g, "");
@@ -619,6 +622,8 @@ function NewHabitBadge() {
 }
 
 // ─── Goal group header (wish + category badge) ────────────────────────────────
+// Rendered as a horizontal golden bar (gold/amber Lock-In accent) that contains
+// the category icon, goal name, and category badge arranged cleanly within it.
 function GoalGroupHeader({
   group,
   groupIndex,
@@ -630,50 +635,64 @@ function GoalGroupHeader({
     (c) => c.id === group.goal?.category,
   );
   const CategoryIcon = categoryDetail?.icon ?? Target;
-  const categoryColor =
-    categoryDetail?.id != null ? "#10B981" : "oklch(var(--muted-foreground))";
+  const categoryColor = "#F59E0B";
+  const categoryTitle = categoryDetail?.title ?? "Goal";
 
   return (
     <div
-      className="flex items-start gap-3 px-1"
+      className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+      style={{
+        background:
+          "linear-gradient(135deg, oklch(var(--goal-wizard-gold) / 0.16), oklch(var(--goal-wizard-gold) / 0.06))",
+        border: "1px solid oklch(var(--goal-wizard-gold) / 0.35)",
+        boxShadow:
+          "-3px -3px 8px rgba(60,60,50,0.3), 4px 4px 10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+      }}
       data-ocid={`dashboard.goal_card.header.${groupIndex + 1}`}
     >
+      {/* Category icon compartment */}
       <div
-        className="flex items-center justify-center rounded-lg shrink-0 mt-0.5"
+        className="flex items-center justify-center rounded-lg shrink-0"
         style={{
-          width: 36,
-          height: 36,
-          background: "oklch(var(--color-accent-success) / 0.12)",
+          width: 38,
+          height: 38,
+          background: "oklch(var(--goal-wizard-gold) / 0.18)",
+          border: "1px solid oklch(var(--goal-wizard-gold) / 0.4)",
           boxShadow:
-            "inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 3px rgba(80,80,85,0.2)",
+            "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(90,90,70,0.2)",
         }}
         aria-hidden="true"
       >
-        <CategoryIcon size={18} style={{ color: categoryColor }} />
+        <CategoryIcon size={19} style={{ color: categoryColor }} />
       </div>
+
+      {/* Goal name */}
       <div className="flex-1 min-w-0">
         <p
-          className="font-display font-semibold leading-snug rounded-md px-1.5 py-0.5 -mx-1.5 inline-block"
+          className="font-display font-semibold leading-snug truncate"
           style={{
             color: "oklch(var(--foreground))",
-            background: "oklch(var(--color-accent-success) / 0.10)",
-            fontSize: "0.95rem",
+            fontSize: "0.98rem",
           }}
         >
           {group.goal?.wish}
         </p>
-        {categoryDetail && (
-          <span
-            className="mt-1 ml-1.5 inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full"
-            style={{
-              color: categoryColor,
-              background: "oklch(var(--color-accent-success) / 0.08)",
-            }}
-          >
-            {categoryDetail.title}
-          </span>
-        )}
       </div>
+
+      {/* Category badge compartment */}
+      <span
+        className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full text-[0.65rem] font-medium uppercase tracking-wider"
+        style={{
+          color: categoryColor,
+          background: "oklch(var(--goal-wizard-gold) / 0.14)",
+          border: "1px solid oklch(var(--goal-wizard-gold) / 0.35)",
+          boxShadow:
+            "inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(90,90,70,0.15)",
+        }}
+      >
+        <CategoryIcon size={11} style={{ color: categoryColor }} />
+        {categoryTitle}
+      </span>
     </div>
   );
 }

@@ -1,31 +1,48 @@
 import Map "mo:core/Map";
 import List "mo:core/List";
 
-// Bootstrap migration: fixes the fresh-install failure.
-//
-// The frozen migration 20260725_194140.mo declares a NON-empty OldActor
-// (all 11 stable fields, including `checkIns`). On a fresh install the
-// migration chain starts from an empty state `{}`, so replaying
-// 20260725_194140.mo first traps with "field `checkIns` expected but not
-// found in state". That file is read-only and cannot be edited.
-//
-// This bootstrap sorts BEFORE 20260725_194140.mo. Its OldActor is the empty
-// state `{}` (the true fresh-install starting point) and its NewActor
-// produces the full 11-field state shape that 20260725_194140.mo's OldActor
-// expects. On a fresh install the chain now replays:
-//   bootstrap ({} -> full state)
-//   -> 20260725_194140 (consumes the full state without trapping)
-//   -> 20260813_104705 -> 20260815_120000 -> 20260815_130000
-// so the frozen migration no longer traps. On an upgrade of an already
-// deployed canister this bootstrap is older than the deployed tail and does
-// not run, so existing state is untouched.
-//
-// NewActor matches the OldActor of 20260725_194140.mo exactly: Goal has no
-// `goalId` field yet, and GoalState still includes #abandoned (both are
-// introduced/removed by later migrations in the chain). Types are inlined —
-// no project imports.
+// First migration: identity carry-forward of last-legacy stable fields.
 
 module {
+  // Previous deployed actor already declared these 11 stable fields with
+  // the same names and types (see .old/src/backend/dist/backend.most). The
+  // migration consumes them all and re-emits them unchanged so no prior
+  // state is discarded (M0169). Types are inlined — no project imports.
+  type OldActor = {
+    profiles : Map.Map<Principal, UserProfile>;
+    goals : List.List<Goal>;
+    obstacleTemplates : List.List<ObstacleTemplate>;
+    nextGoalId : [var Nat];
+    nextObstacleTemplateId : [var Nat];
+    checkIns : List.List<CheckIn>;
+    nextCheckInId : [var Nat];
+    connections : List.List<Connection>;
+    nextConnectionId : [var Nat];
+    interactions : List.List<Interaction>;
+    nextInteractionId : [var Nat];
+  };
+
+  // New actor stable fields — same shape as OldActor (this migration only
+  // moves initializers out of the actor body into the migration chain; no
+  // state-shape change). The ID counters stay [var Nat] so the Goals module
+  // can mutate them by reference.
+  type NewActor = {
+    profiles : Map.Map<Principal, UserProfile>;
+    goals : List.List<Goal>;
+    obstacleTemplates : List.List<ObstacleTemplate>;
+    nextGoalId : [var Nat];
+    nextObstacleTemplateId : [var Nat];
+    checkIns : List.List<CheckIn>;
+    nextCheckInId : [var Nat];
+    connections : List.List<Connection>;
+    nextConnectionId : [var Nat];
+    interactions : List.List<Interaction>;
+    nextInteractionId : [var Nat];
+  };
+
+  // Inlined stable record types — must match the project's type definitions
+  // structurally (only primitive/serializable fields). Variant tags and
+  // option types are inlined here too; no project imports allowed.
   type UserRole = { #user; #admin };
   type CheckInType = { #success; #skip; #inProgress; #missedCheckIn; #missedCheckOut };
   type ConnectionStatus = { #pending; #accepted; #rejected };
@@ -111,36 +128,7 @@ module {
     timestamp : Int;
   };
 
-  type OldActor = {};
-
-  type NewActor = {
-    profiles : Map.Map<Principal, UserProfile>;
-    goals : List.List<Goal>;
-    obstacleTemplates : List.List<ObstacleTemplate>;
-    nextGoalId : [var Nat];
-    nextObstacleTemplateId : [var Nat];
-    checkIns : List.List<CheckIn>;
-    nextCheckInId : [var Nat];
-    connections : List.List<Connection>;
-    nextConnectionId : [var Nat];
-    interactions : List.List<Interaction>;
-    nextInteractionId : [var Nat];
-  };
-
   public func migration(old : OldActor) : NewActor {
-    ignore old;
-    {
-      profiles = Map.empty();
-      goals = List.empty();
-      obstacleTemplates = List.empty();
-      nextGoalId = [var 0];
-      nextObstacleTemplateId = [var 0];
-      checkIns = List.empty();
-      nextCheckInId = [var 0];
-      connections = List.empty();
-      nextConnectionId = [var 0];
-      interactions = List.empty();
-      nextInteractionId = [var 0];
-    };
+    old;
   };
 };

@@ -318,7 +318,7 @@ service : {
   getHabit: (habitId: GoalId) -> (opt HabitPublic) query;
   getInteractionCount: (checkInId: CheckInId) -> (nat) query;
   getMacroGoal: (goalId: GoalId) -> (opt MacroGoalPublic) query;
-  getMyProfile: () -> (UserProfilePublic) query;
+  getMyProfile: () -> (UserProfilePublic);
   getPartnerFeed: () -> (vec FeedItem) query;
   getPartnerHabits: (target: principal) ->
    (variant {

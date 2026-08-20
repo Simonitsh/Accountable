@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
+import { useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { useDashboardHeader } from "../hooks/useDashboardHeader";
 import { useTheme } from "../hooks/useTheme";
 import { useUserProfile } from "../hooks/useUserProfile";
@@ -71,6 +73,41 @@ function HeaderProgressRing({
   const progress = total > 0 ? completed / total : 0;
   const dashOffset = circumference * (1 - progress);
 
+  // ── Milestone bounce ──────────────────────────────────────────────────────
+  // Tracks the previous progress ratio. When progress crosses 25%, 50%, or
+  // 100% UPWARD (e.g. from 0.2 → 0.3 crosses 25%), we fire the
+  // ring-milestone-bounce keyframe on the SVG. The bounce is a brief, calm
+  // spring scale layered on top of the existing smooth stroke-dashoffset
+  // transition — never replaces it. Skipped entirely when the user has
+  // reduced motion enabled (useReducedMotion returns truthy).
+  const prefersReducedMotion = useReducedMotion();
+  const prevProgressRef = useRef(0);
+  // bounceKey is incremented on each upward milestone crossing so the
+  // ring-milestone-bounce-active class is re-applied with a fresh animation
+  // (React key change forces the CSS animation to replay).
+  const [bounceKey, setBounceKey] = useState(0);
+  // Whether the current render should play the bounce. Cleared after the
+  // animation duration so the class only applies for one cycle.
+  const [bounceActive, setBounceActive] = useState(false);
+
+  useEffect(() => {
+    const prev = prevProgressRef.current;
+    prevProgressRef.current = progress;
+    if (prefersReducedMotion) return;
+    if (total <= 0) return;
+    // Upward crossings of 25%, 50%, 100%.
+    const milestones = [0.25, 0.5, 1];
+    const crossed = milestones.some((m) => prev < m && progress >= m);
+    if (crossed) {
+      setBounceKey((k) => k + 1);
+      setBounceActive(true);
+      // Match ring-milestone-bounce duration (400ms) + small buffer.
+      const t = setTimeout(() => setBounceActive(false), 450);
+      return () => clearTimeout(t);
+    }
+    return;
+  }, [progress, total, prefersReducedMotion]);
+
   return (
     <div
       className="relative flex items-center justify-center flex-shrink-0"
@@ -79,8 +116,10 @@ function HeaderProgressRing({
       aria-label={`${completed} of ${total} habits done today`}
     >
       <svg
+        key={bounceKey}
         width={size}
         height={size}
+        className={bounceActive ? "ring-milestone-bounce-active" : undefined}
         style={{ transform: "rotate(-90deg)" }}
         aria-hidden="true"
       >

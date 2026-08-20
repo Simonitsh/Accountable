@@ -7,10 +7,11 @@ import {
   TriangleAlert,
   Zap,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { GoalAnalytics, HabitPublic } from "../types";
 
+import { cn } from "@/lib/utils";
 import { MissedWindowSheet } from "./MissedWindowSheet";
 import { SkipModal } from "./SkipModal";
 import { WoopCatchSheet } from "./WoopCatchSheet";
@@ -273,6 +274,15 @@ export function GoalCard({
   // to a missed/active state or re-trigger the justification sheet.
   const exitCommittedRef = useRef(false);
 
+  // ── Card completion pulse (success exit) ──────────────────────────────────
+  // When the card is exiting due to a successful right-swipe (isExiting &&
+  // exitDirection === "right"), we layer a soft emerald glow pulse on the
+  // motion.div wrapper AND render a checkmark overlay that pops in. Both are
+  // gated behind useReducedMotion — reduced-motion users get neither.
+  const prefersReducedMotion = useReducedMotion();
+  const isSuccessExit =
+    isExiting && exitDirection === "right" && !prefersReducedMotion;
+
   // ── Lock-In state ─────────────────────────────────────────────────────────────
   const lockInState =
     isLockIn &&
@@ -358,16 +368,6 @@ export function GoalCard({
     : rawWishDescription.startsWith("Every day ,")
       ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}`
       : rawWishDescription;
-
-  // Category badge: fixed neutral color, "Uncategorized" for missing/undefined
-  const categoryLabel =
-    goal.category && typeof goal.category === "string" && goal.category.trim()
-      ? goal.category
-      : "Uncategorized";
-  const isUncategorized = categoryLabel === "Uncategorized";
-
-  // Badge text color follows habit type: Emerald for Regular, Amber for Lock-In
-  const categoryBadgeTextColor = isLockIn ? "#F59E0B" : "#10B981";
 
   const cardBgIdle = themeColor
     ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))`
@@ -713,8 +713,8 @@ export function GoalCard({
   }
 
   // ── Animation variants ───────────────────────────────────────────────────────
-  const EXIT_DURATION_MS = 320;
-  const EXIT_DURATION = 0.28;
+  const EXIT_DURATION_MS = 500;
+  const EXIT_DURATION = 0.45;
   const exitTransition = {
     duration: EXIT_DURATION,
     ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
@@ -836,10 +836,31 @@ export function GoalCard({
       <motion.div
         {...motionProps}
         layout
-        className="relative"
+        className={cn("relative", isSuccessExit && "card-complete-glow-active")}
         data-ocid={`goal.card.${index + 1}`}
         style={{ touchAction: "pan-y" }}
       >
+        {/* Card completion pulse — emerald checkmark overlay (success exit only) */}
+        {isSuccessExit && (
+          <div
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+            aria-hidden="true"
+          >
+            <div
+              className="checkmark-pop-active flex items-center justify-center rounded-full"
+              style={{
+                width: 56,
+                height: 56,
+                background: "oklch(var(--color-accent-success) / 0.92)",
+                boxShadow:
+                  "0 0 18px 4px oklch(var(--color-accent-success) / 0.55), 0 2px 8px rgba(0,0,0,0.4)",
+              }}
+            >
+              <Check size={30} strokeWidth={3.5} style={{ color: "#022c22" }} />
+            </div>
+          </div>
+        )}
+
         {/* Bug 3/4: in-progress pulse animation overlay */}
         {inProgressPulse && lockInState === "in-progress" && (
           <>
@@ -1086,29 +1107,6 @@ export function GoalCard({
                 )}
               </h3>
             </button>
-
-            {/* Category badge — fixed neutral background, text color follows habit type */}
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide"
-              style={{
-                background: isUncategorized
-                  ? "rgba(75,85,99,0.12)"
-                  : "rgba(107,114,128,0.15)",
-                border: isUncategorized
-                  ? "1px solid rgba(75,85,99,0.25)"
-                  : "1px solid rgba(107,114,128,0.3)",
-                color: isUncategorized
-                  ? "oklch(var(--muted-foreground) / 0.65)"
-                  : categoryBadgeTextColor,
-                boxShadow: isDarkMode
-                  ? "inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(70,70,80,0.25)"
-                  : "inset 1px 1px 2px rgba(0,0,0,0.25), inset -1px -1px 2px rgba(90,90,100,0.2)",
-              }}
-              aria-label={`Category: ${categoryLabel}`}
-              data-ocid={`goal.category_badge.${index + 1}`}
-            >
-              {categoryLabel}
-            </div>
 
             {/* Lock-In time block badge */}
             {showLockInTimeBlock && (

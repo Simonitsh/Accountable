@@ -310,7 +310,7 @@ export const idlService = IDL.Service({
   'getHabit' : IDL.Func([GoalId], [IDL.Opt(HabitPublic)], ['query']),
   'getInteractionCount' : IDL.Func([CheckInId], [IDL.Nat], ['query']),
   'getMacroGoal' : IDL.Func([GoalId], [IDL.Opt(MacroGoalPublic)], ['query']),
-  'getMyProfile' : IDL.Func([], [UserProfilePublic], ['query']),
+  'getMyProfile' : IDL.Func([], [UserProfilePublic], []),
   'getPartnerFeed' : IDL.Func([], [IDL.Vec(FeedItem)], ['query']),
   'getPartnerHabits' : IDL.Func(
       [IDL.Principal],
@@ -686,7 +686,7 @@ export const idlFactory = ({ IDL }) => {
     'getHabit' : IDL.Func([GoalId], [IDL.Opt(HabitPublic)], ['query']),
     'getInteractionCount' : IDL.Func([CheckInId], [IDL.Nat], ['query']),
     'getMacroGoal' : IDL.Func([GoalId], [IDL.Opt(MacroGoalPublic)], ['query']),
-    'getMyProfile' : IDL.Func([], [UserProfilePublic], ['query']),
+    'getMyProfile' : IDL.Func([], [UserProfilePublic], []),
     'getPartnerFeed' : IDL.Func([], [IDL.Vec(FeedItem)], ['query']),
     'getPartnerHabits' : IDL.Func(
         [IDL.Principal],

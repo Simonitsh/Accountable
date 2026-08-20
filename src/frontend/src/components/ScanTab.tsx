@@ -574,9 +574,14 @@ export function ScanTab() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <input
             type="text"
+            name="scan-manual-principal"
             value={manualInput}
             onChange={(e) => setManualInput(e.target.value)}
             placeholder="Paste Principal ID..."
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             className="input-neumorphic flex-1 rounded-xl px-4 py-3 font-mono text-sm text-foreground outline-none"
             data-ocid="scan.input"
           />

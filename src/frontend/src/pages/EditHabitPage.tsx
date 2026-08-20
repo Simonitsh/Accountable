@@ -636,6 +636,11 @@ export function EditHabitPage() {
                       }
                       onFocus={() => setFocusedField("ifThenPlan")}
                       onBlur={() => setFocusedField(null)}
+                      autoComplete="off"
+                      name="ifThenPlan"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      autoCapitalize="off"
                       className="flex-1 min-w-0 rounded-xl px-4 py-3 text-base text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
                       style={{
                         background: "oklch(var(--muted) / 0.4)",
@@ -925,6 +930,11 @@ export function EditHabitPage() {
                         value={lockInStartTime}
                         onChange={(e) => setLockInStartTime(e.target.value)}
                         disabled={isTimeLocked}
+                        autoComplete="off"
+                        name="lockInStartTime"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        autoCapitalize="off"
                         data-ocid="edit_habit.lockin_start_time_input"
                         className={`w-full transition-opacity duration-200 ${isTimeLocked ? "opacity-50 cursor-not-allowed" : ""}`}
                         style={{

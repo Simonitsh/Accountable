@@ -13,6 +13,7 @@ import type {
 import { useBackend } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
 import { CATEGORY_DETAILS, OBSTACLE_TEMPLATES } from "../types/index";
+import { findOverlapGoal } from "../utils/goalDisplay";
 import { GOAL_ICONS } from "../utils/goalIcons";
 import { DayPickerRow } from "./DayPickerRow";
 import ExistingGoalChip, {
@@ -173,48 +174,6 @@ const EMPTY: FormState = {
  * shallow copy per invocation.
  */
 const getEmptyForm = (): FormState => ({ ...EMPTY });
-
-/** Returns the conflicting Lock-In goal name if newStart/newEnd overlaps any existing block. */
-/** Returns the conflicting Lock-In goal name if the new block overlaps any existing one.
- *  - Point-in-time check (newDurationMinutes === 0): checks if newStartTime falls strictly
- *    *inside* an existing block (exclusive on both ends).
- *  - Range check (newDurationMinutes > 0): standard interval overlap of [start, end].
- */
-function findOverlapGoal(
-  goals: Array<{
-    id: bigint;
-    startTime?: string;
-    endTime?: string;
-    wishDescription: string;
-  }>,
-  newStartTime: string,
-  newEndTime: string,
-  editingGoalId?: bigint | null,
-): string | null {
-  if (!newStartTime) return null;
-  for (const g of goals) {
-    if (
-      editingGoalId !== undefined &&
-      editingGoalId !== null &&
-      g.id === editingGoalId
-    )
-      continue;
-    if (!g.startTime || !g.endTime) continue;
-    const isPointInTime = newStartTime === newEndTime;
-    if (isPointInTime) {
-      // Strictly inside: existingStart < newStart < existingEnd
-      if (g.startTime < newStartTime && newStartTime < g.endTime) {
-        return g.wishDescription || "an existing Lock-In";
-      }
-    } else {
-      // Standard overlap: [newStart, newEnd) overlaps [existingStart, existingEnd)
-      if (newStartTime < g.endTime && newEndTime > g.startTime) {
-        return g.wishDescription || "an existing Lock-In";
-      }
-    }
-  }
-  return null;
-}
 
 function parseHHMMToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
@@ -1532,6 +1491,11 @@ export default function WoopWizard({
                                 className={`input-neumorphic w-full text-foreground text-xl font-medium${selectedGoalId !== null ? " input-goal-filled" : ""}`}
                                 aria-label="What do you want to achieve"
                                 aria-readonly={selectedGoalId !== null}
+                                autoComplete="off"
+                                name="woop-wizard-goal-action"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                autoCapitalize="off"
                               />
                             </div>
                             <span className="text-muted-foreground shrink-0">
@@ -1563,6 +1527,11 @@ export default function WoopWizard({
                                 className={`input-neumorphic w-full text-foreground text-xl font-medium${selectedGoalId !== null ? " input-goal-filled" : ""}`}
                                 aria-label="Your deeper reason"
                                 aria-readonly={selectedGoalId !== null}
+                                autoComplete="off"
+                                name="woop-wizard-goal-reason"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                autoCapitalize="off"
                               />
                             </div>
                           </div>
@@ -1650,6 +1619,11 @@ export default function WoopWizard({
                           maxLength={40}
                           className="input-neumorphic w-full text-foreground text-xl font-medium"
                           aria-label="Daily habit action"
+                          autoComplete="off"
+                          name="woop-wizard-habit-action"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          autoCapitalize="off"
                         />
                         <SuggestionButton
                           category={form.category}
@@ -1696,6 +1670,11 @@ export default function WoopWizard({
                           }}
                           className="input-neumorphic w-full text-foreground text-xl font-medium text-center"
                           aria-label="Minutes per day"
+                          autoComplete="off"
+                          name="woop-wizard-habit-minutes"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          autoCapitalize="off"
                         />
                         <SuggestionButton
                           category={form.category}
@@ -1823,6 +1802,11 @@ export default function WoopWizard({
                               boxShadow:
                                 "inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(80,80,85,0.15)",
                             }}
+                            autoComplete="off"
+                            name="woop-wizard-lockin-start-time"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            autoCapitalize="off"
                           />
                           {errors.lockInStartTime && (
                             <p
@@ -2288,6 +2272,11 @@ export default function WoopWizard({
                         rows={4}
                         className="placeholder-subtle w-full bg-transparent border-0 resize-none text-foreground text-lg focus:ring-0 focus:outline-none shadow-none"
                         aria-label="Your If-Then plan"
+                        autoComplete="off"
+                        name="woop-wizard-if-then-plan"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        autoCapitalize="off"
                       />
                     </div>
                     <div className="flex justify-end">

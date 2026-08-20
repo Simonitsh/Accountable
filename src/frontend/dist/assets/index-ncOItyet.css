@@ -959,10 +959,6 @@ video {
   margin-left: -0.25rem;
   margin-right: -0.25rem;
 }
-.-mx-1\.5 {
-  margin-left: -0.375rem;
-  margin-right: -0.375rem;
-}
 .mx-2 {
   margin-left: 0.5rem;
   margin-right: 0.5rem;
@@ -1229,9 +1225,6 @@ video {
 .h-3\.5 {
   height: 0.875rem;
 }
-.h-32 {
-  height: 8rem;
-}
 .h-4 {
   height: 1rem;
 }
@@ -1465,6 +1458,9 @@ video {
 .max-w-3xl {
   max-width: 48rem;
 }
+.max-w-\[180px\] {
+  max-width: 180px;
+}
 .max-w-\[220px\] {
   max-width: 220px;
 }
@@ -1620,32 +1616,6 @@ video {
 .animate-goal-wizard-bloom {
   animation: goal-wizard-bloom var(--goal-wizard-bloom-duration, 620ms) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-@keyframes goal-wizard-path-draw {
-
-  from {
-    stroke-dashoffset: 1;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-.animate-goal-wizard-path-draw {
-  animation: goal-wizard-path-draw var(--goal-wizard-path-draw-duration, 820ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-@keyframes goal-wizard-path-pulse {
-
-  0%, 100% {
-    opacity: 0.7;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-.animate-goal-wizard-path-pulse {
-  animation: goal-wizard-path-pulse 2.6s ease-in-out infinite;
-}
 @keyframes goal-wizard-step-settle {
 
   0% {
@@ -1774,8 +1744,8 @@ video {
 .grid-cols-\[0_1fr\] {
   grid-template-columns: 0 1fr;
 }
-.grid-cols-\[1fr_auto_auto_auto\] {
-  grid-template-columns: 1fr auto auto auto;
+.grid-cols-\[1fr_auto\] {
+  grid-template-columns: 1fr auto;
 }
 .grid-rows-\[auto_auto\] {
   grid-template-rows: auto auto;
@@ -2181,6 +2151,9 @@ video {
 .bg-destructive\/10 {
   background-color: oklch(var(--destructive) / 0.1);
 }
+.bg-destructive\/5 {
+  background-color: oklch(var(--destructive) / 0.05);
+}
 .bg-emerald-500\/20 {
   background-color: rgb(16 185 129 / 0.2);
 }
@@ -2193,6 +2166,9 @@ video {
 }
 .bg-muted-foreground\/30 {
   background-color: oklch(var(--muted-foreground) / 0.3);
+}
+.bg-muted\/20 {
+  background-color: oklch(var(--muted) / 0.2);
 }
 .bg-muted\/30 {
   background-color: oklch(var(--muted) / 0.3);
@@ -2412,6 +2388,9 @@ video {
 .pl-4 {
   padding-left: 1rem;
 }
+.pl-6 {
+  padding-left: 1.5rem;
+}
 .pl-8 {
   padding-left: 2rem;
 }
@@ -2533,6 +2512,9 @@ video {
 .uppercase {
   text-transform: uppercase;
 }
+.normal-case {
+  text-transform: none;
+}
 .italic {
   font-style: italic;
 }
@@ -2551,6 +2533,9 @@ video {
 }
 .leading-tight {
   line-height: 1.25;
+}
+.tracking-normal {
+  letter-spacing: 0em;
 }
 .tracking-tight {
   letter-spacing: -0.025em;
@@ -2619,6 +2604,9 @@ video {
 .text-destructive-foreground {
   color: oklch(var(--destructive-foreground));
 }
+.text-destructive\/70 {
+  color: oklch(var(--destructive) / 0.7);
+}
 .text-destructive\/80 {
   color: oklch(var(--destructive) / 0.8);
 }
@@ -2644,6 +2632,9 @@ video {
 }
 .text-muted-foreground\/70 {
   color: oklch(var(--muted-foreground) / 0.7);
+}
+.text-muted-foreground\/80 {
+  color: oklch(var(--muted-foreground) / 0.8);
 }
 .text-popover-foreground {
   color: oklch(var(--popover-foreground));
@@ -3065,11 +3056,39 @@ video {
     outline: 2px solid #10b981;
     outline-offset: 2px;
 }
+/* ─── Gold neumorphic input (goal wizard) ─────────────────────────────── */
+/* Mirrors .input-neumorphic exactly (bg-card, transparent border, inset
+     neumorphic shadow) but themed GOLD instead of green: a gold border and a
+     gold focus outline, both driven by --goal-wizard-gold. Applied to the
+     GoalWizard Wish/Outcome inputs so they match the habit wizard's look and
+     feel while reading as gold. Inputs stay free of autoComplete/name/autofill
+     attributes so no previous input is ever shown or cached in the HTML. */
+.input-neumorphic-gold {
+  border-radius: var(--radius);
+  background-color: oklch(var(--card));
+  color: oklch(var(--foreground));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-width: 1px;
+    border-color: transparent;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.25);
+    border-color: oklch(var(--goal-wizard-gold) / 0.55);
+}
+.input-neumorphic-gold:focus {
+  outline: 2px solid transparent;
+    outline: 2px solid oklch(var(--goal-wizard-gold));
+    outline-offset: 2px;
+    border-color: oklch(var(--goal-wizard-gold));
+}
 /* Subtle placeholder styling — smaller, greyer, more transparent than
      the input text so it reads as a hint rather than prominent content.
      Applied to every input-neumorphic field and any element using the
      .placeholder-subtle utility (e.g. the WoopWizard ifThenPlan textarea). */
-.input-neumorphic::-moz-placeholder, .placeholder-subtle::-moz-placeholder {
+.input-neumorphic::-moz-placeholder, .input-neumorphic-gold::-moz-placeholder, .placeholder-subtle::-moz-placeholder {
     color: oklch(var(--muted-foreground));
     opacity: 0.45;
     font-size: 0.8125rem; /* 13px — visibly smaller than the input text */
@@ -3077,6 +3096,7 @@ video {
     letter-spacing: 0.01em;
   }
 .input-neumorphic::placeholder,
+  .input-neumorphic-gold::placeholder,
   .placeholder-subtle::placeholder {
     color: oklch(var(--muted-foreground));
     opacity: 0.45;
@@ -3775,6 +3795,109 @@ video {
   }
 }
 
+/* ── Progress ring milestone bounce ──────────────────────────────────────────
+ * Subtle spring scale on the HeaderProgressRing SVG, fired ONLY when progress
+ * crosses the 25%, 50%, or 100% milestones upward (not on every render).
+ * Calm: peaks at 1.08, settles back to 1 over ~400ms. Emerald accent only —
+ * no neon. The smooth stroke-dashoffset transition (defined inline on the
+ * progress circle in Header.tsx) remains the baseline fill; this keyframe
+ * layers a brief scale pulse on the whole SVG at milestone crossings.
+ */
+@keyframes ring-milestone-bounce {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Applied to the progress ring SVG when a milestone is crossed. The class is
+ * toggled on with a fresh animation key (see Header.tsx) so the keyframe
+ * replays on each upward milestone crossing. */
+.ring-milestone-bounce-active {
+  animation: ring-milestone-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+
+/* ── Card completion glow pulse ──────────────────────────────────────────────
+ * Soft emerald box-shadow pulse layered on the GoalCard motion.div wrapper
+ * during a successful right-swipe exit. 0 → peak → 0 over ~500ms. Calm, not
+ * flashy — emerald accent, no neon. Layered ON TOP of the existing exit
+ * animation (slide x + scale), never replaces it.
+ */
+@keyframes card-complete-glow {
+  0% {
+    box-shadow: 0 0 0 0 oklch(var(--color-accent-success) / 0);
+  }
+  40% {
+    box-shadow: 0 0 18px 4px oklch(var(--color-accent-success) / 0.45), 0 0 6px
+      2px oklch(var(--color-accent-success) / 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(var(--color-accent-success) / 0);
+  }
+}
+
+/* Applied to the GoalCard motion.div wrapper when the card is exiting due to
+ * a successful right-swipe. Plays once during the exit animation. */
+.card-complete-glow-active {
+  animation: card-complete-glow 0.5s ease-out;
+}
+
+/* ── Checkmark pop overlay ───────────────────────────────────────────────────
+ * Scale 0.8 → 1.05 → 1 with opacity 0 → 1 → 1, ~350ms. The checkmark overlay
+ * (an absolutely-positioned emerald circle with a white check SVG) plays this
+ * keyframe during the card exit, then fades as the card slides away. Slight
+ * overshoot at 1.05 for a tactile pop, calm not flashy.
+ */
+@keyframes checkmark-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Applied to the checkmark overlay circle inside GoalCard during a successful
+ * exit. Plays once alongside the card-complete-glow. */
+.checkmark-pop-active {
+  animation: checkmark-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Reduced-motion guards for the three new animations ──────────────────────
+ * When the user prefers reduced motion, the milestone bounce, glow pulse,
+ * and checkmark pop are neutralized to instant/non-animated states. The
+ * smooth stroke-dashoffset fill transition (defined inline on the progress
+ * circle) is left intact — it is a calm, non-bouncing transition that
+ * conveys progress without motion discomfort. The bounce, glow, and pop
+ * are the celebratory layers that reduced-motion users get to skip.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ring-milestone-bounce-active {
+    animation: none;
+  }
+  .card-complete-glow-active {
+    animation: none;
+    box-shadow: none;
+  }
+  .checkmark-pop-active {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .new-habit-glow {
   position: absolute;
   inset: -2px;
@@ -3956,6 +4079,9 @@ video {
 .hover\:bg-muted\/30:hover {
   background-color: oklch(var(--muted) / 0.3);
 }
+.hover\:bg-muted\/40:hover {
+  background-color: oklch(var(--muted) / 0.4);
+}
 .hover\:bg-muted\/50:hover {
   background-color: oklch(var(--muted) / 0.5);
 }
@@ -4008,9 +4134,6 @@ video {
 }
 .hover\:shadow-glow-social:hover {
     /* no-op — neon glow removed for professional look */
-  }
-.hover\:shadow-glow-success:hover {
-    /* no-op */
   }
 .hover\:after\:bg-sidebar-border:hover::after {
   content: var(--tw-content);
@@ -5000,6 +5123,10 @@ video {
 
   .sm\:w-auto {
     width: auto;
+  }
+
+  .sm\:max-w-\[240px\] {
+    max-width: 240px;
   }
 
   .sm\:max-w-lg {

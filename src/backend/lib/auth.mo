@@ -8,6 +8,7 @@ import Char "mo:core/Char";
 import Int "mo:core/Int";
 import Common "../types/common";
 import AuthTypes "../types/auth";
+import AdminConfig "admin";
 
 module {
   /// Approved avatar base colors. A user-supplied color must fall within ±30
@@ -107,6 +108,26 @@ module {
       timezone = profile.timezone;
       bio = profile.bio;
       email = profile.email;
+      timezoneOffsetMinutes = profile.timezoneOffsetMinutes;
+      role = profile.role;
+    };
+  };
+
+  /// Defense-in-depth variant of toPublic() that strips the email field.
+  /// Use this for any endpoint that does not need to expose email. The
+  /// existing toPublic() (with email) stays for the admin-only listAllUsers
+  /// and the owner-or-admin getUserProfile paths.
+  public func toPublicSafe(profile : AuthTypes.UserProfile) : AuthTypes.UserProfilePublic {
+    {
+      id = profile.id;
+      username = profile.username;
+      displayName = profile.displayName;
+      avatarShape = profile.avatarShape;
+      avatarColor = profile.avatarColor;
+      avatarColorMode = profile.avatarColorMode;
+      timezone = profile.timezone;
+      bio = profile.bio;
+      email = null;
       timezoneOffsetMinutes = profile.timezoneOffsetMinutes;
       role = profile.role;
     };
@@ -252,6 +273,26 @@ module {
     };
   };
 
+  /// Promotes the caller to `#admin` if their Principal is in the hardcoded
+  /// admin list (see `lib/admin.mo`) and their stored role is not already
+  /// `#admin`. Idempotent: a no-op for non-admin Principals and for users
+  /// who are already admins. Called from both `register()` (after
+  /// `getOrCreateProfile`) and `getMyProfile()` (after `ensureRegistered`)
+  /// so existing users get re-promoted on every sign-in without a migration.
+  /// This is what makes admin promotion work in both draft and live.
+  public func ensureAdminRole(
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+    caller : Common.UserId,
+  ) : () {
+    if (not AdminConfig.isAdminPrincipal(caller)) { return };
+    switch (profiles.get(caller)) {
+      case (?p) {
+        if (p.role != #admin) { p.role := #admin };
+      };
+      case null { /* no profile yet — nothing to promote */ };
+    };
+  };
+
   public func isAdmin(
     profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
     caller : Common.UserId,
@@ -268,6 +309,21 @@ module {
   ) : ?AuthTypes.UserProfilePublic {
     switch (profiles.get(target)) {
       case (?p) { ?(toPublic(p)) };
+      case null { null };
+    };
+  };
+
+  /// Defense-in-depth variant of getUserProfilePublic() that strips the
+  /// email field via toPublicSafe(). Use this for partner/peer exposure
+  /// paths where the caller is not the profile owner and not an admin.
+  /// The original getUserProfilePublic() (with email) stays for the gated
+  /// owner-or-admin getUserProfile path in auth-api.mo.
+  public func getUserProfilePublicSafe(
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+    target : Common.UserId,
+  ) : ?AuthTypes.UserProfilePublic {
+    switch (profiles.get(target)) {
+      case (?p) { ?(toPublicSafe(p)) };
       case null { null };
     };
   };

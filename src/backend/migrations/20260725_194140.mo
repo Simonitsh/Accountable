@@ -1,10 +1,7 @@
 import Map "mo:core/Map";
 import List "mo:core/List";
 
-// First migration: introduces stable state for the first time.
-// OldActor = {} (fresh install); NewActor enumerates every stable field
-// declared in main.mo and supplies its initial value. The actor body has
-// no inline initializers under enhanced migration — values come from here.
+// First migration: identity carry-forward of last-legacy stable fields.
 
 module {
   // Previous deployed actor already declared these 11 stable fields with
@@ -132,19 +129,6 @@ module {
   };
 
   public func migration(old : OldActor) : NewActor {
-    ignore old;
-    {
-      profiles = Map.empty();
-      goals = List.empty();
-      obstacleTemplates = List.empty();
-      nextGoalId = [var 0];
-      nextObstacleTemplateId = [var 0];
-      checkIns = List.empty();
-      nextCheckInId = [var 0];
-      connections = List.empty();
-      nextConnectionId = [var 0];
-      interactions = List.empty();
-      nextInteractionId = [var 0];
-    };
+    old;
   };
 };

@@ -265,6 +265,11 @@ export function EditProfilePage() {
                 onFocus={() => setFocusedField("displayName")}
                 onBlur={() => setFocusedField(null)}
                 placeholder="Optional"
+                autoComplete="off"
+                name="displayName"
+                autoCorrect="off"
+                spellCheck={false}
+                autoCapitalize="off"
                 className="w-full rounded-xl px-4 py-3 pr-10 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 style={{
                   background: "oklch(var(--muted) / 0.4)",
@@ -340,6 +345,11 @@ export function EditProfilePage() {
               onBlur={() => setFocusedField(null)}
               placeholder="What is your overarching goal in life?"
               rows={4}
+              autoComplete="off"
+              name="bio"
+              autoCorrect="off"
+              spellCheck={false}
+              autoCapitalize="off"
               className="w-full rounded-xl px-4 py-3 pr-10 text-base text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
               style={{
                 background: "oklch(var(--muted) / 0.4)",
@@ -392,6 +402,11 @@ export function EditProfilePage() {
               onFocus={() => setFocusedField("email")}
               onBlur={() => setFocusedField(null)}
               placeholder="your@email.com"
+              autoComplete="email"
+              name="email"
+              autoCorrect="off"
+              spellCheck={false}
+              autoCapitalize="off"
               className="w-full rounded-xl px-4 py-3 pr-10 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
               style={{
                 background: "oklch(var(--muted) / 0.4)",

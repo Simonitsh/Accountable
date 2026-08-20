@@ -395,9 +395,9 @@ export default function GoalWizard({
         }}
         className="goal-wizard-root fixed inset-0 z-[300] flex flex-col overflow-hidden w-full max-w-none h-full max-h-none m-0 p-0 border-0 rounded-none"
       >
-        {/* ── Header: title + flowing SVG progress path ──────────────────── */}
+        {/* ── Header: title + circle-based step indicator ────────────────── */}
         <div
-          className="shrink-0 px-6 pt-5 pb-3"
+          className="shrink-0 px-6 pt-2 pb-3"
           aria-label={`Step ${step} of ${TOTAL_STEPS}`}
         >
           <div className="flex items-center justify-between max-w-2xl mx-auto mb-3">
@@ -425,15 +425,117 @@ export default function GoalWizard({
             </span>
           </div>
 
-          {/* Flowing SVG progress path — a vine that draws itself between
-              step nodes. Uses goal-wizard-path-draw (stroke-dashoffset 1→0
-              via pathLength="1") and goal-wizard-path-pulse (ambient opacity
-              breathing). The stroke is an emerald→gold linear gradient. */}
-          <FlowingPath
-            step={step}
-            total={TOTAL_STEPS}
-            labels={STEPS.map((s) => s.label)}
-          />
+          {/* Circle-based step indicator — mirrors the habit wizard's
+              (WoopWizard) structure exactly but themed GOLD instead of green.
+              A background track spans the circles, a gold progress track grows
+              toward the current step, and each step renders a numbered circle
+              that fills gold when complete, rings gold when active, and stays
+              muted when upcoming. */}
+          <div
+            className="relative flex items-center max-w-2xl mx-auto"
+            data-ocid="goal_wizard.step_indicator"
+          >
+            {/* Background track — starts at the leftmost edge of the first
+                circle and ends at the rightmost edge of the last circle.
+                Each circle is 40px (w-10) centered in its flex-1 column
+                (25% of width), so the first circle's left edge is at
+                calc(12.5% - 20px) and the last circle's right edge is at
+                calc(87.5% + 20px). */}
+            <div
+              className="absolute h-[2px] top-10 rounded-full"
+              style={{
+                left: "calc(12.5% - 20px)",
+                right: "calc(12.5% - 20px)",
+                background: "oklch(var(--color-accent-missed) / 0.18)",
+              }}
+              aria-hidden="true"
+            />
+            {/* Progress track — same start as the background track, grows from
+                the first circle's left edge toward the current step. */}
+            <div
+              className="absolute h-[2px] top-10 rounded-full transition-all duration-500 ease-out"
+              style={{
+                left: "calc(12.5% - 20px)",
+                right: `calc(${(TOTAL_STEPS - step) * (100 / TOTAL_STEPS)}% + 20px)`,
+                background: "oklch(var(--goal-wizard-gold))",
+                boxShadow: "0 0 8px 1px oklch(var(--goal-wizard-gold) / 0.45)",
+              }}
+              aria-hidden="true"
+            />
+            {STEPS.map((s) => {
+              const isActive = step === s.id;
+              const isComplete = step > s.id;
+              return (
+                <div
+                  key={s.id}
+                  data-ocid={`goal_wizard.step_indicator.${s.id}`}
+                  className="relative z-10 flex-1 flex flex-col items-center gap-2"
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold text-sm"
+                    style={
+                      isComplete
+                        ? {
+                            backgroundColor: "oklch(var(--goal-wizard-gold))",
+                            color: "oklch(0.12 0 0)",
+                            boxShadow:
+                              "0 0 16px 3px oklch(var(--goal-wizard-gold) / 0.55)",
+                          }
+                        : isActive
+                          ? {
+                              backgroundColor:
+                                "oklch(var(--goal-wizard-gold) / 0.15)",
+                              border:
+                                "2.5px solid oklch(var(--goal-wizard-gold))",
+                              color: "oklch(var(--goal-wizard-gold))",
+                              boxShadow:
+                                "0 0 20px 4px oklch(var(--goal-wizard-gold) / 0.3)",
+                            }
+                          : {
+                              backgroundColor: "oklch(var(--muted))",
+                              border:
+                                "2px solid oklch(var(--color-accent-missed) / 0.3)",
+                              color: "oklch(var(--muted-foreground))",
+                            }
+                    }
+                  >
+                    {isComplete ? (
+                      <svg
+                        viewBox="0 0 12 12"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <polyline points="2,6 5,9 10,3" />
+                      </svg>
+                    ) : (
+                      s.id
+                    )}
+                  </div>
+                  <span
+                    className="text-xs font-mono tracking-wider uppercase transition-colors duration-200"
+                    style={
+                      isComplete
+                        ? { color: "oklch(var(--goal-wizard-gold) / 0.7)" }
+                        : isActive
+                          ? {
+                              color: "oklch(var(--goal-wizard-gold))",
+                              fontWeight: 700,
+                            }
+                          : { color: "oklch(var(--muted-foreground) / 0.5)" }
+                    }
+                  >
+                    {s.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Scrollable step content ─────────────────────────────────────── */}
@@ -624,17 +726,17 @@ export default function GoalWizard({
                       onBlur={() => setFocusedField(null)}
                       placeholder="I want to run a 5K without stopping"
                       maxLength={80}
-                      className="w-full rounded-xl px-4 py-3 text-lg transition-all duration-200 focus:outline-none"
+                      className="input-neumorphic-gold w-full text-lg"
                       style={{
                         fontFamily: "var(--font-goal-wizard)",
-                        background: "oklch(var(--card))",
-                        color: "oklch(var(--foreground))",
-                        border: "1px solid oklch(var(--border))",
-                        boxShadow:
-                          "inset 3px 3px 6px rgba(0,0,0,0.55), inset -2px -2px 5px rgba(80,80,85,0.25)",
                       }}
                       aria-label="Your wish"
                       aria-invalid={!!errors.wish}
+                      autoComplete="off"
+                      name="goal-wizard-wish"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      autoCapitalize="off"
                     />
                     {/* Animated underline — grows from the left as the field
                         fills. Uses goal-wizard-underline-grow (scaleX 0→1)
@@ -765,17 +867,17 @@ export default function GoalWizard({
                       onBlur={() => setFocusedField(null)}
                       placeholder="feel energized, strong, and proud of my progress"
                       maxLength={120}
-                      className="w-full rounded-xl px-4 py-3 text-lg transition-all duration-200 focus:outline-none"
+                      className="input-neumorphic-gold w-full text-lg"
                       style={{
                         fontFamily: "var(--font-goal-wizard)",
-                        background: "oklch(var(--card))",
-                        color: "oklch(var(--foreground))",
-                        border: "1px solid oklch(var(--border))",
-                        boxShadow:
-                          "inset 3px 3px 6px rgba(0,0,0,0.55), inset -2px -2px 5px rgba(80,80,85,0.25)",
                       }}
                       aria-label="The outcome you want"
                       aria-invalid={!!errors.outcome}
+                      autoComplete="off"
+                      name="goal-wizard-outcome"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      autoCapitalize="off"
                     />
                     <div
                       className="absolute left-0 right-0 bottom-0 h-[2px] origin-left rounded-full"
@@ -1273,179 +1375,5 @@ export default function GoalWizard({
         </AnimatePresence>
       </dialog>
     </>
-  );
-}
-
-// ── Flowing SVG progress path ────────────────────────────────────────────────
-/**
- * FlowingPath — a vine-like SVG path that draws itself between step nodes.
- * Uses goal-wizard-path-draw (stroke-dashoffset 1→0 via pathLength="1") on the
- * drawn segment and goal-wizard-path-pulse (ambient opacity breathing) on the
- * full vine. The stroke is an emerald→gold linear gradient defined inline.
- *
- * The path is a gentle horizontal S-curve connecting TOTAL nodes. The drawn
- * portion grows as `step` advances; the remaining portion stays as a faint
- * track. Each node is a small circle that fills with the gradient when
- * complete or active.
- */
-function FlowingPath({
-  step,
-  total,
-  labels,
-}: {
-  step: number;
-  total: number;
-  labels: readonly string[];
-}) {
-  // Build a smooth horizontal path through `total` evenly-spaced nodes.
-  // The path uses cubic beziers for an organic vine feel.
-  const width = 100; // viewBox width (scaled by SVG preserveAspectRatio)
-  const height = 24;
-  const padding = 6;
-  const span = width - padding * 2;
-  const nodeX = (i: number) => padding + (span * i) / (total - 1);
-  const nodeY = height / 2;
-
-  // One path segment per gap between nodes. We render the full vine as a
-  // faint track, then overlay the drawn portion up to the current step.
-  const segmentPath = (i: number): string => {
-    const x0 = nodeX(i);
-    const x1 = nodeX(i + 1);
-    const y = nodeY;
-    // Gentle S-curve: control points offset vertically for an organic bend.
-    const cx1 = x0 + (x1 - x0) * 0.35;
-    const cy1 = y - 4;
-    const cx2 = x0 + (x1 - x0) * 0.65;
-    const cy2 = y + 4;
-    return `M ${x0} ${y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x1} ${y}`;
-  };
-
-  const gradientId = "goal-wizard-path-gradient";
-
-  return (
-    <div
-      className="max-w-2xl mx-auto"
-      data-ocid="goal_wizard.progress_path"
-      aria-hidden="true"
-    >
-      {/* The vine + nodes live in an SVG that stretches across the full width.
-          The step labels are rendered as HTML below the SVG (NOT as SVG <text>)
-          so preserveAspectRatio="none" never squashes the label glyphs. The
-          vine keeps the emerald→gold gradient and the draw/pulse animations. */}
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
-        className="w-full"
-        style={{ height: "40px", overflow: "visible" }}
-      >
-        <title>Goal progress path</title>
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="oklch(var(--goal-wizard-emerald))" />
-            <stop offset="45%" stopColor="oklch(0.72 0.15 130)" />
-            <stop offset="100%" stopColor="oklch(var(--goal-wizard-gold))" />
-          </linearGradient>
-        </defs>
-
-        {/* Faint full track — the whole vine at low opacity */}
-        {Array.from({ length: total - 1 }, (_, i) => (
-          <path
-            key={`track-${segmentPath(i)}`}
-            d={segmentPath(i)}
-            fill="none"
-            stroke="oklch(var(--muted-foreground))"
-            strokeWidth={1}
-            strokeLinecap="round"
-            opacity={0.25}
-          />
-        ))}
-
-        {/* Drawn portion — segments up to the current step. Each segment
-            animates its stroke-dashoffset from 1 to 0 via the
-            goal-wizard-path-draw keyframe (pathLength="1" normalizes the
-            dash math). The most recently completed segment also gets the
-            ambient goal-wizard-path-pulse so the vine feels alive. */}
-        {Array.from({ length: total - 1 }, (_, i) => {
-          const isDrawn = i < step - 1;
-          const isLatest = i === step - 2;
-          if (!isDrawn) return null;
-          return (
-            <path
-              key={`drawn-${segmentPath(i)}`}
-              d={segmentPath(i)}
-              fill="none"
-              stroke={`url(#${gradientId})`}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              pathLength={1}
-              className={`animate-goal-wizard-path-draw ${isLatest ? "animate-goal-wizard-path-pulse" : ""}`}
-            />
-          );
-        })}
-
-        {/* Nodes — small circles at each step. Complete = filled gradient,
-            active = ringed, future = faint dot. */}
-        {Array.from({ length: total }, (_, i) => {
-          const isComplete = i < step - 1;
-          const isActive = i === step - 1;
-          const x = nodeX(i);
-          const y = nodeY;
-          return (
-            <g key={`node-${nodeX(i)}`}>
-              <circle
-                cx={x}
-                cy={y}
-                r={isActive ? 4.5 : 3}
-                fill={
-                  isComplete
-                    ? "oklch(var(--goal-wizard-emerald))"
-                    : isActive
-                      ? "oklch(var(--goal-wizard-gold))"
-                      : "oklch(var(--muted-foreground))"
-                }
-                stroke={
-                  isActive ? "oklch(var(--goal-wizard-gold))" : "transparent"
-                }
-                strokeWidth={isActive ? 1.5 : 0}
-                opacity={isComplete || isActive ? 1 : 0.4}
-                style={{
-                  filter:
-                    isComplete || isActive
-                      ? "drop-shadow(0 0 4px oklch(var(--goal-wizard-gold) / 0.5))"
-                      : "none",
-                }}
-              />
-            </g>
-          );
-        })}
-      </svg>
-
-      {/* HTML step labels — aligned to the node positions above. Crisp text
-          that never gets squashed by the SVG's non-uniform scaling. */}
-      <div className="relative h-6 mt-1.5">
-        {labels.map((label, i) => {
-          const isComplete = i < step - 1;
-          const isActive = i === step - 1;
-          return (
-            <span
-              key={label}
-              className="absolute top-0 -translate-x-1/2 text-xs font-mono tracking-wider uppercase whitespace-nowrap transition-colors duration-300"
-              style={{
-                left: `${nodeX(i)}%`,
-                color: isComplete
-                  ? "oklch(var(--goal-wizard-emerald))"
-                  : isActive
-                    ? "oklch(var(--goal-wizard-gold))"
-                    : "oklch(var(--muted-foreground))",
-                opacity: isComplete || isActive ? 1 : 0.5,
-                fontWeight: isActive ? 700 : 500,
-              }}
-            >
-              {label}
-            </span>
-          );
-        })}
-      </div>
-    </div>
   );
 }

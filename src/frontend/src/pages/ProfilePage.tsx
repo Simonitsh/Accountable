@@ -1,6 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Mail, Pencil } from "lucide-react";
+import { Check, Copy, Fingerprint, Mail, Pencil } from "lucide-react";
+import { useState } from "react";
 import { Avatar } from "../components/Avatar";
+import { useAuth } from "../hooks/useAuth";
 import { useUserProfile } from "../hooks/useUserProfile";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,7 +10,38 @@ import { Skeleton } from "@/components/ui/skeleton";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ProfilePage() {
   const { data: profile, isLoading } = useUserProfile();
+  const { principalText } = useAuth();
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
+
+  // One-click copy of the signed-in user's Principal. Mirrors the exact
+  // handleCopy pattern from MyIdTab.tsx: navigator.clipboard.writeText with a
+  // hidden-textarea fallback, and a 2s "Copied!" confirmation state. The FULL
+  // principal string is always copied even though the displayed value is
+  // truncated for layout.
+  const handleCopyPrincipal = async () => {
+    if (!principalText) return;
+    try {
+      await navigator.clipboard.writeText(principalText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for environments without the async clipboard API
+      const ta = document.createElement("textarea");
+      ta.value = principalText;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -103,6 +136,72 @@ export function ProfilePage() {
                   No email set
                 </span>
               )}
+            </div>
+
+            {/* Account ID (Principal) — discreet but easy to find.
+                Sits with the other identity fields, after Email and before Bio.
+                Labelled "Your ID" for non-technical users; "Principal" appears
+                as a small subtitle. The displayed value is truncated with
+                ellipsis for layout, but the copy button always copies the
+                FULL principal string. */}
+            <div className="flex flex-col gap-2" data-ocid="profile.account_id">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Fingerprint className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
+                      Your ID
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/70 normal-case tracking-normal">
+                      Principal
+                    </span>
+                  </div>
+                </div>
+
+                {principalText ? (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="text-sm text-foreground font-mono truncate max-w-[180px] sm:max-w-[240px]"
+                      title={principalText}
+                      data-ocid="profile.account_id_text"
+                    >
+                      {principalText}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyPrincipal}
+                      aria-label="Copy your account ID"
+                      className={`flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg transition-smooth border ${
+                        copied
+                          ? "bg-accent-social/20 text-foreground border-accent-social/40 shadow-neumorphic-inset"
+                          : "bg-secondary text-secondary-foreground border-transparent hover:border-accent-social/40"
+                      }`}
+                      style={{
+                        boxShadow: copied
+                          ? undefined
+                          : "-2px -2px 5px rgba(80, 80, 85, 0.35), 3px 3px 7px rgba(0, 0, 0, 0.7)",
+                      }}
+                      data-ocid="profile.copy_account_id_button"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">
+                    Not signed in
+                  </span>
+                )}
+              </div>
+
+              {/* One-line non-technical hint explaining what the ID is for */}
+              <p className="text-xs text-muted-foreground/80 leading-relaxed pl-6">
+                This ID identifies your account. Copy it to share with an admin
+                so they can grant you access.
+              </p>
             </div>
 
             {/* Bio / Macro Wish */}

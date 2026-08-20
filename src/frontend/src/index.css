@@ -406,11 +406,35 @@
     outline-offset: 2px;
   }
 
+  /* ─── Gold neumorphic input (goal wizard) ─────────────────────────────── */
+  /* Mirrors .input-neumorphic exactly (bg-card, transparent border, inset
+     neumorphic shadow) but themed GOLD instead of green: a gold border and a
+     gold focus outline, both driven by --goal-wizard-gold. Applied to the
+     GoalWizard Wish/Outcome inputs so they match the habit wizard's look and
+     feel while reading as gold. Inputs stay free of autoComplete/name/autofill
+     attributes so no previous input is ever shown or cached in the HTML. */
+  .input-neumorphic-gold {
+    @apply bg-card text-foreground rounded-lg transition-smooth;
+    @apply border border-transparent;
+    @apply px-3 py-2;
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.25);
+    border-color: oklch(var(--goal-wizard-gold) / 0.55);
+  }
+
+  .input-neumorphic-gold:focus {
+    @apply outline-none;
+    outline: 2px solid oklch(var(--goal-wizard-gold));
+    outline-offset: 2px;
+    border-color: oklch(var(--goal-wizard-gold));
+  }
+
   /* Subtle placeholder styling — smaller, greyer, more transparent than
      the input text so it reads as a hint rather than prominent content.
      Applied to every input-neumorphic field and any element using the
      .placeholder-subtle utility (e.g. the WoopWizard ifThenPlan textarea). */
   .input-neumorphic::placeholder,
+  .input-neumorphic-gold::placeholder,
   .placeholder-subtle::placeholder {
     color: oklch(var(--muted-foreground));
     opacity: 0.45;
@@ -1021,6 +1045,109 @@
   }
   100% {
     opacity: 0;
+  }
+}
+
+/* ── Progress ring milestone bounce ──────────────────────────────────────────
+ * Subtle spring scale on the HeaderProgressRing SVG, fired ONLY when progress
+ * crosses the 25%, 50%, or 100% milestones upward (not on every render).
+ * Calm: peaks at 1.08, settles back to 1 over ~400ms. Emerald accent only —
+ * no neon. The smooth stroke-dashoffset transition (defined inline on the
+ * progress circle in Header.tsx) remains the baseline fill; this keyframe
+ * layers a brief scale pulse on the whole SVG at milestone crossings.
+ */
+@keyframes ring-milestone-bounce {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Applied to the progress ring SVG when a milestone is crossed. The class is
+ * toggled on with a fresh animation key (see Header.tsx) so the keyframe
+ * replays on each upward milestone crossing. */
+.ring-milestone-bounce-active {
+  animation: ring-milestone-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+
+/* ── Card completion glow pulse ──────────────────────────────────────────────
+ * Soft emerald box-shadow pulse layered on the GoalCard motion.div wrapper
+ * during a successful right-swipe exit. 0 → peak → 0 over ~500ms. Calm, not
+ * flashy — emerald accent, no neon. Layered ON TOP of the existing exit
+ * animation (slide x + scale), never replaces it.
+ */
+@keyframes card-complete-glow {
+  0% {
+    box-shadow: 0 0 0 0 oklch(var(--color-accent-success) / 0);
+  }
+  40% {
+    box-shadow: 0 0 18px 4px oklch(var(--color-accent-success) / 0.45), 0 0 6px
+      2px oklch(var(--color-accent-success) / 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(var(--color-accent-success) / 0);
+  }
+}
+
+/* Applied to the GoalCard motion.div wrapper when the card is exiting due to
+ * a successful right-swipe. Plays once during the exit animation. */
+.card-complete-glow-active {
+  animation: card-complete-glow 0.5s ease-out;
+}
+
+/* ── Checkmark pop overlay ───────────────────────────────────────────────────
+ * Scale 0.8 → 1.05 → 1 with opacity 0 → 1 → 1, ~350ms. The checkmark overlay
+ * (an absolutely-positioned emerald circle with a white check SVG) plays this
+ * keyframe during the card exit, then fades as the card slides away. Slight
+ * overshoot at 1.05 for a tactile pop, calm not flashy.
+ */
+@keyframes checkmark-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Applied to the checkmark overlay circle inside GoalCard during a successful
+ * exit. Plays once alongside the card-complete-glow. */
+.checkmark-pop-active {
+  animation: checkmark-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Reduced-motion guards for the three new animations ──────────────────────
+ * When the user prefers reduced motion, the milestone bounce, glow pulse,
+ * and checkmark pop are neutralized to instant/non-animated states. The
+ * smooth stroke-dashoffset fill transition (defined inline on the progress
+ * circle) is left intact — it is a calm, non-bouncing transition that
+ * conveys progress without motion discomfort. The bounce, glow, and pop
+ * are the celebratory layers that reduced-motion users get to skip.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ring-milestone-bounce-active {
+    animation: none;
+  }
+  .card-complete-glow-active {
+    animation: none;
+    box-shadow: none;
+  }
+  .checkmark-pop-active {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

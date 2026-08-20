@@ -13,6 +13,7 @@ mixin (
       Runtime.trap("Username already taken");
     };
     let profile = AuthLib.getOrCreateProfile(profiles, caller);
+    AuthLib.ensureAdminRole(profiles, caller);
     profile.username := username;
     profile.displayName := username;
     AuthLib.toPublic(profile);
@@ -44,11 +45,19 @@ mixin (
     AuthLib.isUsernameAvailableForCaller(profiles, username, caller);
   };
 
-  public shared query ({ caller }) func getMyProfile() : async AuthTypes.UserProfilePublic {
-    AuthLib.toPublic(AuthLib.ensureRegistered(profiles, caller));
+  // Note: this is an update (not a query) because ensureAdminRole may mutate
+  // the stored profile's `role` field to promote a hardcoded admin Principal
+  // on sign-in. The signature and return type are unchanged.
+  public shared ({ caller }) func getMyProfile() : async AuthTypes.UserProfilePublic {
+    let profile = AuthLib.ensureRegistered(profiles, caller);
+    AuthLib.ensureAdminRole(profiles, caller);
+    AuthLib.toPublic(profile);
   };
 
   public shared query ({ caller }) func getUserProfile(target : Common.UserId) : async ?AuthTypes.UserProfilePublic {
+    if (caller != target and not AuthLib.isAdmin(profiles, caller)) {
+      Runtime.trap("unauthorized");
+    };
     AuthLib.getUserProfilePublic(profiles, target);
   };
 
@@ -57,6 +66,9 @@ mixin (
   };
 
   public shared query ({ caller }) func listAllUsers() : async [AuthTypes.UserProfilePublic] {
+    if (not AuthLib.isAdmin(profiles, caller)) {
+      Runtime.trap("admin only");
+    };
     AuthLib.listAllUsers(profiles);
   };
 };

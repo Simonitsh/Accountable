@@ -36,11 +36,14 @@ module {
   };
 
   /// Returns the public profile of `target` if it exists, else null.
+  /// Uses the email-stripping safe variant so accepted partners never
+  /// receive each other's email via the partner exposure paths
+  /// (getPartnerHabitDetail, listPartnerOverviews).
   public func getPublicProfile(
     profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
     target : Common.UserId,
   ) : ?AuthTypes.UserProfilePublic {
-    AuthLib.getUserProfilePublic(profiles, target);
+    AuthLib.getUserProfilePublicSafe(profiles, target);
   };
 
   /// Returns all active habits owned by `target`, mapped to HabitPublic.

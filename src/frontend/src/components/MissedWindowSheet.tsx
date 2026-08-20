@@ -182,6 +182,7 @@ export function MissedWindowSheet({
                 </label>
                 <textarea
                   id="missed-custom-note"
+                  name="missed-window-note"
                   value={customNote}
                   onChange={(e) => {
                     if (e.target.value.length <= 140) {
@@ -192,6 +193,10 @@ export function MissedWindowSheet({
                   onBlur={() => setIsNoteFocused(false)}
                   placeholder="What happened during this window?"
                   rows={3}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   className="w-full rounded-xl bg-muted/30 text-foreground text-sm p-3 resize-none outline-none transition-smooth border border-border focus:border-[rgba(3,105,161,0.5)]"
                   style={{
                     boxShadow:
