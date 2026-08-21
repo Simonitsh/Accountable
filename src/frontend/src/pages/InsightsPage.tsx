@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -49,14 +49,14 @@ function useAnalytics() {
   return useQuery<AnalyticsSummary>({
     queryKey: ["analytics"],
     queryFn: async () => {
-      if (!actor) return { goals: [], dailySuccessRate30Days: [] };
+      if (!actor) return EMPTY_SUMMARY;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (
         actor as unknown as Record<string, () => Promise<AnalyticsSummary>>
       ).getAnalytics();
     },
     enabled: !!actor && !isFetching,
-    placeholderData: { goals: [], dailySuccessRate30Days: [] },
+    placeholderData: EMPTY_SUMMARY,
   });
 }
 
@@ -66,6 +66,20 @@ const NEUMORPHIC = {
   borderTop: "1px solid rgba(255,255,255,0.12)",
   borderLeft: "1px solid rgba(255,255,255,0.06)",
 } as const;
+
+// Empty analytics summary — used as the pre-fetch placeholder and the no-actor
+// fallback so the hero never flashes a "not enough data" state while loading.
+const EMPTY_SUMMARY: AnalyticsSummary = {
+  goals: [],
+  dailySuccessRate30Days: [],
+  successRateWithPlan: 0,
+  successRateWithoutPlan: 0,
+  checkInsWithPlan: 0,
+  checkInsWithoutPlan: 0,
+};
+
+// Minimum check-ins (with and without the plan) before a ratio is shown.
+const MIN_CHECK_INS = 3;
 
 // ─── Entrance choreography ────────────────────────────────────────────────────
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -96,7 +110,262 @@ function StatCard({ label, value, icon, glowClass }: StatCardProps) {
 }
 
 // ─── Hero insight slot ────────────────────────────────────────────────────────
-function HeroInsightSlot() {
+interface HeroInsightSlotProps {
+  analytics: AnalyticsSummary;
+  isLoading: boolean;
+  reduceMotion: boolean;
+}
+
+/**
+ * Animated count-up for the headline number. Disabled entirely under reduced
+ * motion — the value renders at its final state immediately.
+ */
+function useCountUp(target: number, reduceMotion: boolean, duration = 900) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      // easeOutCubic — starts fast, settles gently
+      const eased = 1 - (1 - progress) ** 3;
+      setValue(target * eased);
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, reduceMotion, duration]);
+
+  return value;
+}
+
+function HeroInsightSlot({
+  analytics,
+  isLoading,
+  reduceMotion,
+}: HeroInsightSlotProps) {
+  const {
+    successRateWithPlan,
+    successRateWithoutPlan,
+    checkInsWithPlan,
+    checkInsWithoutPlan,
+  } = analytics;
+
+  const enoughData =
+    checkInsWithPlan >= MIN_CHECK_INS && checkInsWithoutPlan >= MIN_CHECK_INS;
+
+  // A "meaningfully higher" with-plan rate — at least 5 percentage points.
+  const planHelping =
+    enoughData && successRateWithPlan - successRateWithoutPlan >= 0.05;
+
+  // Build the comparison copy for the "plan is helping" state.
+  const comparison = useMemo(() => {
+    if (!enoughData || !planHelping) return null;
+
+    const withRate = successRateWithPlan;
+    const withoutRate = successRateWithoutPlan;
+
+    // Prefer a clean multiplier when the without-rate is meaningfully above
+    // zero (so the ratio reads honestly and never prints "Infinityx").
+    if (withoutRate >= 0.05) {
+      const multiplier = withRate / withoutRate;
+      if (multiplier >= 1.5 && multiplier < 10) {
+        return {
+          kind: "multiplier" as const,
+          headline: `${Math.round(multiplier)}x`,
+          sentence: "more likely to follow through when you use your plan.",
+        };
+      }
+    }
+
+    // Fall back to a percentage-point framing when a multiplier would be
+    // misleading (e.g. the without-rate is 0 or near-0).
+    const points = Math.round((withRate - withoutRate) * 100);
+    if (points >= 5) {
+      return {
+        kind: "points" as const,
+        headline: `${points}%`,
+        sentence: "more follow-through when you use your plan.",
+      };
+    }
+
+    return {
+      kind: "farMore" as const,
+      headline: "far more",
+      sentence: "follow-through when you use your plan.",
+    };
+  }, [enoughData, planHelping, successRateWithPlan, successRateWithoutPlan]);
+
+  const animatedHeadline = useCountUp(
+    comparison?.kind === "multiplier"
+      ? Number(comparison.headline.replace("x", ""))
+      : comparison?.kind === "points"
+        ? Number(comparison.headline.replace("%", ""))
+        : 0,
+    reduceMotion,
+  );
+
+  // ── Loading: keep the existing skeleton treatment ─────────────────────────
+  if (isLoading) {
+    return (
+      <div
+        className="bg-card rounded-2xl p-6 relative overflow-hidden"
+        style={{
+          ...NEUMORPHIC,
+          boxShadow:
+            "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)",
+        }}
+        data-ocid="insights.hero_slot"
+      >
+        <div
+          className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)",
+          }}
+        />
+        <div className="relative flex items-start gap-3">
+          <div
+            className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0"
+            style={{
+              boxShadow:
+                "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
+            }}
+          >
+            <Sparkles className="w-5 h-5 text-accent-success" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-base font-semibold text-foreground">
+              Your most important insight
+            </p>
+            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+              This is where your biggest win will live — the one pattern that
+              keeps your momentum going.
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-5 flex flex-col gap-3">
+          <Skeleton className="h-4 w-3/4 rounded-md" />
+          <Skeleton className="h-4 w-1/2 rounded-md" />
+          <div className="flex items-center gap-2 mt-1">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-3 w-24 rounded-md" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 1: not enough data yet — an invitation, not an empty state ──────
+  if (!enoughData) {
+    return (
+      <div
+        className="bg-card rounded-2xl p-6 relative overflow-hidden"
+        style={{
+          ...NEUMORPHIC,
+          boxShadow:
+            "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)",
+        }}
+        data-ocid="insights.hero_slot"
+      >
+        <div
+          className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)",
+          }}
+        />
+        <div className="relative flex items-start gap-3">
+          <div
+            className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0"
+            style={{
+              boxShadow:
+                "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
+            }}
+          >
+            <Sparkles className="w-5 h-5 text-accent-success" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-base font-semibold text-foreground">
+              Your if-then plan is about to pay off
+            </p>
+            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+              Use your if-then plan when you check in, and this spot will show
+              you exactly how much it helps you follow through. A few more
+              check-ins and the insight unlocks.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 2: the plan is helping — lead with the win ──────────────────────
+  if (planHelping && comparison) {
+    const headline =
+      comparison.kind === "multiplier"
+        ? `${Math.round(animatedHeadline)}x`
+        : comparison.kind === "points"
+          ? `${Math.round(animatedHeadline)}%`
+          : comparison.headline;
+
+    return (
+      <div
+        className="bg-card rounded-2xl p-6 relative overflow-hidden"
+        style={{
+          ...NEUMORPHIC,
+          boxShadow:
+            "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)",
+        }}
+        data-ocid="insights.hero_slot"
+      >
+        <div
+          className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)",
+          }}
+        />
+        <div className="relative flex items-start gap-3">
+          <div
+            className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0"
+            style={{
+              boxShadow:
+                "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
+            }}
+          >
+            <Sparkles className="w-5 h-5 text-accent-success" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-base font-semibold text-foreground">
+              Your plan is working
+            </p>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="font-display text-4xl font-bold text-accent-success leading-none">
+                {headline}
+              </span>
+              <span className="text-sm text-foreground leading-snug">
+                {comparison.sentence}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+              That's the WOOP method doing its thing — your if-then plan turns
+              intention into action. Keep using it, and this number will only
+              climb.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 3: plan not yet ahead — honest, never discouraging ──────────────
   return (
     <div
       className="bg-card rounded-2xl p-6 relative overflow-hidden"
@@ -107,7 +376,6 @@ function HeroInsightSlot() {
       }}
       data-ocid="insights.hero_slot"
     >
-      {/* Soft emerald wash — calm, not a stat */}
       <div
         className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
         style={{
@@ -127,22 +395,13 @@ function HeroInsightSlot() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-display text-base font-semibold text-foreground">
-            Your most important insight
+            Your plan is building momentum
           </p>
           <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-            This is where your biggest win will live — the one pattern that
-            keeps your momentum going.
+            Keep applying your if-then plans — every check-in sharpens this
+            insight. As the pattern firms up, you'll see exactly where your plan
+            carries you furthest.
           </p>
-        </div>
-      </div>
-
-      {/* Tasteful skeleton body */}
-      <div className="relative mt-5 flex flex-col gap-3">
-        <Skeleton className="h-4 w-3/4 rounded-md" />
-        <Skeleton className="h-4 w-1/2 rounded-md" />
-        <div className="flex items-center gap-2 mt-1">
-          <Skeleton className="h-8 w-8 rounded-full" />
-          <Skeleton className="h-3 w-24 rounded-md" />
         </div>
       </div>
     </div>
@@ -362,7 +621,7 @@ export function InsightsPage() {
   const { successColor, mutedColor } = useCssColors();
   const reduceMotion = useReducedMotion();
 
-  const summary = data ?? { goals: [], dailySuccessRate30Days: [] };
+  const summary = data ?? EMPTY_SUMMARY;
 
   // Derived stats
   const activeGoals = summary.goals.length;
@@ -452,7 +711,11 @@ export function InsightsPage() {
         data-ocid="insights.hero_section"
         {...entrance}
       >
-        <HeroInsightSlot />
+        <HeroInsightSlot
+          analytics={summary}
+          isLoading={isLoading}
+          reduceMotion={!!reduceMotion}
+        />
       </motion.section>
 
       {/* ── Insight card slots ────────────────────────────────────────────── */}

@@ -114235,11 +114235,11 @@ function useAnalytics() {
   return useQuery({
     queryKey: ["analytics"],
     queryFn: async () => {
-      if (!actor) return { goals: [], dailySuccessRate30Days: [] };
+      if (!actor) return EMPTY_SUMMARY;
       return actor.getAnalytics();
     },
     enabled: !!actor && !isFetching,
-    placeholderData: { goals: [], dailySuccessRate30Days: [] }
+    placeholderData: EMPTY_SUMMARY
   });
 }
 const NEUMORPHIC = {
@@ -114247,6 +114247,15 @@ const NEUMORPHIC = {
   borderTop: "1px solid rgba(255,255,255,0.12)",
   borderLeft: "1px solid rgba(255,255,255,0.06)"
 };
+const EMPTY_SUMMARY = {
+  goals: [],
+  dailySuccessRate30Days: [],
+  successRateWithPlan: 0,
+  successRateWithoutPlan: 0,
+  checkInsWithPlan: 0,
+  checkInsWithoutPlan: 0
+};
+const MIN_CHECK_INS = 3;
 const EASE = [0.22, 1, 0.36, 1];
 function StatCard({ label, value, icon, glowClass }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -114264,7 +114273,204 @@ function StatCard({ label, value, icon, glowClass }) {
     }
   );
 }
-function HeroInsightSlot() {
+function useCountUp(target, reduceMotion, duration = 900) {
+  const [value, setValue] = reactExports.useState(0);
+  reactExports.useEffect(() => {
+    if (reduceMotion) {
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now2) => {
+      const progress2 = Math.min((now2 - start) / duration, 1);
+      const eased = 1 - (1 - progress2) ** 3;
+      setValue(target * eased);
+      if (progress2 < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, reduceMotion, duration]);
+  return value;
+}
+function HeroInsightSlot({
+  analytics,
+  isLoading,
+  reduceMotion
+}) {
+  const {
+    successRateWithPlan,
+    successRateWithoutPlan,
+    checkInsWithPlan,
+    checkInsWithoutPlan
+  } = analytics;
+  const enoughData = checkInsWithPlan >= MIN_CHECK_INS && checkInsWithoutPlan >= MIN_CHECK_INS;
+  const planHelping = enoughData && successRateWithPlan - successRateWithoutPlan >= 0.05;
+  const comparison = reactExports.useMemo(() => {
+    if (!enoughData || !planHelping) return null;
+    const withRate = successRateWithPlan;
+    const withoutRate = successRateWithoutPlan;
+    if (withoutRate >= 0.05) {
+      const multiplier = withRate / withoutRate;
+      if (multiplier >= 1.5 && multiplier < 10) {
+        return {
+          kind: "multiplier",
+          headline: `${Math.round(multiplier)}x`,
+          sentence: "more likely to follow through when you use your plan."
+        };
+      }
+    }
+    const points = Math.round((withRate - withoutRate) * 100);
+    if (points >= 5) {
+      return {
+        kind: "points",
+        headline: `${points}%`,
+        sentence: "more follow-through when you use your plan."
+      };
+    }
+    return {
+      kind: "farMore",
+      headline: "far more",
+      sentence: "follow-through when you use your plan."
+    };
+  }, [enoughData, planHelping, successRateWithPlan, successRateWithoutPlan]);
+  const animatedHeadline = useCountUp(
+    (comparison == null ? void 0 : comparison.kind) === "multiplier" ? Number(comparison.headline.replace("x", "")) : (comparison == null ? void 0 : comparison.kind) === "points" ? Number(comparison.headline.replace("%", "")) : 0,
+    reduceMotion
+  );
+  if (isLoading) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "bg-card rounded-2xl p-6 relative overflow-hidden",
+        style: {
+          ...NEUMORPHIC,
+          boxShadow: "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)"
+        },
+        "data-ocid": "insights.hero_slot",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none",
+              style: {
+                background: "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)"
+              }
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-start gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0",
+                style: {
+                  boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)"
+                },
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-accent-success" })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your most important insight" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "This is where your biggest win will live — the one pattern that keeps your momentum going." })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative mt-5 flex flex-col gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-3/4 rounded-md" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-1/2 rounded-md" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mt-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-8 w-8 rounded-full" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-24 rounded-md" })
+            ] })
+          ] })
+        ]
+      }
+    );
+  }
+  if (!enoughData) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "bg-card rounded-2xl p-6 relative overflow-hidden",
+        style: {
+          ...NEUMORPHIC,
+          boxShadow: "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)"
+        },
+        "data-ocid": "insights.hero_slot",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none",
+              style: {
+                background: "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)"
+              }
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-start gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0",
+                style: {
+                  boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)"
+                },
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-accent-success" })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your if-then plan is about to pay off" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "Use your if-then plan when you check in, and this spot will show you exactly how much it helps you follow through. A few more check-ins and the insight unlocks." })
+            ] })
+          ] })
+        ]
+      }
+    );
+  }
+  if (planHelping && comparison) {
+    const headline = comparison.kind === "multiplier" ? `${Math.round(animatedHeadline)}x` : comparison.kind === "points" ? `${Math.round(animatedHeadline)}%` : comparison.headline;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "bg-card rounded-2xl p-6 relative overflow-hidden",
+        style: {
+          ...NEUMORPHIC,
+          boxShadow: "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)"
+        },
+        "data-ocid": "insights.hero_slot",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none",
+              style: {
+                background: "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)"
+              }
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-start gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0",
+                style: {
+                  boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)"
+                },
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-accent-success" })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your plan is working" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 flex items-baseline gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-4xl font-bold text-accent-success leading-none", children: headline }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground leading-snug", children: comparison.sentence })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-3 leading-relaxed", children: "That's the WOOP method doing its thing — your if-then plan turns intention into action. Keep using it, and this number will only climb." })
+            ] })
+          ] })
+        ]
+      }
+    );
+  }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
@@ -114296,16 +114502,8 @@ function HeroInsightSlot() {
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your most important insight" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "This is where your biggest win will live — the one pattern that keeps your momentum going." })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative mt-5 flex flex-col gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-3/4 rounded-md" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-1/2 rounded-md" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mt-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-8 w-8 rounded-full" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-24 rounded-md" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your plan is building momentum" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "Keep applying your if-then plans — every check-in sharpens this insight. As the pattern firms up, you'll see exactly where your plan carries you furthest." })
           ] })
         ] })
       ]
@@ -114494,7 +114692,7 @@ function InsightsPage$1() {
   const { data, isLoading } = useAnalytics();
   const { successColor, mutedColor } = useCssColors();
   const reduceMotion = useReducedMotion();
-  const summary = data ?? { goals: [], dailySuccessRate30Days: [] };
+  const summary = data ?? EMPTY_SUMMARY;
   const activeGoals = summary.goals.length;
   const totalCheckInsThisWeek = summary.goals.reduce(
     (sum, g2) => sum + g2.successCount + g2.skipCount,
@@ -114554,7 +114752,14 @@ function InsightsPage$1() {
         className: "px-4 pt-4",
         "data-ocid": "insights.hero_section",
         ...entrance,
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(HeroInsightSlot, {})
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          HeroInsightSlot,
+          {
+            analytics: summary,
+            isLoading,
+            reduceMotion: !!reduceMotion
+          }
+        )
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
