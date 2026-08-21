@@ -9,8 +9,9 @@ import AnalyticsLib "../lib/analytics";
 mixin (
   goals : List.List<GoalTypes.Goal>,
   checkIns : List.List<CheckInTypes.CheckIn>,
+  obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
 ) {
-  public shared query ({ caller }) func getAnalytics() : async AnalyticsTypes.AnalyticsSummary {
-    AnalyticsLib.getAnalytics(goals, checkIns, caller, Time.now());
+  public shared query ({ caller }) func getAnalytics(timezoneOffsetMinutes : Int) : async AnalyticsTypes.AnalyticsSummary {
+    AnalyticsLib.getAnalytics(goals, checkIns, obstacleTemplates, caller, Time.now(), timezoneOffsetMinutes);
   };
 };

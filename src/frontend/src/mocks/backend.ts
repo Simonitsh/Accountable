@@ -530,6 +530,17 @@ export const mockBackend: backendInterface = {
 
   // ─── Analytics ──────────────────────────────────────────────────────────────
   getAnalytics: async () => ({
+    successRateWithPlan: 0.8,
+    successRateWithoutPlan: 0.6,
+    checkInsWithPlan: BigInt(10),
+    checkInsWithoutPlan: BigInt(7),
+    successRateByWeekday: Array.from({ length: 7 }, () => 0.7),
+    categoryStats: [],
+    plannedObstacle: undefined,
+    actualObstacle: undefined,
+    plannedMatchesActual: false,
+    daysShownUp: BigInt(17),
+    daysInWindow: BigInt(30),
     goals: [
       {
         totalMissed: BigInt(2),
@@ -539,6 +550,8 @@ export const mockBackend: backendInterface = {
         totalSkips: BigInt(1),
         longestStreak: BigInt(7),
         totalSuccesses: BigInt(17),
+        daysInWindow: BigInt(30),
+        daysShownUp: BigInt(17),
         currentStreak: BigInt(5),
       },
     ],

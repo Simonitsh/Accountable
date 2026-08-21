@@ -11,8 +11,19 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface AnalyticsSummary {
+  'successRateWithPlan' : number,
+  'plannedObstacle' : [] | [ObstacleStat],
+  'plannedMatchesActual' : boolean,
   'goals' : Array<GoalAnalytics>,
+  'checkInsWithoutPlan' : bigint,
   'dailySuccessRate30Days' : Array<number>,
+  'categoryStats' : Array<CategoryStat>,
+  'successRateWithoutPlan' : number,
+  'daysInWindow' : bigint,
+  'actualObstacle' : [] | [ObstacleStat],
+  'daysShownUp' : bigint,
+  'successRateByWeekday' : Array<number>,
+  'checkInsWithPlan' : bigint,
 }
 export type AvatarColor = [] | [string];
 export type AvatarColorMode = { 'Fill' : null } |
@@ -24,6 +35,13 @@ export type AvatarShape = [] | [
     { 'Hexagon' : null } |
     { 'Square' : null }
 ];
+export interface CategoryStat {
+  'activeHabits' : bigint,
+  'completionRate' : number,
+  'totalSkips' : bigint,
+  'category' : GoalCategory,
+  'totalSuccesses' : bigint,
+}
 export interface Cell { 'value' : Value, 'name' : string }
 export interface CheckIn {
   'id' : CheckInId,
@@ -98,6 +116,8 @@ export interface GoalAnalytics {
   'totalSkips' : bigint,
   'longestStreak' : bigint,
   'totalSuccesses' : bigint,
+  'daysInWindow' : bigint,
+  'daysShownUp' : bigint,
   'currentStreak' : bigint,
 }
 export type GoalCategory = { 'Productivity' : null } |
@@ -159,6 +179,7 @@ export interface MacroGoalPublic {
   'category' : GoalCategory,
   'outcome' : string,
 }
+export interface ObstacleStat { 'id' : ObstacleTemplateId, 'title' : string }
 export interface ObstacleTemplate {
   'id' : ObstacleTemplateId,
   'title' : string,
@@ -264,7 +285,7 @@ export interface _SERVICE {
   'deleteHabit' : ActorMethod<[GoalId], { 'ok' : null } | { 'err' : string }>,
   'devReset' : ActorMethod<[], undefined>,
   'execute' : ActorMethod<[string], Result>,
-  'getAnalytics' : ActorMethod<[], AnalyticsSummary>,
+  'getAnalytics' : ActorMethod<[bigint], AnalyticsSummary>,
   'getCheckInsForGoal' : ActorMethod<[GoalId], Array<CheckIn>>,
   'getCheckInsForGoalTimeline' : ActorMethod<[GoalId, bigint], Array<CheckIn>>,
   'getCheckInsForPeriod' : ActorMethod<

@@ -4,13 +4,18 @@ import type { AnalyticsSummary, GoalAnalytics } from "@/types/index";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Layers,
+  Route,
+  Sparkles,
   Target,
   TrendingUp,
   Zap,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -55,6 +60,16 @@ function useAnalytics() {
   });
 }
 
+// ─── Shared neumorphic surface style ──────────────────────────────────────────
+const NEUMORPHIC = {
+  boxShadow: "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
+  borderTop: "1px solid rgba(255,255,255,0.12)",
+  borderLeft: "1px solid rgba(255,255,255,0.06)",
+} as const;
+
+// ─── Entrance choreography ────────────────────────────────────────────────────
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 interface StatCardProps {
   label: string;
@@ -67,12 +82,7 @@ function StatCard({ label, value, icon, glowClass }: StatCardProps) {
   return (
     <div
       className={`bg-card rounded-xl p-4 flex flex-col gap-2 flex-1 min-w-0 ${glowClass ?? ""}`}
-      style={{
-        boxShadow:
-          "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
-        borderTop: "1px solid rgba(255,255,255,0.12)",
-        borderLeft: "1px solid rgba(255,255,255,0.06)",
-      }}
+      style={NEUMORPHIC}
     >
       <div className="flex items-center gap-2 text-muted-foreground text-xs font-body uppercase tracking-wider">
         {icon}
@@ -81,6 +91,100 @@ function StatCard({ label, value, icon, glowClass }: StatCardProps) {
       <span className="font-display text-2xl font-semibold text-foreground truncate">
         {value}
       </span>
+    </div>
+  );
+}
+
+// ─── Hero insight slot ────────────────────────────────────────────────────────
+function HeroInsightSlot() {
+  return (
+    <div
+      className="bg-card rounded-2xl p-6 relative overflow-hidden"
+      style={{
+        ...NEUMORPHIC,
+        boxShadow:
+          "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)",
+      }}
+      data-ocid="insights.hero_slot"
+    >
+      {/* Soft emerald wash — calm, not a stat */}
+      <div
+        className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)",
+        }}
+      />
+      <div className="relative flex items-start gap-3">
+        <div
+          className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0"
+          style={{
+            boxShadow:
+              "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
+          }}
+        >
+          <Sparkles className="w-5 h-5 text-accent-success" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-base font-semibold text-foreground">
+            Your most important insight
+          </p>
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+            This is where your biggest win will live — the one pattern that
+            keeps your momentum going.
+          </p>
+        </div>
+      </div>
+
+      {/* Tasteful skeleton body */}
+      <div className="relative mt-5 flex flex-col gap-3">
+        <Skeleton className="h-4 w-3/4 rounded-md" />
+        <Skeleton className="h-4 w-1/2 rounded-md" />
+        <div className="flex items-center gap-2 mt-1">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <Skeleton className="h-3 w-24 rounded-md" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Insight card slot ────────────────────────────────────────────────────────
+interface InsightSlotProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  accent: string;
+}
+
+function InsightSlot({ icon, title, description, accent }: InsightSlotProps) {
+  return (
+    <div
+      className="bg-card rounded-xl p-4 flex items-start gap-3"
+      style={NEUMORPHIC}
+      data-ocid="insights.insight_slot"
+    >
+      <div
+        className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0"
+        style={{
+          boxShadow:
+            "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
+        }}
+      >
+        <span style={{ color: accent }}>{icon}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-display text-sm font-semibold text-foreground">
+          {title}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+          {description}
+        </p>
+        <div className="mt-3 flex flex-col gap-2">
+          <Skeleton className="h-3 w-full rounded-md" />
+          <Skeleton className="h-3 w-2/3 rounded-md" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -103,13 +207,8 @@ function GoalAnalyticsCard({
   return (
     <div
       className="bg-card rounded-xl overflow-hidden transition-smooth"
-      style={{
-        boxShadow:
-          "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
-        borderTop: "1px solid rgba(255,255,255,0.12)",
-        borderLeft: "1px solid rgba(255,255,255,0.06)",
-      }}
-      data-ocid={`analytics.goal_card.${index + 1}`}
+      style={NEUMORPHIC}
+      data-ocid={`insights.goal_card.${index + 1}`}
     >
       {/* Header row */}
       <button
@@ -117,7 +216,7 @@ function GoalAnalyticsCard({
         className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/20 transition-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        data-ocid={`analytics.goal_toggle.${index + 1}`}
+        data-ocid={`insights.goal_toggle.${index + 1}`}
       >
         {/* Consistency run badge */}
         <div
@@ -170,28 +269,38 @@ function GoalAnalyticsCard({
       </button>
 
       {/* Expanded stats */}
-      {expanded && (
-        <div
-          className="px-4 pb-4 grid grid-cols-3 gap-3 border-t border-border/20 pt-4"
-          data-ocid={`analytics.goal_detail.${index + 1}`}
-        >
-          <StatMini
-            label="Successes"
-            value={goal.successCount}
-            colorClass="text-accent-success"
-          />
-          <StatMini
-            label="Skips"
-            value={goal.skipCount}
-            colorClass="text-accent-skip"
-          />
-          <StatMini
-            label="Missed"
-            value={goal.missedCount}
-            colorClass="text-accent-missed"
-          />
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <div
+              className="px-4 pb-4 grid grid-cols-3 gap-3 border-t border-border/20 pt-4"
+              data-ocid={`insights.goal_detail.${index + 1}`}
+            >
+              <StatMini
+                label="Successes"
+                value={goal.successCount}
+                colorClass="text-accent-success"
+              />
+              <StatMini
+                label="Skips"
+                value={goal.skipCount}
+                colorClass="text-accent-skip"
+              />
+              <StatMini
+                label="Missed"
+                value={goal.missedCount}
+                colorClass="text-accent-missed"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -248,9 +357,10 @@ function CustomTooltip({
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export function AnalyticsPage() {
+export function InsightsPage() {
   const { data, isLoading } = useAnalytics();
   const { successColor, mutedColor } = useCssColors();
+  const reduceMotion = useReducedMotion();
 
   const summary = data ?? { goals: [], dailySuccessRate30Days: [] };
 
@@ -285,23 +395,89 @@ export function AnalyticsPage() {
 
   const hasData = summary.goals.length > 0;
 
+  // Entrance variants — disabled entirely under reduced motion
+  const entrance = reduceMotion
+    ? { initial: false, animate: {}, transition: undefined }
+    : {
+        initial: { opacity: 0, y: 16 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.3, ease: EASE },
+      };
+
+  const stagger = (delay: number) =>
+    reduceMotion ? {} : { transition: { duration: 0.3, ease: EASE, delay } };
+
+  const insightSlots = [
+    {
+      icon: <Route className="w-5 h-5" />,
+      title: "If-then effectiveness",
+      description: "See which planned responses actually carried you through.",
+      accent: "oklch(var(--color-accent-success))",
+    },
+    {
+      icon: <CalendarDays className="w-5 h-5" />,
+      title: "Your best day",
+      description: "Spot the day of the week your momentum peaks.",
+      accent: "oklch(var(--color-accent-skip))",
+    },
+    {
+      icon: <Layers className="w-5 h-5" />,
+      title: "Category breakdown",
+      description: "How your energy flows across each area of life.",
+      accent: "oklch(var(--color-accent-social))",
+    },
+    {
+      icon: <Zap className="w-5 h-5" />,
+      title: "Obstacle pattern",
+      description: "The recurring hurdle to plan around next.",
+      accent: "oklch(var(--color-accent-missed))",
+    },
+  ];
+
   return (
-    <div
-      className="min-h-screen bg-background pb-32"
-      data-ocid="analytics.page"
-    >
+    <div className="min-h-screen bg-background pb-32" data-ocid="insights.page">
       {/* Page heading */}
       <div className="px-4 pt-6 pb-2">
         <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">
-          Analytics
+          Insights
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Your 30-day performance overview
+          Patterns that keep your momentum going
         </p>
       </div>
 
-      {/* ── Stats strip ─────────────────────────────────────────────────────── */}
-      <section className="px-4 pt-4 pb-2" data-ocid="analytics.stats_strip">
+      {/* ── Hero insight slot ─────────────────────────────────────────────── */}
+      <motion.section
+        className="px-4 pt-4"
+        data-ocid="insights.hero_section"
+        {...entrance}
+      >
+        <HeroInsightSlot />
+      </motion.section>
+
+      {/* ── Insight card slots ────────────────────────────────────────────── */}
+      <section
+        className="px-4 pt-4 flex flex-col gap-3"
+        data-ocid="insights.slots_section"
+      >
+        {insightSlots.map((slot, i) => (
+          <motion.div
+            key={slot.title}
+            {...entrance}
+            {...stagger(0.06 * (i + 1))}
+          >
+            <InsightSlot {...slot} />
+          </motion.div>
+        ))}
+      </section>
+
+      {/* ── Stats strip ───────────────────────────────────────────────────── */}
+      <motion.section
+        className="px-4 pt-6 pb-2"
+        data-ocid="insights.stats_strip"
+        {...entrance}
+        {...stagger(0.3)}
+      >
         {isLoading ? (
           <div className="flex gap-3">
             <Skeleton className="h-20 flex-1 rounded-xl" />
@@ -328,19 +504,16 @@ export function AnalyticsPage() {
             />
           </div>
         )}
-      </section>
+      </motion.section>
 
-      {/* ── 30-day trend chart ───────────────────────────────────────────────── */}
-      <section className="px-4 pt-4 pb-2" data-ocid="analytics.chart_section">
-        <div
-          className="bg-card rounded-xl p-4"
-          style={{
-            boxShadow:
-              "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
-            borderTop: "1px solid rgba(255,255,255,0.12)",
-            borderLeft: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
+      {/* ── 30-day trend chart ────────────────────────────────────────────── */}
+      <motion.section
+        className="px-4 pt-4 pb-2"
+        data-ocid="insights.chart_section"
+        {...entrance}
+        {...stagger(0.38)}
+      >
+        <div className="bg-card rounded-xl p-4" style={NEUMORPHIC}>
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4 text-primary" />
             <h2 className="font-display text-sm font-semibold text-foreground">
@@ -352,7 +525,7 @@ export function AnalyticsPage() {
             <Skeleton className="h-40 w-full rounded-lg" />
           ) : chartData.length === 0 ? (
             <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
-              No data yet — start checking in!
+              Check in a few times to unlock your momentum curve.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={160}>
@@ -412,12 +585,14 @@ export function AnalyticsPage() {
             </ResponsiveContainer>
           )}
         </div>
-      </section>
+      </motion.section>
 
-      {/* ── Per-goal breakdown ───────────────────────────────────────────────── */}
-      <section
+      {/* ── Per-goal breakdown ─────────────────────────────────────────────── */}
+      <motion.section
         className="px-4 pt-4 flex flex-col gap-3"
-        data-ocid="analytics.goals_section"
+        data-ocid="insights.goals_section"
+        {...entrance}
+        {...stagger(0.46)}
       >
         <div className="flex items-center gap-2">
           <Zap
@@ -438,13 +613,8 @@ export function AnalyticsPage() {
         ) : !hasData ? (
           <div
             className="bg-card rounded-xl flex flex-col items-center justify-center gap-3 py-12 px-6 text-center"
-            style={{
-              boxShadow:
-                "-4px -4px 10px rgba(65,65,75,0.5), 7px 7px 18px rgba(0,0,0,0.85)",
-              borderTop: "1px solid rgba(255,255,255,0.12)",
-              borderLeft: "1px solid rgba(255,255,255,0.06)",
-            }}
-            data-ocid="analytics.empty_state"
+            style={NEUMORPHIC}
+            data-ocid="insights.empty_state"
           >
             <div
               className="w-14 h-14 rounded-full bg-muted flex items-center justify-center"
@@ -453,15 +623,15 @@ export function AnalyticsPage() {
                   "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
               }}
             >
-              <BarChart3 className="w-6 h-6 text-muted-foreground" />
+              <Sparkles className="w-6 h-6 text-muted-foreground" />
             </div>
             <div>
               <p className="font-display text-base font-semibold text-foreground">
-                No goals yet
+                Your insights are on the way
               </p>
               <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                Create your first WOOP goal on the Dashboard to see your
-                analytics here.
+                Check in a few times to unlock your insights and see your
+                momentum take shape.
               </p>
             </div>
           </div>
@@ -470,7 +640,7 @@ export function AnalyticsPage() {
             <GoalAnalyticsCard key={goal.goalId} goal={goal} index={i} />
           ))
         )}
-      </section>
+      </motion.section>
     </div>
   );
 }
