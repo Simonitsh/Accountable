@@ -2,6 +2,8 @@
 import Map "mo:core/Map";
 import List "mo:core/List";
 import Principal "mo:core/Principal";
+import Timer "mo:core/Timer";
+import Time "mo:core/Time";
 import Common "types/common";
 import AuthTypes "types/auth";
 import GoalTypes "types/goals";
@@ -15,6 +17,7 @@ import ConnectionsApi "mixins/connections-api";
 import FeedApi "mixins/feed-api";
 import AnalyticsApi "mixins/analytics-api";
 import PartnerHabitsApi "mixins/partner-habits-api";
+import CheckInsLib "lib/checkins";
 
 import Expose "mo:caffeineai-oql/Expose";
 import OqlEntity "mo:caffeineai-oql/Entity";
@@ -82,6 +85,20 @@ actor {
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
   include AnalyticsApi(goals, checkIns);
   include PartnerHabitsApi(connections, goals, checkIns, profiles);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RECURRING AUTO-FAIL TIMER — armed in the actor body so it is re-armed on
+  // every install AND every upgrade (enhanced orthogonal persistence runs the
+  // actor body on both paths). Fires hourly and auto-fails missed goals for
+  // the previous day. Calls the checkins lib directly — no mixin routing.
+  // ─────────────────────────────────────────────────────────────────────────
+  ignore Timer.recurringTimer<system>(
+    #seconds(3600), // every hour
+    func() : async () {
+      ignore CheckInsLib.autoFailMissedGoals(checkIns, goals, nextCheckInId, profiles, Time.now());
+    },
+  );
+
   // ─────────────────────────────────────────────────────────────────────────
   // OQL SCHEMA REGISTRATION — purely additive.
   // Registers every persisted (non-transient) entity so schema() returns them

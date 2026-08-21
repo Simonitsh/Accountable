@@ -1,9 +1,11 @@
 import List "mo:core/List";
 import Time "mo:core/Time";
 import Runtime "mo:core/Runtime";
+import Map "mo:core/Map";
 import Common "../types/common";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
+import AuthTypes "../types/auth";
 import Int "mo:core/Int";
 import Debug "mo:core/Debug";
 
@@ -157,31 +159,38 @@ module {
   /// Midnight auto-fail: generate a #Missed check-in for every active goal that
   /// had no terminal check-in yesterday — but only if yesterday was a scheduled day.
   /// If yesterday was NOT in goal.scheduledDays (rest day), skip silently.
+  /// Each goal's "yesterday" boundary is computed in its OWNER's timezone, looked
+  /// up from the profiles map (falling back to UTC offset 0 when no profile exists).
   public func autoFailMissedGoals(
     checkIns : List.List<CheckInTypes.CheckIn>,
     goals : List.List<GoalTypes.Goal>,
     nextCheckInId : [var Nat],
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
     nowNs : Int,
-    timezoneOffsetMinutes : Int,
   ) : Nat {
-    let offsetNs : Int = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    // Local "now" and "yesterday" day boundaries
-    let localNowNs : Int = nowNs + offsetNs;
-    let localYesterdayNs : Int = localNowNs - DAY_NS;
-    // Yesterday's start/end in UTC (for querying check-ins stored in UTC)
-    let localMidnightNs : Int = (localNowNs / DAY_NS) * DAY_NS;
-    let yesterdayStartUtc : Int = localMidnightNs - DAY_NS - offsetNs;
-    let yesterdayEndUtc : Int = localMidnightNs - offsetNs;
-    // Day-of-week abbreviation for yesterday in user's local timezone
-    // Pass 0 for tzOffset since localYesterdayNs is already in local time
-    let yesterdayAbbr : Text = dayOfWeekAbbr(localYesterdayNs, 0);
     var count : Nat = 0;
     label goalLoop for (goal in goals.values()) {
       if (goal.state != #active) continue goalLoop;
-      // Skip if yesterday was not a scheduled day (rest day)
-      if (not isScheduledDay(yesterdayAbbr, goal.scheduledDays)) continue goalLoop;
       // Skip Lock-In goals — they handle their own missed states via frontend + checkin flow
       if (goal.isLockIn) continue goalLoop;
+      // Resolve this goal's owner timezone offset (fall back to UTC when no profile).
+      let timezoneOffsetMinutes : Int = switch (profiles.get(goal.owner)) {
+        case (?profile) profile.timezoneOffsetMinutes;
+        case null 0;
+      };
+      let offsetNs : Int = timezoneOffsetMinutes * 60 * 1_000_000_000;
+      // Local "now" and "yesterday" day boundaries
+      let localNowNs : Int = nowNs + offsetNs;
+      let localYesterdayNs : Int = localNowNs - DAY_NS;
+      // Yesterday's start/end in UTC (for querying check-ins stored in UTC)
+      let localMidnightNs : Int = (localNowNs / DAY_NS) * DAY_NS;
+      let yesterdayStartUtc : Int = localMidnightNs - DAY_NS - offsetNs;
+      let yesterdayEndUtc : Int = localMidnightNs - offsetNs;
+      // Day-of-week abbreviation for yesterday in user's local timezone
+      // Pass 0 for tzOffset since localYesterdayNs is already in local time
+      let yesterdayAbbr : Text = dayOfWeekAbbr(localYesterdayNs, 0);
+      // Skip if yesterday was not a scheduled day (rest day)
+      if (not isScheduledDay(yesterdayAbbr, goal.scheduledDays)) continue goalLoop;
       // Check if there is any terminal check-in for this goal yesterday (UTC window)
       let hadTerminal = checkIns.find(func(c) {
         c.goalId == goal.id and
