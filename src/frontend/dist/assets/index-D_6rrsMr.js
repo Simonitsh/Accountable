@@ -114304,8 +114304,11 @@ function HeroInsightSlot({
     checkInsWithPlan,
     checkInsWithoutPlan
   } = analytics;
-  const enoughData = checkInsWithPlan >= MIN_CHECK_INS && checkInsWithoutPlan >= MIN_CHECK_INS;
+  const hasEnoughWithPlan = checkInsWithPlan >= MIN_CHECK_INS;
+  const hasEnoughWithoutPlan = checkInsWithoutPlan >= MIN_CHECK_INS;
+  const enoughData = hasEnoughWithPlan && hasEnoughWithoutPlan;
   const planHelping = enoughData && successRateWithPlan - successRateWithoutPlan >= 0.05;
+  const consistentPlanUser = hasEnoughWithPlan && !hasEnoughWithoutPlan;
   const comparison = reactExports.useMemo(() => {
     if (!enoughData || !planHelping) return null;
     const withRate = successRateWithPlan;
@@ -114338,6 +114341,8 @@ function HeroInsightSlot({
     (comparison == null ? void 0 : comparison.kind) === "multiplier" ? Number(comparison.headline.replace("x", "")) : (comparison == null ? void 0 : comparison.kind) === "points" ? Number(comparison.headline.replace("%", "")) : 0,
     reduceMotion
   );
+  const fallbackPercent = Number.isFinite(successRateWithPlan) ? Math.round(successRateWithPlan * 100) : 0;
+  const animatedPercent = useCountUp(fallbackPercent, reduceMotion);
   if (isLoading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -114386,7 +114391,52 @@ function HeroInsightSlot({
       }
     );
   }
-  if (!enoughData) {
+  if (enoughData) {
+    if (planHelping && comparison) {
+      const headline = comparison.kind === "multiplier" ? `${Math.round(animatedHeadline)}x` : comparison.kind === "points" ? `${Math.round(animatedHeadline)}%` : comparison.headline;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "div",
+        {
+          className: "bg-card rounded-2xl p-6 relative overflow-hidden",
+          style: {
+            ...NEUMORPHIC,
+            boxShadow: "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)"
+          },
+          "data-ocid": "insights.hero_slot",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none",
+                style: {
+                  background: "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)"
+                }
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-start gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0",
+                  style: {
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)"
+                  },
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-accent-success" })
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your plan is working" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 flex items-baseline gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-4xl font-bold text-accent-success leading-none", children: headline }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground leading-snug", children: comparison.sentence })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-3 leading-relaxed", children: "That's the WOOP method doing its thing — your if-then plan turns intention into action. Keep using it, and this number will only climb." })
+              ] })
+            ] })
+          ]
+        }
+      );
+    }
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
       {
@@ -114418,16 +114468,15 @@ function HeroInsightSlot({
               }
             ),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your if-then plan is about to pay off" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "Use your if-then plan when you check in, and this spot will show you exactly how much it helps you follow through. A few more check-ins and the insight unlocks." })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your plan is building momentum" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "Keep applying your if-then plans — every check-in sharpens this insight. As the pattern firms up, you'll see exactly where your plan carries you furthest." })
             ] })
           ] })
         ]
       }
     );
   }
-  if (planHelping && comparison) {
-    const headline = comparison.kind === "multiplier" ? `${Math.round(animatedHeadline)}x` : comparison.kind === "points" ? `${Math.round(animatedHeadline)}%` : comparison.headline;
+  if (consistentPlanUser) {
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
       {
@@ -114461,10 +114510,13 @@ function HeroInsightSlot({
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your plan is working" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 flex items-baseline gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-4xl font-bold text-accent-success leading-none", children: headline }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground leading-snug", children: comparison.sentence })
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-display text-4xl font-bold text-accent-success leading-none", children: [
+                  Math.round(animatedPercent),
+                  "%"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground leading-snug", children: "follow-through when you use your if-then plan." })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-3 leading-relaxed", children: "That's the WOOP method doing its thing — your if-then plan turns intention into action. Keep using it, and this number will only climb." })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-3 leading-relaxed", children: "That's the WOOP method doing its thing — consistently using your plan turns intention into action. Keep it up, and this number will only climb." })
             ] })
           ] })
         ]
@@ -114502,8 +114554,8 @@ function HeroInsightSlot({
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your plan is building momentum" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "Keep applying your if-then plans — every check-in sharpens this insight. As the pattern firms up, you'll see exactly where your plan carries you furthest." })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Your if-then plan is about to pay off" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1 leading-relaxed", children: "Use your if-then plan when you check in, and this spot will show you exactly how much it helps you follow through. A few more check-ins and the insight unlocks." })
           ] })
         ] })
       ]

@@ -156,12 +156,18 @@ function HeroInsightSlot({
     checkInsWithoutPlan,
   } = analytics;
 
-  const enoughData =
-    checkInsWithPlan >= MIN_CHECK_INS && checkInsWithoutPlan >= MIN_CHECK_INS;
+  const hasEnoughWithPlan = checkInsWithPlan >= MIN_CHECK_INS;
+  const hasEnoughWithoutPlan = checkInsWithoutPlan >= MIN_CHECK_INS;
+
+  const enoughData = hasEnoughWithPlan && hasEnoughWithoutPlan;
 
   // A "meaningfully higher" with-plan rate — at least 5 percentage points.
   const planHelping =
     enoughData && successRateWithPlan - successRateWithoutPlan >= 0.05;
+
+  // A consistent plan user: enough with-plan check-ins to trust the absolute
+  // rate, but not yet enough without-plan check-ins for a fair comparison.
+  const consistentPlanUser = hasEnoughWithPlan && !hasEnoughWithoutPlan;
 
   // Build the comparison copy for the "plan is helping" state.
   const comparison = useMemo(() => {
@@ -209,6 +215,13 @@ function HeroInsightSlot({
         : 0,
     reduceMotion,
   );
+
+  // Absolute follow-through rate for the consistent-plan-user state. Guard
+  // against NaN so the headline never renders "NaN%".
+  const fallbackPercent = Number.isFinite(successRateWithPlan)
+    ? Math.round(successRateWithPlan * 100)
+    : 0;
+  const animatedPercent = useCountUp(fallbackPercent, reduceMotion);
 
   // ── Loading: keep the existing skeleton treatment ─────────────────────────
   if (isLoading) {
@@ -262,8 +275,68 @@ function HeroInsightSlot({
     );
   }
 
-  // ── State 1: not enough data yet — an invitation, not an empty state ──────
-  if (!enoughData) {
+  // ── State 2: full comparison available — keep the existing logic ─────────
+  if (enoughData) {
+    // ── State 2a: the plan is helping — lead with the win ──────────────────
+    if (planHelping && comparison) {
+      const headline =
+        comparison.kind === "multiplier"
+          ? `${Math.round(animatedHeadline)}x`
+          : comparison.kind === "points"
+            ? `${Math.round(animatedHeadline)}%`
+            : comparison.headline;
+
+      return (
+        <div
+          className="bg-card rounded-2xl p-6 relative overflow-hidden"
+          style={{
+            ...NEUMORPHIC,
+            boxShadow:
+              "-6px -6px 16px rgba(65,65,75,0.55), 10px 10px 26px rgba(0,0,0,0.9)",
+          }}
+          data-ocid="insights.hero_slot"
+        >
+          <div
+            className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(circle, oklch(var(--color-accent-success) / 0.16), transparent 70%)",
+            }}
+          />
+          <div className="relative flex items-start gap-3">
+            <div
+              className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center shrink-0"
+              style={{
+                boxShadow:
+                  "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
+              }}
+            >
+              <Sparkles className="w-5 h-5 text-accent-success" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-base font-semibold text-foreground">
+                Your plan is working
+              </p>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-display text-4xl font-bold text-accent-success leading-none">
+                  {headline}
+                </span>
+                <span className="text-sm text-foreground leading-snug">
+                  {comparison.sentence}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+                That's the WOOP method doing its thing — your if-then plan turns
+                intention into action. Keep using it, and this number will only
+                climb.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── State 2b: plan not yet ahead — honest, never discouraging ──────────
     return (
       <div
         className="bg-card rounded-2xl p-6 relative overflow-hidden"
@@ -293,12 +366,12 @@ function HeroInsightSlot({
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-display text-base font-semibold text-foreground">
-              Your if-then plan is about to pay off
+              Your plan is building momentum
             </p>
             <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-              Use your if-then plan when you check in, and this spot will show
-              you exactly how much it helps you follow through. A few more
-              check-ins and the insight unlocks.
+              Keep applying your if-then plans — every check-in sharpens this
+              insight. As the pattern firms up, you'll see exactly where your
+              plan carries you furthest.
             </p>
           </div>
         </div>
@@ -306,15 +379,8 @@ function HeroInsightSlot({
     );
   }
 
-  // ── State 2: the plan is helping — lead with the win ──────────────────────
-  if (planHelping && comparison) {
-    const headline =
-      comparison.kind === "multiplier"
-        ? `${Math.round(animatedHeadline)}x`
-        : comparison.kind === "points"
-          ? `${Math.round(animatedHeadline)}%`
-          : comparison.headline;
-
+  // ── State 3: consistent plan user — absolute follow-through win ──────────
+  if (consistentPlanUser) {
     return (
       <div
         className="bg-card rounded-2xl p-6 relative overflow-hidden"
@@ -348,16 +414,16 @@ function HeroInsightSlot({
             </p>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="font-display text-4xl font-bold text-accent-success leading-none">
-                {headline}
+                {Math.round(animatedPercent)}%
               </span>
               <span className="text-sm text-foreground leading-snug">
-                {comparison.sentence}
+                follow-through when you use your if-then plan.
               </span>
             </div>
             <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-              That's the WOOP method doing its thing — your if-then plan turns
-              intention into action. Keep using it, and this number will only
-              climb.
+              That's the WOOP method doing its thing — consistently using your
+              plan turns intention into action. Keep it up, and this number will
+              only climb.
             </p>
           </div>
         </div>
@@ -365,7 +431,7 @@ function HeroInsightSlot({
     );
   }
 
-  // ── State 3: plan not yet ahead — honest, never discouraging ──────────────
+  // ── State 4: not enough data yet — an invitation, not an empty state ──────
   return (
     <div
       className="bg-card rounded-2xl p-6 relative overflow-hidden"
@@ -395,12 +461,12 @@ function HeroInsightSlot({
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-display text-base font-semibold text-foreground">
-            Your plan is building momentum
+            Your if-then plan is about to pay off
           </p>
           <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-            Keep applying your if-then plans — every check-in sharpens this
-            insight. As the pattern firms up, you'll see exactly where your plan
-            carries you furthest.
+            Use your if-then plan when you check in, and this spot will show you
+            exactly how much it helps you follow through. A few more check-ins
+            and the insight unlocks.
           </p>
         </div>
       </div>
