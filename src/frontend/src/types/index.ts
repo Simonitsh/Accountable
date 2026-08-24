@@ -298,14 +298,6 @@ export interface GoalAnalytics {
 export interface AnalyticsSummary {
   goals: GoalAnalytics[];
   dailySuccessRate30Days: number[];
-  /** Success rate (0.0–1.0) for check-ins where the if-then plan was used. */
-  successRateWithPlan: number;
-  /** Success rate (0.0–1.0) for check-ins where the if-then plan was not used. */
-  successRateWithoutPlan: number;
-  /** Denominator for the "with plan" rate — number of check-ins that used the plan. */
-  checkInsWithPlan: number;
-  /** Denominator for the "without plan" rate — number of check-ins that skipped the plan. */
-  checkInsWithoutPlan: number;
 }
 
 /**

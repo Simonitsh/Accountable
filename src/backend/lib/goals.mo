@@ -355,23 +355,6 @@ module {
       case null {};
       case (?true) {
         let now = Time.now();
-        // Strict Lock-In active-window lockout — takes priority over the
-        // daily edit lockout. Applies only to Lock-In habits. The active
-        // window is [stored startTime - 5min, stored endTime + 5min] computed
-        // in the caller's local time via request.timezoneOffsetMinutes. It is
-        // NOT gated on scheduledDays.
-        if (habit.isLockIn) {
-          let localNs = now + request.timezoneOffsetMinutes * 60 * 1_000_000_000;
-          let currentLocalMinutes = (localNs % DAY_NS) / 60_000_000_000;
-          let windowStart = (habit.startTimeMinutes.toInt() - 5 + 1440) % 1440;
-          let windowEnd = (habit.endTimeMinutes.toInt() + 5) % 1440;
-          let inWindow = if (windowStart <= windowEnd) {
-            currentLocalMinutes >= windowStart and currentLocalMinutes <= windowEnd;
-          } else {
-            currentLocalMinutes >= windowStart or currentLocalMinutes <= windowEnd;
-          };
-          if (inWindow) return #err(#strictLockActive);
-        };
         switch (habit.lastEditedAt) {
           case null {};
           case (?last) {

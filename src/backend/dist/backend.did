@@ -96,11 +96,6 @@ type ObstacleTemplate =
    owner: UserId;
    title: text;
  };
-type ObstacleStat = 
- record {
-   id: ObstacleTemplateId;
-   title: text;
- };
 type MacroGoalPublic = 
  record {
    category: GoalCategory;
@@ -174,8 +169,6 @@ type GoalAnalytics =
  record {
    completionRate: float64;
    currentStreak: nat;
-   daysInWindow: nat;
-   daysShownUp: nat;
    goalId: GoalId;
    goalName: text;
    longestStreak: nat;
@@ -265,14 +258,6 @@ type Cell =
    name: text;
    value: Value;
  };
-type CategoryStat = 
- record {
-   activeHabits: nat;
-   category: GoalCategory;
-   completionRate: float64;
-   totalSkips: nat;
-   totalSuccesses: nat;
- };
 type AvatarShape = 
  opt variant {
        Hexagon;
@@ -289,19 +274,8 @@ type AvatarColorMode =
 type AvatarColor = opt text;
 type AnalyticsSummary = 
  record {
-   actualObstacle: opt ObstacleStat;
-   categoryStats: vec CategoryStat;
-   checkInsWithPlan: nat;
-   checkInsWithoutPlan: nat;
    dailySuccessRate30Days: vec float64;
-   daysInWindow: nat;
-   daysShownUp: nat;
    goals: vec GoalAnalytics;
-   plannedMatchesActual: bool;
-   plannedObstacle: opt ObstacleStat;
-   successRateByWeekday: vec float64;
-   successRateWithPlan: float64;
-   successRateWithoutPlan: float64;
  };
 service : {
   createHabit: (request: CreateHabitRequest) ->
@@ -335,7 +309,7 @@ service : {
                                      });
   devReset: () -> ();
   execute: (qJson: text) -> (Result) query;
-  getAnalytics: (timezoneOffsetMinutes: int) -> (AnalyticsSummary) query;
+  getAnalytics: () -> (AnalyticsSummary) query;
   getCheckInsForGoal: (goalId: GoalId) -> (vec CheckIn) query;
   getCheckInsForGoalTimeline: (goalId: GoalId, fromTimestamp: int) ->
    (vec CheckIn) query;

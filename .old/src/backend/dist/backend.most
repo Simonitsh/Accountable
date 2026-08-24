@@ -1,12 +1,10 @@
 // Version: 4.0.0
 type AvatarColorMode__259532165 = {#BorderOnly; #Fill};
-type AvatarColorMode__314032149 = {#BorderOnly; #Fill};
 type AvatarColorMode__408051037 = {#BorderOnly; #Fill};
 type AvatarColorMode__592069747 = {#BorderOnly; #Fill};
 type AvatarColorMode__792670331 = {#BorderOnly; #Fill};
 type AvatarColorMode__816136488 = {#BorderOnly; #Fill};
 type AvatarColorMode__943849288 = {#BorderOnly; #Fill};
-type AvatarColor__195874001 = ?Text;
 type AvatarColor__219980902 = ?Text;
 type AvatarColor__394509523 = ?Text;
 type AvatarColor__525410873 = ?Text;
@@ -21,8 +19,6 @@ type AvatarShape__39668923 =
   ?{#Hexagon; #Pentagon; #Square; #Star; #Triangle};
 type AvatarShape__675609231 =
   ?{#Hexagon; #Pentagon; #Square; #Star; #Triangle};
-type AvatarShape__745652542 =
-  ?{#Hexagon; #Pentagon; #Square; #Star; #Triangle};
 type AvatarShape__9682202 = ?{#Hexagon; #Pentagon; #Square; #Star; #Triangle};
 type AvatarShape__997757648 =
   ?{#Hexagon; #Pentagon; #Square; #Star; #Triangle};
@@ -36,8 +32,6 @@ type CheckInType__286341442 =
 type CheckInType__540648841 =
   {#inProgress; #missedCheckIn; #missedCheckOut; #skip; #success};
 type CheckInType__671517542 =
-  {#inProgress; #missedCheckIn; #missedCheckOut; #skip; #success};
-type CheckInType__798807931 =
   {#inProgress; #missedCheckIn; #missedCheckOut; #skip; #success};
 type CheckInType__97782262 =
   {#inProgress; #missedCheckIn; #missedCheckOut; #skip; #success};
@@ -57,19 +51,6 @@ type CheckIn__1031332090 =
 type CheckIn__159274937 =
   {
     checkInType : CheckInType__286341442;
-    customObstacleNote : ?Text;
-    executedIfThen : Bool;
-    goalId : Nat;
-    id : Nat;
-    lockInEndedAt : ?Int;
-    lockInStartedAt : ?Int;
-    obstacleTemplateId : ?Nat;
-    owner : Principal;
-    timestamp : Int
-  };
-type CheckIn__325819247 =
-  {
-    checkInType : CheckInType__798807931;
     customObstacleNote : ?Text;
     executedIfThen : Bool;
     goalId : Nat;
@@ -135,7 +116,6 @@ type CheckIn__924130555 =
 type ConnectionId__509734217 = Nat;
 type ConnectionStatus__1022222714 = {#accepted; #pending; #rejected};
 type ConnectionStatus__322763855 = {#accepted; #pending; #rejected};
-type ConnectionStatus__404770878 = {#accepted; #pending; #rejected};
 type ConnectionStatus__459729473 = {#accepted; #pending; #rejected};
 type ConnectionStatus__476958165 = {#accepted; #pending; #rejected};
 type ConnectionStatus__67524099 = {#accepted; #pending; #rejected};
@@ -146,14 +126,6 @@ type Connection__1022826935 =
     fromPrincipal : Principal;
     id : Nat;
     var status : ConnectionStatus__67524099;
-    toPrincipal : Principal
-  };
-type Connection__379088919 =
-  {
-    createdAt : Int;
-    fromPrincipal : Principal;
-    id : Nat;
-    var status : ConnectionStatus__404770878;
     toPrincipal : Principal
   };
 type Connection__495383401 =
@@ -207,14 +179,11 @@ type GoalCategory__295912938 =
   {#Health; #Learning; #Leisure; #Productivity; #Social};
 type GoalCategory__419219042 =
   {#Health; #Learning; #Leisure; #Productivity; #Social};
-type GoalCategory__471927895 =
-  {#Health; #Learning; #Leisure; #Productivity; #Social};
 type GoalCategory__971394183 =
   {#Health; #Learning; #Leisure; #Productivity; #Social};
 type GoalId__1036611184 = Nat;
 type GoalState__22346956 = {#abandoned; #active; #completed; #paused};
 type GoalState__307951609 = {#abandoned; #active; #completed; #paused};
-type GoalState__568403917 = {#abandoned; #active; #completed; #paused};
 type GoalState__808835413 = {#abandoned; #active; #completed; #paused};
 type GoalState__810211879 = {#active; #completed; #paused};
 type GoalState__826279163 = {#abandoned; #active; #completed; #paused};
@@ -262,30 +231,6 @@ type Goal__684986154 =
     var startTime : ?Text;
     var startTimeMinutes : Nat;
     var state : GoalState__826279163;
-    var themeColor : ?Text;
-    var updatedAt : Int;
-    var wish : Text;
-    var wishDescription : Text
-  };
-type Goal__75148246 =
-  {
-    var category : GoalCategory__471927895;
-    createdAt : Int;
-    var endTime : ?Text;
-    var endTimeMinutes : Nat;
-    var iconName : ?Text;
-    id : Nat;
-    var ifThenPlan : Text;
-    var isLockIn : Bool;
-    var lastEditedAt : ?Int;
-    var lockInDurationMinutes : Nat;
-    obstacleTemplateId : ?Nat;
-    outcome : Text;
-    owner : Principal;
-    var scheduledDays : [Text];
-    var startTime : ?Text;
-    var startTimeMinutes : Nat;
-    var state : GoalState__568403917;
     var themeColor : ?Text;
     var updatedAt : Int;
     var wish : Text;
@@ -345,7 +290,6 @@ type InteractionType__156290276 = {#highFive};
 type InteractionType__471605846 = {#highFive};
 type InteractionType__486718376 = {#highFive};
 type InteractionType__836567872 = {#highFive};
-type InteractionType__916136650 = {#highFive};
 type InteractionType__9386253 = {#highFive};
 type InteractionType__991750817 = {#highFive};
 type Interaction__118900069 =
@@ -354,14 +298,6 @@ type Interaction__118900069 =
     fromPrincipal : Principal;
     id : Nat;
     interactionType : InteractionType__9386253;
-    timestamp : Int
-  };
-type Interaction__229258083 =
-  {
-    checkInId : Nat;
-    fromPrincipal : Principal;
-    id : Nat;
-    interactionType : InteractionType__916136650;
     timestamp : Int
   };
 type Interaction__381793954 =
@@ -476,20 +412,6 @@ type NewActor__746836280 =
     obstacleTemplates : List__89170296<ObstacleTemplate__538809208>;
     profiles : Map__386906547<Principal, UserProfile__155337192>
   };
-type NewActor__843856202 =
-  {
-    checkIns : List__89170296<CheckIn__325819247>;
-    connections : List__89170296<Connection__379088919>;
-    goals : List__89170296<Goal__75148246>;
-    interactions : List__89170296<Interaction__229258083>;
-    nextCheckInId : [var Nat];
-    nextConnectionId : [var Nat];
-    nextGoalId : [var Nat];
-    nextInteractionId : [var Nat];
-    nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__407770883>;
-    profiles : Map__386906547<Principal, UserProfile__706404697>
-  };
 type NewActor__858795446 =
   {
     checkIns : List__89170296<CheckIn__648676375>;
@@ -569,8 +491,6 @@ type ObstacleTemplate__309430647 =
     owner : UserId__158757552;
     title : Text
   };
-type ObstacleTemplate__407770883 =
-  {description : Text; id : Nat; owner : Principal; title : Text};
 type ObstacleTemplate__538809208 =
   {description : Text; id : Nat; owner : Principal; title : Text};
 type ObstacleTemplate__71724481 =
@@ -619,7 +539,6 @@ type OldActor__393743114 =
     obstacleTemplates : List__89170296<ObstacleTemplate__118614227>;
     profiles : Map__386906547<Principal, UserProfile__974196033>
   };
-type OldActor__423355138 = {};
 type OldActor__866877789 =
   {
     checkIns : List__89170296<CheckIn__159274937>;
@@ -745,21 +664,6 @@ type UserProfile__442158699 =
     var timezoneOffsetMinutes : Int;
     var username : Text
   };
-type UserProfile__706404697 =
-  {
-    var avatarColor : AvatarColor__195874001;
-    var avatarColorMode : AvatarColorMode__314032149;
-    var avatarShape : AvatarShape__745652542;
-    var bio : ?Text;
-    var createdAt : Int;
-    var displayName : Text;
-    var email : ?Text;
-    id : Principal;
-    var role : UserRole__852774541;
-    var timezone : Text;
-    var timezoneOffsetMinutes : Int;
-    var username : Text
-  };
 type UserProfile__750612286 =
   {
     var avatarColor : AvatarColor__711521083;
@@ -810,10 +714,8 @@ type UserRole__434219697 = {#admin; #user};
 type UserRole__438365166 = {#admin; #user};
 type UserRole__451090586 = {#admin; #user};
 type UserRole__798171213 = {#admin; #user};
-type UserRole__852774541 = {#admin; #user};
 type UserRole__977768852 = {#admin; #user};
 {
-  "20260724_000000" : (_old : OldActor__423355138) -> NewActor__843856202;
   "20260725_000000" : (old : OldActor__1057455195) -> NewActor__234370823;
   "20260725_194140" : (old : OldActor__903587445) -> NewActor__687382730;
   "20260813_104705" : (old : OldActor__393743114) -> NewActor__858795446;

@@ -26,24 +26,11 @@ export interface GoalAnalytics {
     totalSkips: bigint;
     longestStreak: bigint;
     totalSuccesses: bigint;
-    daysInWindow: bigint;
-    daysShownUp: bigint;
     currentStreak: bigint;
 }
 export interface AnalyticsSummary {
-    successRateWithPlan: number;
-    plannedObstacle?: ObstacleStat;
-    plannedMatchesActual: boolean;
     goals: Array<GoalAnalytics>;
-    checkInsWithoutPlan: bigint;
     dailySuccessRate30Days: Array<number>;
-    categoryStats: Array<CategoryStat>;
-    successRateWithoutPlan: number;
-    daysInWindow: bigint;
-    actualObstacle?: ObstacleStat;
-    daysShownUp: bigint;
-    successRateByWeekday: Array<number>;
-    checkInsWithPlan: bigint;
 }
 export interface CreateMacroGoalRequest {
     wish: string;
@@ -64,13 +51,6 @@ export interface PartnerOverview {
     activeHabitCount: bigint;
     profile: UserProfilePublic;
     currentStreak: bigint;
-}
-export interface CategoryStat {
-    activeHabits: bigint;
-    completionRate: number;
-    totalSkips: bigint;
-    category: GoalCategory;
-    totalSuccesses: bigint;
 }
 export interface CreateHabitRequest {
     startTime?: string;
@@ -112,13 +92,6 @@ export interface ConnectionPublic {
     fromPrincipal: UserId;
 }
 export type CheckInId = bigint;
-export interface Interaction {
-    id: InteractionId;
-    interactionType: InteractionType;
-    fromPrincipal: UserId;
-    checkInId: CheckInId;
-    timestamp: Timestamp;
-}
 export type Value = {
     __kind__: "int";
     int: bigint;
@@ -138,6 +111,13 @@ export type Value = {
     __kind__: "text";
     text: string;
 };
+export interface Interaction {
+    id: InteractionId;
+    interactionType: InteractionType;
+    fromPrincipal: UserId;
+    checkInId: CheckInId;
+    timestamp: Timestamp;
+}
 export interface UpdateHabitRequest {
     startTime?: string;
     endTimeMinutes?: bigint;
@@ -243,10 +223,6 @@ export interface HabitPublic {
     outcome: string;
     lockInDurationMinutes: bigint;
 }
-export interface ObstacleStat {
-    id: ObstacleTemplateId;
-    title: string;
-}
 export enum AvatarColorMode {
     Fill = "Fill",
     BorderOnly = "BorderOnly"
@@ -341,7 +317,7 @@ export interface backendInterface {
     }>;
     devReset(): Promise<void>;
     execute(qJson: string): Promise<Result>;
-    getAnalytics(timezoneOffsetMinutes: bigint): Promise<AnalyticsSummary>;
+    getAnalytics(): Promise<AnalyticsSummary>;
     getCheckInsForGoal(goalId: GoalId): Promise<Array<CheckIn>>;
     getCheckInsForGoalTimeline(goalId: GoalId, fromTimestamp: bigint): Promise<Array<CheckIn>>;
     getCheckInsForPeriod(goalId: GoalId, fromTimestamp: bigint, toTimestamp: bigint): Promise<Array<CheckIn>>;

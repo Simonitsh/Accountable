@@ -83,7 +83,7 @@ actor {
   include CheckInsApi(checkIns, goals, nextCheckInId);
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
-  include AnalyticsApi(goals, checkIns, obstacleTemplates);
+  include AnalyticsApi(goals, checkIns);
   include PartnerHabitsApi(connections, goals, checkIns, profiles);
 
   // ─────────────────────────────────────────────────────────────────────────

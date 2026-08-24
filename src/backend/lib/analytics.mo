@@ -1,7 +1,5 @@
 import List "mo:core/List";
 import Array "mo:core/Array";
-import Set "mo:core/Set";
-import Int "mo:core/Int";
 import Common "../types/common";
 import AnalyticsTypes "../types/analytics";
 import CheckInTypes "../types/checkins";
@@ -19,157 +17,10 @@ module {
     (now / DAY_NS) - (ts / DAY_NS);
   };
 
-  /// Weekday index in the app's scheduledDays convention: 0 = Monday …
-  /// 6 = Sunday, computed in the user's timezone.
-  func weekdayIndex(ts : Common.Timestamp, timezoneOffsetMinutes : Int) : Nat {
-    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    let localNs = ts + offsetNs;
-    let daysSinceEpoch = localNs / DAY_NS;
-    // Epoch day 0 (1970-01-01) was a Thursday = weekday index 4 (0=Sun).
-    let raw = Int.rem(4 + daysSinceEpoch, 7);
-    let sundayFirst = if (raw < 0) { raw + 7 } else { raw };
-    // Convert 0=Sun … 6=Sat to 0=Mon … 6=Sun.
-    let mondayFirst = Int.rem(sundayFirst + 6, 7);
-    mondayFirst.toNat();
-  };
-
-  func weekdayAbbr(idx : Nat) : Text {
-    switch (idx) {
-      case 0 "mon";
-      case 1 "tue";
-      case 2 "wed";
-      case 3 "thu";
-      case 4 "fri";
-      case 5 "sat";
-      case 6 "sun";
-      case _ "mon"; // unreachable
-    };
-  };
-
-  func isScheduledDay(dayAbbr : Text, scheduledDays : [Text]) : Bool {
-    scheduledDays.find(func(d) { d == dayAbbr }) != null;
-  };
-
-  /// Counts the distinct scheduled days (per `scheduledDays`) that have
-  /// elapsed between `createdAt` and `now`, in the user's timezone.
-  func countScheduledDaysInWindow(
-    createdAt : Common.Timestamp,
-    now : Common.Timestamp,
-    scheduledDays : [Text],
-    timezoneOffsetMinutes : Int,
-  ) : Nat {
-    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    let startDay = (createdAt + offsetNs) / DAY_NS;
-    let endDay = (now + offsetNs) / DAY_NS;
-    var count : Nat = 0;
-    var d = startDay;
-    while (d <= endDay) {
-      let wd = weekdayIndex(d * DAY_NS - offsetNs, timezoneOffsetMinutes);
-      if (isScheduledDay(weekdayAbbr(wd), scheduledDays)) count += 1;
-      d += 1;
-    };
-    count;
-  };
-
-  /// Returns the most frequently occurring obstacle id in `ids`, or null when
-  /// the list is empty. Ties resolve to the first encountered maximum.
-  func mostFrequentObstacle(ids : [Common.ObstacleTemplateId]) : ?Common.ObstacleTemplateId {
-    var bestId : ?Common.ObstacleTemplateId = null;
-    var bestCount : Nat = 0;
-    for (a in ids.values()) {
-      var count : Nat = 0;
-      for (b in ids.values()) {
-        if (a == b) count += 1;
-      };
-      if (count > bestCount) {
-        bestCount := count;
-        bestId := ?a;
-      };
-    };
-    bestId;
-  };
-
-  func resolveObstacle(
-    id : Common.ObstacleTemplateId,
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
-  ) : ?AnalyticsTypes.ObstacleStat {
-    switch (obstacleTemplates.find(func(t) { t.id == id })) {
-      case null null;
-      case (?t) ?{ id = t.id; title = t.title };
-    };
-  };
-
-  /// The obstacle the user anticipated most across their habits (the
-  /// obstacleTemplateId set at creation on the most habits).
-  func computePlannedObstacle(
-    habits : [GoalTypes.Goal],
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
-  ) : ?AnalyticsTypes.ObstacleStat {
-    let ids = habits.values()
-      .filter(func(h) { h.obstacleTemplateId != null })
-      .map(func(h) { switch (h.obstacleTemplateId) { case null 0; case (?id) id } })
-      .toArray();
-    switch (mostFrequentObstacle(ids)) {
-      case null null;
-      case (?id) resolveObstacle(id, obstacleTemplates);
-    };
-  };
-
-  /// The obstacle actually logged most often across the user's skip check-ins.
-  func computeActualObstacle(
-    checkIns : [CheckInTypes.CheckIn],
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
-  ) : ?AnalyticsTypes.ObstacleStat {
-    let ids = checkIns.values()
-      .filter(func(c) { c.checkInType == #skip and c.obstacleTemplateId != null })
-      .map(func(c) { switch (c.obstacleTemplateId) { case null 0; case (?id) id } })
-      .toArray();
-    switch (mostFrequentObstacle(ids)) {
-      case null null;
-      case (?id) resolveObstacle(id, obstacleTemplates);
-    };
-  };
-
-  /// Per-category rollup over the user's habits and their check-ins.
-  func computeCategoryStats(
-    habits : [GoalTypes.Goal],
-    checkIns : [CheckInTypes.CheckIn],
-  ) : [AnalyticsTypes.CategoryStat] {
-    var cats : [GoalTypes.GoalCategory] = [];
-    for (h in habits.values()) {
-      if (cats.find(func(c) { c == h.category }) == null) {
-        cats := cats.concat([h.category]);
-      };
-    };
-    cats.map(func(cat) {
-      var totalSuccesses : Nat = 0;
-      var totalSkips : Nat = 0;
-      var activeHabits : Nat = 0;
-      for (h in habits.values()) {
-        if (h.category == cat) {
-          if (h.state == #active) activeHabits += 1;
-          for (c in checkIns.values()) {
-            if (c.goalId == h.id) {
-              switch (c.checkInType) {
-                case (#success) totalSuccesses += 1;
-                case (#skip) totalSkips += 1;
-                case _ {};
-              };
-            };
-          };
-        };
-      };
-      let total = totalSuccesses + totalSkips;
-      let completionRate = if (total == 0) 0.0 else totalSuccesses.toFloat() / total.toFloat();
-      { category = cat; totalSuccesses; totalSkips; completionRate; activeHabits };
-    });
-  };
-
   public func computeGoalAnalytics(
     goal : GoalTypes.HabitPublic,
     checkIns : [CheckInTypes.CheckIn],
     now : Common.Timestamp,
-    timezoneOffsetMinutes : Int,
   ) : AnalyticsTypes.GoalAnalytics {
     var totalSuccesses : Nat = 0;
     var totalSkips : Nat = 0;
@@ -254,17 +105,6 @@ module {
     let total = totalSuccesses + totalSkips;
     let completionRate : Float = if (total == 0) 0.0 else totalSuccesses.toFloat() / total.toFloat();
 
-    // "Shows up" progress: distinct local days with a #success.
-    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    let shownUpDays = Set.empty<Int>();
-    for (c in checkIns.values()) {
-      if (c.checkInType == #success) {
-        shownUpDays.add((c.timestamp + offsetNs) / DAY_NS);
-      };
-    };
-    let daysShownUp = shownUpDays.size();
-    let daysInWindow = countScheduledDaysInWindow(goal.createdAt, now, goal.scheduledDays, timezoneOffsetMinutes);
-
     {
       goalId = goal.id;
       goalName = goal.wish;
@@ -274,8 +114,6 @@ module {
       totalSkips;
       totalMissed = 0; // missed tracking beyond scope for now
       completionRate;
-      daysShownUp;
-      daysInWindow;
     };
   };
 
@@ -312,10 +150,8 @@ module {
   public func getAnalytics(
     goals : List.List<GoalTypes.Goal>,
     checkIns : List.List<CheckInTypes.CheckIn>,
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
     caller : Common.UserId,
     now : Common.Timestamp,
-    timezoneOffsetMinutes : Int,
   ) : AnalyticsTypes.AnalyticsSummary {
     // Analytics are per-habit (check-ins are recorded against habits, not
     // macro goals). Filter to habits only (goalId set).
@@ -328,85 +164,14 @@ module {
     let goalAnalytics = ownedHabits.map(func(g) {
       let gPublic = GoalLib.toHabitPublic(g);
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
-      computeGoalAnalytics(gPublic, goalCheckIns, now, timezoneOffsetMinutes);
+      computeGoalAnalytics(gPublic, goalCheckIns, now);
     });
 
     let daily = computeDailySuccessRate30Days(allCheckIns, goalIds, now);
 
-    // ── 1. IF-THEN effectiveness ────────────────────────────────────────────
-    // Only over check-ins the user actually recorded as #success or #skip.
-    var withPlanSuccess : Nat = 0;
-    var withPlanTotal : Nat = 0;
-    var withoutPlanSuccess : Nat = 0;
-    var withoutPlanTotal : Nat = 0;
-    for (c in allCheckIns.values()) {
-      if (c.checkInType == #success or c.checkInType == #skip) {
-        if (c.executedIfThen) {
-          withPlanTotal += 1;
-          if (c.checkInType == #success) withPlanSuccess += 1;
-        } else {
-          withoutPlanTotal += 1;
-          if (c.checkInType == #success) withoutPlanSuccess += 1;
-        };
-      };
-    };
-    let successRateWithPlan = if (withPlanTotal == 0) 0.0 else withPlanSuccess.toFloat() / withPlanTotal.toFloat();
-    let successRateWithoutPlan = if (withoutPlanTotal == 0) 0.0 else withoutPlanSuccess.toFloat() / withoutPlanTotal.toFloat();
-
-    // ── 2. Day-of-week pattern ──────────────────────────────────────────────
-    let weekdaySuccess = [var 0, 0, 0, 0, 0, 0, 0];
-    let weekdayTotal = [var 0, 0, 0, 0, 0, 0, 0];
-    for (c in allCheckIns.values()) {
-      if (c.checkInType == #success or c.checkInType == #skip) {
-        let wd = weekdayIndex(c.timestamp, timezoneOffsetMinutes);
-        weekdayTotal[wd] += 1;
-        if (c.checkInType == #success) weekdaySuccess[wd] += 1;
-      };
-    };
-    let successRateByWeekday = Array.tabulate(7, func(i) {
-      if (weekdayTotal[i] == 0) 0.0 else weekdaySuccess[i].toFloat() / weekdayTotal[i].toFloat();
-    });
-
-    // ── 3. Per-category rollup ──────────────────────────────────────────────
-    let categoryStats = computeCategoryStats(ownedHabits, allCheckIns);
-
-    // ── 4. Planned vs actual obstacle ───────────────────────────────────────
-    let plannedObstacle = computePlannedObstacle(ownedHabits, obstacleTemplates);
-    let actualObstacle = computeActualObstacle(allCheckIns, obstacleTemplates);
-    let plannedMatchesActual = switch (plannedObstacle, actualObstacle) {
-      case (?p, ?a) p.id == a.id;
-      case _ false;
-    };
-
-    // ── 5. "Shows up" progress count (overall) ──────────────────────────────
-    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    let shownUpDays = Set.empty<Int>();
-    for (c in allCheckIns.values()) {
-      if (c.checkInType == #success) {
-        shownUpDays.add((c.timestamp + offsetNs) / DAY_NS);
-      };
-    };
-    let daysShownUp = shownUpDays.size();
-    var daysInWindow : Nat = 0;
-    for (g in ownedHabits.values()) {
-      let gPublic = GoalLib.toHabitPublic(g);
-      daysInWindow += countScheduledDaysInWindow(gPublic.createdAt, now, gPublic.scheduledDays, timezoneOffsetMinutes);
-    };
-
     {
       goals = goalAnalytics;
       dailySuccessRate30Days = daily;
-      successRateWithPlan;
-      successRateWithoutPlan;
-      checkInsWithPlan = withPlanTotal;
-      checkInsWithoutPlan = withoutPlanTotal;
-      successRateByWeekday;
-      categoryStats;
-      plannedObstacle;
-      actualObstacle;
-      plannedMatchesActual;
-      daysShownUp;
-      daysInWindow;
     };
   };
 };

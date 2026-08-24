@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Sparkles, Users } from "lucide-react";
+import { BarChart3, Home, Users } from "lucide-react";
 
 interface TabItem {
   to: string;
@@ -30,9 +30,9 @@ const TABS: TabItem[] = [
     glowClass: "",
   },
   {
-    to: "/insights",
-    icon: Sparkles,
-    label: "Insights",
+    to: "/analytics",
+    icon: BarChart3,
+    label: "Analytics",
     accentClass: "text-white",
     glowClass: "",
   },

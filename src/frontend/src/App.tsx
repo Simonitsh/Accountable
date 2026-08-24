@@ -11,13 +11,13 @@ import { useAuth } from "./hooks/useAuth";
 import { useBackend } from "./hooks/useBackend";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { AdminPage as AdminPageImpl } from "./pages/AdminPage";
+import { AnalyticsPage as AnalyticsPageImpl } from "./pages/AnalyticsPage";
 import { ConnectionsPage } from "./pages/ConnectionsPage";
 import { DashboardPage as DashboardPageImpl } from "./pages/DashboardPage";
 import { EditAvatarPage as EditAvatarPageImpl } from "./pages/EditAvatarPage";
 import { EditHabitPage as EditHabitPageImpl } from "./pages/EditHabitPage";
 import { EditProfilePage as EditProfilePageImpl } from "./pages/EditProfilePage";
 import { GoalsPage as GoalsPageImpl } from "./pages/GoalsPage";
-import { InsightsPage as InsightsPageImpl } from "./pages/InsightsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MyGoalsPage as MyGoalsPageImpl } from "./pages/MyGoalsPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
@@ -32,8 +32,8 @@ function DashboardPage() {
 function PartnersPage() {
   return <PartnersPageImpl />;
 }
-function InsightsPage() {
-  return <InsightsPageImpl />;
+function AnalyticsPage() {
+  return <AnalyticsPageImpl />;
 }
 function ProfilePage() {
   return <ProfilePageImpl />;
@@ -208,17 +208,10 @@ const partnersRoute = createRoute({
   component: PartnersPage,
 });
 
-const insightsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/insights",
-  component: InsightsPage,
-});
-
-// Redirect legacy /analytics links to /insights so they don't 404.
-const analyticsRedirectRoute = createRoute({
+const analyticsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/analytics",
-  component: () => <Navigate to="/insights" />,
+  component: AnalyticsPage,
 });
 
 const connectionsRoute = createRoute({
@@ -282,8 +275,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   feedRoute,
   partnersRoute,
-  insightsRoute,
-  analyticsRedirectRoute,
+  analyticsRoute,
   connectionsRoute,
   profileRoute,
   settingsRoute,
