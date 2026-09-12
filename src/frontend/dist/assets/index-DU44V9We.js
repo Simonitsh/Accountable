@@ -101514,6 +101514,12 @@ const GREY_COLOR = "#4B5563";
 const MISSED_COLOR$1 = "#6B7280";
 const SWIPE_THRESHOLD = 60;
 const IF_THEN_NOTE_WINDOW_MS = 45e3;
+const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
+function isIfThenDismissed(checkInId) {
+  if (checkInId === void 0) return false;
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1";
+}
 function parseTimeToday(timeStr) {
   const [h2, m2] = timeStr.split(":").map(Number);
   const d2 = /* @__PURE__ */ new Date();
@@ -101656,7 +101662,9 @@ function GoalCard$1({
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
   const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
-  const [showIfThenNote, setShowIfThenNote] = reactExports.useState(false);
+  const [showIfThenNote, setShowIfThenNote] = reactExports.useState(
+    () => !isIfThenDismissed(ifThenCheckInId)
+  );
   const [isTapped, _setIsTapped] = reactExports.useState(false);
   const autoMissedTriggeredRef = reactExports.useRef(false);
   const exitCommittedRef = reactExports.useRef(false);
@@ -101969,6 +101977,12 @@ function GoalCard$1({
   }
   function handleIfThenDismiss() {
     setShowIfThenNote(false);
+    if (ifThenCheckInId !== void 0) {
+      localStorage.setItem(
+        `${IF_THEN_DISMISS_KEY_PREFIX}${ifThenCheckInId}`,
+        "1"
+      );
+    }
   }
   function handleSkipModalClose() {
     setShowSkipModal(false);
@@ -102004,7 +102018,7 @@ function GoalCard$1({
     onExitCompleteRef.current = onExitComplete;
   });
   reactExports.useEffect(() => {
-    if (mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (checkInToday == null ? void 0 : checkInToday.checkInType) === "success") {
+    if (mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" && !executedIfThen) {
       setShowIfThenNote(true);
       const t2 = setTimeout(
         () => setShowIfThenNote(false),
@@ -102012,7 +102026,13 @@ function GoalCard$1({
       );
       return () => clearTimeout(t2);
     }
-  }, [mode2, hasIfThenPlan, ifThenCheckInId, checkInToday == null ? void 0 : checkInToday.checkInType]);
+  }, [
+    mode2,
+    hasIfThenPlan,
+    ifThenCheckInId,
+    checkInToday == null ? void 0 : checkInToday.checkInType,
+    executedIfThen
+  ]);
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -102481,9 +102501,9 @@ function GoalCard$1({
                           },
                           onPointerUp: (e3) => e3.stopPropagation(),
                           onPointerMove: (e3) => e3.stopPropagation(),
-                          "aria-label": "Complete check-in without the if-then plan",
+                          "aria-label": "Dismiss this if-then follow-up note",
                           "data-ocid": `goal.ifthen_note.dismiss.${index2 + 1}`,
-                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Dismiss" })
                         }
                       )
                     ]

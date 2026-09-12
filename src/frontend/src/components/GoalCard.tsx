@@ -5,7 +5,6 @@ import {
   LockOpen,
   Pause,
   TriangleAlert,
-  X,
   Zap,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -29,6 +28,21 @@ const SWIPE_THRESHOLD = 60;
 // the habit is completed. After this window the note simply disappears and the
 // habit stays done without the if-then tag (a normal outcome).
 const IF_THEN_NOTE_WINDOW_MS = 45_000;
+
+// localStorage key prefix for permanently dismissing the if-then follow-up note
+// per check-in. The full key is `${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`.
+// Persisting by check-in id means the dismissal survives GoalCard unmounting
+// when the user switches tabs or navigates away and back — exactly like the
+// backend-driven executedIfThen flag does for 'Used it'.
+const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
+
+function isIfThenDismissed(checkInId: bigint | undefined): boolean {
+  if (checkInId === undefined) return false;
+  if (typeof window === "undefined") return false;
+  return (
+    localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1"
+  );
+}
 
 export type DayStatus = "success" | "skip" | "none";
 
@@ -282,8 +296,11 @@ export function GoalCard({
   // If-then follow-up note — shown on the Done card for a short window after a
   // habit with an if-then plan is completed. Non-blocking: the habit is already
   // done. Tapping 'Used it' tags the already-created check-in; dismissing or
-  // ignoring simply leaves the habit done without the tag.
-  const [showIfThenNote, setShowIfThenNote] = useState(false);
+  // ignoring simply leaves the habit done without the tag. Dismissal is
+  // persisted to localStorage keyed by check-in id so it survives remounts.
+  const [showIfThenNote, setShowIfThenNote] = useState(
+    () => !isIfThenDismissed(ifThenCheckInId),
+  );
   // Press feedback: brief scale-down + inward shadow on clean tap
   const [isTapped, _setIsTapped] = useState(false);
   // Auto-trigger missed sheet once per transition to a missed state
@@ -722,6 +739,16 @@ export function GoalCard({
 
   function handleIfThenDismiss() {
     setShowIfThenNote(false);
+    // Persist the dismissal keyed by check-in id so the note stays hidden for
+    // this check-in across page/tab navigation (GoalCard unmounts on tab
+    // switch). Mirrors the localStorage persistent-UI pattern used by useTheme
+    // and DashboardPage's NEW_HABIT_KEY.
+    if (ifThenCheckInId !== undefined) {
+      localStorage.setItem(
+        `${IF_THEN_DISMISS_KEY_PREFIX}${ifThenCheckInId}`,
+        "1",
+      );
+    }
   }
 
   function handleSkipModalClose() {
@@ -779,7 +806,8 @@ export function GoalCard({
       mode === "done" &&
       hasIfThenPlan &&
       ifThenCheckInId !== undefined &&
-      checkInToday?.checkInType === "success"
+      checkInToday?.checkInType === "success" &&
+      !executedIfThen
     ) {
       setShowIfThenNote(true);
       const t = setTimeout(
@@ -788,7 +816,13 @@ export function GoalCard({
       );
       return () => clearTimeout(t);
     }
-  }, [mode, hasIfThenPlan, ifThenCheckInId, checkInToday?.checkInType]);
+  }, [
+    mode,
+    hasIfThenPlan,
+    ifThenCheckInId,
+    checkInToday?.checkInType,
+    executedIfThen,
+  ]);
 
   // We intentionally only depend on isExiting and goal.id here.
   useEffect(() => {
@@ -1349,10 +1383,10 @@ export function GoalCard({
                   }}
                   onPointerUp={(e) => e.stopPropagation()}
                   onPointerMove={(e) => e.stopPropagation()}
-                  aria-label="Complete check-in without the if-then plan"
+                  aria-label="Dismiss this if-then follow-up note"
                   data-ocid={`goal.ifthen_note.dismiss.${index + 1}`}
                 >
-                  <X size={14} />
+                  <span>Dismiss</span>
                 </button>
               </div>
             )}

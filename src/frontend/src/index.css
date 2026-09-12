@@ -1058,15 +1058,27 @@
       rgba(80, 80, 85, 0.2);
   }
 
-  /* Optional dismiss control — ghosted, tiny, sits at the row's end. */
+  /* Optional dismiss control — a labelled grey button that permanently hides
+     the note for this check-in. Reads as a quiet, secondary action distinct
+     from the emerald 'Used it' chip. */
   .ifthen-note-dismiss {
     @apply ml-auto inline-flex items-center rounded-md transition-smooth;
-    @apply px-1.5 py-1 text-xs cursor-pointer;
+    @apply px-2.5 py-1.5 text-xs font-medium cursor-pointer;
     color: oklch(var(--ifthen-note-muted));
+    background-color: oklch(var(--muted) / 0.6);
+    border: 1px solid oklch(var(--border));
+    box-shadow: -1px -1px 3px rgba(80, 80, 85, 0.3), 2px 2px 5px
+      rgba(0, 0, 0, 0.5);
   }
 
   .ifthen-note-dismiss:hover {
     color: oklch(var(--ifthen-note-text));
+    background-color: oklch(var(--muted));
+  }
+
+  .ifthen-note-dismiss:active {
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
   }
 
   /* Label / hint text inside the note */

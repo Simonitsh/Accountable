@@ -3787,7 +3787,9 @@ video {
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
       rgba(80, 80, 85, 0.2);
   }
-/* Optional dismiss control — ghosted, tiny, sits at the row's end. */
+/* Optional dismiss control — a labelled grey button that permanently hides
+     the note for this check-in. Reads as a quiet, secondary action distinct
+     from the emerald 'Used it' chip. */
 .ifthen-note-dismiss {
   margin-left: auto;
   display: inline-flex;
@@ -3795,16 +3797,26 @@ video {
   border-radius: calc(var(--radius) - 2px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    padding-left: 0.375rem;
-    padding-right: 0.375rem;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
     font-size: 0.75rem;
     line-height: 1rem;
+    font-weight: 500;
     color: oklch(var(--ifthen-note-muted));
+    background-color: oklch(var(--muted) / 0.6);
+    border: 1px solid oklch(var(--border));
+    box-shadow: -1px -1px 3px rgba(80, 80, 85, 0.3), 2px 2px 5px
+      rgba(0, 0, 0, 0.5);
 }
 .ifthen-note-dismiss:hover {
     color: oklch(var(--ifthen-note-text));
+    background-color: oklch(var(--muted));
+  }
+.ifthen-note-dismiss:active {
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
   }
 /* Label / hint text inside the note */
 .ifthen-note-label {
