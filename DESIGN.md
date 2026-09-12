@@ -189,3 +189,34 @@ A premium full-screen goal-creation experience that reframes goal-setting as a c
 - Does NOT modify WOOP wizard tokens, the dashboard swipe model, or avatar system.
 - Designed for extensibility: future inputs beyond category / wish / outcome slot in as additional step nodes on the same SVG path without restructuring the shell.
 - No backend contract changes — wizard composes inputs and hands off to the existing goal-creation flow.
+
+## Feature — Optional If-Then Plan Note (Success Check-In)
+
+### Purpose
+A small, optional, dismissible "I used my if-then plan" note that appears on the successful check-in confirmation — ONLY for habits that have an if-then plan set. One tap records the check-in with `executedIfThen=true`; ignoring it (or dismissing) records normally with `executedIfThen=false`, zero extra steps. It is a lightweight additive revival, not a gate: the existing "about to skip → did you do your plan instead?" rescue moment is unchanged.
+
+### Placement & Behavior
+- Appears in the success confirmation ONLY when the habit has an if-then plan set; habits without a plan never show it.
+- Sits as a slim inset row above the card's emboss — visually lighter than the primary success lock so it reads as optional.
+- One tap on the action records `executedIfThen=true` through the same check-in path as the existing rescue moment.
+- Dismissible; completing the check-in normally records `executedIfThen=false` with no extra step.
+
+### Styling (scoped, additive)
+- `.ifthen-note` — quiet inset wash surface (`--ifthen-note-bg`, warmer/lighter than card), thin top/left white highlight, inset neumorphic shadow. No glow, no neon.
+- `.ifthen-note-action` — small emerald chip (reuses success Emerald `--ifthen-note-border`) at ~12% fill, emboss shadow; hover deepens fill, press insets. Reads as positive + additive, mirrors `.chip-neumorphic` language at smaller size.
+- `.ifthen-note-dismiss` — ghosted tiny dismiss control, muted text → brightens on hover.
+- `.ifthen-note-label` / `.ifthen-note-hint` — soft warm-white label + muted hint text.
+
+### Tokens
+| Token | Light | Dark | Purpose |
+|-------|-------|------|---------|
+| `--ifthen-note-bg` | oklch(0.34 0.006 158) | oklch(0.2 0.008 158) | Subtle inset note surface |
+| `--ifthen-note-border` | oklch(0.696 0.17 162) | oklch(0.696 0.17 162) | Emerald action accent (reuses success) |
+| `--ifthen-note-text` | oklch(0.92 0.01 158) | oklch(0.92 0.01 158) | Note label |
+| `--ifthen-note-muted` | oklch(0.6 0.01 158) | oklch(0.58 0.01 158) | Hint / dismiss text |
+
+### Scope Boundaries
+- Additive only — does NOT replace or restyle the existing WOOP Catch rescue moment.
+- Does NOT change the dashboard swipe model, card-lock states, or avatar system.
+- No if-then effectiveness insight display (per `doNotBuild`).
+- No backend contract changes — reuses the existing `executedIfThen` field on the check-in path.

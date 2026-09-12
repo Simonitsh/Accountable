@@ -5,6 +5,7 @@ import {
   LockOpen,
   Pause,
   TriangleAlert,
+  X,
   Zap,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -266,6 +267,11 @@ export function GoalCard({
   const [showMissedSheet, setShowMissedSheet] = useState(false);
   // WOOP Catch sheet — shown on left swipe for normal (non-LockIn) habits
   const [showWoopCatch, setShowWoopCatch] = useState(false);
+  // If-then plan note — shown on the right-swipe success confirmation ONLY for
+  // habits with an if-then plan set. Optional: tapping the action records
+  // executedIfThen=true; dismissing or ignoring records executedIfThen=false
+  // with zero extra steps.
+  const [showIfThenNote, setShowIfThenNote] = useState(false);
   // Press feedback: brief scale-down + inward shadow on clean tap
   const [isTapped, _setIsTapped] = useState(false);
   // Auto-trigger missed sheet once per transition to a missed state
@@ -360,6 +366,8 @@ export function GoalCard({
   const isMissedCheckIn = checkInToday?.checkInType === "missedCheckIn";
   const isMissedCheckOut = checkInToday?.checkInType === "missedCheckOut";
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
+  // Whether this habit has an if-then plan set — gates the optional success note.
+  const hasIfThenPlan = !!goal.ifThenPlan?.trim();
   const themeColor = goal.themeColor;
   const rawWishDescription = goal.wishDescription || goal.wish;
   // Strip the wizard-assembled prefix "Every day, I will " → display "I will …"
@@ -493,6 +501,9 @@ export function GoalCard({
   function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
     modalOpenedDuringGestureRef.current = false;
     isVerticalScrollRef.current = false;
+    // While the if-then success note is showing, the card is in a confirming
+    // state — no new swipe gesture may start.
+    if (showIfThenNote) return;
     // Done-mode: record start position for clean-tap detection
     if (mode === "done") {
       isPointerDown.current = true;
@@ -612,6 +623,11 @@ export function GoalCard({
         onCheckIn?.(goal.id, "inProgress", undefined, Date.now());
       } else if (lockInState === "end-window") {
         onCheckIn?.(goal.id, "success", undefined, undefined, Date.now());
+      } else if (hasIfThenPlan) {
+        // Habit has an if-then plan — show the optional success note instead of
+        // completing immediately. The user can tap the action (executedIfThen=true)
+        // or dismiss/ignore (executedIfThen=false) with zero extra steps.
+        setShowIfThenNote(true);
       } else {
         onCheckIn?.(goal.id, "success");
       }
@@ -685,6 +701,18 @@ export function GoalCard({
     // User still needs to skip → close WOOP Catch, open obstacle sheet
     setShowWoopCatch(false);
     setShowSkipModal(true);
+  }
+
+  // If-then success note handlers — both complete the check-in through the
+  // same onCheckIn path; only the executedIfThen flag differs.
+  function handleIfThenUsed() {
+    setShowIfThenNote(false);
+    onCheckIn?.(goal.id, "success", undefined, undefined, undefined, true);
+  }
+
+  function handleIfThenDismiss() {
+    setShowIfThenNote(false);
+    onCheckIn?.(goal.id, "success", undefined, undefined, undefined, false);
   }
 
   function handleSkipModalClose() {
@@ -1003,8 +1031,15 @@ export function GoalCard({
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerCancel}
           onKeyDown={(e) => {
-            if (mode === "active" && e.key === "Enter")
-              onCheckIn?.(goal.id, "success");
+            if (mode === "active" && e.key === "Enter") {
+              if (showIfThenNote) {
+                // Note is showing — Enter completes the check-in normally
+                // (executedIfThen=false), zero extra steps.
+                handleIfThenDismiss();
+              } else {
+                onCheckIn?.(goal.id, "success");
+              }
+            }
             if (mode === "done" && e.key === "Enter") onDoneCardTap?.(goal.id);
           }}
           className="relative select-none overflow-hidden rounded-2xl w-full text-left bg-transparent border-0"
@@ -1241,6 +1276,63 @@ export function GoalCard({
                 ))}
               </div>
             </div>
+
+            {/* If-then plan note — optional success confirmation for habits
+                with an if-then plan set. Tapping the action records the
+                check-in with executedIfThen=true; dismissing or ignoring it
+                records executedIfThen=false with zero extra steps. */}
+            {showIfThenNote && (
+              <div
+                className="ifthen-note w-full"
+                data-ocid={`goal.ifthen_note.${index + 1}`}
+              >
+                <div className="flex flex-col items-start text-left gap-0.5 min-w-0">
+                  <span className="ifthen-note-label text-xs font-medium">
+                    I used my if-then plan
+                  </span>
+                  <span className="ifthen-note-hint text-[11px] leading-snug line-clamp-2">
+                    {goal.ifThenPlan}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="ifthen-note-action shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleIfThenUsed();
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    modalOpenedDuringGestureRef.current = true;
+                  }}
+                  onPointerUp={(e) => e.stopPropagation()}
+                  onPointerMove={(e) => e.stopPropagation()}
+                  aria-label="Record this check-in as using my if-then plan"
+                  data-ocid={`goal.ifthen_note.action.${index + 1}`}
+                >
+                  <Zap size={12} />
+                  <span>Used it</span>
+                </button>
+                <button
+                  type="button"
+                  className="ifthen-note-dismiss shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleIfThenDismiss();
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    modalOpenedDuringGestureRef.current = true;
+                  }}
+                  onPointerUp={(e) => e.stopPropagation()}
+                  onPointerMove={(e) => e.stopPropagation()}
+                  aria-label="Complete check-in without the if-then plan"
+                  data-ocid={`goal.ifthen_note.dismiss.${index + 1}`}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
 
             {/* Log What Happened button — amber CTA for missed Lock-In windows */}
             {isLockIn &&

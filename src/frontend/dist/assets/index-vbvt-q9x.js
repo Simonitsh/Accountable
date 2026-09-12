@@ -101591,9 +101591,11 @@ function GoalCard$1({
   inProgressPulse = false,
   executedIfThen = false
 }) {
+  var _a3;
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
   const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
+  const [showIfThenNote, setShowIfThenNote] = reactExports.useState(false);
   const [isTapped, _setIsTapped] = reactExports.useState(false);
   const autoMissedTriggeredRef = reactExports.useRef(false);
   const exitCommittedRef = reactExports.useRef(false);
@@ -101644,6 +101646,7 @@ function GoalCard$1({
   const isMissedCheckIn = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn";
   const isMissedCheckOut = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut";
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
+  const hasIfThenPlan = !!((_a3 = goal.ifThenPlan) == null ? void 0 : _a3.trim());
   const themeColor = goal.themeColor;
   const rawWishDescription = goal.wishDescription || goal.wish;
   const keystoneText2 = rawWishDescription.startsWith("Every day, I will ") ? `I will ${rawWishDescription.slice("Every day, I will ".length)}` : rawWishDescription.startsWith("Every day ,") ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}` : rawWishDescription;
@@ -101752,6 +101755,7 @@ function GoalCard$1({
   function onPointerDown(e3) {
     modalOpenedDuringGestureRef.current = false;
     isVerticalScrollRef.current = false;
+    if (showIfThenNote) return;
     if (mode2 === "done") {
       isPointerDown.current = true;
       pointerStartX.current = e3.clientX;
@@ -101841,6 +101845,8 @@ function GoalCard$1({
         onCheckIn == null ? void 0 : onCheckIn(goal.id, "inProgress", void 0, Date.now());
       } else if (lockInState === "end-window") {
         onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, Date.now());
+      } else if (hasIfThenPlan) {
+        setShowIfThenNote(true);
       } else {
         onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
       }
@@ -101897,6 +101903,14 @@ function GoalCard$1({
     setShowWoopCatch(false);
     setShowSkipModal(true);
   }
+  function handleIfThenUsed() {
+    setShowIfThenNote(false);
+    onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, void 0, true);
+  }
+  function handleIfThenDismiss() {
+    setShowIfThenNote(false);
+    onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, void 0, false);
+  }
   function handleSkipModalClose() {
     setShowSkipModal(false);
     modalOpenedDuringGestureRef.current = false;
@@ -101935,11 +101949,11 @@ function GoalCard$1({
       if (exitTimerRef.current !== null) return;
       exitFiredRef.current = false;
       exitTimerRef.current = setTimeout(() => {
-        var _a3;
+        var _a4;
         exitTimerRef.current = null;
         if (!exitFiredRef.current) {
           exitFiredRef.current = true;
-          (_a3 = onExitCompleteRef.current) == null ? void 0 : _a3.call(onExitCompleteRef, goal.id);
+          (_a4 = onExitCompleteRef.current) == null ? void 0 : _a4.call(onExitCompleteRef, goal.id);
         }
       }, EXIT_DURATION_MS);
     } else {
@@ -102167,8 +102181,13 @@ function GoalCard$1({
               onPointerUp,
               onPointerCancel,
               onKeyDown: (e3) => {
-                if (mode2 === "active" && e3.key === "Enter")
-                  onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
+                if (mode2 === "active" && e3.key === "Enter") {
+                  if (showIfThenNote) {
+                    handleIfThenDismiss();
+                  } else {
+                    onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
+                  }
+                }
                 if (mode2 === "done" && e3.key === "Enter") onDoneCardTap == null ? void 0 : onDoneCardTap(goal.id);
               },
               className: "relative select-none overflow-hidden rounded-2xl w-full text-left bg-transparent border-0",
@@ -102349,6 +102368,62 @@ function GoalCard$1({
                     id2
                   )) })
                 ] }),
+                showIfThenNote && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "ifthen-note w-full",
+                    "data-ocid": `goal.ifthen_note.${index2 + 1}`,
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-start text-left gap-0.5 min-w-0", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ifthen-note-label text-xs font-medium", children: "I used my if-then plan" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ifthen-note-hint text-[11px] leading-snug line-clamp-2", children: goal.ifThenPlan })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "button",
+                        {
+                          type: "button",
+                          className: "ifthen-note-action shrink-0",
+                          onClick: (e3) => {
+                            e3.stopPropagation();
+                            handleIfThenUsed();
+                          },
+                          onPointerDown: (e3) => {
+                            e3.stopPropagation();
+                            modalOpenedDuringGestureRef.current = true;
+                          },
+                          onPointerUp: (e3) => e3.stopPropagation(),
+                          onPointerMove: (e3) => e3.stopPropagation(),
+                          "aria-label": "Record this check-in as using my if-then plan",
+                          "data-ocid": `goal.ifthen_note.action.${index2 + 1}`,
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size: 12 }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Used it" })
+                          ]
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "button",
+                        {
+                          type: "button",
+                          className: "ifthen-note-dismiss shrink-0",
+                          onClick: (e3) => {
+                            e3.stopPropagation();
+                            handleIfThenDismiss();
+                          },
+                          onPointerDown: (e3) => {
+                            e3.stopPropagation();
+                            modalOpenedDuringGestureRef.current = true;
+                          },
+                          onPointerUp: (e3) => e3.stopPropagation(),
+                          onPointerMove: (e3) => e3.stopPropagation(),
+                          "aria-label": "Complete check-in without the if-then plan",
+                          "data-ocid": `goal.ifthen_note.dismiss.${index2 + 1}`,
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                        }
+                      )
+                    ]
+                  }
+                ),
                 isLockIn && (lockInState === "missed-start" || lockInState === "missed-checkout") && mode2 === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-start w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "button",
                   {

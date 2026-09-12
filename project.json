@@ -1,18 +1,16 @@
 {
-  "overview": "A goal and habit tracking app that separates goals from habits, with permanent goal deletion managed from the My Goals page.",
+  "overview": "Cumulative is a behavioral-science social accountability app for building habits with if-then plans and check-ins.",
   "features": [
-    "Create and manage goals with a guided wizard",
-    "Track habits grouped under goals",
-    "Daily check-ins with streaks and timeline",
-    "Dashboard with calm view-only goal grouping",
-    "Permanent goal deletion with confirmation from My Goals page"
+    "Swipe to check in on habits",
+    "If-then plan rescue moments",
+    "Optional if-then plan note on successful check-ins",
+    "Habit streaks and analytics"
   ],
   "category": "productivity",
   "tags": [
-    "productivity",
-    "goals",
     "habits",
-    "tracking"
+    "accountability",
+    "behavioral-science"
   ],
-  "last_updated": "2026-08-15T22:06:19.942Z"
+  "last_updated": "2026-09-12T14:08:57.645Z"
 }

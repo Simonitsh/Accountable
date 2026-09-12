@@ -122,6 +122,20 @@
     --goal-chips-in-duration: 320ms;
     --goal-fill-pop-duration: 420ms;
 
+    /* ── If-then plan note (success check-in, optional) ────────────────── */
+    /* A quiet, optional one-tap "I used my if-then plan" note that appears on
+       the successful check-in confirmation ONLY for habits with an if-then
+       plan set. Lightweight and dismissible — completing normally records
+       executedIfThen=false with zero extra steps. Reuses the success Emerald
+       as the action accent so it reads as a positive, additive revival (the
+       same data the existing rescue moment records). The surface is a subtle
+       inset wash above the card's emboss so it never competes with the
+       primary success state. */
+    --ifthen-note-bg: 0.34 0.006 158; /* slightly warmer, lighter inset surface */
+    --ifthen-note-border: 0.696 0.17 162; /* Emerald — action accent */
+    --ifthen-note-text: 0.92 0.01 158; /* soft warm-white note label */
+    --ifthen-note-muted: 0.6 0.01 158; /* muted hint text */
+
     /* ── Avatar system tokens (light charcoal) ─────────────────────────── */
     /* Container: neutral charcoal, never tinted by avatarColor */
     --avatar-bg: 0.27 0.005 264;
@@ -220,6 +234,12 @@
     --goal-chips-out-duration: 280ms;
     --goal-chips-in-duration: 320ms;
     --goal-fill-pop-duration: 420ms;
+
+    /* ── If-then plan note (dark) ─────────────────────────────────────── */
+    --ifthen-note-bg: 0.2 0.008 158; /* subtle warmer inset surface */
+    --ifthen-note-border: 0.696 0.17 162; /* Emerald — action accent */
+    --ifthen-note-text: 0.92 0.01 158; /* soft warm-white note label */
+    --ifthen-note-muted: 0.58 0.01 158; /* muted hint text */
 
     /* ── Avatar system tokens (deep charcoal) ─────────────────────────── */
     --avatar-bg: 0.2 0.008 264;
@@ -989,6 +1009,72 @@
     color: #10b981;
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
       rgba(80, 80, 85, 0.2);
+  }
+
+  /* ─── If-then plan note (success check-in, optional) ──────────────────── */
+  /* A slim, quiet row that appears on the successful check-in confirmation
+     ONLY when the habit has an if-then plan set. It sits as a subtle inset
+     wash above the card's emboss — visually lighter than the primary success
+     state so it reads as optional. One tap on the action records the check-in
+     with executedIfThen=true; ignoring it (or dismissing) records normally.
+     No glow, no neon — mirrors the app's solid-accent language. */
+  .ifthen-note {
+    @apply flex items-center gap-3 rounded-lg transition-smooth;
+    @apply px-3 py-2.5;
+    background-color: oklch(var(--ifthen-note-bg));
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .light .ifthen-note {
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.3) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+
+  /* The optional tappable action — a quiet emerald chip that reads as
+     "positive, additive, one-tap" without competing with the primary success
+     lock. Mirrors .chip-neumorphic emboss language at a smaller size. */
+  .ifthen-note-action {
+    @apply inline-flex items-center gap-1.5 rounded-md transition-smooth;
+    @apply px-2.5 py-1.5 text-xs font-medium cursor-pointer;
+    color: oklch(var(--ifthen-note-border));
+    background-color: oklch(var(--ifthen-note-border) / 0.12);
+    box-shadow: -1px -1px 3px rgba(80, 80, 85, 0.3), 2px 2px 5px
+      rgba(0, 0, 0, 0.5);
+  }
+
+  .ifthen-note-action:hover {
+    background-color: oklch(var(--ifthen-note-border) / 0.2);
+  }
+
+  .ifthen-note-action:active {
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
+      rgba(80, 80, 85, 0.2);
+  }
+
+  /* Optional dismiss control — ghosted, tiny, sits at the row's end. */
+  .ifthen-note-dismiss {
+    @apply ml-auto inline-flex items-center rounded-md transition-smooth;
+    @apply px-1.5 py-1 text-xs cursor-pointer;
+    color: oklch(var(--ifthen-note-muted));
+  }
+
+  .ifthen-note-dismiss:hover {
+    color: oklch(var(--ifthen-note-text));
+  }
+
+  /* Label / hint text inside the note */
+  .ifthen-note-label {
+    color: oklch(var(--ifthen-note-text));
+  }
+  .ifthen-note-hint {
+    color: oklch(var(--ifthen-note-muted));
   }
 }
 
