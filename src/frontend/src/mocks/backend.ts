@@ -495,6 +495,8 @@ export const mockBackend: backendInterface = {
     executedIfThen: request.executedIfThen,
   }),
 
+  markCheckInIfThenUsed: async () => ({ __kind__: "ok" as const, ok: null }),
+
   recordInteraction: async (checkInId, interactionType) => ({
     id: BigInt(99),
     interactionType,

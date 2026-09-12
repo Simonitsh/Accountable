@@ -344,6 +344,19 @@ export const idlService = IDL.Service({
     ),
   'listPartnerOverviews' : IDL.Func([], [IDL.Vec(PartnerOverview)], ['query']),
   'listPendingRequests' : IDL.Func([], [IDL.Vec(ConnectionPublic)], ['query']),
+  'markCheckInIfThenUsed' : IDL.Func(
+      [CheckInId],
+      [
+        IDL.Variant({
+          'ok' : IDL.Null,
+          'err' : IDL.Variant({
+            'notFound' : IDL.Null,
+            'unauthorized' : IDL.Null,
+          }),
+        }),
+      ],
+      [],
+    ),
   'recordCheckIn' : IDL.Func([RecordCheckInRequest], [CheckIn], []),
   'recordInteraction' : IDL.Func(
       [CheckInId, InteractionType],
@@ -727,6 +740,19 @@ export const idlFactory = ({ IDL }) => {
         [],
         [IDL.Vec(ConnectionPublic)],
         ['query'],
+      ),
+    'markCheckInIfThenUsed' : IDL.Func(
+        [CheckInId],
+        [
+          IDL.Variant({
+            'ok' : IDL.Null,
+            'err' : IDL.Variant({
+              'notFound' : IDL.Null,
+              'unauthorized' : IDL.Null,
+            }),
+          }),
+        ],
+        [],
       ),
     'recordCheckIn' : IDL.Func([RecordCheckInRequest], [CheckIn], []),
     'recordInteraction' : IDL.Func(

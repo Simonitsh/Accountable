@@ -269,6 +269,10 @@ export enum Variant_Star_Pentagon_Triangle_Hexagon_Square {
     Hexagon = "Hexagon",
     Square = "Square"
 }
+export enum Variant_notFound_unauthorized {
+    notFound = "notFound",
+    unauthorized = "unauthorized"
+}
 export interface backendInterface {
     /**
      * / Create a habit inside an existing macro goal. `request.goalId` is
@@ -405,6 +409,13 @@ export interface backendInterface {
      */
     listPartnerOverviews(): Promise<Array<PartnerOverview>>;
     listPendingRequests(): Promise<Array<ConnectionPublic>>;
+    markCheckInIfThenUsed(checkInId: CheckInId): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: Variant_notFound_unauthorized;
+    }>;
     recordCheckIn(request: RecordCheckInRequest): Promise<CheckIn>;
     recordInteraction(checkInId: CheckInId, interactionType: InteractionType): Promise<Interaction>;
     register(username: string): Promise<UserProfilePublic>;

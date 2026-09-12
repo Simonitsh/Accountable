@@ -33233,6 +33233,19 @@ Service({
   ),
   "listPartnerOverviews": Func([], [Vec(PartnerOverview)], ["query"]),
   "listPendingRequests": Func([], [Vec(ConnectionPublic)], ["query"]),
+  "markCheckInIfThenUsed": Func(
+    [CheckInId],
+    [
+      Variant({
+        "ok": Null,
+        "err": Variant({
+          "notFound": Null,
+          "unauthorized": Null
+        })
+      })
+    ],
+    []
+  ),
   "recordCheckIn": Func([RecordCheckInRequest], [CheckIn], []),
   "recordInteraction": Func(
     [CheckInId, InteractionType$1],
@@ -33613,6 +33626,19 @@ const idlFactory = ({ IDL: IDL2 }) => {
       [IDL2.Vec(ConnectionPublic2)],
       ["query"]
     ),
+    "markCheckInIfThenUsed": IDL2.Func(
+      [CheckInId2],
+      [
+        IDL2.Variant({
+          "ok": IDL2.Null,
+          "err": IDL2.Variant({
+            "notFound": IDL2.Null,
+            "unauthorized": IDL2.Null
+          })
+        })
+      ],
+      []
+    ),
     "recordCheckIn": IDL2.Func([RecordCheckInRequest2], [CheckIn2], []),
     "recordInteraction": IDL2.Func(
       [CheckInId2, InteractionType2],
@@ -33764,6 +33790,11 @@ var Variant_Star_Pentagon_Triangle_Hexagon_Square = /* @__PURE__ */ ((Variant_St
   Variant_Star_Pentagon_Triangle_Hexagon_Square2["Square"] = "Square";
   return Variant_Star_Pentagon_Triangle_Hexagon_Square2;
 })(Variant_Star_Pentagon_Triangle_Hexagon_Square || {});
+var Variant_notFound_unauthorized = /* @__PURE__ */ ((Variant_notFound_unauthorized2) => {
+  Variant_notFound_unauthorized2["notFound"] = "notFound";
+  Variant_notFound_unauthorized2["unauthorized"] = "unauthorized";
+  return Variant_notFound_unauthorized2;
+})(Variant_notFound_unauthorized || {});
 class Backend {
   constructor(actor, _uploadFile, _downloadFile, processError2) {
     this.actor = actor;
@@ -34177,32 +34208,46 @@ class Backend {
       return from_candid_vec_n60(this._uploadFile, this._downloadFile, result);
     }
   }
+  async markCheckInIfThenUsed(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.markCheckInIfThenUsed(arg0);
+        return from_candid_variant_n75(this._uploadFile, this._downloadFile, result);
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.markCheckInIfThenUsed(arg0);
+      return from_candid_variant_n75(this._uploadFile, this._downloadFile, result);
+    }
+  }
   async recordCheckIn(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n75(this._uploadFile, this._downloadFile, arg0));
+        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n77(this._uploadFile, this._downloadFile, arg0));
         return from_candid_CheckIn_n32(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n75(this._uploadFile, this._downloadFile, arg0));
+      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n77(this._uploadFile, this._downloadFile, arg0));
       return from_candid_CheckIn_n32(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordInteraction(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n79(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_Interaction_n81(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n81(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_Interaction_n83(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n79(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_Interaction_n81(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n81(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_Interaction_n83(this._uploadFile, this._downloadFile, result);
     }
   }
   async register(arg0) {
@@ -34278,57 +34323,57 @@ class Backend {
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n85(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n87(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n85(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n87(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
   async updateHabit(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n87(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n89(this._uploadFile, this._downloadFile, arg1));
         return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n87(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n89(this._uploadFile, this._downloadFile, arg1));
       return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateMacroGoal(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n89(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n91(this._uploadFile, this._downloadFile, arg1));
         return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n89(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n91(this._uploadFile, this._downloadFile, arg1));
       return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateMyProfile(arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n91(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n92(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n95(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n96(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n91(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n91(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n99(this._uploadFile, this._downloadFile, arg6));
-        return from_candid_variant_n100(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n93(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n94(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n97(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n98(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n101(this._uploadFile, this._downloadFile, arg6));
+        return from_candid_variant_n102(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n91(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n92(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n95(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n96(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n91(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n91(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n99(this._uploadFile, this._downloadFile, arg6));
-      return from_candid_variant_n100(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n93(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n94(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n97(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n98(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n101(this._uploadFile, this._downloadFile, arg6));
+      return from_candid_variant_n102(this._uploadFile, this._downloadFile, result);
     }
   }
 }
@@ -34371,11 +34416,11 @@ function from_candid_GoalWithHabitsPublic_n67(_uploadFile, _downloadFile, value)
 function from_candid_HabitPublic_n4(_uploadFile, _downloadFile, value) {
   return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_InteractionType_n83(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n84(_uploadFile, _downloadFile, value);
+function from_candid_InteractionType_n85(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n86(_uploadFile, _downloadFile, value);
 }
-function from_candid_Interaction_n81(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n82(_uploadFile, _downloadFile, value);
+function from_candid_Interaction_n83(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n84(_uploadFile, _downloadFile, value);
 }
 function from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value) {
   return from_candid_record_n19(_uploadFile, _downloadFile, value);
@@ -34558,16 +34603,16 @@ function from_candid_record_n74(_uploadFile, _downloadFile, value) {
     currentStreak: value.currentStreak
   };
 }
-function from_candid_record_n82(_uploadFile, _downloadFile, value) {
+function from_candid_record_n84(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    interactionType: from_candid_InteractionType_n83(_uploadFile, _downloadFile, value.interactionType),
+    interactionType: from_candid_InteractionType_n85(_uploadFile, _downloadFile, value.interactionType),
     fromPrincipal: value.fromPrincipal,
     checkInId: value.checkInId,
     timestamp: value.timestamp
   };
 }
-function from_candid_variant_n100(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n102(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: from_candid_UserProfilePublic_n39(_uploadFile, _downloadFile, value.ok)
@@ -34684,7 +34729,19 @@ function from_candid_variant_n65(_uploadFile, _downloadFile, value) {
     err: value.err
   } : value;
 }
-function from_candid_variant_n84(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n75(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: value.ok
+  } : "err" in value ? {
+    __kind__: "err",
+    err: from_candid_variant_n76(_uploadFile, _downloadFile, value.err)
+  } : value;
+}
+function from_candid_variant_n76(_uploadFile, _downloadFile, value) {
+  return "notFound" in value ? "notFound" : "unauthorized" in value ? "unauthorized" : value;
+}
+function from_candid_variant_n86(_uploadFile, _downloadFile, value) {
   return "highFive" in value ? "highFive" : value;
 }
 function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
@@ -34720,17 +34777,17 @@ function from_candid_vec_n69(_uploadFile, _downloadFile, value) {
 function from_candid_vec_n72(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_PartnerOverview_n73(_uploadFile, _downloadFile, x3));
 }
-function to_candid_AvatarColorMode_n97(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n98(_uploadFile, _downloadFile, value);
+function to_candid_AvatarColorMode_n99(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n100(_uploadFile, _downloadFile, value);
 }
-function to_candid_AvatarColor_n95(_uploadFile, _downloadFile, value) {
-  return to_candid_opt_n91(_uploadFile, _downloadFile, value);
-}
-function to_candid_AvatarShape_n92(_uploadFile, _downloadFile, value) {
+function to_candid_AvatarColor_n97(_uploadFile, _downloadFile, value) {
   return to_candid_opt_n93(_uploadFile, _downloadFile, value);
 }
-function to_candid_CheckInType_n77(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n78(_uploadFile, _downloadFile, value);
+function to_candid_AvatarShape_n94(_uploadFile, _downloadFile, value) {
+  return to_candid_opt_n95(_uploadFile, _downloadFile, value);
+}
+function to_candid_CheckInType_n79(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n80(_uploadFile, _downloadFile, value);
 }
 function to_candid_CreateHabitRequest_n1(_uploadFile, _downloadFile, value) {
   return to_candid_record_n2(_uploadFile, _downloadFile, value);
@@ -34741,32 +34798,32 @@ function to_candid_CreateMacroGoalRequest_n13(_uploadFile, _downloadFile, value)
 function to_candid_GoalCategory_n15(_uploadFile, _downloadFile, value) {
   return to_candid_variant_n16(_uploadFile, _downloadFile, value);
 }
-function to_candid_GoalState_n85(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n86(_uploadFile, _downloadFile, value);
+function to_candid_GoalState_n87(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n88(_uploadFile, _downloadFile, value);
 }
-function to_candid_InteractionType_n79(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n80(_uploadFile, _downloadFile, value);
+function to_candid_InteractionType_n81(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n82(_uploadFile, _downloadFile, value);
 }
-function to_candid_RecordCheckInRequest_n75(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n76(_uploadFile, _downloadFile, value);
+function to_candid_RecordCheckInRequest_n77(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n78(_uploadFile, _downloadFile, value);
 }
-function to_candid_UpdateHabitRequest_n87(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n88(_uploadFile, _downloadFile, value);
-}
-function to_candid_UpdateMacroGoalRequest_n89(_uploadFile, _downloadFile, value) {
+function to_candid_UpdateHabitRequest_n89(_uploadFile, _downloadFile, value) {
   return to_candid_record_n90(_uploadFile, _downloadFile, value);
 }
-function to_candid_opt_n91(_uploadFile, _downloadFile, value) {
+function to_candid_UpdateMacroGoalRequest_n91(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n92(_uploadFile, _downloadFile, value);
+}
+function to_candid_opt_n101(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_opt_n93(_uploadFile, _downloadFile, value) {
-  return value === null ? candid_none() : candid_some(to_candid_variant_n94(_uploadFile, _downloadFile, value));
-}
-function to_candid_opt_n96(_uploadFile, _downloadFile, value) {
-  return value === null ? candid_none() : candid_some(to_candid_AvatarColorMode_n97(_uploadFile, _downloadFile, value));
-}
-function to_candid_opt_n99(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
+}
+function to_candid_opt_n95(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid_variant_n96(_uploadFile, _downloadFile, value));
+}
+function to_candid_opt_n98(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid_AvatarColorMode_n99(_uploadFile, _downloadFile, value));
 }
 function to_candid_record_n14(_uploadFile, _downloadFile, value) {
   return {
@@ -34795,11 +34852,11 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
   };
 }
-function to_candid_record_n76(_uploadFile, _downloadFile, value) {
+function to_candid_record_n78(_uploadFile, _downloadFile, value) {
   return {
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     goalId: value.goalId,
-    checkInType: to_candid_CheckInType_n77(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: to_candid_CheckInType_n79(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     executedIfThen: value.executedIfThen,
     lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
@@ -34807,7 +34864,7 @@ function to_candid_record_n76(_uploadFile, _downloadFile, value) {
     customObstacleNote: value.customObstacleNote ? candid_some(value.customObstacleNote) : candid_none()
   };
 }
-function to_candid_record_n88(_uploadFile, _downloadFile, value) {
+function to_candid_record_n90(_uploadFile, _downloadFile, value) {
   return {
     startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
     endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
@@ -34823,11 +34880,18 @@ function to_candid_record_n88(_uploadFile, _downloadFile, value) {
     lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
   };
 }
-function to_candid_record_n90(_uploadFile, _downloadFile, value) {
+function to_candid_record_n92(_uploadFile, _downloadFile, value) {
   return {
     themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     iconName: value.iconName ? candid_some(value.iconName) : candid_none()
   };
+}
+function to_candid_variant_n100(_uploadFile, _downloadFile, value) {
+  return value == "Fill" ? {
+    Fill: null
+  } : value == "BorderOnly" ? {
+    BorderOnly: null
+  } : value;
 }
 function to_candid_variant_n16(_uploadFile, _downloadFile, value) {
   return value == "Productivity" ? {
@@ -34842,7 +34906,7 @@ function to_candid_variant_n16(_uploadFile, _downloadFile, value) {
     Leisure: null
   } : value;
 }
-function to_candid_variant_n78(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n80(_uploadFile, _downloadFile, value) {
   return value == "skip" ? {
     skip: null
   } : value == "missedCheckIn" ? {
@@ -34855,12 +34919,12 @@ function to_candid_variant_n78(_uploadFile, _downloadFile, value) {
     inProgress: null
   } : value;
 }
-function to_candid_variant_n80(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n82(_uploadFile, _downloadFile, value) {
   return value == "highFive" ? {
     highFive: null
   } : value;
 }
-function to_candid_variant_n86(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n88(_uploadFile, _downloadFile, value) {
   return value == "active" ? {
     active: null
   } : value == "completed" ? {
@@ -34869,7 +34933,7 @@ function to_candid_variant_n86(_uploadFile, _downloadFile, value) {
     paused: null
   } : value;
 }
-function to_candid_variant_n94(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n96(_uploadFile, _downloadFile, value) {
   return value == "Star" ? {
     Star: null
   } : value == "Pentagon" ? {
@@ -34880,13 +34944,6 @@ function to_candid_variant_n94(_uploadFile, _downloadFile, value) {
     Hexagon: null
   } : value == "Square" ? {
     Square: null
-  } : value;
-}
-function to_candid_variant_n98(_uploadFile, _downloadFile, value) {
-  return value == "Fill" ? {
-    Fill: null
-  } : value == "BorderOnly" ? {
-    BorderOnly: null
   } : value;
 }
 function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
@@ -34916,6 +34973,7 @@ const backend = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePrope
   PartnerHabitError,
   UserRole,
   Variant_Star_Pentagon_Triangle_Hexagon_Square,
+  Variant_notFound_unauthorized,
   createActor
 }, Symbol.toStringTag, { value: "Module" }));
 function useBackend() {
@@ -101455,6 +101513,7 @@ const SKIP_COLOR$3 = "#0369A1";
 const GREY_COLOR = "#4B5563";
 const MISSED_COLOR$1 = "#6B7280";
 const SWIPE_THRESHOLD = 60;
+const IF_THEN_NOTE_WINDOW_MS = 45e3;
 function parseTimeToday(timeStr) {
   const [h2, m2] = timeStr.split(":").map(Number);
   const d2 = /* @__PURE__ */ new Date();
@@ -101589,7 +101648,9 @@ function GoalCard$1({
   lockInTodayCheckIn,
   onMissedWindowTap,
   inProgressPulse = false,
-  executedIfThen = false
+  executedIfThen = false,
+  ifThenCheckInId,
+  onMarkIfThenUsed
 }) {
   var _a3;
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
@@ -101755,7 +101816,6 @@ function GoalCard$1({
   function onPointerDown(e3) {
     modalOpenedDuringGestureRef.current = false;
     isVerticalScrollRef.current = false;
-    if (showIfThenNote) return;
     if (mode2 === "done") {
       isPointerDown.current = true;
       pointerStartX.current = e3.clientX;
@@ -101845,8 +101905,6 @@ function GoalCard$1({
         onCheckIn == null ? void 0 : onCheckIn(goal.id, "inProgress", void 0, Date.now());
       } else if (lockInState === "end-window") {
         onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, Date.now());
-      } else if (hasIfThenPlan) {
-        setShowIfThenNote(true);
       } else {
         onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
       }
@@ -101905,11 +101963,12 @@ function GoalCard$1({
   }
   function handleIfThenUsed() {
     setShowIfThenNote(false);
-    onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, void 0, true);
+    if (ifThenCheckInId !== void 0) {
+      onMarkIfThenUsed == null ? void 0 : onMarkIfThenUsed(goal.id, ifThenCheckInId);
+    }
   }
   function handleIfThenDismiss() {
     setShowIfThenNote(false);
-    onCheckIn == null ? void 0 : onCheckIn(goal.id, "success", void 0, void 0, void 0, false);
   }
   function handleSkipModalClose() {
     setShowSkipModal(false);
@@ -101944,6 +102003,16 @@ function GoalCard$1({
   reactExports.useEffect(() => {
     onExitCompleteRef.current = onExitComplete;
   });
+  reactExports.useEffect(() => {
+    if (mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (checkInToday == null ? void 0 : checkInToday.checkInType) === "success") {
+      setShowIfThenNote(true);
+      const t2 = setTimeout(
+        () => setShowIfThenNote(false),
+        IF_THEN_NOTE_WINDOW_MS
+      );
+      return () => clearTimeout(t2);
+    }
+  }, [mode2, hasIfThenPlan, ifThenCheckInId, checkInToday == null ? void 0 : checkInToday.checkInType]);
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -102182,11 +102251,7 @@ function GoalCard$1({
               onPointerCancel,
               onKeyDown: (e3) => {
                 if (mode2 === "active" && e3.key === "Enter") {
-                  if (showIfThenNote) {
-                    handleIfThenDismiss();
-                  } else {
-                    onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
-                  }
+                  onCheckIn == null ? void 0 : onCheckIn(goal.id, "success");
                 }
                 if (mode2 === "done" && e3.key === "Enter") onDoneCardTap == null ? void 0 : onDoneCardTap(goal.id);
               },
@@ -102368,7 +102433,7 @@ function GoalCard$1({
                     id2
                   )) })
                 ] }),
-                showIfThenNote && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                mode2 === "done" && showIfThenNote && /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "div",
                   {
                     className: "ifthen-note w-full",
@@ -107989,6 +108054,7 @@ function DashboardPage$1() {
   const [optimisticDoneMap, setOptimisticDoneMap] = reactExports.useState(
     /* @__PURE__ */ new Map()
   );
+  const [ifThenCheckInIdMap, setIfThenCheckInIdMap] = reactExports.useState(/* @__PURE__ */ new Map());
   const [insightGoal, setInsightGoal] = reactExports.useState(null);
   const [undoTarget, setUndoTarget] = reactExports.useState(null);
   const [isUndoing, setIsUndoing] = reactExports.useState(false);
@@ -108206,7 +108272,14 @@ function DashboardPage$1() {
         customObstacleNote: customObstacleNote || void 0
       });
     },
-    onSuccess: (_data, _variables) => {
+    onSuccess: (data, variables) => {
+      if ((data == null ? void 0 : data.id) && variables.checkInType === CheckInType.success) {
+        setIfThenCheckInIdMap((prev) => {
+          const next = new Map(prev);
+          next.set(goalKey(variables.goalId), data.id);
+          return next;
+        });
+      }
       queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
       void fetchWeekHistory();
     },
@@ -108236,6 +108309,15 @@ function DashboardPage$1() {
     },
     onSettled: () => {
       setPendingGoalId(null);
+    }
+  });
+  const markIfThenUsedMutation = useMutation({
+    mutationFn: async (checkInId) => {
+      if (!actor) return null;
+      return actor.markCheckInIfThenUsed(checkInId);
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
     }
   });
   const handleCardExitComplete = reactExports.useCallback((goalId) => {
@@ -108318,6 +108400,9 @@ function DashboardPage$1() {
       executedIfThen: executedIfThen ?? false,
       customObstacleNote
     });
+  }
+  function handleMarkIfThenUsed(_goalId, checkInId) {
+    markIfThenUsedMutation.mutate(checkInId);
   }
   const [_lockInStateTick, setLockInStateTick] = reactExports.useState(0);
   reactExports.useEffect(() => {
@@ -108922,7 +109007,9 @@ function DashboardPage$1() {
                         isLockIn: goal.isLockIn,
                         lockInStartTime: goal.startTime,
                         lockInEndTime: goal.endTime,
-                        executedIfThen: (entryDone == null ? void 0 : entryDone.executedIfThen) ?? false
+                        executedIfThen: (entryDone == null ? void 0 : entryDone.executedIfThen) ?? false,
+                        ifThenCheckInId: ifThenCheckInIdMap.get(key),
+                        onMarkIfThenUsed: handleMarkIfThenUsed
                       },
                       key
                     );

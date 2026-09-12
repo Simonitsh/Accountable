@@ -351,6 +351,11 @@ export interface _SERVICE {
    */
   'listPartnerOverviews' : ActorMethod<[], Array<PartnerOverview>>,
   'listPendingRequests' : ActorMethod<[], Array<ConnectionPublic>>,
+  'markCheckInIfThenUsed' : ActorMethod<
+    [CheckInId],
+    { 'ok' : null } |
+      { 'err' : { 'notFound' : null } | { 'unauthorized' : null } }
+  >,
   'recordCheckIn' : ActorMethod<[RecordCheckInRequest], CheckIn>,
   'recordInteraction' : ActorMethod<[CheckInId, InteractionType], Interaction>,
   'register' : ActorMethod<[string], UserProfilePublic>,

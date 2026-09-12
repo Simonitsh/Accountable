@@ -25,6 +25,11 @@ const MISSED_COLOR = "#6B7280"; // Missed / failed lock-in
 
 const SWIPE_THRESHOLD = 60;
 
+// How long the if-then follow-up note stays available on the Done card after
+// the habit is completed. After this window the note simply disappears and the
+// habit stays done without the if-then tag (a normal outcome).
+const IF_THEN_NOTE_WINDOW_MS = 45_000;
+
 export type DayStatus = "success" | "skip" | "none";
 
 // ─── Lock-In types & helpers ──────────────────────────────────────────────────
@@ -234,6 +239,11 @@ interface GoalCardProps {
   inProgressPulse?: boolean;
   /** Whether this check-in was an If-Then revival (executedIfThen: true) */
   executedIfThen?: boolean;
+  /** Check-in id for the if-then follow-up note (Done card). Set only for
+   *  habits with an if-then plan that were just completed. */
+  ifThenCheckInId?: bigint;
+  /** Called when the user taps 'Used it' on the if-then follow-up note. */
+  onMarkIfThenUsed?: (goalId: bigint, checkInId: bigint) => void;
 }
 
 export function GoalCard({
@@ -262,15 +272,17 @@ export function GoalCard({
   onMissedWindowTap,
   inProgressPulse = false,
   executedIfThen = false,
+  ifThenCheckInId,
+  onMarkIfThenUsed,
 }: GoalCardProps) {
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showMissedSheet, setShowMissedSheet] = useState(false);
   // WOOP Catch sheet — shown on left swipe for normal (non-LockIn) habits
   const [showWoopCatch, setShowWoopCatch] = useState(false);
-  // If-then plan note — shown on the right-swipe success confirmation ONLY for
-  // habits with an if-then plan set. Optional: tapping the action records
-  // executedIfThen=true; dismissing or ignoring records executedIfThen=false
-  // with zero extra steps.
+  // If-then follow-up note — shown on the Done card for a short window after a
+  // habit with an if-then plan is completed. Non-blocking: the habit is already
+  // done. Tapping 'Used it' tags the already-created check-in; dismissing or
+  // ignoring simply leaves the habit done without the tag.
   const [showIfThenNote, setShowIfThenNote] = useState(false);
   // Press feedback: brief scale-down + inward shadow on clean tap
   const [isTapped, _setIsTapped] = useState(false);
@@ -501,9 +513,6 @@ export function GoalCard({
   function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
     modalOpenedDuringGestureRef.current = false;
     isVerticalScrollRef.current = false;
-    // While the if-then success note is showing, the card is in a confirming
-    // state — no new swipe gesture may start.
-    if (showIfThenNote) return;
     // Done-mode: record start position for clean-tap detection
     if (mode === "done") {
       isPointerDown.current = true;
@@ -623,12 +632,10 @@ export function GoalCard({
         onCheckIn?.(goal.id, "inProgress", undefined, Date.now());
       } else if (lockInState === "end-window") {
         onCheckIn?.(goal.id, "success", undefined, undefined, Date.now());
-      } else if (hasIfThenPlan) {
-        // Habit has an if-then plan — show the optional success note instead of
-        // completing immediately. The user can tap the action (executedIfThen=true)
-        // or dismiss/ignore (executedIfThen=false) with zero extra steps.
-        setShowIfThenNote(true);
       } else {
+        // Complete immediately — identical for habits with or without an
+        // if-then plan. The if-then follow-up note (if any) is shown later as a
+        // non-blocking follow-up on the Done card, never blocking completion.
         onCheckIn?.(goal.id, "success");
       }
     } else if (finalDragX <= -SWIPE_THRESHOLD) {
@@ -703,16 +710,18 @@ export function GoalCard({
     setShowSkipModal(true);
   }
 
-  // If-then success note handlers — both complete the check-in through the
-  // same onCheckIn path; only the executedIfThen flag differs.
+  // If-then follow-up note handlers — the habit is already done. 'Used it'
+  // tags the already-created check-in via markCheckInIfThenUsed; dismissing or
+  // ignoring just hides the note (the habit stays done without the tag).
   function handleIfThenUsed() {
     setShowIfThenNote(false);
-    onCheckIn?.(goal.id, "success", undefined, undefined, undefined, true);
+    if (ifThenCheckInId !== undefined) {
+      onMarkIfThenUsed?.(goal.id, ifThenCheckInId);
+    }
   }
 
   function handleIfThenDismiss() {
     setShowIfThenNote(false);
-    onCheckIn?.(goal.id, "success", undefined, undefined, undefined, false);
   }
 
   function handleSkipModalClose() {
@@ -760,6 +769,26 @@ export function GoalCard({
   useEffect(() => {
     onExitCompleteRef.current = onExitComplete;
   });
+
+  // ── If-then follow-up note auto-dismiss ───────────────────────────────────
+  // When a Done card for a habit with an if-then plan has a captured check-in
+  // id, show the note and auto-hide it after a short window. The habit is
+  // already done; the note is purely a non-blocking follow-up.
+  useEffect(() => {
+    if (
+      mode === "done" &&
+      hasIfThenPlan &&
+      ifThenCheckInId !== undefined &&
+      checkInToday?.checkInType === "success"
+    ) {
+      setShowIfThenNote(true);
+      const t = setTimeout(
+        () => setShowIfThenNote(false),
+        IF_THEN_NOTE_WINDOW_MS,
+      );
+      return () => clearTimeout(t);
+    }
+  }, [mode, hasIfThenPlan, ifThenCheckInId, checkInToday?.checkInType]);
 
   // We intentionally only depend on isExiting and goal.id here.
   useEffect(() => {
@@ -1032,13 +1061,7 @@ export function GoalCard({
           onPointerCancel={onPointerCancel}
           onKeyDown={(e) => {
             if (mode === "active" && e.key === "Enter") {
-              if (showIfThenNote) {
-                // Note is showing — Enter completes the check-in normally
-                // (executedIfThen=false), zero extra steps.
-                handleIfThenDismiss();
-              } else {
-                onCheckIn?.(goal.id, "success");
-              }
+              onCheckIn?.(goal.id, "success");
             }
             if (mode === "done" && e.key === "Enter") onDoneCardTap?.(goal.id);
           }}
@@ -1277,11 +1300,11 @@ export function GoalCard({
               </div>
             </div>
 
-            {/* If-then plan note — optional success confirmation for habits
-                with an if-then plan set. Tapping the action records the
-                check-in with executedIfThen=true; dismissing or ignoring it
-                records executedIfThen=false with zero extra steps. */}
-            {showIfThenNote && (
+            {/* If-then follow-up note — shown on the Done card for a short
+                window after a habit with an if-then plan is completed. The
+                habit is already done; tapping 'Used it' tags the already-created
+                check-in, dismissing/ignoring leaves it done without the tag. */}
+            {mode === "done" && showIfThenNote && (
               <div
                 className="ifthen-note w-full"
                 data-ocid={`goal.ifthen_note.${index + 1}`}

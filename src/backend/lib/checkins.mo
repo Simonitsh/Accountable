@@ -265,6 +265,26 @@ module {
     };
   };
 
+  public func markCheckInIfThenUsed(
+    checkIns : List.List<CheckInTypes.CheckIn>,
+    checkInId : Common.CheckInId,
+    caller : Common.UserId,
+  ) : { #ok; #err : { #notFound; #unauthorized } } {
+    switch (checkIns.find(func(c) { c.id == checkInId })) {
+      case null #err(#notFound);
+      case (?c) {
+        if (c.owner != caller) return #err(#unauthorized);
+        // Idempotent: already tagged is a normal no-op success.
+        if (not c.executedIfThen) {
+          checkIns.mapInPlace(func(c) {
+            if (c.id == checkInId) { { c with executedIfThen = true } } else { c };
+          });
+        };
+        #ok;
+      };
+    };
+  };
+
   public func getCheckInsForPeriod(
     checkIns : List.List<CheckInTypes.CheckIn>,
     goalId : Common.GoalId,

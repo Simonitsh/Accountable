@@ -373,6 +373,14 @@ service : {
   /// current streak. Pending requests and non-partners are never included.
   listPartnerOverviews: () -> (vec PartnerOverview) query;
   listPendingRequests: () -> (vec ConnectionPublic) query;
+  markCheckInIfThenUsed: (checkInId: CheckInId) ->
+   (variant {
+      err: variant {
+             notFound;
+             unauthorized;
+           };
+      ok;
+    });
   recordCheckIn: (request: RecordCheckInRequest) -> (CheckIn);
   recordInteraction: (checkInId: CheckInId, interactionType:
    InteractionType) -> (Interaction);

@@ -780,6 +780,13 @@ export function DashboardPage() {
     new Map(),
   );
 
+  // ── If-then follow-up note: captured check-in id per goal (from
+  // recordCheckIn onSuccess) so the Done card's 'Used it' action can tag the
+  // already-created check-in via markCheckInIfThenUsed. ──
+  const [ifThenCheckInIdMap, setIfThenCheckInIdMap] = useState<
+    Map<string, bigint>
+  >(new Map());
+
   // ── Goal Insight sheet state ─────────────────────────────────────────────
   const [insightGoal, setInsightGoal] = useState<HabitPublic | null>(null);
 
@@ -1122,7 +1129,21 @@ export function DashboardPage() {
         customObstacleNote: customObstacleNote || undefined,
       });
     },
-    onSuccess: (_data, _variables) => {
+    onSuccess: (data, variables) => {
+      // Capture the returned CheckIn id (keyed by goalId) so the Done card's
+      // if-then follow-up note can tag this exact check-in via
+      // markCheckInIfThenUsed. The habit is already done at this point.
+      // Only capture for SUCCESS check-ins: the note is a success-only
+      // follow-up, so skipped check-ins (left-swipe -> WoopCatch -> skip) or
+      // check-ins already tagged via the WoopCatch 'executed plan' rescue flow
+      // must not show it.
+      if (data?.id && variables.checkInType === CheckInType.success) {
+        setIfThenCheckInIdMap((prev) => {
+          const next = new Map(prev);
+          next.set(goalKey(variables.goalId), data.id);
+          return next;
+        });
+      }
       // Invalidate so todayDoneMap re-derives from the fresh backend data.
       // The card is already visually in Done via exitingMap optimistic state.
       queryClient.invalidateQueries({ queryKey: ["myCheckIns"] });
@@ -1161,6 +1182,22 @@ export function DashboardPage() {
     },
     onSettled: () => {
       setPendingGoalId(null);
+    },
+  });
+
+  // ── If-then follow-up: tag an already-created check-in as using the plan ──
+  // Called from the Done card's note when the user taps 'Used it'. This never
+  // creates a new check-in — it only attaches the if-then tag to the check-in
+  // that was already recorded when the habit was completed.
+  const markIfThenUsedMutation = useMutation({
+    mutationFn: async (checkInId: bigint) => {
+      if (!actor) return null;
+      return actor.markCheckInIfThenUsed(checkInId);
+    },
+    onSuccess: () => {
+      // The check-in's executedIfThen flag changed — refresh so the Done card
+      // reflects the tag (e.g. the revival icon).
+      queryClient.invalidateQueries({ queryKey: ["myCheckIns"] });
     },
   });
 
@@ -1309,6 +1346,12 @@ export function DashboardPage() {
       executedIfThen: executedIfThen ?? false,
       customObstacleNote,
     });
+  }
+
+  // Called by the Done card's if-then follow-up note when the user taps
+  // 'Used it'. Tags the already-created check-in — never creates a new one.
+  function handleMarkIfThenUsed(_goalId: bigint, checkInId: bigint) {
+    markIfThenUsedMutation.mutate(checkInId);
   }
 
   // ── Bug 10: periodic check for in-progress Lock-In goals that should be 'missed' ──
@@ -2063,6 +2106,8 @@ export function DashboardPage() {
                             lockInStartTime={goal.startTime}
                             lockInEndTime={goal.endTime}
                             executedIfThen={entryDone?.executedIfThen ?? false}
+                            ifThenCheckInId={ifThenCheckInIdMap.get(key)}
+                            onMarkIfThenUsed={handleMarkIfThenUsed}
                           />
                         );
                       })}
