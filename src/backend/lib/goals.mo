@@ -355,6 +355,25 @@ module {
       case null {};
       case (?true) {
         let now = Time.now();
+        // Strict Lock-In active-window lockout: when the habit is a Lock-In
+        // habit and the current time (in the caller's local timezone) falls
+        // within [startTimeMinutes - 5, endTimeMinutes + 5], the schedule is
+        // locked and cannot be edited. Uses the habit's CURRENTLY STORED
+        // times (not any new values in the request), and does not gate on
+        // scheduledDays — matching the frontend's isLockInActiveWindow().
+        // This is the more specific reason, so it takes priority over the
+        // daily edit lockout below.
+        if (habit.isLockIn) {
+          let offsetNs = request.timezoneOffsetMinutes * 60 * 1_000_000_000;
+          let localNowMinutes = ((now + offsetNs) % DAY_NS) / 60_000_000_000;
+          let windowStart = habit.startTimeMinutes.toInt() - 5;
+          let windowEnd = habit.endTimeMinutes.toInt() + 5;
+          if (localNowMinutes >= windowStart and localNowMinutes <= windowEnd) {
+            return #err(#strictLockActive);
+          };
+        };
+        // Daily edit lockout: when isTimeEdit = ?true, the habit may only be
+        // edited once per day (timezone-aware).
         switch (habit.lastEditedAt) {
           case null {};
           case (?last) {

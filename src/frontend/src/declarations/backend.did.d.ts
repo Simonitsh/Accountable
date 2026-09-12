@@ -237,11 +237,24 @@ export type Value = { 'int' : bigint } |
   { 'null' : null } |
   { 'text' : string };
 export interface _SERVICE {
+  /**
+   * / Create a habit inside an existing macro goal. `request.goalId` is
+   * / REQUIRED — the habit must reference an existing macro goal owned by the
+   * / caller. The habit inherits the parent's category; wish/outcome are
+   * / sourced from the parent and read-only. The habit's wishDescription
+   * / (displayed name) defaults to the parent's, but is overridden by
+   * / `request.wishDescription` when the caller supplies one.
+   */
   'createHabit' : ActorMethod<
     [CreateHabitRequest],
     { 'ok' : HabitPublic } |
       { 'err' : string }
   >,
+  /**
+   * / Create a macro goal (a container). Captured by the goal wizard:
+   * / category, wish, outcome (wishDescription). Does NOT accept Lock-In or
+   * / schedule fields.
+   */
   'createMacroGoal' : ActorMethod<
     [CreateMacroGoalRequest],
     { 'ok' : MacroGoalPublic } |
@@ -260,7 +273,22 @@ export interface _SERVICE {
           { 'unauthorized' : null }
       }
   >,
+  /**
+   * / Permanently delete a macro goal and all of its child habits in a single
+   * / atomic operation. Removes every child habit's check-ins, timeline
+   * / entries, and feed interactions before removing the habits and the goal
+   * / itself. All-or-nothing: partial failure cannot leave dangling habits.
+   * / Hard-delete is final — no soft-delete or recoverable state.
+   */
   'deleteGoal' : ActorMethod<[GoalId], { 'ok' : null } | { 'err' : string }>,
+  /**
+   * / Permanently delete a single habit in one atomic operation. Removes the
+   * / habit's check-ins, timeline entries, and feed interactions before
+   * / removing the habit itself. All-or-nothing: partial failure cannot leave
+   * / dangling check-ins. Hard-delete is final — no soft-delete or recoverable
+   * / state. Scoped to one habit — does not touch the parent macro goal or
+   * / sibling habits.
+   */
   'deleteHabit' : ActorMethod<[GoalId], { 'ok' : null } | { 'err' : string }>,
   'devReset' : ActorMethod<[], undefined>,
   'execute' : ActorMethod<[string], Result>,
@@ -271,11 +299,22 @@ export interface _SERVICE {
     [GoalId, bigint, bigint],
     Array<CheckIn>
   >,
+  /**
+   * / Retrieve a habit by ID. Only the owning caller can see it.
+   */
   'getHabit' : ActorMethod<[GoalId], [] | [HabitPublic]>,
   'getInteractionCount' : ActorMethod<[CheckInId], bigint>,
+  /**
+   * / Retrieve a macro goal by ID. Only the owning caller can see it.
+   */
   'getMacroGoal' : ActorMethod<[GoalId], [] | [MacroGoalPublic]>,
   'getMyProfile' : ActorMethod<[], UserProfilePublic>,
   'getPartnerFeed' : ActorMethod<[], Array<FeedItem>>,
+  /**
+   * / Returns the full habit detail for a single partner. Returns #notPartner
+   * / for any non-partner, pending-only, or unconnected caller — no habit data
+   * / leaks.
+   */
   'getPartnerHabits' : ActorMethod<
     [Principal],
     { 'ok' : PartnerHabitDetail } |
@@ -285,15 +324,31 @@ export interface _SERVICE {
   'isUsernameAvailable' : ActorMethod<[string], boolean>,
   'listAllUsers' : ActorMethod<[], Array<UserProfilePublic>>,
   'listConnections' : ActorMethod<[], Array<ConnectionPublic>>,
+  /**
+   * / List habits linked to a specific macro goal (by parent goalId).
+   */
   'listHabitsByParent' : ActorMethod<
     [GoalId],
     { 'ok' : Array<HabitPublic> } |
       { 'err' : string }
   >,
   'listMyCheckIns' : ActorMethod<[], Array<CheckIn>>,
+  /**
+   * / List the caller's macro goals, each grouped with its linked habits.
+   * / Supports the dashboard grouping requirement.
+   */
   'listMyGoals' : ActorMethod<[], Array<GoalWithHabitsPublic>>,
   'listMyObstacleTemplates' : ActorMethod<[], Array<ObstacleTemplate>>,
+  /**
+   * / Returns the caller's reusable macro goals for the wizard chips.
+   * / Each entry exposes id, wish, wishDescription, state, and category.
+   */
   'listMyReusableGoals' : ActorMethod<[], Array<ReusableGoalPublic>>,
+  /**
+   * / Returns an overview row for every accepted, mutual partner of the
+   * / caller. Each row has the partner's profile, active habit count, and
+   * / current streak. Pending requests and non-partners are never included.
+   */
   'listPartnerOverviews' : ActorMethod<[], Array<PartnerOverview>>,
   'listPendingRequests' : ActorMethod<[], Array<ConnectionPublic>>,
   'recordCheckIn' : ActorMethod<[RecordCheckInRequest], CheckIn>,
@@ -303,12 +358,23 @@ export interface _SERVICE {
   'schema' : ActorMethod<[], string>,
   'sendConnectionRequest' : ActorMethod<[UserId], ConnectionPublic>,
   'setTimezone' : ActorMethod<[string], undefined>,
+  /**
+   * / Transition a goal (macro or habit) to a new state.
+   */
   'updateGoalState' : ActorMethod<[GoalId, GoalState], boolean>,
+  /**
+   * / Update an editable habit. wish/wishDescription/outcome/category are
+   * / immutable (sourced from the parent macro goal).
+   */
   'updateHabit' : ActorMethod<
     [GoalId, UpdateHabitRequest],
     { 'ok' : HabitPublic } |
       { 'err' : string }
   >,
+  /**
+   * / Update an editable macro goal. Only cosmetic fields are editable;
+   * / wish/wishDescription/outcome/category are immutable after creation.
+   */
   'updateMacroGoal' : ActorMethod<
     [GoalId, UpdateMacroGoalRequest],
     { 'ok' : MacroGoalPublic } |

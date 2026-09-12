@@ -278,11 +278,20 @@ type AnalyticsSummary =
    goals: vec GoalAnalytics;
  };
 service : {
+  /// Create a habit inside an existing macro goal. `request.goalId` is
+  /// REQUIRED — the habit must reference an existing macro goal owned by the
+  /// caller. The habit inherits the parent's category; wish/outcome are
+  /// sourced from the parent and read-only. The habit's wishDescription
+  /// (displayed name) defaults to the parent's, but is overridden by
+  /// `request.wishDescription` when the caller supplies one.
   createHabit: (request: CreateHabitRequest) ->
    (variant {
       err: text;
       ok: HabitPublic;
     });
+  /// Create a macro goal (a container). Captured by the goal wizard:
+  /// category, wish, outcome (wishDescription). Does NOT accept Lock-In or
+  /// schedule fields.
   createMacroGoal: (request: CreateMacroGoalRequest) ->
    (variant {
       err: text;
@@ -299,10 +308,21 @@ service : {
            };
       ok;
     });
+  /// Permanently delete a macro goal and all of its child habits in a single
+  /// atomic operation. Removes every child habit's check-ins, timeline
+  /// entries, and feed interactions before removing the habits and the goal
+  /// itself. All-or-nothing: partial failure cannot leave dangling habits.
+  /// Hard-delete is final — no soft-delete or recoverable state.
   deleteGoal: (goalId: GoalId) -> (variant {
                                      err: text;
                                      ok;
                                    });
+  /// Permanently delete a single habit in one atomic operation. Removes the
+  /// habit's check-ins, timeline entries, and feed interactions before
+  /// removing the habit itself. All-or-nothing: partial failure cannot leave
+  /// dangling check-ins. Hard-delete is final — no soft-delete or recoverable
+  /// state. Scoped to one habit — does not touch the parent macro goal or
+  /// sibling habits.
   deleteHabit: (habitId: GoalId) -> (variant {
                                        err: text;
                                        ok;
@@ -315,11 +335,16 @@ service : {
    (vec CheckIn) query;
   getCheckInsForPeriod: (goalId: GoalId, fromTimestamp: int, toTimestamp:
    int) -> (vec CheckIn) query;
+  /// Retrieve a habit by ID. Only the owning caller can see it.
   getHabit: (habitId: GoalId) -> (opt HabitPublic) query;
   getInteractionCount: (checkInId: CheckInId) -> (nat) query;
+  /// Retrieve a macro goal by ID. Only the owning caller can see it.
   getMacroGoal: (goalId: GoalId) -> (opt MacroGoalPublic) query;
   getMyProfile: () -> (UserProfilePublic);
   getPartnerFeed: () -> (vec FeedItem) query;
+  /// Returns the full habit detail for a single partner. Returns #notPartner
+  /// for any non-partner, pending-only, or unconnected caller — no habit data
+  /// leaks.
   getPartnerHabits: (target: principal) ->
    (variant {
       err: PartnerHabitError;
@@ -329,15 +354,23 @@ service : {
   isUsernameAvailable: (username: text) -> (bool) query;
   listAllUsers: () -> (vec UserProfilePublic) query;
   listConnections: () -> (vec ConnectionPublic) query;
+  /// List habits linked to a specific macro goal (by parent goalId).
   listHabitsByParent: (parentGoalId: GoalId) ->
    (variant {
       err: text;
       ok: vec HabitPublic;
     }) query;
   listMyCheckIns: () -> (vec CheckIn) query;
+  /// List the caller's macro goals, each grouped with its linked habits.
+  /// Supports the dashboard grouping requirement.
   listMyGoals: () -> (vec GoalWithHabitsPublic) query;
   listMyObstacleTemplates: () -> (vec ObstacleTemplate) query;
+  /// Returns the caller's reusable macro goals for the wizard chips.
+  /// Each entry exposes id, wish, wishDescription, state, and category.
   listMyReusableGoals: () -> (vec ReusableGoalPublic) query;
+  /// Returns an overview row for every accepted, mutual partner of the
+  /// caller. Each row has the partner's profile, active habit count, and
+  /// current streak. Pending requests and non-partners are never included.
   listPartnerOverviews: () -> (vec PartnerOverview) query;
   listPendingRequests: () -> (vec ConnectionPublic) query;
   recordCheckIn: (request: RecordCheckInRequest) -> (CheckIn);
@@ -348,12 +381,17 @@ service : {
   schema: () -> (text) query;
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
   setTimezone: (tz: text) -> ();
+  /// Transition a goal (macro or habit) to a new state.
   updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
+  /// Update an editable habit. wish/wishDescription/outcome/category are
+  /// immutable (sourced from the parent macro goal).
   updateHabit: (habitId: GoalId, request: UpdateHabitRequest) ->
    (variant {
       err: text;
       ok: HabitPublic;
     });
+  /// Update an editable macro goal. Only cosmetic fields are editable;
+  /// wish/wishDescription/outcome/category are immutable after creation.
   updateMacroGoal: (goalId: GoalId, request: UpdateMacroGoalRequest) ->
    (variant {
       err: text;
