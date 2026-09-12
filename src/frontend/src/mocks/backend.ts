@@ -532,21 +532,142 @@ export const mockBackend: backendInterface = {
 
   // ─── Analytics ──────────────────────────────────────────────────────────────
   getAnalytics: async () => ({
-    goals: [
+    categoryBreakdown: [
       {
-        totalMissed: BigInt(2),
-        completionRate: 0.85,
-        goalName: "Run 5K every morning",
-        goalId: BigInt(11),
-        totalSkips: BigInt(1),
-        longestStreak: BigInt(7),
-        totalSuccesses: BigInt(17),
-        currentStreak: BigInt(5),
+        category: GoalCategory.Health,
+        successes: BigInt(17),
+        total: BigInt(20),
+        rate: 0.85,
+      },
+      {
+        category: GoalCategory.Learning,
+        successes: BigInt(6),
+        total: BigInt(9),
+        rate: 0.67,
       },
     ],
-    dailySuccessRate30Days: Array.from({ length: 30 }, () =>
-      Math.random() > 0.2 ? 1 : 0
-    ),
+    dayOfWeek: [
+      {
+        dayOfWeek: BigInt(1),
+        dayName: "Monday",
+        successes: BigInt(3),
+        total: BigInt(4),
+        rate: 0.75,
+      },
+      {
+        dayOfWeek: BigInt(2),
+        dayName: "Tuesday",
+        successes: BigInt(4),
+        total: BigInt(4),
+        rate: 1,
+      },
+      {
+        dayOfWeek: BigInt(3),
+        dayName: "Wednesday",
+        successes: BigInt(2),
+        total: BigInt(4),
+        rate: 0.5,
+      },
+      {
+        dayOfWeek: BigInt(4),
+        dayName: "Thursday",
+        successes: BigInt(4),
+        total: BigInt(4),
+        rate: 1,
+      },
+      {
+        dayOfWeek: BigInt(5),
+        dayName: "Friday",
+        successes: BigInt(3),
+        total: BigInt(4),
+        rate: 0.75,
+      },
+      {
+        dayOfWeek: BigInt(6),
+        dayName: "Saturday",
+        successes: BigInt(4),
+        total: BigInt(5),
+        rate: 0.8,
+      },
+      {
+        dayOfWeek: BigInt(0),
+        dayName: "Sunday",
+        successes: BigInt(3),
+        total: BigInt(4),
+        rate: 0.75,
+      },
+    ],
+    bestDayOfWeek: BigInt(2),
+    worstDayOfWeek: BigInt(3),
+    overallIfThenEffectiveness: {
+      usedPlan: {
+        successes: BigInt(9),
+        total: BigInt(10),
+        rate: 0.9,
+      },
+      notUsedPlan: {
+        successes: BigInt(14),
+        total: BigInt(19),
+        rate: 0.74,
+      },
+    },
+    habits: [
+      {
+        habitId: BigInt(11),
+        habitName: "Run 5K every morning",
+        category: GoalCategory.Health,
+        shownUpDays: BigInt(17),
+        ifThenEffectiveness: {
+          usedPlan: {
+            successes: BigInt(5),
+            total: BigInt(5),
+            rate: 1,
+          },
+          notUsedPlan: {
+            successes: BigInt(12),
+            total: BigInt(15),
+            rate: 0.8,
+          },
+        },
+        predictedObstacle: {
+          obstacleTemplateId: BigInt(1),
+          obstacleName: "Low Energy",
+          count: BigInt(3),
+        },
+        actualObstacles: [
+          {
+            obstacleTemplateId: BigInt(1),
+            obstacleName: "Low Energy",
+            count: BigInt(3),
+          },
+          {
+            obstacleTemplateId: BigInt(2),
+            obstacleName: "No Time",
+            count: BigInt(1),
+          },
+        ],
+      },
+      {
+        habitId: BigInt(13),
+        habitName: "Meditate daily",
+        category: GoalCategory.Learning,
+        shownUpDays: BigInt(6),
+        ifThenEffectiveness: {
+          usedPlan: {
+            successes: BigInt(4),
+            total: BigInt(5),
+            rate: 0.8,
+          },
+          notUsedPlan: {
+            successes: BigInt(2),
+            total: BigInt(4),
+            rate: 0.5,
+          },
+        },
+        predictedObstacle: undefined,
+        actualObstacles: [],
+      },
+    ],
   }),
 
   // ─── Profile ────────────────────────────────────────────────────────────────
@@ -696,6 +817,8 @@ export const mockBackend: backendInterface = {
   ],
 
   // ─── OQL ────────────────────────────────────────────────────────────────────
+  getApiDoc: async () => "{}",
+
   devReset: async () => {},
 
   execute: async (_qJson: string) => ({

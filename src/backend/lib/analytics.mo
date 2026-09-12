@@ -1,5 +1,7 @@
 import List "mo:core/List";
 import Array "mo:core/Array";
+import Map "mo:core/Map";
+import Nat "mo:core/Nat";
 import Common "../types/common";
 import AnalyticsTypes "../types/analytics";
 import CheckInTypes "../types/checkins";
@@ -9,169 +11,240 @@ import GoalLib "./goals";
 module {
   let DAY_NS : Int = 86_400_000_000_000;
 
-  func _sameDay(a : Common.Timestamp, b : Common.Timestamp) : Bool {
-    (a / DAY_NS) == (b / DAY_NS);
+  /// Follow-through rate helper: successes / total, or 0.0 when total is 0.
+  func rate(successes : Nat, total : Nat) : Float {
+    if (total == 0) 0.0 else successes.toFloat() / total.toFloat();
   };
 
-  func dayIndex(ts : Common.Timestamp, now : Common.Timestamp) : Int {
-    (now / DAY_NS) - (ts / DAY_NS);
+  /// Day-of-week index (0 = Sunday ... 6 = Saturday) for a nanosecond
+  /// timestamp. Unix epoch (1970-01-01) was a Thursday = index 4.
+  func dayOfWeek(ts : Common.Timestamp) : Nat {
+    let daysSinceEpoch = ts / DAY_NS;
+    let raw = (4 + daysSinceEpoch) % 7;
+    let idx = if (raw < 0) { raw + 7 } else { raw };
+    idx.toNat();
   };
 
-  public func computeGoalAnalytics(
-    goal : GoalTypes.HabitPublic,
-    checkIns : [CheckInTypes.CheckIn],
-    now : Common.Timestamp,
-  ) : AnalyticsTypes.GoalAnalytics {
-    var totalSuccesses : Nat = 0;
-    var totalSkips : Nat = 0;
-
-    for (c in checkIns.values()) {
-      switch (c.checkInType) {
-        case (#success) totalSuccesses += 1;
-        case (#skip) totalSkips += 1;
-        case (#inProgress or #missedCheckIn or #missedCheckOut) {}; // Lock-In intermediate/failed states: not counted
-      };
+  func dayName(d : Nat) : Text {
+    switch (d) {
+      case 0 "Sunday";
+      case 1 "Monday";
+      case 2 "Tuesday";
+      case 3 "Wednesday";
+      case 4 "Thursday";
+      case 5 "Friday";
+      case 6 "Saturday";
+      case _ "Unknown";
     };
+  };
 
-    // Compute current streak: consecutive days ending today or yesterday with a success
-    // Sort check-ins by timestamp descending to compute streak
-    let sorted = checkIns.sort(func(a, b) {
-      if (a.timestamp > b.timestamp) #less
-      else if (a.timestamp < b.timestamp) #greater
-      else #equal
-    });
+  /// Resolves an obstacle template id to its title, or a fallback when the
+  /// template no longer exists.
+  func obstacleName(id : Common.ObstacleTemplateId, templates : List.List<GoalTypes.ObstacleTemplate>) : Text {
+    switch (templates.find(func(t) { t.id == id })) {
+      case null "Unknown obstacle";
+      case (?t) t.title;
+    };
+  };
 
-    var currentStreak : Nat = 0;
-    var longestStreak : Nat = 0;
-    var tempStreak : Nat = 0;
-    var lastDayIdx : ?Int = null;
-
-    // Walk sorted (newest first) to build current streak
-    label streakLoop for (c in sorted.values()) {
-      if (c.checkInType != #success) {
-        // Skip-type breaks the current streak
-        switch (lastDayIdx) {
-          case null {};
-          case (?_) break streakLoop;
-        };
+  /// If-then plan effectiveness: follow-through on days the plan was used
+  /// (`executedIfThen = true`) versus days it was not.
+  public func computeIfThenEffectiveness(
+    checkIns : [CheckInTypes.CheckIn],
+  ) : AnalyticsTypes.IfThenEffectiveness {
+    var usedSuccess : Nat = 0;
+    var usedTotal : Nat = 0;
+    var notUsedSuccess : Nat = 0;
+    var notUsedTotal : Nat = 0;
+    for (c in checkIns.values()) {
+      if (c.executedIfThen) {
+        usedTotal += 1;
+        if (c.checkInType == #success) usedSuccess += 1;
       } else {
-        let dIdx = dayIndex(c.timestamp, now);
-        switch (lastDayIdx) {
-          case null {
-            // First entry: valid only if today (0) or yesterday (1)
-            if (dIdx <= 1) {
-              currentStreak := 1;
-              lastDayIdx := ?dIdx;
-            } else {
-              break streakLoop;
-            };
-          };
-          case (?prev) {
-            if (dIdx == prev + 1) {
-              currentStreak += 1;
-              lastDayIdx := ?dIdx;
-            } else {
-              break streakLoop;
-            };
-          };
-        };
+        notUsedTotal += 1;
+        if (c.checkInType == #success) notUsedSuccess += 1;
       };
     };
-
-    // Compute longest streak (forward pass)
-    var prevDayIdx2 : ?Int = null;
-    for (c in checkIns.values()) {
-      if (c.checkInType == #success) {
-        let dIdx = dayIndex(c.timestamp, now);
-        switch (prevDayIdx2) {
-          case null {
-            tempStreak := 1;
-            prevDayIdx2 := ?dIdx;
-          };
-          case (?prev) {
-            if (dIdx == prev - 1) {
-              tempStreak += 1;
-            } else {
-              tempStreak := 1;
-            };
-            prevDayIdx2 := ?dIdx;
-          };
-        };
-        if (tempStreak > longestStreak) longestStreak := tempStreak;
-      };
-    };
-    if (currentStreak > longestStreak) longestStreak := currentStreak;
-
-    let total = totalSuccesses + totalSkips;
-    let completionRate : Float = if (total == 0) 0.0 else totalSuccesses.toFloat() / total.toFloat();
-
     {
-      goalId = goal.id;
-      goalName = goal.wish;
-      currentStreak;
-      longestStreak;
-      totalSuccesses;
-      totalSkips;
-      totalMissed = 0; // missed tracking beyond scope for now
-      completionRate;
+      usedPlan = { successes = usedSuccess; total = usedTotal; rate = rate(usedSuccess, usedTotal) };
+      notUsedPlan = { successes = notUsedSuccess; total = notUsedTotal; rate = rate(notUsedSuccess, notUsedTotal) };
     };
   };
 
-  public func computeDailySuccessRate30Days(
-    checkIns : [CheckInTypes.CheckIn],
-    goalIds : [Common.GoalId],
-    now : Common.Timestamp,
-  ) : [Float] {
-    // For each of the last 30 days, compute success rate across all goals
-    let result = Array.tabulate(30, func(i) {
-      let targetDayOffset = i; // i=0 is today, i=29 is 29 days ago
-      let dayStart = (now / DAY_NS - targetDayOffset.toInt()) * DAY_NS;
-      let dayEnd = dayStart + DAY_NS;
+  /// Follow-through per day of the week across the given check-ins.
+  public func computeDayOfWeek(checkIns : [CheckInTypes.CheckIn]) : [AnalyticsTypes.DayOfWeekStat] {
+    var successes = [var 0, 0, 0, 0, 0, 0, 0];
+    var totals = [var 0, 0, 0, 0, 0, 0, 0];
+    for (c in checkIns.values()) {
+      let d = dayOfWeek(c.timestamp);
+      totals[d] += 1;
+      if (c.checkInType == #success) successes[d] += 1;
+    };
+    Array.tabulate(7, func(i) {
+      {
+        dayOfWeek = i;
+        dayName = dayName(i);
+        successes = successes[i];
+        total = totals[i];
+        rate = rate(successes[i], totals[i]);
+      };
+    });
+  };
 
+  /// Day-of-week index with the highest follow-through rate among days that
+  /// have at least one check-in. null when no day has data.
+  func bestDay(stats : [AnalyticsTypes.DayOfWeekStat]) : ?Nat {
+    var best : ?Nat = null;
+    var bestRate : Float = -1.0;
+    for (s in stats.values()) {
+      if (s.total > 0 and s.rate > bestRate) {
+        bestRate := s.rate;
+        best := ?s.dayOfWeek;
+      };
+    };
+    best;
+  };
+
+  /// Day-of-week index with the lowest follow-through rate among days that
+  /// have at least one check-in. null when no day has data.
+  func worstDay(stats : [AnalyticsTypes.DayOfWeekStat]) : ?Nat {
+    var worst : ?Nat = null;
+    var worstRate : Float = 2.0;
+    for (s in stats.values()) {
+      if (s.total > 0 and s.rate < worstRate) {
+        worstRate := s.rate;
+        worst := ?s.dayOfWeek;
+      };
+    };
+    worst;
+  };
+
+  /// Follow-through rolled up per category. Each habit's category comes from
+  /// its existing `category` field; check-ins are attributed to a category via
+  /// their habit's id.
+  public func computeCategoryBreakdown(
+    habits : [GoalTypes.Goal],
+    checkIns : [CheckInTypes.CheckIn],
+  ) : [AnalyticsTypes.CategoryStat] {
+    let categories = [#Health, #Learning, #Social, #Productivity, #Leisure] : [GoalTypes.GoalCategory];
+    categories.map(func(cat) {
+      let catHabitIds = habits.filter(func(g) { g.category == cat }).map(func(g) { g.id });
       var successes : Nat = 0;
       var total : Nat = 0;
-
       for (c in checkIns.values()) {
-        if (
-          c.timestamp >= dayStart and
-          c.timestamp < dayEnd and
-          goalIds.find(func(id) { id == c.goalId }) != null
-        ) {
+        if (catHabitIds.find(func(id) { id == c.goalId }) != null) {
           total += 1;
           if (c.checkInType == #success) successes += 1;
         };
       };
-
-      if (total == 0) 0.0 else successes.toFloat() / total.toFloat();
+      {
+        category = cat;
+        successes;
+        total;
+        rate = rate(successes, total);
+      };
     });
-    result;
   };
 
+  /// Obstacles actually recorded on the given check-ins, counted by template
+  /// id and sorted by frequency (most frequent first).
+  func computeActualObstacles(
+    checkIns : [CheckInTypes.CheckIn],
+    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
+  ) : [AnalyticsTypes.ObstacleStat] {
+    let counts = Map.empty<Common.ObstacleTemplateId, Nat>();
+    for (c in checkIns.values()) {
+      switch (c.obstacleTemplateId) {
+        case null {};
+        case (?id) {
+          counts.add(id, (counts.get(id) ?? 0) + 1);
+        };
+      };
+    };
+    let stats = counts.entries().map(func((id, count)) {
+      {
+        obstacleTemplateId = ?id;
+        obstacleName = obstacleName(id, obstacleTemplates);
+        count;
+      };
+    }).toArray();
+    stats.sort(func(a, b) {
+      if (a.count > b.count) #less
+      else if (a.count < b.count) #greater
+      else #equal
+    });
+  };
+
+  /// Per-habit analytics for a single habit and its check-ins.
+  public func computeHabitAnalytics(
+    habit : GoalTypes.HabitPublic,
+    checkIns : [CheckInTypes.CheckIn],
+    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
+  ) : AnalyticsTypes.HabitAnalytics {
+    // Shown-up days: count only genuine successes. Skips and auto-filled
+    // forgotten days (recorded as skips by the auto-fail timer) are excluded.
+    var shownUpDays : Nat = 0;
+    for (c in checkIns.values()) {
+      if (c.checkInType == #success) shownUpDays += 1;
+    };
+
+    let ifThen = computeIfThenEffectiveness(checkIns);
+
+    let predictedObstacle = switch (habit.obstacleTemplateId) {
+      case null null;
+      case (?id) ?{
+        obstacleTemplateId = ?id;
+        obstacleName = obstacleName(id, obstacleTemplates);
+        count = 0;
+      };
+    };
+
+    let actualObstacles = computeActualObstacles(checkIns, obstacleTemplates);
+
+    {
+      habitId = habit.id;
+      habitName = habit.wishDescription;
+      category = habit.category;
+      shownUpDays;
+      ifThenEffectiveness = ifThen;
+      predictedObstacle;
+      actualObstacles;
+    };
+  };
+
+  /// Computes the full Insights analytics summary for the caller. All values
+  /// are derived on-the-fly from the caller's habits and check-ins — nothing
+  /// is persisted, so no migration is required.
   public func getAnalytics(
     goals : List.List<GoalTypes.Goal>,
     checkIns : List.List<CheckInTypes.CheckIn>,
+    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
     caller : Common.UserId,
-    now : Common.Timestamp,
   ) : AnalyticsTypes.AnalyticsSummary {
     // Analytics are per-habit (check-ins are recorded against habits, not
     // macro goals). Filter to habits only (goalId set).
     let ownedHabits = goals.values().filter(func(g) {
       g.owner == caller and g.goalId != null
     }).toArray();
-    let goalIds = ownedHabits.map(func(g) { g.id });
     let allCheckIns = checkIns.values().filter(func(c) { c.owner == caller }).toArray();
 
-    let goalAnalytics = ownedHabits.map(func(g) {
+    let habitAnalytics = ownedHabits.map(func(g) {
       let gPublic = GoalLib.toHabitPublic(g);
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
-      computeGoalAnalytics(gPublic, goalCheckIns, now);
+      computeHabitAnalytics(gPublic, goalCheckIns, obstacleTemplates);
     });
 
-    let daily = computeDailySuccessRate30Days(allCheckIns, goalIds, now);
+    let overallIfThen = computeIfThenEffectiveness(allCheckIns);
+    let dayOfWeek = computeDayOfWeek(allCheckIns);
+    let categoryBreakdown = computeCategoryBreakdown(ownedHabits, allCheckIns);
 
     {
-      goals = goalAnalytics;
-      dailySuccessRate30Days = daily;
+      habits = habitAnalytics;
+      overallIfThenEffectiveness = overallIfThen;
+      dayOfWeek;
+      bestDayOfWeek = bestDay(dayOfWeek);
+      worstDayOfWeek = worstDay(dayOfWeek);
+      categoryBreakdown;
     };
   };
 };

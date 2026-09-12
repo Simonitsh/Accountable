@@ -32998,19 +32998,49 @@ const Result = Record({
   "hasMore": Bool,
   "rows": Vec(Vec(Cell$1))
 });
-const GoalAnalytics = Record({
-  "totalMissed": Nat,
-  "completionRate": Float64,
-  "goalName": Text$1,
-  "goalId": GoalId,
-  "totalSkips": Nat,
-  "longestStreak": Nat,
-  "totalSuccesses": Nat,
-  "currentStreak": Nat
+const CategoryStat = Record({
+  "successes": Nat,
+  "total": Nat,
+  "rate": Float64,
+  "category": GoalCategory$1
+});
+const DayOfWeekStat = Record({
+  "successes": Nat,
+  "total": Nat,
+  "dayOfWeek": Nat,
+  "rate": Float64,
+  "dayName": Text$1
+});
+const FollowThroughRate = Record({
+  "successes": Nat,
+  "total": Nat,
+  "rate": Float64
+});
+const IfThenEffectiveness = Record({
+  "notUsedPlan": FollowThroughRate,
+  "usedPlan": FollowThroughRate
+});
+const ObstacleStat = Record({
+  "obstacleName": Text$1,
+  "count": Nat,
+  "obstacleTemplateId": Opt(ObstacleTemplateId)
+});
+const HabitAnalytics = Record({
+  "ifThenEffectiveness": IfThenEffectiveness,
+  "predictedObstacle": Opt(ObstacleStat),
+  "habitName": Text$1,
+  "habitId": GoalId,
+  "actualObstacles": Vec(ObstacleStat),
+  "shownUpDays": Nat,
+  "category": GoalCategory$1
 });
 const AnalyticsSummary = Record({
-  "goals": Vec(GoalAnalytics),
-  "dailySuccessRate30Days": Vec(Float64)
+  "categoryBreakdown": Vec(CategoryStat),
+  "dayOfWeek": Vec(DayOfWeekStat),
+  "bestDayOfWeek": Opt(Nat),
+  "overallIfThenEffectiveness": IfThenEffectiveness,
+  "habits": Vec(HabitAnalytics),
+  "worstDayOfWeek": Opt(Nat)
 });
 const CheckInType$1 = Variant({
   "skip": Null,
@@ -33185,6 +33215,7 @@ Service({
   "devReset": Func([], [], []),
   "execute": Func([Text$1], [Result], ["query"]),
   "getAnalytics": Func([], [AnalyticsSummary], ["query"]),
+  "getApiDoc": Func([], [Text$1], ["query"]),
   "getCheckInsForGoal": Func([GoalId], [Vec(CheckIn)], ["query"]),
   "getCheckInsForGoalTimeline": Func(
     [GoalId, Int],
@@ -33383,19 +33414,49 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "hasMore": IDL2.Bool,
     "rows": IDL2.Vec(IDL2.Vec(Cell3))
   });
-  const GoalAnalytics2 = IDL2.Record({
-    "totalMissed": IDL2.Nat,
-    "completionRate": IDL2.Float64,
-    "goalName": IDL2.Text,
-    "goalId": GoalId2,
-    "totalSkips": IDL2.Nat,
-    "longestStreak": IDL2.Nat,
-    "totalSuccesses": IDL2.Nat,
-    "currentStreak": IDL2.Nat
+  const CategoryStat2 = IDL2.Record({
+    "successes": IDL2.Nat,
+    "total": IDL2.Nat,
+    "rate": IDL2.Float64,
+    "category": GoalCategory2
+  });
+  const DayOfWeekStat2 = IDL2.Record({
+    "successes": IDL2.Nat,
+    "total": IDL2.Nat,
+    "dayOfWeek": IDL2.Nat,
+    "rate": IDL2.Float64,
+    "dayName": IDL2.Text
+  });
+  const FollowThroughRate2 = IDL2.Record({
+    "successes": IDL2.Nat,
+    "total": IDL2.Nat,
+    "rate": IDL2.Float64
+  });
+  const IfThenEffectiveness2 = IDL2.Record({
+    "notUsedPlan": FollowThroughRate2,
+    "usedPlan": FollowThroughRate2
+  });
+  const ObstacleStat2 = IDL2.Record({
+    "obstacleName": IDL2.Text,
+    "count": IDL2.Nat,
+    "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2)
+  });
+  const HabitAnalytics2 = IDL2.Record({
+    "ifThenEffectiveness": IfThenEffectiveness2,
+    "predictedObstacle": IDL2.Opt(ObstacleStat2),
+    "habitName": IDL2.Text,
+    "habitId": GoalId2,
+    "actualObstacles": IDL2.Vec(ObstacleStat2),
+    "shownUpDays": IDL2.Nat,
+    "category": GoalCategory2
   });
   const AnalyticsSummary2 = IDL2.Record({
-    "goals": IDL2.Vec(GoalAnalytics2),
-    "dailySuccessRate30Days": IDL2.Vec(IDL2.Float64)
+    "categoryBreakdown": IDL2.Vec(CategoryStat2),
+    "dayOfWeek": IDL2.Vec(DayOfWeekStat2),
+    "bestDayOfWeek": IDL2.Opt(IDL2.Nat),
+    "overallIfThenEffectiveness": IfThenEffectiveness2,
+    "habits": IDL2.Vec(HabitAnalytics2),
+    "worstDayOfWeek": IDL2.Opt(IDL2.Nat)
   });
   const CheckInType2 = IDL2.Variant({
     "skip": IDL2.Null,
@@ -33570,6 +33631,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "devReset": IDL2.Func([], [], []),
     "execute": IDL2.Func([IDL2.Text], [Result2], ["query"]),
     "getAnalytics": IDL2.Func([], [AnalyticsSummary2], ["query"]),
+    "getApiDoc": IDL2.Func([], [IDL2.Text], ["query"]),
     "getCheckInsForGoal": IDL2.Func([GoalId2], [IDL2.Vec(CheckIn2)], ["query"]),
     "getCheckInsForGoalTimeline": IDL2.Func(
       [GoalId2, IDL2.Int],
@@ -33918,13 +33980,27 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getAnalytics();
-        return result;
+        return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getAnalytics();
+      return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async getApiDoc() {
+    if (this.processError) {
+      try {
+        const result = await this.actor.getApiDoc();
+        return result;
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.getApiDoc();
       return result;
     }
   }
@@ -33932,56 +34008,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoal(arg0);
-        return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoal(arg0);
-      return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForGoalTimeline(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-        return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-      return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForPeriod(arg0, arg1, arg2) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-        return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-      return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
     }
   }
   async getHabit(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getHabit(arg0);
-        return from_candid_opt_n37(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n50(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getHabit(arg0);
-      return from_candid_opt_n37(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n50(this._uploadFile, this._downloadFile, result);
     }
   }
   async getInteractionCount(arg0) {
@@ -34002,70 +34078,70 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getMacroGoal(arg0);
-        return from_candid_opt_n38(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n51(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMacroGoal(arg0);
-      return from_candid_opt_n38(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n51(this._uploadFile, this._downloadFile, result);
     }
   }
   async getMyProfile() {
     if (this.processError) {
       try {
         const result = await this.actor.getMyProfile();
-        return from_candid_UserProfilePublic_n39(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyProfile();
-      return from_candid_UserProfilePublic_n39(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerFeed() {
     if (this.processError) {
       try {
         const result = await this.actor.getPartnerFeed();
-        return from_candid_vec_n49(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n62(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getPartnerFeed();
-      return from_candid_vec_n49(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n62(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerHabits(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getPartnerHabits(arg0);
-        return from_candid_variant_n52(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n65(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getPartnerHabits(arg0);
-      return from_candid_variant_n52(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n65(this._uploadFile, this._downloadFile, result);
     }
   }
   async getUserProfile(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getUserProfile(arg0);
-        return from_candid_opt_n58(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n71(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getUserProfile(arg0);
-      return from_candid_opt_n58(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n71(this._uploadFile, this._downloadFile, result);
     }
   }
   async isUsernameAvailable(arg0) {
@@ -34086,70 +34162,70 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listAllUsers();
-        return from_candid_vec_n59(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n72(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listAllUsers();
-      return from_candid_vec_n59(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n72(this._uploadFile, this._downloadFile, result);
     }
   }
   async listConnections() {
     if (this.processError) {
       try {
         const result = await this.actor.listConnections();
-        return from_candid_vec_n60(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listConnections();
-      return from_candid_vec_n60(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
     }
   }
   async listHabitsByParent(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.listHabitsByParent(arg0);
-        return from_candid_variant_n65(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n78(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listHabitsByParent(arg0);
-      return from_candid_variant_n65(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n78(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyCheckIns() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyCheckIns();
-        return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyCheckIns();
-      return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyGoals() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyGoals();
-        return from_candid_vec_n66(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n79(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyGoals();
-      return from_candid_vec_n66(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n79(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyObstacleTemplates() {
@@ -34170,98 +34246,98 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listMyReusableGoals();
-        return from_candid_vec_n69(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n82(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyReusableGoals();
-      return from_candid_vec_n69(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n82(this._uploadFile, this._downloadFile, result);
     }
   }
   async listPartnerOverviews() {
     if (this.processError) {
       try {
         const result = await this.actor.listPartnerOverviews();
-        return from_candid_vec_n72(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n85(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listPartnerOverviews();
-      return from_candid_vec_n72(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n85(this._uploadFile, this._downloadFile, result);
     }
   }
   async listPendingRequests() {
     if (this.processError) {
       try {
         const result = await this.actor.listPendingRequests();
-        return from_candid_vec_n60(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listPendingRequests();
-      return from_candid_vec_n60(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
     }
   }
   async markCheckInIfThenUsed(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.markCheckInIfThenUsed(arg0);
-        return from_candid_variant_n75(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n88(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.markCheckInIfThenUsed(arg0);
-      return from_candid_variant_n75(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n88(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordCheckIn(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n77(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_CheckIn_n32(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n90(this._uploadFile, this._downloadFile, arg0));
+        return from_candid_CheckIn_n45(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n77(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_CheckIn_n32(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n90(this._uploadFile, this._downloadFile, arg0));
+      return from_candid_CheckIn_n45(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordInteraction(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n81(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_Interaction_n83(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n94(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_Interaction_n96(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n81(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_Interaction_n83(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n94(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_Interaction_n96(this._uploadFile, this._downloadFile, result);
     }
   }
   async register(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.register(arg0);
-        return from_candid_UserProfilePublic_n39(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.register(arg0);
-      return from_candid_UserProfilePublic_n39(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
     }
   }
   async respondToConnection(arg0, arg1) {
@@ -34296,14 +34372,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.sendConnectionRequest(arg0);
-        return from_candid_ConnectionPublic_n61(this._uploadFile, this._downloadFile, result);
+        return from_candid_ConnectionPublic_n74(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.sendConnectionRequest(arg0);
-      return from_candid_ConnectionPublic_n61(this._uploadFile, this._downloadFile, result);
+      return from_candid_ConnectionPublic_n74(this._uploadFile, this._downloadFile, result);
     }
   }
   async setTimezone(arg0) {
@@ -34323,86 +34399,92 @@ class Backend {
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n87(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n100(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n87(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n100(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
   async updateHabit(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n89(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n102(this._uploadFile, this._downloadFile, arg1));
         return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n89(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n102(this._uploadFile, this._downloadFile, arg1));
       return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateMacroGoal(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n91(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n104(this._uploadFile, this._downloadFile, arg1));
         return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n91(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateMacroGoal(arg0, to_candid_UpdateMacroGoalRequest_n104(this._uploadFile, this._downloadFile, arg1));
       return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateMyProfile(arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n93(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n94(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n97(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n98(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n101(this._uploadFile, this._downloadFile, arg6));
-        return from_candid_variant_n102(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n106(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n107(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n110(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n111(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n106(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n106(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n114(this._uploadFile, this._downloadFile, arg6));
+        return from_candid_variant_n115(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n93(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n94(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n97(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n98(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n93(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n101(this._uploadFile, this._downloadFile, arg6));
-      return from_candid_variant_n102(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n106(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n107(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n110(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n111(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n106(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n106(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n114(this._uploadFile, this._downloadFile, arg6));
+      return from_candid_variant_n115(this._uploadFile, this._downloadFile, result);
     }
   }
 }
-function from_candid_AvatarColorMode_n44(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n45(_uploadFile, _downloadFile, value);
+function from_candid_AnalyticsSummary_n31(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n32(_uploadFile, _downloadFile, value);
 }
-function from_candid_AvatarColor_n43(_uploadFile, _downloadFile, value) {
+function from_candid_AvatarColorMode_n57(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n58(_uploadFile, _downloadFile, value);
+}
+function from_candid_AvatarColor_n56(_uploadFile, _downloadFile, value) {
   return from_candid_opt_n6(_uploadFile, _downloadFile, value);
 }
-function from_candid_AvatarShape_n46(_uploadFile, _downloadFile, value) {
-  return from_candid_opt_n47(_uploadFile, _downloadFile, value);
+function from_candid_AvatarShape_n59(_uploadFile, _downloadFile, value) {
+  return from_candid_opt_n60(_uploadFile, _downloadFile, value);
+}
+function from_candid_CategoryStat_n34(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n35(_uploadFile, _downloadFile, value);
 }
 function from_candid_Cell_n27(_uploadFile, _downloadFile, value) {
   return from_candid_record_n28(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckInType_n34(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n35(_uploadFile, _downloadFile, value);
+function from_candid_CheckInType_n47(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n48(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckIn_n32(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n33(_uploadFile, _downloadFile, value);
+function from_candid_CheckIn_n45(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n46(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionPublic_n61(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n62(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionPublic_n74(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n75(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionStatus_n63(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n64(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionStatus_n76(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n77(_uploadFile, _downloadFile, value);
 }
-function from_candid_FeedItem_n50(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n51(_uploadFile, _downloadFile, value);
+function from_candid_FeedItem_n63(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n64(_uploadFile, _downloadFile, value);
 }
 function from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n12(_uploadFile, _downloadFile, value);
@@ -34410,41 +34492,47 @@ function from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value) {
 function from_candid_GoalState_n8(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n9(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalWithHabitsPublic_n67(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n68(_uploadFile, _downloadFile, value);
+function from_candid_GoalWithHabitsPublic_n80(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n81(_uploadFile, _downloadFile, value);
+}
+function from_candid_HabitAnalytics_n38(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n39(_uploadFile, _downloadFile, value);
 }
 function from_candid_HabitPublic_n4(_uploadFile, _downloadFile, value) {
   return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_InteractionType_n85(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n86(_uploadFile, _downloadFile, value);
+function from_candid_InteractionType_n98(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n99(_uploadFile, _downloadFile, value);
 }
-function from_candid_Interaction_n83(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n84(_uploadFile, _downloadFile, value);
+function from_candid_Interaction_n96(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n97(_uploadFile, _downloadFile, value);
 }
 function from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value) {
   return from_candid_record_n19(_uploadFile, _downloadFile, value);
 }
-function from_candid_PartnerHabitDetail_n53(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n54(_uploadFile, _downloadFile, value);
+function from_candid_ObstacleStat_n41(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n42(_uploadFile, _downloadFile, value);
 }
-function from_candid_PartnerHabitError_n56(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n57(_uploadFile, _downloadFile, value);
+function from_candid_PartnerHabitDetail_n66(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n67(_uploadFile, _downloadFile, value);
 }
-function from_candid_PartnerOverview_n73(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n74(_uploadFile, _downloadFile, value);
+function from_candid_PartnerHabitError_n69(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n70(_uploadFile, _downloadFile, value);
+}
+function from_candid_PartnerOverview_n86(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n87(_uploadFile, _downloadFile, value);
 }
 function from_candid_Result_n23(_uploadFile, _downloadFile, value) {
   return from_candid_record_n24(_uploadFile, _downloadFile, value);
 }
-function from_candid_ReusableGoalPublic_n70(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n71(_uploadFile, _downloadFile, value);
+function from_candid_ReusableGoalPublic_n83(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n84(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfilePublic_n39(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n40(_uploadFile, _downloadFile, value);
+function from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n53(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n41(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n42(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n54(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n55(_uploadFile, _downloadFile, value);
 }
 function from_candid_Value_n29(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n30(_uploadFile, _downloadFile, value);
@@ -34455,23 +34543,29 @@ function from_candid_opt_n10(_uploadFile, _downloadFile, value) {
 function from_candid_opt_n36(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n37(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n40(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_ObstacleStat_n41(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n49(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n50(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : from_candid_HabitPublic_n4(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n38(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n51(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n47(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_variant_n48(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n58(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_UserProfilePublic_n39(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n6(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
+function from_candid_opt_n60(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_variant_n61(_uploadFile, _downloadFile, value[0]);
+}
 function from_candid_opt_n7(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n71(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_record_n19(_uploadFile, _downloadFile, value) {
   return {
@@ -34500,33 +34594,54 @@ function from_candid_record_n28(_uploadFile, _downloadFile, value) {
     name: value.name
   };
 }
-function from_candid_record_n33(_uploadFile, _downloadFile, value) {
+function from_candid_record_n32(_uploadFile, _downloadFile, value) {
+  return {
+    categoryBreakdown: from_candid_vec_n33(_uploadFile, _downloadFile, value.categoryBreakdown),
+    dayOfWeek: value.dayOfWeek,
+    bestDayOfWeek: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.bestDayOfWeek)),
+    overallIfThenEffectiveness: value.overallIfThenEffectiveness,
+    habits: from_candid_vec_n37(_uploadFile, _downloadFile, value.habits),
+    worstDayOfWeek: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.worstDayOfWeek))
+  };
+}
+function from_candid_record_n35(_uploadFile, _downloadFile, value) {
+  return {
+    successes: value.successes,
+    total: value.total,
+    rate: value.rate,
+    category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category)
+  };
+}
+function from_candid_record_n39(_uploadFile, _downloadFile, value) {
+  return {
+    ifThenEffectiveness: value.ifThenEffectiveness,
+    predictedObstacle: record_opt_to_undefined(from_candid_opt_n40(_uploadFile, _downloadFile, value.predictedObstacle)),
+    habitName: value.habitName,
+    habitId: value.habitId,
+    actualObstacles: from_candid_vec_n43(_uploadFile, _downloadFile, value.actualObstacles),
+    shownUpDays: value.shownUpDays,
+    category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category)
+  };
+}
+function from_candid_record_n42(_uploadFile, _downloadFile, value) {
+  return {
+    obstacleName: value.obstacleName,
+    count: value.count,
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId))
+  };
+}
+function from_candid_record_n46(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
     goalId: value.goalId,
-    checkInType: from_candid_CheckInType_n34(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: from_candid_CheckInType_n47(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     timestamp: value.timestamp,
     executedIfThen: value.executedIfThen,
-    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.lockInStartedAt)),
-    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.lockInEndedAt)),
+    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInStartedAt)),
+    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInEndedAt)),
     customObstacleNote: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customObstacleNote))
-  };
-}
-function from_candid_record_n40(_uploadFile, _downloadFile, value) {
-  return {
-    id: value.id,
-    bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
-    timezone: value.timezone,
-    username: value.username,
-    displayName: value.displayName,
-    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
-    role: from_candid_UserRole_n41(_uploadFile, _downloadFile, value.role),
-    email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
-    avatarColor: from_candid_AvatarColor_n43(_uploadFile, _downloadFile, value.avatarColor),
-    avatarColorMode: from_candid_AvatarColorMode_n44(_uploadFile, _downloadFile, value.avatarColorMode),
-    avatarShape: from_candid_AvatarShape_n46(_uploadFile, _downloadFile, value.avatarShape)
   };
 }
 function from_candid_record_n5(_uploadFile, _downloadFile, value) {
@@ -34555,39 +34670,54 @@ function from_candid_record_n5(_uploadFile, _downloadFile, value) {
     lockInDurationMinutes: value.lockInDurationMinutes
   };
 }
-function from_candid_record_n51(_uploadFile, _downloadFile, value) {
-  return {
-    checkIn: from_candid_CheckIn_n32(_uploadFile, _downloadFile, value.checkIn),
-    goalName: value.goalName,
-    partnerDisplayName: value.partnerDisplayName,
-    partnerAvatarColor: from_candid_AvatarColor_n43(_uploadFile, _downloadFile, value.partnerAvatarColor),
-    highFiveCount: value.highFiveCount,
-    partnerAvatarColorMode: from_candid_AvatarColorMode_n44(_uploadFile, _downloadFile, value.partnerAvatarColorMode),
-    partnerAvatarShape: from_candid_AvatarShape_n46(_uploadFile, _downloadFile, value.partnerAvatarShape)
-  };
-}
-function from_candid_record_n54(_uploadFile, _downloadFile, value) {
-  return {
-    habits: from_candid_vec_n55(_uploadFile, _downloadFile, value.habits),
-    profile: from_candid_UserProfilePublic_n39(_uploadFile, _downloadFile, value.profile)
-  };
-}
-function from_candid_record_n62(_uploadFile, _downloadFile, value) {
+function from_candid_record_n53(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_ConnectionStatus_n63(_uploadFile, _downloadFile, value.status),
+    bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
+    timezone: value.timezone,
+    username: value.username,
+    displayName: value.displayName,
+    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
+    role: from_candid_UserRole_n54(_uploadFile, _downloadFile, value.role),
+    email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
+    avatarColor: from_candid_AvatarColor_n56(_uploadFile, _downloadFile, value.avatarColor),
+    avatarColorMode: from_candid_AvatarColorMode_n57(_uploadFile, _downloadFile, value.avatarColorMode),
+    avatarShape: from_candid_AvatarShape_n59(_uploadFile, _downloadFile, value.avatarShape)
+  };
+}
+function from_candid_record_n64(_uploadFile, _downloadFile, value) {
+  return {
+    checkIn: from_candid_CheckIn_n45(_uploadFile, _downloadFile, value.checkIn),
+    goalName: value.goalName,
+    partnerDisplayName: value.partnerDisplayName,
+    partnerAvatarColor: from_candid_AvatarColor_n56(_uploadFile, _downloadFile, value.partnerAvatarColor),
+    highFiveCount: value.highFiveCount,
+    partnerAvatarColorMode: from_candid_AvatarColorMode_n57(_uploadFile, _downloadFile, value.partnerAvatarColorMode),
+    partnerAvatarShape: from_candid_AvatarShape_n59(_uploadFile, _downloadFile, value.partnerAvatarShape)
+  };
+}
+function from_candid_record_n67(_uploadFile, _downloadFile, value) {
+  return {
+    habits: from_candid_vec_n68(_uploadFile, _downloadFile, value.habits),
+    profile: from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value.profile)
+  };
+}
+function from_candid_record_n75(_uploadFile, _downloadFile, value) {
+  return {
+    id: value.id,
+    status: from_candid_ConnectionStatus_n76(_uploadFile, _downloadFile, value.status),
     createdAt: value.createdAt,
     toPrincipal: value.toPrincipal,
     fromPrincipal: value.fromPrincipal
   };
 }
-function from_candid_record_n68(_uploadFile, _downloadFile, value) {
+function from_candid_record_n81(_uploadFile, _downloadFile, value) {
   return {
     goal: from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value.goal),
-    habits: from_candid_vec_n55(_uploadFile, _downloadFile, value.habits)
+    habits: from_candid_vec_n68(_uploadFile, _downloadFile, value.habits)
   };
 }
-function from_candid_record_n71(_uploadFile, _downloadFile, value) {
+function from_candid_record_n84(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     wish: value.wish,
@@ -34596,26 +34726,26 @@ function from_candid_record_n71(_uploadFile, _downloadFile, value) {
     category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category)
   };
 }
-function from_candid_record_n74(_uploadFile, _downloadFile, value) {
+function from_candid_record_n87(_uploadFile, _downloadFile, value) {
   return {
     activeHabitCount: value.activeHabitCount,
-    profile: from_candid_UserProfilePublic_n39(_uploadFile, _downloadFile, value.profile),
+    profile: from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value.profile),
     currentStreak: value.currentStreak
   };
 }
-function from_candid_record_n84(_uploadFile, _downloadFile, value) {
+function from_candid_record_n97(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    interactionType: from_candid_InteractionType_n85(_uploadFile, _downloadFile, value.interactionType),
+    interactionType: from_candid_InteractionType_n98(_uploadFile, _downloadFile, value.interactionType),
     fromPrincipal: value.fromPrincipal,
     checkInId: value.checkInId,
     timestamp: value.timestamp
   };
 }
-function from_candid_variant_n102(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n115(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
-    ok: from_candid_UserProfilePublic_n39(_uploadFile, _downloadFile, value.ok)
+    ok: from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value.ok)
   } : "err" in value ? {
     __kind__: "err",
     err: value.err
@@ -34693,59 +34823,59 @@ function from_candid_variant_n30(_uploadFile, _downloadFile, value) {
     text: value.text
   } : value;
 }
-function from_candid_variant_n35(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n48(_uploadFile, _downloadFile, value) {
   return "skip" in value ? "skip" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
-function from_candid_variant_n42(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n55(_uploadFile, _downloadFile, value) {
   return "admin" in value ? "admin" : "user" in value ? "user" : value;
 }
-function from_candid_variant_n45(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n58(_uploadFile, _downloadFile, value) {
   return "Fill" in value ? "Fill" : "BorderOnly" in value ? "BorderOnly" : value;
 }
-function from_candid_variant_n48(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n61(_uploadFile, _downloadFile, value) {
   return "Star" in value ? "Star" : "Pentagon" in value ? "Pentagon" : "Triangle" in value ? "Triangle" : "Hexagon" in value ? "Hexagon" : "Square" in value ? "Square" : value;
-}
-function from_candid_variant_n52(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: from_candid_PartnerHabitDetail_n53(_uploadFile, _downloadFile, value.ok)
-  } : "err" in value ? {
-    __kind__: "err",
-    err: from_candid_PartnerHabitError_n56(_uploadFile, _downloadFile, value.err)
-  } : value;
-}
-function from_candid_variant_n57(_uploadFile, _downloadFile, value) {
-  return "notPartner" in value ? "notPartner" : "profileNotFound" in value ? "profileNotFound" : value;
-}
-function from_candid_variant_n64(_uploadFile, _downloadFile, value) {
-  return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
 }
 function from_candid_variant_n65(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
-    ok: from_candid_vec_n55(_uploadFile, _downloadFile, value.ok)
+    ok: from_candid_PartnerHabitDetail_n66(_uploadFile, _downloadFile, value.ok)
+  } : "err" in value ? {
+    __kind__: "err",
+    err: from_candid_PartnerHabitError_n69(_uploadFile, _downloadFile, value.err)
+  } : value;
+}
+function from_candid_variant_n70(_uploadFile, _downloadFile, value) {
+  return "notPartner" in value ? "notPartner" : "profileNotFound" in value ? "profileNotFound" : value;
+}
+function from_candid_variant_n77(_uploadFile, _downloadFile, value) {
+  return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
+}
+function from_candid_variant_n78(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: from_candid_vec_n68(_uploadFile, _downloadFile, value.ok)
   } : "err" in value ? {
     __kind__: "err",
     err: value.err
   } : value;
 }
-function from_candid_variant_n75(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n88(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: value.ok
   } : "err" in value ? {
     __kind__: "err",
-    err: from_candid_variant_n76(_uploadFile, _downloadFile, value.err)
+    err: from_candid_variant_n89(_uploadFile, _downloadFile, value.err)
   } : value;
 }
-function from_candid_variant_n76(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n89(_uploadFile, _downloadFile, value) {
   return "notFound" in value ? "notFound" : "unauthorized" in value ? "unauthorized" : value;
-}
-function from_candid_variant_n86(_uploadFile, _downloadFile, value) {
-  return "highFive" in value ? "highFive" : value;
 }
 function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
   return "active" in value ? "active" : "completed" in value ? "completed" : "paused" in value ? "paused" : value;
+}
+function from_candid_variant_n99(_uploadFile, _downloadFile, value) {
+  return "highFive" in value ? "highFive" : value;
 }
 function from_candid_vec_n25(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_vec_n26(_uploadFile, _downloadFile, x3));
@@ -34753,41 +34883,50 @@ function from_candid_vec_n25(_uploadFile, _downloadFile, value) {
 function from_candid_vec_n26(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_Cell_n27(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n31(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_CheckIn_n32(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n33(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_CategoryStat_n34(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n49(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_FeedItem_n50(_uploadFile, _downloadFile, x3));
+function from_candid_vec_n37(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_HabitAnalytics_n38(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n55(_uploadFile, _downloadFile, value) {
+function from_candid_vec_n43(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_ObstacleStat_n41(_uploadFile, _downloadFile, x3));
+}
+function from_candid_vec_n44(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_CheckIn_n45(_uploadFile, _downloadFile, x3));
+}
+function from_candid_vec_n62(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_FeedItem_n63(_uploadFile, _downloadFile, x3));
+}
+function from_candid_vec_n68(_uploadFile, _downloadFile, value) {
   return value.map((x3) => from_candid_HabitPublic_n4(_uploadFile, _downloadFile, x3));
 }
-function from_candid_vec_n59(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_UserProfilePublic_n39(_uploadFile, _downloadFile, x3));
-}
-function from_candid_vec_n60(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_ConnectionPublic_n61(_uploadFile, _downloadFile, x3));
-}
-function from_candid_vec_n66(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_GoalWithHabitsPublic_n67(_uploadFile, _downloadFile, x3));
-}
-function from_candid_vec_n69(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_ReusableGoalPublic_n70(_uploadFile, _downloadFile, x3));
-}
 function from_candid_vec_n72(_uploadFile, _downloadFile, value) {
-  return value.map((x3) => from_candid_PartnerOverview_n73(_uploadFile, _downloadFile, x3));
+  return value.map((x3) => from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, x3));
 }
-function to_candid_AvatarColorMode_n99(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n100(_uploadFile, _downloadFile, value);
+function from_candid_vec_n73(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_ConnectionPublic_n74(_uploadFile, _downloadFile, x3));
 }
-function to_candid_AvatarColor_n97(_uploadFile, _downloadFile, value) {
-  return to_candid_opt_n93(_uploadFile, _downloadFile, value);
+function from_candid_vec_n79(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_GoalWithHabitsPublic_n80(_uploadFile, _downloadFile, x3));
 }
-function to_candid_AvatarShape_n94(_uploadFile, _downloadFile, value) {
-  return to_candid_opt_n95(_uploadFile, _downloadFile, value);
+function from_candid_vec_n82(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_ReusableGoalPublic_n83(_uploadFile, _downloadFile, x3));
 }
-function to_candid_CheckInType_n79(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n80(_uploadFile, _downloadFile, value);
+function from_candid_vec_n85(_uploadFile, _downloadFile, value) {
+  return value.map((x3) => from_candid_PartnerOverview_n86(_uploadFile, _downloadFile, x3));
+}
+function to_candid_AvatarColorMode_n112(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n113(_uploadFile, _downloadFile, value);
+}
+function to_candid_AvatarColor_n110(_uploadFile, _downloadFile, value) {
+  return to_candid_opt_n106(_uploadFile, _downloadFile, value);
+}
+function to_candid_AvatarShape_n107(_uploadFile, _downloadFile, value) {
+  return to_candid_opt_n108(_uploadFile, _downloadFile, value);
+}
+function to_candid_CheckInType_n92(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n93(_uploadFile, _downloadFile, value);
 }
 function to_candid_CreateHabitRequest_n1(_uploadFile, _downloadFile, value) {
   return to_candid_record_n2(_uploadFile, _downloadFile, value);
@@ -34798,32 +34937,54 @@ function to_candid_CreateMacroGoalRequest_n13(_uploadFile, _downloadFile, value)
 function to_candid_GoalCategory_n15(_uploadFile, _downloadFile, value) {
   return to_candid_variant_n16(_uploadFile, _downloadFile, value);
 }
-function to_candid_GoalState_n87(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n88(_uploadFile, _downloadFile, value);
+function to_candid_GoalState_n100(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n101(_uploadFile, _downloadFile, value);
 }
-function to_candid_InteractionType_n81(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n82(_uploadFile, _downloadFile, value);
+function to_candid_InteractionType_n94(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n95(_uploadFile, _downloadFile, value);
 }
-function to_candid_RecordCheckInRequest_n77(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n78(_uploadFile, _downloadFile, value);
+function to_candid_RecordCheckInRequest_n90(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n91(_uploadFile, _downloadFile, value);
 }
-function to_candid_UpdateHabitRequest_n89(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n90(_uploadFile, _downloadFile, value);
+function to_candid_UpdateHabitRequest_n102(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n103(_uploadFile, _downloadFile, value);
 }
-function to_candid_UpdateMacroGoalRequest_n91(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n92(_uploadFile, _downloadFile, value);
+function to_candid_UpdateMacroGoalRequest_n104(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n105(_uploadFile, _downloadFile, value);
 }
-function to_candid_opt_n101(_uploadFile, _downloadFile, value) {
+function to_candid_opt_n106(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_opt_n93(_uploadFile, _downloadFile, value) {
+function to_candid_opt_n108(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid_variant_n109(_uploadFile, _downloadFile, value));
+}
+function to_candid_opt_n111(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid_AvatarColorMode_n112(_uploadFile, _downloadFile, value));
+}
+function to_candid_opt_n114(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_opt_n95(_uploadFile, _downloadFile, value) {
-  return value === null ? candid_none() : candid_some(to_candid_variant_n96(_uploadFile, _downloadFile, value));
+function to_candid_record_n103(_uploadFile, _downloadFile, value) {
+  return {
+    startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+    endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
+    endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+    scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
+    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
+    startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
+    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
+    isTimeEdit: value.isTimeEdit ? candid_some(value.isTimeEdit) : candid_none(),
+    iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
+    ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
+    isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
+    lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
+  };
 }
-function to_candid_opt_n98(_uploadFile, _downloadFile, value) {
-  return value === null ? candid_none() : candid_some(to_candid_AvatarColorMode_n99(_uploadFile, _downloadFile, value));
+function to_candid_record_n105(_uploadFile, _downloadFile, value) {
+  return {
+    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
+    iconName: value.iconName ? candid_some(value.iconName) : candid_none()
+  };
 }
 function to_candid_record_n14(_uploadFile, _downloadFile, value) {
   return {
@@ -34852,11 +35013,11 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
   };
 }
-function to_candid_record_n78(_uploadFile, _downloadFile, value) {
+function to_candid_record_n91(_uploadFile, _downloadFile, value) {
   return {
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     goalId: value.goalId,
-    checkInType: to_candid_CheckInType_n79(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: to_candid_CheckInType_n92(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     executedIfThen: value.executedIfThen,
     lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
@@ -34864,29 +35025,29 @@ function to_candid_record_n78(_uploadFile, _downloadFile, value) {
     customObstacleNote: value.customObstacleNote ? candid_some(value.customObstacleNote) : candid_none()
   };
 }
-function to_candid_record_n90(_uploadFile, _downloadFile, value) {
-  return {
-    startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
-    endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
-    endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
-    scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
-    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
-    startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
-    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
-    isTimeEdit: value.isTimeEdit ? candid_some(value.isTimeEdit) : candid_none(),
-    iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
-    ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
-    isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
-    lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
-  };
+function to_candid_variant_n101(_uploadFile, _downloadFile, value) {
+  return value == "active" ? {
+    active: null
+  } : value == "completed" ? {
+    completed: null
+  } : value == "paused" ? {
+    paused: null
+  } : value;
 }
-function to_candid_record_n92(_uploadFile, _downloadFile, value) {
-  return {
-    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
-    iconName: value.iconName ? candid_some(value.iconName) : candid_none()
-  };
+function to_candid_variant_n109(_uploadFile, _downloadFile, value) {
+  return value == "Star" ? {
+    Star: null
+  } : value == "Pentagon" ? {
+    Pentagon: null
+  } : value == "Triangle" ? {
+    Triangle: null
+  } : value == "Hexagon" ? {
+    Hexagon: null
+  } : value == "Square" ? {
+    Square: null
+  } : value;
 }
-function to_candid_variant_n100(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n113(_uploadFile, _downloadFile, value) {
   return value == "Fill" ? {
     Fill: null
   } : value == "BorderOnly" ? {
@@ -34906,7 +35067,7 @@ function to_candid_variant_n16(_uploadFile, _downloadFile, value) {
     Leisure: null
   } : value;
 }
-function to_candid_variant_n80(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n93(_uploadFile, _downloadFile, value) {
   return value == "skip" ? {
     skip: null
   } : value == "missedCheckIn" ? {
@@ -34919,31 +35080,9 @@ function to_candid_variant_n80(_uploadFile, _downloadFile, value) {
     inProgress: null
   } : value;
 }
-function to_candid_variant_n82(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n95(_uploadFile, _downloadFile, value) {
   return value == "highFive" ? {
     highFive: null
-  } : value;
-}
-function to_candid_variant_n88(_uploadFile, _downloadFile, value) {
-  return value == "active" ? {
-    active: null
-  } : value == "completed" ? {
-    completed: null
-  } : value == "paused" ? {
-    paused: null
-  } : value;
-}
-function to_candid_variant_n96(_uploadFile, _downloadFile, value) {
-  return value == "Star" ? {
-    Star: null
-  } : value == "Pentagon" ? {
-    Pentagon: null
-  } : value == "Triangle" ? {
-    Triangle: null
-  } : value == "Hexagon" ? {
-    Hexagon: null
-  } : value == "Square" ? {
-    Square: null
   } : value;
 }
 function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {

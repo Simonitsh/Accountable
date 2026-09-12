@@ -16,6 +16,7 @@ import CheckInsApi "mixins/checkins-api";
 import ConnectionsApi "mixins/connections-api";
 import FeedApi "mixins/feed-api";
 import AnalyticsApi "mixins/analytics-api";
+import ApiDocMixin "mixins/api-doc";
 import PartnerHabitsApi "mixins/partner-habits-api";
 import CheckInsLib "lib/checkins";
 
@@ -83,8 +84,9 @@ actor {
   include CheckInsApi(checkIns, goals, nextCheckInId);
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
-  include AnalyticsApi(goals, checkIns);
+  include AnalyticsApi(goals, checkIns, obstacleTemplates);
   include PartnerHabitsApi(connections, goals, checkIns, profiles);
+  include ApiDocMixin();
 
   // ─────────────────────────────────────────────────────────────────────────
   // RECURRING AUTO-FAIL TIMER — armed in the actor body so it is re-armed on

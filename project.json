@@ -1,16 +1,15 @@
 {
-  "overview": "Cumulative is a behavioral-science social accountability app for building habits with if-then plans and check-ins.",
+  "overview": "Cumulative is a habit-tracking app that helps people follow through on their if-then plans and see how their consistency pays off.",
   "features": [
-    "Swipe to check in on habits",
-    "If-then plan rescue moments",
-    "Optional if-then plan note on successful check-ins",
-    "Habit streaks and analytics"
+    "Track habits with if-then plans and categories",
+    "Record daily check-ins including whether the plan was used and which obstacle came up",
+    "Compute insights on plan effectiveness, day-of-week patterns, category breakdowns, planned-vs-actual obstacles, and days shown up"
   ],
   "category": "productivity",
   "tags": [
     "habits",
-    "accountability",
-    "behavioral-science"
+    "productivity",
+    "consistency"
   ],
-  "last_updated": "2026-09-12T14:08:57.645Z"
+  "last_updated": "2026-09-12T20:13:06.375Z"
 }

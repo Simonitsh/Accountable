@@ -108,19 +108,49 @@ export const Result = IDL.Record({
   'hasMore' : IDL.Bool,
   'rows' : IDL.Vec(IDL.Vec(Cell)),
 });
-export const GoalAnalytics = IDL.Record({
-  'totalMissed' : IDL.Nat,
-  'completionRate' : IDL.Float64,
-  'goalName' : IDL.Text,
-  'goalId' : GoalId,
-  'totalSkips' : IDL.Nat,
-  'longestStreak' : IDL.Nat,
-  'totalSuccesses' : IDL.Nat,
-  'currentStreak' : IDL.Nat,
+export const CategoryStat = IDL.Record({
+  'successes' : IDL.Nat,
+  'total' : IDL.Nat,
+  'rate' : IDL.Float64,
+  'category' : GoalCategory,
+});
+export const DayOfWeekStat = IDL.Record({
+  'successes' : IDL.Nat,
+  'total' : IDL.Nat,
+  'dayOfWeek' : IDL.Nat,
+  'rate' : IDL.Float64,
+  'dayName' : IDL.Text,
+});
+export const FollowThroughRate = IDL.Record({
+  'successes' : IDL.Nat,
+  'total' : IDL.Nat,
+  'rate' : IDL.Float64,
+});
+export const IfThenEffectiveness = IDL.Record({
+  'notUsedPlan' : FollowThroughRate,
+  'usedPlan' : FollowThroughRate,
+});
+export const ObstacleStat = IDL.Record({
+  'obstacleName' : IDL.Text,
+  'count' : IDL.Nat,
+  'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+});
+export const HabitAnalytics = IDL.Record({
+  'ifThenEffectiveness' : IfThenEffectiveness,
+  'predictedObstacle' : IDL.Opt(ObstacleStat),
+  'habitName' : IDL.Text,
+  'habitId' : GoalId,
+  'actualObstacles' : IDL.Vec(ObstacleStat),
+  'shownUpDays' : IDL.Nat,
+  'category' : GoalCategory,
 });
 export const AnalyticsSummary = IDL.Record({
-  'goals' : IDL.Vec(GoalAnalytics),
-  'dailySuccessRate30Days' : IDL.Vec(IDL.Float64),
+  'categoryBreakdown' : IDL.Vec(CategoryStat),
+  'dayOfWeek' : IDL.Vec(DayOfWeekStat),
+  'bestDayOfWeek' : IDL.Opt(IDL.Nat),
+  'overallIfThenEffectiveness' : IfThenEffectiveness,
+  'habits' : IDL.Vec(HabitAnalytics),
+  'worstDayOfWeek' : IDL.Opt(IDL.Nat),
 });
 export const CheckInType = IDL.Variant({
   'skip' : IDL.Null,
@@ -296,6 +326,7 @@ export const idlService = IDL.Service({
   'devReset' : IDL.Func([], [], []),
   'execute' : IDL.Func([IDL.Text], [Result], ['query']),
   'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
+  'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
   'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
   'getCheckInsForGoalTimeline' : IDL.Func(
       [GoalId, IDL.Int],
@@ -497,19 +528,49 @@ export const idlFactory = ({ IDL }) => {
     'hasMore' : IDL.Bool,
     'rows' : IDL.Vec(IDL.Vec(Cell)),
   });
-  const GoalAnalytics = IDL.Record({
-    'totalMissed' : IDL.Nat,
-    'completionRate' : IDL.Float64,
-    'goalName' : IDL.Text,
-    'goalId' : GoalId,
-    'totalSkips' : IDL.Nat,
-    'longestStreak' : IDL.Nat,
-    'totalSuccesses' : IDL.Nat,
-    'currentStreak' : IDL.Nat,
+  const CategoryStat = IDL.Record({
+    'successes' : IDL.Nat,
+    'total' : IDL.Nat,
+    'rate' : IDL.Float64,
+    'category' : GoalCategory,
+  });
+  const DayOfWeekStat = IDL.Record({
+    'successes' : IDL.Nat,
+    'total' : IDL.Nat,
+    'dayOfWeek' : IDL.Nat,
+    'rate' : IDL.Float64,
+    'dayName' : IDL.Text,
+  });
+  const FollowThroughRate = IDL.Record({
+    'successes' : IDL.Nat,
+    'total' : IDL.Nat,
+    'rate' : IDL.Float64,
+  });
+  const IfThenEffectiveness = IDL.Record({
+    'notUsedPlan' : FollowThroughRate,
+    'usedPlan' : FollowThroughRate,
+  });
+  const ObstacleStat = IDL.Record({
+    'obstacleName' : IDL.Text,
+    'count' : IDL.Nat,
+    'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
+  });
+  const HabitAnalytics = IDL.Record({
+    'ifThenEffectiveness' : IfThenEffectiveness,
+    'predictedObstacle' : IDL.Opt(ObstacleStat),
+    'habitName' : IDL.Text,
+    'habitId' : GoalId,
+    'actualObstacles' : IDL.Vec(ObstacleStat),
+    'shownUpDays' : IDL.Nat,
+    'category' : GoalCategory,
   });
   const AnalyticsSummary = IDL.Record({
-    'goals' : IDL.Vec(GoalAnalytics),
-    'dailySuccessRate30Days' : IDL.Vec(IDL.Float64),
+    'categoryBreakdown' : IDL.Vec(CategoryStat),
+    'dayOfWeek' : IDL.Vec(DayOfWeekStat),
+    'bestDayOfWeek' : IDL.Opt(IDL.Nat),
+    'overallIfThenEffectiveness' : IfThenEffectiveness,
+    'habits' : IDL.Vec(HabitAnalytics),
+    'worstDayOfWeek' : IDL.Opt(IDL.Nat),
   });
   const CheckInType = IDL.Variant({
     'skip' : IDL.Null,
@@ -685,6 +746,7 @@ export const idlFactory = ({ IDL }) => {
     'devReset' : IDL.Func([], [], []),
     'execute' : IDL.Func([IDL.Text], [Result], ['query']),
     'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
+    'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
     'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
     'getCheckInsForGoalTimeline' : IDL.Func(
         [GoalId, IDL.Int],

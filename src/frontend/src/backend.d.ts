@@ -18,19 +18,20 @@ export interface RecordCheckInRequest {
     lockInEndedAt?: bigint;
     customObstacleNote?: string;
 }
-export interface GoalAnalytics {
-    totalMissed: bigint;
-    completionRate: number;
-    goalName: string;
-    goalId: GoalId;
-    totalSkips: bigint;
-    longestStreak: bigint;
-    totalSuccesses: bigint;
-    currentStreak: bigint;
+export interface DayOfWeekStat {
+    successes: bigint;
+    total: bigint;
+    dayOfWeek: bigint;
+    rate: number;
+    dayName: string;
 }
 export interface AnalyticsSummary {
-    goals: Array<GoalAnalytics>;
-    dailySuccessRate30Days: Array<number>;
+    categoryBreakdown: Array<CategoryStat>;
+    dayOfWeek: Array<DayOfWeekStat>;
+    bestDayOfWeek?: bigint;
+    overallIfThenEffectiveness: IfThenEffectiveness;
+    habits: Array<HabitAnalytics>;
+    worstDayOfWeek?: bigint;
 }
 export interface CreateMacroGoalRequest {
     wish: string;
@@ -51,6 +52,12 @@ export interface PartnerOverview {
     activeHabitCount: bigint;
     profile: UserProfilePublic;
     currentStreak: bigint;
+}
+export interface CategoryStat {
+    successes: bigint;
+    total: bigint;
+    rate: number;
+    category: GoalCategory;
 }
 export interface CreateHabitRequest {
     startTime?: string;
@@ -80,6 +87,15 @@ export interface CheckIn {
     customObstacleNote?: string;
 }
 export type AvatarShape = Variant_Star_Pentagon_Triangle_Hexagon_Square | null;
+export interface HabitAnalytics {
+    ifThenEffectiveness: IfThenEffectiveness;
+    predictedObstacle?: ObstacleStat;
+    habitName: string;
+    habitId: GoalId;
+    actualObstacles: Array<ObstacleStat>;
+    shownUpDays: bigint;
+    category: GoalCategory;
+}
 export interface Cell {
     value: Value;
     name: string;
@@ -92,6 +108,13 @@ export interface ConnectionPublic {
     fromPrincipal: UserId;
 }
 export type CheckInId = bigint;
+export interface Interaction {
+    id: InteractionId;
+    interactionType: InteractionType;
+    fromPrincipal: UserId;
+    checkInId: CheckInId;
+    timestamp: Timestamp;
+}
 export type Value = {
     __kind__: "int";
     int: bigint;
@@ -111,13 +134,6 @@ export type Value = {
     __kind__: "text";
     text: string;
 };
-export interface Interaction {
-    id: InteractionId;
-    interactionType: InteractionType;
-    fromPrincipal: UserId;
-    checkInId: CheckInId;
-    timestamp: Timestamp;
-}
 export interface UpdateHabitRequest {
     startTime?: string;
     endTimeMinutes?: bigint;
@@ -134,12 +150,16 @@ export interface UpdateHabitRequest {
 }
 export type GoalId = bigint;
 export type AvatarColor = string | null;
+export interface IfThenEffectiveness {
+    notUsedPlan: FollowThroughRate;
+    usedPlan: FollowThroughRate;
+}
 export type ObstacleTemplateId = bigint;
-export type ConnectionId = bigint;
 export interface UpdateMacroGoalRequest {
     themeColor?: string;
     iconName?: string;
 }
+export type ConnectionId = bigint;
 export interface UserProfilePublic {
     id: UserId;
     bio?: string;
@@ -182,6 +202,11 @@ export interface FeedItem {
     partnerAvatarColorMode: AvatarColorMode;
     partnerAvatarShape: AvatarShape;
 }
+export interface FollowThroughRate {
+    successes: bigint;
+    total: bigint;
+    rate: number;
+}
 export interface PartnerHabitDetail {
     habits: Array<HabitPublic>;
     profile: UserProfilePublic;
@@ -222,6 +247,11 @@ export interface HabitPublic {
     isLockIn: boolean;
     outcome: string;
     lockInDurationMinutes: bigint;
+}
+export interface ObstacleStat {
+    obstacleName: string;
+    count: bigint;
+    obstacleTemplateId?: ObstacleTemplateId;
 }
 export enum AvatarColorMode {
     Fill = "Fill",
@@ -350,6 +380,7 @@ export interface backendInterface {
     devReset(): Promise<void>;
     execute(qJson: string): Promise<Result>;
     getAnalytics(): Promise<AnalyticsSummary>;
+    getApiDoc(): Promise<string>;
     getCheckInsForGoal(goalId: GoalId): Promise<Array<CheckIn>>;
     getCheckInsForGoalTimeline(goalId: GoalId, fromTimestamp: bigint): Promise<Array<CheckIn>>;
     getCheckInsForPeriod(goalId: GoalId, fromTimestamp: bigint, toTimestamp: bigint): Promise<Array<CheckIn>>;

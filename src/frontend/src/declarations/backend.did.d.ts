@@ -11,8 +11,12 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface AnalyticsSummary {
-  'goals' : Array<GoalAnalytics>,
-  'dailySuccessRate30Days' : Array<number>,
+  'categoryBreakdown' : Array<CategoryStat>,
+  'dayOfWeek' : Array<DayOfWeekStat>,
+  'bestDayOfWeek' : [] | [bigint],
+  'overallIfThenEffectiveness' : IfThenEffectiveness,
+  'habits' : Array<HabitAnalytics>,
+  'worstDayOfWeek' : [] | [bigint],
 }
 export type AvatarColor = [] | [string];
 export type AvatarColorMode = { 'Fill' : null } |
@@ -24,6 +28,12 @@ export type AvatarShape = [] | [
     { 'Hexagon' : null } |
     { 'Square' : null }
 ];
+export interface CategoryStat {
+  'successes' : bigint,
+  'total' : bigint,
+  'rate' : number,
+  'category' : GoalCategory,
+}
 export interface Cell { 'value' : Value, 'name' : string }
 export interface CheckIn {
   'id' : CheckInId,
@@ -81,6 +91,13 @@ export interface CreateObstacleRequest {
   'title' : string,
   'description' : string,
 }
+export interface DayOfWeekStat {
+  'successes' : bigint,
+  'total' : bigint,
+  'dayOfWeek' : bigint,
+  'rate' : number,
+  'dayName' : string,
+}
 export interface FeedItem {
   'checkIn' : CheckIn,
   'goalName' : string,
@@ -90,15 +107,10 @@ export interface FeedItem {
   'partnerAvatarColorMode' : AvatarColorMode,
   'partnerAvatarShape' : AvatarShape,
 }
-export interface GoalAnalytics {
-  'totalMissed' : bigint,
-  'completionRate' : number,
-  'goalName' : string,
-  'goalId' : GoalId,
-  'totalSkips' : bigint,
-  'longestStreak' : bigint,
-  'totalSuccesses' : bigint,
-  'currentStreak' : bigint,
+export interface FollowThroughRate {
+  'successes' : bigint,
+  'total' : bigint,
+  'rate' : number,
 }
 export type GoalCategory = { 'Productivity' : null } |
   { 'Learning' : null } |
@@ -112,6 +124,15 @@ export type GoalState = { 'active' : null } |
 export interface GoalWithHabitsPublic {
   'goal' : MacroGoalPublic,
   'habits' : Array<HabitPublic>,
+}
+export interface HabitAnalytics {
+  'ifThenEffectiveness' : IfThenEffectiveness,
+  'predictedObstacle' : [] | [ObstacleStat],
+  'habitName' : string,
+  'habitId' : GoalId,
+  'actualObstacles' : Array<ObstacleStat>,
+  'shownUpDays' : bigint,
+  'category' : GoalCategory,
 }
 export interface HabitPublic {
   'id' : GoalId,
@@ -137,6 +158,10 @@ export interface HabitPublic {
   'outcome' : string,
   'lockInDurationMinutes' : bigint,
 }
+export interface IfThenEffectiveness {
+  'notUsedPlan' : FollowThroughRate,
+  'usedPlan' : FollowThroughRate,
+}
 export interface Interaction {
   'id' : InteractionId,
   'interactionType' : InteractionType,
@@ -158,6 +183,11 @@ export interface MacroGoalPublic {
   'state' : GoalState,
   'category' : GoalCategory,
   'outcome' : string,
+}
+export interface ObstacleStat {
+  'obstacleName' : string,
+  'count' : bigint,
+  'obstacleTemplateId' : [] | [ObstacleTemplateId],
 }
 export interface ObstacleTemplate {
   'id' : ObstacleTemplateId,
@@ -293,6 +323,7 @@ export interface _SERVICE {
   'devReset' : ActorMethod<[], undefined>,
   'execute' : ActorMethod<[string], Result>,
   'getAnalytics' : ActorMethod<[], AnalyticsSummary>,
+  'getApiDoc' : ActorMethod<[], string>,
   'getCheckInsForGoal' : ActorMethod<[GoalId], Array<CheckIn>>,
   'getCheckInsForGoalTimeline' : ActorMethod<[GoalId, bigint], Array<CheckIn>>,
   'getCheckInsForPeriod' : ActorMethod<

@@ -96,6 +96,12 @@ type ObstacleTemplate =
    owner: UserId;
    title: text;
  };
+type ObstacleStat = 
+ record {
+   count: nat;
+   obstacleName: text;
+   obstacleTemplateId: opt ObstacleTemplateId;
+ };
 type MacroGoalPublic = 
  record {
    category: GoalCategory;
@@ -119,6 +125,11 @@ type Interaction =
    id: InteractionId;
    interactionType: InteractionType;
    timestamp: Timestamp;
+ };
+type IfThenEffectiveness = 
+ record {
+   notUsedPlan: FollowThroughRate;
+   usedPlan: FollowThroughRate;
  };
 type HabitPublic = 
  record {
@@ -145,6 +156,16 @@ type HabitPublic =
    wish: text;
    wishDescription: text;
  };
+type HabitAnalytics = 
+ record {
+   actualObstacles: vec ObstacleStat;
+   category: GoalCategory;
+   habitId: GoalId;
+   habitName: text;
+   ifThenEffectiveness: IfThenEffectiveness;
+   predictedObstacle: opt ObstacleStat;
+   shownUpDays: nat;
+ };
 type GoalWithHabitsPublic = 
  record {
    goal: MacroGoalPublic;
@@ -165,16 +186,11 @@ type GoalCategory =
    Productivity;
    Social;
  };
-type GoalAnalytics = 
+type FollowThroughRate = 
  record {
-   completionRate: float64;
-   currentStreak: nat;
-   goalId: GoalId;
-   goalName: text;
-   longestStreak: nat;
-   totalMissed: nat;
-   totalSkips: nat;
-   totalSuccesses: nat;
+   rate: float64;
+   successes: nat;
+   total: nat;
  };
 type FeedItem = 
  record {
@@ -185,6 +201,14 @@ type FeedItem =
    partnerAvatarColorMode: AvatarColorMode;
    partnerAvatarShape: AvatarShape;
    partnerDisplayName: text;
+ };
+type DayOfWeekStat = 
+ record {
+   dayName: text;
+   dayOfWeek: nat;
+   rate: float64;
+   successes: nat;
+   total: nat;
  };
 type CreateObstacleRequest = 
  record {
@@ -258,6 +282,13 @@ type Cell =
    name: text;
    value: Value;
  };
+type CategoryStat = 
+ record {
+   category: GoalCategory;
+   rate: float64;
+   successes: nat;
+   total: nat;
+ };
 type AvatarShape = 
  opt variant {
        Hexagon;
@@ -274,8 +305,12 @@ type AvatarColorMode =
 type AvatarColor = opt text;
 type AnalyticsSummary = 
  record {
-   dailySuccessRate30Days: vec float64;
-   goals: vec GoalAnalytics;
+   bestDayOfWeek: opt nat;
+   categoryBreakdown: vec CategoryStat;
+   dayOfWeek: vec DayOfWeekStat;
+   habits: vec HabitAnalytics;
+   overallIfThenEffectiveness: IfThenEffectiveness;
+   worstDayOfWeek: opt nat;
  };
 service : {
   /// Create a habit inside an existing macro goal. `request.goalId` is
@@ -330,6 +365,7 @@ service : {
   devReset: () -> ();
   execute: (qJson: text) -> (Result) query;
   getAnalytics: () -> (AnalyticsSummary) query;
+  getApiDoc: () -> (text) query;
   getCheckInsForGoal: (goalId: GoalId) -> (vec CheckIn) query;
   getCheckInsForGoalTimeline: (goalId: GoalId, fromTimestamp: int) ->
    (vec CheckIn) query;
