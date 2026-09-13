@@ -327,7 +327,7 @@ export const idlService = IDL.Service({
     ),
   'devReset' : IDL.Func([], [], []),
   'execute' : IDL.Func([IDL.Text], [Result], ['query']),
-  'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
+  'getAnalytics' : IDL.Func([IDL.Int], [AnalyticsSummary], ['query']),
   'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
   'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
   'getCheckInsForGoalTimeline' : IDL.Func(
@@ -754,7 +754,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'devReset' : IDL.Func([], [], []),
     'execute' : IDL.Func([IDL.Text], [Result], ['query']),
-    'getAnalytics' : IDL.Func([], [AnalyticsSummary], ['query']),
+    'getAnalytics' : IDL.Func([IDL.Int], [AnalyticsSummary], ['query']),
     'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
     'getCheckInsForGoal' : IDL.Func([GoalId], [IDL.Vec(CheckIn)], ['query']),
     'getCheckInsForGoalTimeline' : IDL.Func(

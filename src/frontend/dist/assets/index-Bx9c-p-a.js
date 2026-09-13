@@ -33216,7 +33216,7 @@ Service({
   ),
   "devReset": Func([], [], []),
   "execute": Func([Text$1], [Result], ["query"]),
-  "getAnalytics": Func([], [AnalyticsSummary], ["query"]),
+  "getAnalytics": Func([Int], [AnalyticsSummary], ["query"]),
   "getApiDoc": Func([], [Text$1], ["query"]),
   "getCheckInsForGoal": Func([GoalId], [Vec(CheckIn)], ["query"]),
   "getCheckInsForGoalTimeline": Func(
@@ -33639,7 +33639,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     ),
     "devReset": IDL2.Func([], [], []),
     "execute": IDL2.Func([IDL2.Text], [Result2], ["query"]),
-    "getAnalytics": IDL2.Func([], [AnalyticsSummary2], ["query"]),
+    "getAnalytics": IDL2.Func([IDL2.Int], [AnalyticsSummary2], ["query"]),
     "getApiDoc": IDL2.Func([], [IDL2.Text], ["query"]),
     "getCheckInsForGoal": IDL2.Func([GoalId2], [IDL2.Vec(CheckIn2)], ["query"]),
     "getCheckInsForGoalTimeline": IDL2.Func(
@@ -33990,17 +33990,17 @@ class Backend {
       return from_candid_Result_n23(this._uploadFile, this._downloadFile, result);
     }
   }
-  async getAnalytics() {
+  async getAnalytics(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.getAnalytics();
+        const result = await this.actor.getAnalytics(arg0);
         return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
       } catch (e3) {
         this.processError(e3);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.getAnalytics();
+      const result = await this.actor.getAnalytics(arg0);
       return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
     }
   }

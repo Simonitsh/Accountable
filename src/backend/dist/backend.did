@@ -366,7 +366,7 @@ service : {
                                      });
   devReset: () -> ();
   execute: (qJson: text) -> (Result) query;
-  getAnalytics: () -> (AnalyticsSummary) query;
+  getAnalytics: (timezoneOffsetMinutes: int) -> (AnalyticsSummary) query;
   getApiDoc: () -> (text) query;
   getCheckInsForGoal: (goalId: GoalId) -> (vec CheckIn) query;
   getCheckInsForGoalTimeline: (goalId: GoalId, fromTimestamp: int) ->

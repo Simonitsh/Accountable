@@ -17,9 +17,12 @@ module {
   };
 
   /// Day-of-week index (0 = Sunday ... 6 = Saturday) for a nanosecond
-  /// timestamp. Unix epoch (1970-01-01) was a Thursday = index 4.
-  func dayOfWeek(ts : Common.Timestamp) : Nat {
-    let daysSinceEpoch = ts / DAY_NS;
+  /// timestamp, adjusted for the user's timezone offset in minutes.
+  /// Unix epoch (1970-01-01) was a Thursday = index 4.
+  func dayOfWeek(ts : Common.Timestamp, timezoneOffsetMinutes : Int) : Nat {
+    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
+    let localTs = ts + offsetNs;
+    let daysSinceEpoch = localTs / DAY_NS;
     let raw = (4 + daysSinceEpoch) % 7;
     let idx = if (raw < 0) { raw + 7 } else { raw };
     idx.toNat();
@@ -71,12 +74,13 @@ module {
     };
   };
 
-  /// Follow-through per day of the week across the given check-ins.
-  public func computeDayOfWeek(checkIns : [CheckInTypes.CheckIn]) : [AnalyticsTypes.DayOfWeekStat] {
+  /// Follow-through per day of the week across the given check-ins, bucketed
+  /// in the user's local time (timezoneOffsetMinutes).
+  public func computeDayOfWeek(checkIns : [CheckInTypes.CheckIn], timezoneOffsetMinutes : Int) : [AnalyticsTypes.DayOfWeekStat] {
     var successes = [var 0, 0, 0, 0, 0, 0, 0];
     var totals = [var 0, 0, 0, 0, 0, 0, 0];
     for (c in checkIns.values()) {
-      let d = dayOfWeek(c.timestamp);
+      let d = dayOfWeek(c.timestamp, timezoneOffsetMinutes);
       totals[d] += 1;
       if (c.checkInType == #success) successes[d] += 1;
     };
@@ -220,6 +224,7 @@ module {
     checkIns : List.List<CheckInTypes.CheckIn>,
     obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
     caller : Common.UserId,
+    timezoneOffsetMinutes : Int,
   ) : AnalyticsTypes.AnalyticsSummary {
     // Analytics are per-habit (check-ins are recorded against habits, not
     // macro goals). Filter to habits only (goalId set).
@@ -235,7 +240,7 @@ module {
     });
 
     let overallIfThen = computeIfThenEffectiveness(allCheckIns);
-    let dayOfWeek = computeDayOfWeek(allCheckIns);
+    let dayOfWeek = computeDayOfWeek(allCheckIns, timezoneOffsetMinutes);
     let categoryBreakdown = computeCategoryBreakdown(ownedHabits, allCheckIns);
 
     {

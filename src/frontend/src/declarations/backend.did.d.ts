@@ -324,7 +324,7 @@ export interface _SERVICE {
   'deleteHabit' : ActorMethod<[GoalId], { 'ok' : null } | { 'err' : string }>,
   'devReset' : ActorMethod<[], undefined>,
   'execute' : ActorMethod<[string], Result>,
-  'getAnalytics' : ActorMethod<[], AnalyticsSummary>,
+  'getAnalytics' : ActorMethod<[bigint], AnalyticsSummary>,
   'getApiDoc' : ActorMethod<[], string>,
   'getCheckInsForGoal' : ActorMethod<[GoalId], Array<CheckIn>>,
   'getCheckInsForGoalTimeline' : ActorMethod<[GoalId, bigint], Array<CheckIn>>,

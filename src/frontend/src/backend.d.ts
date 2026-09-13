@@ -383,7 +383,7 @@ export interface backendInterface {
     }>;
     devReset(): Promise<void>;
     execute(qJson: string): Promise<Result>;
-    getAnalytics(): Promise<AnalyticsSummary>;
+    getAnalytics(timezoneOffsetMinutes: bigint): Promise<AnalyticsSummary>;
     getApiDoc(): Promise<string>;
     getCheckInsForGoal(goalId: GoalId): Promise<Array<CheckIn>>;
     getCheckInsForGoalTimeline(goalId: GoalId, fromTimestamp: bigint): Promise<Array<CheckIn>>;

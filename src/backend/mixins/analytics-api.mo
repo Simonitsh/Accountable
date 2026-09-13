@@ -10,7 +10,7 @@ mixin (
   checkIns : List.List<CheckInTypes.CheckIn>,
   obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
 ) {
-  public shared query ({ caller }) func getAnalytics() : async AnalyticsTypes.AnalyticsSummary {
-    AnalyticsLib.getAnalytics(goals, checkIns, obstacleTemplates, caller);
+  public shared query ({ caller }) func getAnalytics(timezoneOffsetMinutes : Int) : async AnalyticsTypes.AnalyticsSummary {
+    AnalyticsLib.getAnalytics(goals, checkIns, obstacleTemplates, caller, timezoneOffsetMinutes);
   };
 };

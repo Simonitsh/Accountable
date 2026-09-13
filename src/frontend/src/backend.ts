@@ -429,7 +429,7 @@ export interface backendInterface {
     }>;
     devReset(): Promise<void>;
     execute(qJson: string): Promise<Result>;
-    getAnalytics(): Promise<AnalyticsSummary>;
+    getAnalytics(timezoneOffsetMinutes: bigint): Promise<AnalyticsSummary>;
     getApiDoc(): Promise<string>;
     getCheckInsForGoal(goalId: GoalId): Promise<Array<CheckIn>>;
     getCheckInsForGoalTimeline(goalId: GoalId, fromTimestamp: bigint): Promise<Array<CheckIn>>;
@@ -703,17 +703,17 @@ export class Backend implements backendInterface {
             return from_candid_Result_n23(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getAnalytics(): Promise<AnalyticsSummary> {
+    async getAnalytics(arg0: bigint): Promise<AnalyticsSummary> {
         if (this.processError) {
             try {
-                const result = await this.actor.getAnalytics();
+                const result = await this.actor.getAnalytics(arg0);
                 return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getAnalytics();
+            const result = await this.actor.getAnalytics(arg0);
             return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
         }
     }

@@ -84,7 +84,7 @@ mixin () {
     "- `listPartnerOverviews() : [PartnerOverview]` — query; accepted mutual partners only.\n" #
     "\n" #
     "### Insights\n" #
-    "- `getAnalytics() : AnalyticsSummary` — query. Computes, on-the-fly from the caller's own habits and check-ins (nothing persisted): per-habit shown-up days (genuine successes only), if-then plan effectiveness (follow-through with vs without the plan, per habit and overall), day-of-week follow-through with best/worst day, per-category follow-through, and planned-vs-actual obstacle comparison. Requires a signed-in caller; anonymous callers get an empty summary (no habits/check-ins).\n" #
+    "- `getAnalytics(timezoneOffsetMinutes : Int) : AnalyticsSummary` — query. Computes, on-the-fly from the caller's own habits and check-ins (nothing persisted): per-habit shown-up days (genuine successes only), if-then plan effectiveness (follow-through with vs without the plan, per habit and overall), day-of-week follow-through with best/worst day, per-category follow-through, and planned-vs-actual obstacle comparison. The day-of-week bucketing (and thus best/worst day) is computed in the caller's local time using `timezoneOffsetMinutes` (minutes east of UTC, matching the per-user timezone stored on the profile), so a check-in is attributed to the correct day in the caller's own timezone rather than raw UTC. Requires a signed-in caller; anonymous callers get an empty summary (no habits/check-ins).\n" #
     "\n" #
     "### OQL (read-only analysis)\n" #
     "- `schema() : Text` — query; JSON catalogue of exposed entities.\n" #
