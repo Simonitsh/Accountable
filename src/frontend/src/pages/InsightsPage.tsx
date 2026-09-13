@@ -1,6 +1,6 @@
 import { useBackend } from "@/hooks/useBackend";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import type { AnalyticsSummary } from "@/types/index";
+import type { AnalyticsSummary, IfThenEffectiveness } from "@/types/index";
 import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
@@ -78,7 +78,68 @@ function SectionHeading({
 }
 
 // ─── Highlight card ──────────────────────────────────────────────────────────
-function HighlightCard() {
+// Minimum data points on EITHER side of the used-vs-not-used comparison before
+// we surface a real number. Below this, the warm "gathering data" state stays.
+const MIN_DATA_POINTS = 3;
+
+function HighlightCard({
+  effectiveness,
+}: {
+  effectiveness?: IfThenEffectiveness;
+}) {
+  const used = effectiveness?.usedPlan;
+  const notUsed = effectiveness?.notUsedPlan;
+
+  const hasEnoughData =
+    !!used &&
+    !!notUsed &&
+    used.total >= MIN_DATA_POINTS &&
+    notUsed.total >= MIN_DATA_POINTS;
+
+  // Default to the warm gathering state; only override when there's enough
+  // data on both sides to make the comparison meaningful.
+  let headline = "Your plans are taking shape";
+  let subtitle =
+    "We&apos;re gathering how often your if-then plans help you follow through. Soon you&apos;ll see your momentum here.";
+  let followThroughValue = "—";
+  let progressWidth = "0%";
+  let caption = "Keep going — every small win builds the picture.";
+
+  if (hasEnoughData) {
+    const usedRate = used.rate;
+    const notUsedRate = notUsed.rate;
+    const multiplier =
+      notUsedRate > 0 ? usedRate / notUsedRate : Number.POSITIVE_INFINITY;
+    const usedPct = Math.round(usedRate * 100);
+    const notUsedPct = Math.round(notUsedRate * 100);
+
+    if (usedRate > notUsedRate) {
+      // Favorable — prefer a clean multiplier, but fall back to a plain
+      // comparison when the "didn't use it" side is too low for a multiplier
+      // to read sensibly (it would blow up into a nonsensical number).
+      if (notUsedRate >= 0.1 && multiplier >= 1.5 && multiplier <= 5) {
+        const rounded = Math.round(multiplier);
+        headline = `${rounded}x more likely to follow through`;
+        subtitle = `When you use your if-then plan, you follow through ${rounded}× more often than on days you don&apos;t.`;
+      } else {
+        headline = "Your plan makes follow-through easier";
+        subtitle = `You follow through ${usedPct}% of the time with your plan, versus ${notUsedPct}% without it.`;
+      }
+      followThroughValue = `${usedPct}%`;
+      progressWidth = `${usedPct}%`;
+      caption = `Based on ${used.total} days with your plan and ${notUsed.total} without.`;
+    } else {
+      // Flat or unfavorable — never a grade. Reframe as encouragement to keep
+      // using the plan, matching the page's forward-looking tone.
+      headline = "Keep using your plan";
+      subtitle =
+        "Every time you use your if-then plan, you&apos;re building a habit that sticks. The momentum is still growing.";
+      followThroughValue = `${usedPct}%`;
+      progressWidth = `${usedPct}%`;
+      caption = `You&apos;ve followed through ${used.total} times with your plan so far — keep it up.`;
+    }
+  }
+
   return (
     <div className="card-neumorphic p-5" data-ocid="insights.highlight_card">
       <div className="flex items-center gap-2 text-accent-success">
@@ -101,30 +162,26 @@ function HighlightCard() {
         </div>
         <div className="min-w-0">
           <p className="font-display text-lg font-semibold text-foreground leading-snug">
-            Your plans are taking shape
+            {headline}
           </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            We&apos;re gathering how often your if-then plans help you follow
-            through. Soon you&apos;ll see your momentum here.
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
         </div>
       </div>
 
-      {/* Placeholder progress — shaped for overallIfThenEffectiveness */}
       <div className="mt-5">
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="text-muted-foreground">Follow-through</span>
-          <span className="text-accent-success font-semibold">—</span>
+          <span className="text-accent-success font-semibold">
+            {followThroughValue}
+          </span>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-primary"
-            style={{ width: "0%" }}
+            style={{ width: progressWidth }}
           />
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Keep going — every small win builds the picture.
-        </p>
+        <p className="text-xs text-muted-foreground mt-2">{caption}</p>
       </div>
     </div>
   );
@@ -283,7 +340,7 @@ function PlaceholderObstacle({ label }: { label: string }) {
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 export function InsightsPage() {
-  useInsights();
+  const { data } = useInsights();
   const prefersReducedMotion = useReducedMotion();
 
   const container = useMemo(
@@ -328,7 +385,7 @@ export function InsightsPage() {
         className="flex flex-col"
       >
         <motion.div variants={item} className="px-4 pt-4">
-          <HighlightCard />
+          <HighlightCard effectiveness={data?.overallIfThenEffectiveness} />
         </motion.div>
 
         <motion.div variants={item}>

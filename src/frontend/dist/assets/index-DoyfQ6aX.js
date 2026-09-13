@@ -92943,7 +92943,44 @@ function SectionHeading({
     ] })
   ] });
 }
-function HighlightCard() {
+const MIN_DATA_POINTS = 3;
+function HighlightCard({
+  effectiveness
+}) {
+  const used = effectiveness == null ? void 0 : effectiveness.usedPlan;
+  const notUsed = effectiveness == null ? void 0 : effectiveness.notUsedPlan;
+  const hasEnoughData = !!used && !!notUsed && used.total >= MIN_DATA_POINTS && notUsed.total >= MIN_DATA_POINTS;
+  let headline = "Your plans are taking shape";
+  let subtitle = "We&apos;re gathering how often your if-then plans help you follow through. Soon you&apos;ll see your momentum here.";
+  let followThroughValue = "—";
+  let progressWidth = "0%";
+  let caption = "Keep going — every small win builds the picture.";
+  if (hasEnoughData) {
+    const usedRate = used.rate;
+    const notUsedRate = notUsed.rate;
+    const multiplier = notUsedRate > 0 ? usedRate / notUsedRate : Number.POSITIVE_INFINITY;
+    const usedPct = Math.round(usedRate * 100);
+    const notUsedPct = Math.round(notUsedRate * 100);
+    if (usedRate > notUsedRate) {
+      if (notUsedRate >= 0.1 && multiplier >= 1.5 && multiplier <= 5) {
+        const rounded = Math.round(multiplier);
+        headline = `${rounded}x more likely to follow through`;
+        subtitle = `When you use your if-then plan, you follow through ${rounded}× more often than on days you don&apos;t.`;
+      } else {
+        headline = "Your plan makes follow-through easier";
+        subtitle = `You follow through ${usedPct}% of the time with your plan, versus ${notUsedPct}% without it.`;
+      }
+      followThroughValue = `${usedPct}%`;
+      progressWidth = `${usedPct}%`;
+      caption = `Based on ${used.total} days with your plan and ${notUsed.total} without.`;
+    } else {
+      headline = "Keep using your plan";
+      subtitle = "Every time you use your if-then plan, you&apos;re building a habit that sticks. The momentum is still growing.";
+      followThroughValue = `${usedPct}%`;
+      progressWidth = `${usedPct}%`;
+      caption = `You&apos;ve followed through ${used.total} times with your plan so far — keep it up.`;
+    }
+  }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-neumorphic p-5", "data-ocid": "insights.highlight_card", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-accent-success", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4" }),
@@ -92962,23 +92999,23 @@ function HighlightCard() {
         }
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-lg font-semibold text-foreground leading-snug", children: "Your plans are taking shape" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1", children: "We're gathering how often your if-then plans help you follow through. Soon you'll see your momentum here." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-lg font-semibold text-foreground leading-snug", children: headline }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-1", children: subtitle })
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-5", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs mb-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Follow-through" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-accent-success font-semibold", children: "—" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-accent-success font-semibold", children: followThroughValue })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-2 bg-muted rounded-full overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         "div",
         {
           className: "h-full rounded-full bg-primary",
-          style: { width: "0%" }
+          style: { width: progressWidth }
         }
       ) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-2", children: "Keep going — every small win builds the picture." })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-2", children: caption })
     ] })
   ] });
 }
@@ -93111,7 +93148,7 @@ function PlaceholderObstacle({ label }) {
   ] });
 }
 function InsightsPage$1() {
-  useInsights();
+  const { data } = useInsights();
   const prefersReducedMotion2 = useReducedMotion();
   const container = reactExports.useMemo(
     () => ({
@@ -93147,7 +93184,7 @@ function InsightsPage$1() {
         animate: "show",
         className: "flex flex-col",
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, className: "px-4 pt-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightCard, {}) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, className: "px-4 pt-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightCard, { effectiveness: data == null ? void 0 : data.overallIfThenEffectiveness }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BestWorstDaySection, {}) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(CategoryBreakdownSection, {}) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ObstaclesSection, {}) })
