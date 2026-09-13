@@ -1133,11 +1133,17 @@ export function DashboardPage() {
       // Capture the returned CheckIn id (keyed by goalId) so the Done card's
       // if-then follow-up note can tag this exact check-in via
       // markCheckInIfThenUsed. The habit is already done at this point.
-      // Only capture for SUCCESS check-ins: the note is a success-only
-      // follow-up, so skipped check-ins (left-swipe -> WoopCatch -> skip) or
-      // check-ins already tagged via the WoopCatch 'executed plan' rescue flow
-      // must not show it.
-      if (data?.id && variables.checkInType === CheckInType.success) {
+      // Capture for both SUCCESS and SKIP check-ins: the follow-up note now
+      // appears after a skip too (both the direct Justifiable Skip path and
+      // the WoopCatch 'I still need to skip' path land here as a skip). The
+      // WoopCatch 'executed plan' rescue flow records a success with
+      // executedIfThen:true, so its note is suppressed downstream by the
+      // !executedIfThen gate — no need to special-case it here.
+      if (
+        data?.id &&
+        (variables.checkInType === CheckInType.success ||
+          variables.checkInType === CheckInType.skip)
+      ) {
         setIfThenCheckInIdMap((prev) => {
           const next = new Map(prev);
           next.set(goalKey(variables.goalId), data.id);

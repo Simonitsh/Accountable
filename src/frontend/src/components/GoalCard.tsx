@@ -800,13 +800,20 @@ export function GoalCard({
   // ── If-then follow-up note auto-dismiss ───────────────────────────────────
   // When a Done card for a habit with an if-then plan has a captured check-in
   // id, show the note and auto-hide it after a short window. The habit is
-  // already done; the note is purely a non-blocking follow-up.
+  // already done; the note is purely a non-blocking follow-up. It appears
+  // after both a successful check-in and a skip (for habits that have an
+  // if-then plan set), so the user can tag either outcome as having tried the
+  // plan. It never shows for habits without an if-then plan (hasIfThenPlan),
+  // and never for check-ins already tagged (executedIfThen).
+  const isSuccessOrSkip =
+    checkInToday?.checkInType === "success" ||
+    checkInToday?.checkInType === "skip";
   useEffect(() => {
     if (
       mode === "done" &&
       hasIfThenPlan &&
       ifThenCheckInId !== undefined &&
-      checkInToday?.checkInType === "success" &&
+      isSuccessOrSkip &&
       !executedIfThen
     ) {
       setShowIfThenNote(true);
@@ -816,13 +823,7 @@ export function GoalCard({
       );
       return () => clearTimeout(t);
     }
-  }, [
-    mode,
-    hasIfThenPlan,
-    ifThenCheckInId,
-    checkInToday?.checkInType,
-    executedIfThen,
-  ]);
+  }, [mode, hasIfThenPlan, ifThenCheckInId, isSuccessOrSkip, executedIfThen]);
 
   // We intentionally only depend on isExiting and goal.id here.
   useEffect(() => {

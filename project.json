@@ -1,15 +1,16 @@
 {
-  "overview": "Cumulative is a habit-tracking app that helps people follow through on their if-then plans and see how their consistency pays off.",
+  "overview": "A habit-tracking app with if-then plans, check-ins, skips, and an effectiveness insight comparing plan usage across outcomes.",
   "features": [
-    "Track habits with if-then plans and categories",
-    "Record daily check-ins including whether the plan was used and which obstacle came up",
-    "Compute insights on plan effectiveness, day-of-week patterns, category breakdowns, planned-vs-actual obstacles, and days shown up"
+    "Track daily check-ins and skips for habits",
+    "Set if-then plans and get rescue prompts",
+    "Optionally note that you tried your if-then plan even when you skipped",
+    "See an effectiveness insight comparing plan usage across good and bad outcomes"
   ],
   "category": "productivity",
   "tags": [
     "habits",
     "productivity",
-    "consistency"
+    "if-then-planning"
   ],
-  "last_updated": "2026-09-12T20:13:06.375Z"
+  "last_updated": "2026-09-13T09:33:22.483Z"
 }

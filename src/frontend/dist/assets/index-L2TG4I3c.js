@@ -102156,8 +102156,9 @@ function GoalCard$1({
   reactExports.useEffect(() => {
     onExitCompleteRef.current = onExitComplete;
   });
+  const isSuccessOrSkip = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
   reactExports.useEffect(() => {
-    if (mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" && !executedIfThen) {
+    if (mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && isSuccessOrSkip && !executedIfThen) {
       setShowIfThenNote(true);
       const t2 = setTimeout(
         () => setShowIfThenNote(false),
@@ -102165,13 +102166,7 @@ function GoalCard$1({
       );
       return () => clearTimeout(t2);
     }
-  }, [
-    mode2,
-    hasIfThenPlan,
-    ifThenCheckInId,
-    checkInToday == null ? void 0 : checkInToday.checkInType,
-    executedIfThen
-  ]);
+  }, [mode2, hasIfThenPlan, ifThenCheckInId, isSuccessOrSkip, executedIfThen]);
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -108432,7 +108427,7 @@ function DashboardPage$1() {
       });
     },
     onSuccess: (data, variables) => {
-      if ((data == null ? void 0 : data.id) && variables.checkInType === CheckInType.success) {
+      if ((data == null ? void 0 : data.id) && (variables.checkInType === CheckInType.success || variables.checkInType === CheckInType.skip)) {
         setIfThenCheckInIdMap((prev) => {
           const next = new Map(prev);
           next.set(goalKey(variables.goalId), data.id);
