@@ -403,6 +403,11 @@ export const OBSTACLE_TEMPLATES: ObstacleTemplate[] = [
     label: "Health",
     description: "Physical or mental health issues got in the way",
   },
+  {
+    id: "something_else",
+    label: "Something else",
+    description: "A different reason got in the way",
+  },
 ];
 
 /**
