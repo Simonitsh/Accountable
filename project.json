@@ -1,16 +1,15 @@
 {
-  "overview": "A personal progress app that helps people build if-then plans, track habits and check-ins, and see encouraging insights about their own progress.",
+  "overview": "A habit-tracking app that helps people follow through on their goals with encouraging, non-judgmental insights.",
   "features": [
-    "Track goals and habits with if-then plans",
-    "Log daily check-ins and obstacles",
-    "See encouraging insights about best and worst days, category progress, and what gets in the way"
+    "Track daily habits across five categories",
+    "Record check-ins and obstacles",
+    "See encouraging analytics on an Insights page"
   ],
   "category": "productivity",
   "tags": [
-    "productivity",
     "habits",
-    "insights",
-    "progress"
+    "productivity",
+    "analytics"
   ],
-  "last_updated": "2026-09-13T17:56:41.898Z"
+  "last_updated": "2026-09-13T18:34:45.556Z"
 }

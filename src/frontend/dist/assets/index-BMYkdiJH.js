@@ -92914,11 +92914,15 @@ function useInsights() {
   });
 }
 const CATEGORY_ROWS = [
-  { id: "Health", label: "Health", icon: HeartPulse },
-  { id: "Learning", label: "Learning", icon: GraduationCap },
-  { id: "Social", label: "Social", icon: Users },
-  { id: "Productivity", label: "Productivity", icon: Briefcase },
-  { id: "Leisure", label: "Leisure", icon: Palette }
+  { category: GoalCategory.Health, label: "Health", icon: HeartPulse },
+  { category: GoalCategory.Learning, label: "Learning", icon: GraduationCap },
+  { category: GoalCategory.Social, label: "Social", icon: Users },
+  {
+    category: GoalCategory.Productivity,
+    label: "Productivity",
+    icon: Briefcase
+  },
+  { category: GoalCategory.Leisure, label: "Leisure", icon: Palette }
 ];
 function SectionHeading({
   icon,
@@ -93023,18 +93027,28 @@ function DayCard({
   label,
   icon,
   accent,
-  placeholder
+  value,
+  caption
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-neumorphic p-4 flex-1 min-w-0", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-xs font-body uppercase tracking-wider text-muted-foreground", children: [
       icon,
       label
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: `font-display text-xl font-semibold mt-3 ${accent}`, children: placeholder }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-1", children: "We'll show your standout day here once there's enough data." })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: `font-display text-xl font-semibold mt-3 ${accent}`, children: value }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-1", children: caption })
   ] });
 }
-function BestWorstDaySection() {
+function BestWorstDaySection({ data }) {
+  const dayStat = (index2) => data == null ? void 0 : data.dayOfWeek.find((s) => s.dayOfWeek === index2);
+  const bestStat = dayStat(data == null ? void 0 : data.bestDayOfWeek);
+  const worstStat = dayStat(data == null ? void 0 : data.worstDayOfWeek);
+  const bestReady = !!bestStat && bestStat.total >= MIN_DATA_POINTS && !!bestStat.dayName;
+  const worstReady = !!worstStat && worstStat.total >= MIN_DATA_POINTS && !!worstStat.dayName;
+  const bestValue = bestReady ? bestStat.dayName : "—";
+  const worstValue = worstReady ? worstStat.dayName : "—";
+  const bestCaption = bestReady ? "Your strongest follow-through day so far." : "We&apos;ll show your standout day here once there&apos;s enough data.";
+  const worstCaption = worstReady ? "A gentle heads-up — this day could use a little extra support." : "We&apos;ll show your standout day here once there&apos;s enough data.";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "px-4 pt-6", "data-ocid": "insights.day_section", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       SectionHeading,
@@ -93051,7 +93065,8 @@ function BestWorstDaySection() {
           label: "Best day",
           icon: /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-3.5 h-3.5" }),
           accent: "text-accent-success",
-          placeholder: "—"
+          value: bestValue,
+          caption: bestCaption
         }
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -93060,13 +93075,21 @@ function BestWorstDaySection() {
           label: "Worst day",
           icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarDays, { className: "w-3.5 h-3.5" }),
           accent: "text-accent-skip",
-          placeholder: "—"
+          value: worstValue,
+          caption: worstCaption
         }
       )
     ] })
   ] });
 }
-function CategoryBreakdownSection() {
+function CategoryBreakdownSection({ data }) {
+  const statByCategory = reactExports.useMemo(() => {
+    const map = /* @__PURE__ */ new Map();
+    for (const stat of (data == null ? void 0 : data.categoryBreakdown) ?? []) {
+      map.set(stat.category, stat);
+    }
+    return map;
+  }, [data]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "px-4 pt-6", "data-ocid": "insights.category_section", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       SectionHeading,
@@ -93079,6 +93102,21 @@ function CategoryBreakdownSection() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-neumorphic mt-4 p-4 flex flex-col gap-4", children: [
       CATEGORY_ROWS.map((cat) => {
         const Icon2 = cat.icon;
+        const stat = statByCategory.get(cat.category);
+        let value = "—";
+        let progressWidth = "0%";
+        let hint = null;
+        if (stat) {
+          if (stat.total >= MIN_DATA_POINTS) {
+            const pct = Math.round(stat.rate * 100);
+            value = `${pct}%`;
+            progressWidth = `${pct}%`;
+          } else {
+            hint = "Gathering a little more data…";
+          }
+        } else {
+          hint = "Nothing here yet";
+        }
         return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "div",
@@ -93094,23 +93132,51 @@ function CategoryBreakdownSection() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-sm mb-1.5", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-body font-medium text-foreground", children: cat.label }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground", children: "—" })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground", children: value })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-1.5 bg-muted rounded-full overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
               "div",
               {
                 className: "h-full rounded-full bg-primary",
-                style: { width: "0%" }
+                style: { width: progressWidth }
               }
-            ) })
+            ) }),
+            hint && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-1.5", children: hint })
           ] })
-        ] }, cat.id);
+        ] }, cat.category);
       }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Your category progress will appear here as you check in." })
     ] })
   ] });
 }
-function ObstaclesSection() {
+function aggregateObstacles(obstacles) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const obstacle of obstacles) {
+    const existing = byName.get(obstacle.obstacleName);
+    if (existing) {
+      existing.count = existing.count + obstacle.count;
+    } else {
+      byName.set(obstacle.obstacleName, { ...obstacle });
+    }
+  }
+  return [...byName.values()].sort((a2, b2) => Number(b2.count - a2.count));
+}
+function ObstaclesSection({ data }) {
+  const habits = (data == null ? void 0 : data.habits) ?? [];
+  const predicted = reactExports.useMemo(
+    () => aggregateObstacles(
+      habits.map((h2) => h2.predictedObstacle).filter((o2) => !!o2)
+    ),
+    [habits]
+  );
+  const actual = reactExports.useMemo(
+    () => aggregateObstacles(habits.flatMap((h2) => h2.actualObstacles)),
+    [habits]
+  );
+  const totalShownUp = habits.reduce((sum, h2) => sum + h2.shownUpDays, 0n);
+  const hasEnoughData = totalShownUp >= BigInt(MIN_DATA_POINTS) && (predicted.length > 0 || actual.length > 0);
+  const predictedRows = hasEnoughData ? predicted.slice(0, 2) : [];
+  const actualRows = hasEnoughData ? actual.slice(0, 2) : [];
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "px-4 pt-6", "data-ocid": "insights.obstacles_section", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       SectionHeading,
@@ -93124,21 +93190,27 @@ function ObstaclesSection() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-body uppercase tracking-wider text-muted-foreground mb-2", children: "Expected" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-2", children: predictedRows.length > 0 ? predictedRows.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ObstacleRow, { label: o2.obstacleName }, o2.obstacleName)) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" })
-          ] })
+          ] }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-body uppercase tracking-wider text-muted-foreground mb-2", children: "Actual" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-2", children: actualRows.length > 0 ? actualRows.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ObstacleRow, { label: o2.obstacleName }, o2.obstacleName)) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" })
-          ] })
+          ] }) })
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-4", children: "Understanding what really gets in the way helps you plan around it. We'll surface that here soon." })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-4", children: hasEnoughData ? "Spotting the patterns that get in the way helps you plan around them." : "Understanding what really gets in the way helps you plan around it. We&apos;ll surface that here soon." })
     ] })
+  ] });
+}
+function ObstacleRow({ label }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 rounded-lg px-3 py-2 bg-muted/40", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-skip shrink-0" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground", children: label })
   ] });
 }
 function PlaceholderObstacle({ label }) {
@@ -93185,9 +93257,9 @@ function InsightsPage$1() {
         className: "flex flex-col",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, className: "px-4 pt-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightCard, { effectiveness: data == null ? void 0 : data.overallIfThenEffectiveness }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BestWorstDaySection, {}) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(CategoryBreakdownSection, {}) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ObstaclesSection, {}) })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BestWorstDaySection, { data }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(CategoryBreakdownSection, { data }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ObstaclesSection, { data }) })
         ]
       }
     )

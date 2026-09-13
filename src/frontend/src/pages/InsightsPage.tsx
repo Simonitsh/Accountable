@@ -1,6 +1,12 @@
+import { GoalCategory } from "@/backend";
 import { useBackend } from "@/hooks/useBackend";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import type { AnalyticsSummary, IfThenEffectiveness } from "@/types/index";
+import type {
+  AnalyticsSummary,
+  CategoryStat,
+  IfThenEffectiveness,
+  ObstacleStat,
+} from "@/types/index";
 import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
@@ -38,11 +44,15 @@ function useInsights() {
 
 // ─── Category metadata ───────────────────────────────────────────────────────
 const CATEGORY_ROWS = [
-  { id: "Health", label: "Health", icon: HeartPulse },
-  { id: "Learning", label: "Learning", icon: GraduationCap },
-  { id: "Social", label: "Social", icon: Users },
-  { id: "Productivity", label: "Productivity", icon: Briefcase },
-  { id: "Leisure", label: "Leisure", icon: Palette },
+  { category: GoalCategory.Health, label: "Health", icon: HeartPulse },
+  { category: GoalCategory.Learning, label: "Learning", icon: GraduationCap },
+  { category: GoalCategory.Social, label: "Social", icon: Users },
+  {
+    category: GoalCategory.Productivity,
+    label: "Productivity",
+    icon: Briefcase,
+  },
+  { category: GoalCategory.Leisure, label: "Leisure", icon: Palette },
 ] as const;
 
 // ─── Section heading ─────────────────────────────────────────────────────────
@@ -192,12 +202,14 @@ function DayCard({
   label,
   icon,
   accent,
-  placeholder,
+  value,
+  caption,
 }: {
   label: string;
   icon: React.ReactNode;
   accent: string;
-  placeholder: string;
+  value: string;
+  caption: string;
 }) {
   return (
     <div className="card-neumorphic p-4 flex-1 min-w-0">
@@ -206,16 +218,36 @@ function DayCard({
         {label}
       </div>
       <p className={`font-display text-xl font-semibold mt-3 ${accent}`}>
-        {placeholder}
+        {value}
       </p>
-      <p className="text-xs text-muted-foreground mt-1">
-        We&apos;ll show your standout day here once there&apos;s enough data.
-      </p>
+      <p className="text-xs text-muted-foreground mt-1">{caption}</p>
     </div>
   );
 }
 
-function BestWorstDaySection() {
+function BestWorstDaySection({ data }: { data?: AnalyticsSummary }) {
+  // A day is only meaningful once it has enough check-ins behind it.
+  const dayStat = (index?: bigint) =>
+    data?.dayOfWeek.find((s) => s.dayOfWeek === index);
+
+  const bestStat = dayStat(data?.bestDayOfWeek);
+  const worstStat = dayStat(data?.worstDayOfWeek);
+
+  const bestReady =
+    !!bestStat && bestStat.total >= MIN_DATA_POINTS && !!bestStat.dayName;
+  const worstReady =
+    !!worstStat && worstStat.total >= MIN_DATA_POINTS && !!worstStat.dayName;
+
+  const bestValue = bestReady ? bestStat.dayName : "—";
+  const worstValue = worstReady ? worstStat.dayName : "—";
+
+  const bestCaption = bestReady
+    ? "Your strongest follow-through day so far."
+    : "We&apos;ll show your standout day here once there&apos;s enough data.";
+  const worstCaption = worstReady
+    ? "A gentle heads-up — this day could use a little extra support."
+    : "We&apos;ll show your standout day here once there&apos;s enough data.";
+
   return (
     <section className="px-4 pt-6" data-ocid="insights.day_section">
       <SectionHeading
@@ -228,13 +260,15 @@ function BestWorstDaySection() {
           label="Best day"
           icon={<TrendingUp className="w-3.5 h-3.5" />}
           accent="text-accent-success"
-          placeholder="—"
+          value={bestValue}
+          caption={bestCaption}
         />
         <DayCard
           label="Worst day"
           icon={<CalendarDays className="w-3.5 h-3.5" />}
           accent="text-accent-skip"
-          placeholder="—"
+          value={worstValue}
+          caption={worstCaption}
         />
       </div>
     </section>
@@ -242,7 +276,15 @@ function BestWorstDaySection() {
 }
 
 // ─── Category breakdown ──────────────────────────────────────────────────────
-function CategoryBreakdownSection() {
+function CategoryBreakdownSection({ data }: { data?: AnalyticsSummary }) {
+  const statByCategory = useMemo(() => {
+    const map = new Map<GoalCategory, CategoryStat>();
+    for (const stat of data?.categoryBreakdown ?? []) {
+      map.set(stat.category, stat);
+    }
+    return map;
+  }, [data]);
+
   return (
     <section className="px-4 pt-6" data-ocid="insights.category_section">
       <SectionHeading
@@ -253,8 +295,30 @@ function CategoryBreakdownSection() {
       <div className="card-neumorphic mt-4 p-4 flex flex-col gap-4">
         {CATEGORY_ROWS.map((cat) => {
           const Icon = cat.icon;
+          const stat = statByCategory.get(cat.category);
+
+          // Three states per category:
+          //  - no stat at all → no habits yet → "nothing here yet"
+          //  - stat but too little data → warm gathering state
+          //  - enough data → real rate + progress
+          let value = "—";
+          let progressWidth = "0%";
+          let hint: string | null = null;
+
+          if (stat) {
+            if (stat.total >= MIN_DATA_POINTS) {
+              const pct = Math.round(stat.rate * 100);
+              value = `${pct}%`;
+              progressWidth = `${pct}%`;
+            } else {
+              hint = "Gathering a little more data…";
+            }
+          } else {
+            hint = "Nothing here yet";
+          }
+
           return (
-            <div key={cat.id} className="flex items-center gap-3">
+            <div key={cat.category} className="flex items-center gap-3">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                 style={{
@@ -270,14 +334,17 @@ function CategoryBreakdownSection() {
                   <span className="font-body font-medium text-foreground">
                     {cat.label}
                   </span>
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-xs text-muted-foreground">{value}</span>
                 </div>
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full bg-primary"
-                    style={{ width: "0%" }}
+                    style={{ width: progressWidth }}
                   />
                 </div>
+                {hint && (
+                  <p className="text-xs text-muted-foreground mt-1.5">{hint}</p>
+                )}
               </div>
             </div>
           );
@@ -291,7 +358,50 @@ function CategoryBreakdownSection() {
 }
 
 // ─── Obstacles: what gets in the way vs expected ─────────────────────────────
-function ObstaclesSection() {
+// Aggregate obstacle counts across ALL of the user's habits (not per-habit),
+// summing by obstacle name so the section reads across the whole practice.
+function aggregateObstacles(obstacles: ObstacleStat[]): ObstacleStat[] {
+  const byName = new Map<string, ObstacleStat>();
+  for (const obstacle of obstacles) {
+    const existing = byName.get(obstacle.obstacleName);
+    if (existing) {
+      existing.count = existing.count + obstacle.count;
+    } else {
+      byName.set(obstacle.obstacleName, { ...obstacle });
+    }
+  }
+  return [...byName.values()].sort((a, b) => Number(b.count - a.count));
+}
+
+function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
+  const habits = data?.habits ?? [];
+
+  // Predicted obstacles come from each habit's if-then plan obstacle; actual
+  // obstacles come from the check-ins that actually got in the way.
+  const predicted = useMemo(
+    () =>
+      aggregateObstacles(
+        habits
+          .map((h) => h.predictedObstacle)
+          .filter((o): o is ObstacleStat => !!o),
+      ),
+    [habits],
+  );
+  const actual = useMemo(
+    () => aggregateObstacles(habits.flatMap((h) => h.actualObstacles)),
+    [habits],
+  );
+
+  // Gate on enough total check-in history across all habits before surfacing
+  // any real obstacle, and require at least one obstacle to show.
+  const totalShownUp = habits.reduce((sum, h) => sum + h.shownUpDays, 0n);
+  const hasEnoughData =
+    totalShownUp >= BigInt(MIN_DATA_POINTS) &&
+    (predicted.length > 0 || actual.length > 0);
+
+  const predictedRows = hasEnoughData ? predicted.slice(0, 2) : [];
+  const actualRows = hasEnoughData ? actual.slice(0, 2) : [];
+
   return (
     <section className="px-4 pt-6" data-ocid="insights.obstacles_section">
       <SectionHeading
@@ -306,8 +416,16 @@ function ObstaclesSection() {
               Expected
             </p>
             <div className="flex flex-col gap-2">
-              <PlaceholderObstacle label="—" />
-              <PlaceholderObstacle label="—" />
+              {predictedRows.length > 0 ? (
+                predictedRows.map((o) => (
+                  <ObstacleRow key={o.obstacleName} label={o.obstacleName} />
+                ))
+              ) : (
+                <>
+                  <PlaceholderObstacle label="—" />
+                  <PlaceholderObstacle label="—" />
+                </>
+              )}
             </div>
           </div>
           <div>
@@ -315,17 +433,35 @@ function ObstaclesSection() {
               Actual
             </p>
             <div className="flex flex-col gap-2">
-              <PlaceholderObstacle label="—" />
-              <PlaceholderObstacle label="—" />
+              {actualRows.length > 0 ? (
+                actualRows.map((o) => (
+                  <ObstacleRow key={o.obstacleName} label={o.obstacleName} />
+                ))
+              ) : (
+                <>
+                  <PlaceholderObstacle label="—" />
+                  <PlaceholderObstacle label="—" />
+                </>
+              )}
             </div>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-4">
-          Understanding what really gets in the way helps you plan around it.
-          We&apos;ll surface that here soon.
+          {hasEnoughData
+            ? "Spotting the patterns that get in the way helps you plan around them."
+            : "Understanding what really gets in the way helps you plan around it. We&apos;ll surface that here soon."}
         </p>
       </div>
     </section>
+  );
+}
+
+function ObstacleRow({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-muted/40">
+      <span className="w-1.5 h-1.5 rounded-full bg-accent-skip shrink-0" />
+      <span className="text-sm text-foreground">{label}</span>
+    </div>
   );
 }
 
@@ -389,15 +525,15 @@ export function InsightsPage() {
         </motion.div>
 
         <motion.div variants={item}>
-          <BestWorstDaySection />
+          <BestWorstDaySection data={data} />
         </motion.div>
 
         <motion.div variants={item}>
-          <CategoryBreakdownSection />
+          <CategoryBreakdownSection data={data} />
         </motion.div>
 
         <motion.div variants={item}>
-          <ObstaclesSection />
+          <ObstaclesSection data={data} />
         </motion.div>
       </motion.div>
     </div>
