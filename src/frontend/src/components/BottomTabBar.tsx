@@ -30,9 +30,9 @@ const TABS: TabItem[] = [
     glowClass: "",
   },
   {
-    to: "/analytics",
+    to: "/insights",
     icon: BarChart3,
-    label: "Analytics",
+    label: "Insights",
     accentClass: "text-white",
     glowClass: "",
   },

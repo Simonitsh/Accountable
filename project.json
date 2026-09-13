@@ -1,15 +1,16 @@
 {
-  "overview": "Cumulative is a behavioral-science habit tracker that helps people set habits, track check-ins, and compare expected obstacles against what actually came up.",
+  "overview": "A personal progress app that helps people build if-then plans, track habits and check-ins, and see encouraging insights about their own progress.",
   "features": [
-    "Set and edit habits with expected obstacles",
-    "Check in, skip, or resolve missed windows with an obstacle",
-    "Compare expected vs. actual obstacles in insights"
+    "Track goals and habits with if-then plans",
+    "Log daily check-ins and obstacles",
+    "See encouraging insights about best and worst days, category progress, and what gets in the way"
   ],
   "category": "productivity",
   "tags": [
+    "productivity",
     "habits",
-    "behavioral-science",
-    "tracking"
+    "insights",
+    "progress"
   ],
-  "last_updated": "2026-09-13T10:48:08.957Z"
+  "last_updated": "2026-09-13T17:56:41.898Z"
 }

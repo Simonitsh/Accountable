@@ -297,9 +297,68 @@ export interface GoalAnalytics {
   currentStreak: number;
 }
 
+// ─── Insights (analytics) types ──────────────────────────────────────────────
+// Mirrors the NEW backend AnalyticsSummary shape returned by getAnalytics().
+// The backend already returns this shape; these frontend mirrors let the
+// Insights page render against the real contract so live values can be wired
+// in during a follow-up step without reshaping the page.
+
+/** Follow-through rate for a plan used vs not used. */
+export interface FollowThroughRate {
+  successes: bigint;
+  total: bigint;
+  rate: number;
+}
+
+/** If-then plan effectiveness — success rate with the plan vs without it. */
+export interface IfThenEffectiveness {
+  usedPlan: FollowThroughRate;
+  notUsedPlan: FollowThroughRate;
+}
+
+/** Per-category progress stat. */
+export interface CategoryStat {
+  category: GoalCategory;
+  successes: bigint;
+  total: bigint;
+  rate: number;
+}
+
+/** Per-day-of-week progress stat. */
+export interface DayOfWeekStat {
+  dayOfWeek: bigint;
+  dayName: string;
+  successes: bigint;
+  total: bigint;
+  rate: number;
+}
+
+/** An obstacle that got in the way (predicted or actual). */
+export interface ObstacleStat {
+  obstacleName: string;
+  count: bigint;
+  obstacleTemplateId?: bigint;
+}
+
+/** Per-habit analytics — shown-up days, if-then effectiveness, obstacles. */
+export interface HabitAnalytics {
+  habitId: bigint;
+  habitName: string;
+  category: GoalCategory;
+  shownUpDays: bigint;
+  ifThenEffectiveness: IfThenEffectiveness;
+  predictedObstacle?: ObstacleStat;
+  actualObstacles: ObstacleStat[];
+}
+
+/** The full Insights summary returned by getAnalytics(timezoneOffsetMinutes). */
 export interface AnalyticsSummary {
-  goals: GoalAnalytics[];
-  dailySuccessRate30Days: number[];
+  habits: HabitAnalytics[];
+  overallIfThenEffectiveness: IfThenEffectiveness;
+  dayOfWeek: DayOfWeekStat[];
+  bestDayOfWeek?: bigint;
+  worstDayOfWeek?: bigint;
+  categoryBreakdown: CategoryStat[];
 }
 
 /**

@@ -26,7 +26,7 @@ const FEATURES: FeatureItem[] = [
   },
   {
     icon: TrendingUp,
-    label: "Progress Analytics",
+    label: "Progress Insights",
     colorClass: "text-muted-foreground",
   },
 ];

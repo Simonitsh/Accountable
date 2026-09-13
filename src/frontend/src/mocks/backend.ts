@@ -554,7 +554,7 @@ export const mockBackend: backendInterface = {
   getInteractionCount: async () => BigInt(3),
 
   // ─── Analytics ──────────────────────────────────────────────────────────────
-  getAnalytics: async () => ({
+  getAnalytics: async (_timezoneOffsetMinutes: bigint) => ({
     categoryBreakdown: [
       {
         category: GoalCategory.Health,
