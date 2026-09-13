@@ -264,6 +264,7 @@ export const Interaction = IDL.Record({
   'checkInId' : CheckInId,
   'timestamp' : Timestamp,
 });
+export const ResolveObstacleRequest = IDL.Record({ 'labelText' : IDL.Text });
 export const UpdateHabitRequest = IDL.Record({
   'startTime' : IDL.Opt(IDL.Text),
   'endTimeMinutes' : IDL.Opt(IDL.Nat),
@@ -275,6 +276,7 @@ export const UpdateHabitRequest = IDL.Record({
   'isTimeEdit' : IDL.Opt(IDL.Bool),
   'iconName' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Opt(IDL.Text),
+  'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'isLockIn' : IDL.Opt(IDL.Bool),
   'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
 });
@@ -395,6 +397,11 @@ export const idlService = IDL.Service({
       [],
     ),
   'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
+  'resolveObstacleLabel' : IDL.Func(
+      [ResolveObstacleRequest],
+      [ObstacleTemplate],
+      [],
+    ),
   'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
   'schema' : IDL.Func([], [IDL.Text], ['query']),
   'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
@@ -684,6 +691,7 @@ export const idlFactory = ({ IDL }) => {
     'checkInId' : CheckInId,
     'timestamp' : Timestamp,
   });
+  const ResolveObstacleRequest = IDL.Record({ 'labelText' : IDL.Text });
   const UpdateHabitRequest = IDL.Record({
     'startTime' : IDL.Opt(IDL.Text),
     'endTimeMinutes' : IDL.Opt(IDL.Nat),
@@ -695,6 +703,7 @@ export const idlFactory = ({ IDL }) => {
     'isTimeEdit' : IDL.Opt(IDL.Bool),
     'iconName' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Opt(IDL.Text),
+    'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'isLockIn' : IDL.Opt(IDL.Bool),
     'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
   });
@@ -823,6 +832,11 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'register' : IDL.Func([IDL.Text], [UserProfilePublic], []),
+    'resolveObstacleLabel' : IDL.Func(
+        [ResolveObstacleRequest],
+        [ObstacleTemplate],
+        [],
+      ),
     'respondToConnection' : IDL.Func([ConnectionId, IDL.Bool], [IDL.Bool], []),
     'schema' : IDL.Func([], [IDL.Text], ['query']),
     'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),

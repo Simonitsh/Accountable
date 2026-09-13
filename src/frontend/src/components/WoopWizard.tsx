@@ -12,7 +12,11 @@ import type {
 } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
-import { CATEGORY_DETAILS, OBSTACLE_TEMPLATES } from "../types/index";
+import {
+  CATEGORY_DETAILS,
+  OBSTACLE_TEMPLATES,
+  useResolveObstacleLabel,
+} from "../types/index";
 import { findOverlapGoal } from "../utils/goalDisplay";
 import { GOAL_ICONS } from "../utils/goalIcons";
 import { DayPickerRow } from "./DayPickerRow";
@@ -270,6 +274,10 @@ export default function WoopWizard({
 
   const { actor, isFetching } = useBackend();
   const queryClient = useQueryClient();
+  // Resolves a built-in obstacle label to a real, reusable obstacle template
+  // id (find-or-create). The first pick creates the record; later picks of the
+  // same label reuse the same template id instead of creating a duplicate.
+  const resolveObstacleLabel = useResolveObstacleLabel();
 
   // ── Dynamic step model ─────────────────────────────────────────────────────
   // The step layout depends on TWO independent flags:
@@ -538,15 +546,26 @@ export default function WoopWizard({
     mutationFn: async () => {
       if (!actor) throw new Error("Actor not ready — please wait and retry.");
 
-      // Only link an already-persisted user obstacle template (kind==='user').
-      // Do NOT create new obstacle templates for builtin or custom obstacles —
-      // they accumulate in listMyObstacleTemplates() and cannot be deleted,
-      // causing them to re-appear in the chip list on the next wizard open.
-      // The obstacle text is already stored in the goal's `outcome` field.
-      const primaryUserObs = form.selectedObstacles.find(
-        (o) => o.kind === "user" && o.backendId !== undefined,
-      );
-      const obstacleTemplateId = primaryUserObs?.backendId;
+      // Resolve the primary obstacle to a real, reusable obstacle template id
+      // so the habit links to a persisted ObstacleTemplate record instead of
+      // storing the builtin label only as text in goal.outcome.
+      //   - builtin obstacles: resolve via useResolveObstacleLabel
+      //     (find-or-create — the first pick creates the record, later picks
+      //     of the same label reuse the same template id).
+      //   - user obstacles: already carry a real backendId from the chip list.
+      //   - custom obstacles: no template id (stored as text only).
+      const primaryObs = form.selectedObstacles[0];
+      let obstacleTemplateId: bigint | undefined;
+      if (primaryObs) {
+        if (primaryObs.kind === "builtin") {
+          obstacleTemplateId = await resolveObstacleLabel(primaryObs.label);
+        } else if (
+          primaryObs.kind === "user" &&
+          primaryObs.backendId !== undefined
+        ) {
+          obstacleTemplateId = primaryObs.backendId;
+        }
+      }
 
       // Branch on the explicit mode prop (NOT on inferred presetGoalId /
       // selectedGoalId). When mode === 'habit' the wizard MUST create a habit

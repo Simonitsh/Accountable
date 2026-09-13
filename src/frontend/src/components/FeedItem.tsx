@@ -1,8 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import { HandMetal } from "lucide-react";
 import { useState } from "react";
+import type { ObstacleTemplate } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import type { FeedItem as FeedItemType } from "../types";
-import { OBSTACLE_TEMPLATES } from "../types";
 import { Avatar } from "./Avatar";
 
 interface FeedItemProps {
@@ -31,10 +32,28 @@ export function FeedItem({ item, index }: FeedItemProps) {
   const [hasHighFived, setHasHighFived] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch the caller's saved obstacle templates so a check-in's
+  // obstacleTemplateId (a bigint referencing a saved template) can be resolved
+  // to its display title. The feed's obstacleTemplateId is a numeric backend id,
+  // not a string key, so it cannot be matched against the built-in label list.
+  const { data: obstacleTemplates = [] } = useQuery<ObstacleTemplate[]>({
+    queryKey: ["obstacleTemplates"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.listMyObstacleTemplates();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor,
+  });
+
   const isSuccess = item.checkIn.checkInType === "success";
   const obstacleLabel = item.checkIn.obstacleTemplateId
-    ? OBSTACLE_TEMPLATES.find((t) => t.id === item.checkIn.obstacleTemplateId)
-        ?.label
+    ? obstacleTemplates.find(
+        (t) => t.id.toString() === String(item.checkIn.obstacleTemplateId),
+      )?.title
     : undefined;
 
   async function handleHighFive() {

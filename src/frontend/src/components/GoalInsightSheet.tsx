@@ -1,11 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { X, Zap } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { CheckInType } from "../backend";
-import type { CheckIn } from "../backend.d.ts";
+import type { CheckIn, ObstacleTemplate } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import type { HabitPublic } from "../types";
-import { OBSTACLE_TEMPLATES } from "../types";
 import { getGoalIcon } from "../utils/goalIcons";
 
 // ─── Accent colours (matching index.css semantic tokens) ─────────────────────
@@ -45,11 +45,16 @@ function formatDateLabel(nanoTs: bigint): string {
   });
 }
 
-/** Return the string label for an obstacleTemplateId (bigint index). */
-function obstacleLabel(id?: bigint): string {
+/** Return the string label for an obstacleTemplateId (bigint) by looking up the
+ *  user's saved obstacle template with that id. Falls back to "Unspecified"
+ *  when the id is absent or no saved template matches. */
+function obstacleLabel(
+  id: bigint | undefined,
+  templates: ObstacleTemplate[],
+): string {
   if (id === undefined || id === null) return "Unspecified";
-  const idx = Number(id);
-  return OBSTACLE_TEMPLATES[idx]?.label ?? "Unspecified";
+  const found = templates.find((t) => t.id === id);
+  return found?.title ?? "Unspecified";
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -116,7 +121,13 @@ function TimelineNodeCircle({
   );
 }
 
-function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
+function TimelineItem({
+  checkIn,
+  obstacleTemplates,
+}: {
+  checkIn: CheckIn;
+  obstacleTemplates: ObstacleTemplate[];
+}) {
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
@@ -168,7 +179,10 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
                 <>
                   {" \u2022 "}
                   <span style={{ color: "#F97316" }}>
-                    {obstacleLabel(checkIn.obstacleTemplateId)}
+                    {obstacleLabel(
+                      checkIn.obstacleTemplateId,
+                      obstacleTemplates,
+                    )}
                   </span>
                 </>
               ) : isMissedLockIn ? (
@@ -271,6 +285,21 @@ export function GoalInsightSheet({
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch the caller's saved obstacle templates so a check-in's obstacleTemplateId
+  // (a bigint referencing a saved template) can be resolved to its display title.
+  const { data: obstacleTemplates = [] } = useQuery<ObstacleTemplate[]>({
+    queryKey: ["obstacleTemplates"],
+    queryFn: async () => {
+      if (!actor || !actorReady) return [];
+      try {
+        return await actor.listMyObstacleTemplates();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && actorReady,
+  });
 
   // Fetch the last 14 days of check-ins when the sheet opens
   useEffect(() => {
@@ -633,6 +662,7 @@ export function GoalInsightSheet({
                                 <TimelineItem
                                   key={ci.id.toString()}
                                   checkIn={ci}
+                                  obstacleTemplates={obstacleTemplates}
                                 />
                               ))}
                             </div>

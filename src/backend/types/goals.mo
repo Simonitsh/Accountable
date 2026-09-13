@@ -192,6 +192,9 @@ module {
     /// When true, applies the daily edit lockout check (Time-tab save).
     /// When false or null, skips the lockout check (General-tab save — unlimited).
     isTimeEdit : ?Bool;
+    /// Optional expected-obstacle template link. When provided, updates the
+    /// habit's obstacleTemplateId; when absent, leaves it unchanged.
+    obstacleTemplateId : ?Common.ObstacleTemplateId;
   };
 
   /// Update request for a macro goal. `wish`/`wishDescription`/`outcome`/

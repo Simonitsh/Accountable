@@ -2,7 +2,11 @@ import { AlertTriangle, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import type { HabitPublic } from "../types";
-import { OBSTACLE_TEMPLATES, type ObstacleTemplate } from "../types";
+import {
+  OBSTACLE_TEMPLATES,
+  type ObstacleTemplate,
+  useResolveObstacleLabel,
+} from "../types";
 
 const OCEAN_BLUE = "#0369A1"; // Ocean Blue for Lock-In missed state
 
@@ -30,6 +34,8 @@ export function MissedWindowSheet({
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedIndex];
 
+  const resolveObstacleLabel = useResolveObstacleLabel();
+
   function handleClose() {
     setSelectedIndex(0);
     setCustomNote("");
@@ -37,10 +43,20 @@ export function MissedWindowSheet({
     onClose();
   }
 
-  function handleConfirm() {
-    // Pass BigInt(selectedIndex) — same pattern as SkipModal.
+  async function handleConfirm() {
     const note = customNote.trim() || undefined;
-    onConfirm(BigInt(selectedIndex), note);
+    // Resolve the selected built-in obstacle label to a real, reusable obstacle
+    // template id (find-or-create) instead of passing the array index 0-5.
+    const selected = OBSTACLE_TEMPLATES[selectedIndex];
+    let templateId: bigint | undefined;
+    if (selected) {
+      try {
+        templateId = await resolveObstacleLabel(selected.label);
+      } catch {
+        templateId = undefined;
+      }
+    }
+    onConfirm(templateId, note);
     setSelectedIndex(0);
     setCustomNote("");
     setIsNoteFocused(false);

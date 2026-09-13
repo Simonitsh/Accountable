@@ -6,12 +6,14 @@ import {
   Palette,
   Users,
 } from "lucide-react";
+import { useCallback } from "react";
 import type {
   GoalCategory as BackendGoalCategory,
   GoalState as BackendGoalState,
   HabitPublic as BackendHabitPublic,
   MacroGoalPublic as BackendMacroGoalPublic,
 } from "../backend.d.ts";
+import { useBackend } from "../hooks/useBackend";
 
 export type UserRole = "user" | "admin";
 
@@ -402,3 +404,38 @@ export const OBSTACLE_TEMPLATES: ObstacleTemplate[] = [
     description: "Physical or mental health issues got in the way",
   },
 ];
+
+/**
+ * useResolveObstacleLabel — the single shared mechanism every obstacle picker
+ * flow uses to turn a built-in obstacle label into a real, reusable obstacle
+ * template id owned by the caller.
+ *
+ * It calls the backend `resolveObstacleLabel({ labelText })` find-or-create:
+ * the first time a user picks a given label it becomes a saved ObstacleTemplate
+ * record for them; every later pick of the same label reuses that same record
+ * (case-insensitive title match) instead of creating a duplicate. This builds
+ * on the existing dedup pattern already in the app — WoopWizard's
+ * `uniqueUserObstacles` logic avoids showing a duplicate when a user's saved
+ * obstacle matches one of the six built-in labels by comparing titles
+ * case-insensitively. The backend performs the same case-insensitive
+ * label-to-template match, so a built-in label always resolves to one reusable
+ * template id rather than creating a new record per pick.
+ *
+ * Returns a stable `resolveObstacleLabel(labelText)` function that resolves the
+ * label and returns the resolved template id (BigInt). Throws if the backend
+ * actor is not ready.
+ */
+export function useResolveObstacleLabel() {
+  const { actor, actorReady } = useBackend();
+
+  return useCallback(
+    async (labelText: string): Promise<bigint> => {
+      if (!actor || !actorReady) {
+        throw new Error("Backend is not ready");
+      }
+      const template = await actor.resolveObstacleLabel({ labelText });
+      return template.id;
+    },
+    [actor, actorReady],
+  );
+}

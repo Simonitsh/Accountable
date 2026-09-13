@@ -33,6 +33,7 @@ import type {
   HabitPublic,
   UpdateHabitRequest,
 } from "../types";
+import { useResolveObstacleLabel } from "../types";
 import {
   type LockInGoalRef,
   findOverlapGoal as findOverlapGoalShared,
@@ -243,14 +244,35 @@ function GoalEditForm({
 
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState<string | null>(null);
+  const resolveObstacleLabel = useResolveObstacleLabel();
+  // Resolved reusable obstacle template ids keyed by built-in label. Populated
+  // when a built-in obstacle is picked; the resolved id is sent as
+  // obstacleTemplateId in the update payload so the habit links to a real,
+  // reusable template record (find-or-create dedup on the backend).
+  const [obstacleTemplateIds, setObstacleTemplateIds] = useState<
+    Record<string, bigint>
+  >({});
 
   function togglePreset(label: string) {
+    const isAdding = !form.obstacles.includes(label);
     setForm((f) => ({
       ...f,
-      obstacles: f.obstacles.includes(label)
-        ? f.obstacles.filter((o) => o !== label)
-        : [...f.obstacles, label],
+      obstacles: isAdding
+        ? [...f.obstacles, label]
+        : f.obstacles.filter((o) => o !== label),
     }));
+    // Resolve the built-in label to a real, reusable obstacle template id
+    // (find-or-create). The first pick creates the record; every later pick
+    // of the same label reuses the same one — the existing dedup pattern.
+    if (isAdding) {
+      void resolveObstacleLabel(label)
+        .then((id) =>
+          setObstacleTemplateIds((prev) => ({ ...prev, [label]: id })),
+        )
+        .catch(() => {
+          // Backend not ready — the chip stays selected without a template id.
+        });
+    }
   }
 
   // Recalculate endTime whenever startTime or duration changes
@@ -268,7 +290,7 @@ function GoalEditForm({
   }
 
   function handleSave() {
-    const req: UpdateHabitRequest = {
+    const req: UpdateHabitRequest & { obstacleTemplateId?: bigint } = {
       timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
     };
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
@@ -283,6 +305,15 @@ function GoalEditForm({
       req.startTime = form.lockInStartTime || undefined;
     if (form.lockInEndTime !== (goal.endTime ?? ""))
       req.endTime = form.lockInEndTime || undefined;
+    // Persist the resolved reusable obstacle template link for the selected
+    // built-in obstacle (first selected preset). The backend replaces the
+    // habit's single obstacleTemplateId when provided and leaves it unchanged
+    // when absent.
+    const selectedBuiltin = form.obstacles[0];
+    const resolvedId = selectedBuiltin
+      ? obstacleTemplateIds[selectedBuiltin]
+      : undefined;
+    if (resolvedId !== undefined) req.obstacleTemplateId = resolvedId;
     onSave(req);
   }
 
@@ -291,13 +322,17 @@ function GoalEditForm({
     form.isLockIn &&
     form.lockInDurationHours === 0 &&
     form.lockInDurationMinutes === 0;
+  const obstaclesChanged =
+    form.obstacles.length !== existingPreset.length ||
+    form.obstacles.some((o) => !existingPreset.includes(o));
   const hasChanges =
     form.ifThenPlan.trim() !== goal.ifThenPlan ||
     form.iconName !== (goal.iconName ?? "target") ||
     form.themeColor !== (goal.themeColor ?? "#2563EB") ||
     form.isLockIn !== (goal.isLockIn ?? false) ||
     form.lockInStartTime !== (goal.startTime ?? "") ||
-    form.lockInEndTime !== (goal.endTime ?? "");
+    form.lockInEndTime !== (goal.endTime ?? "") ||
+    obstaclesChanged;
 
   return (
     <motion.div

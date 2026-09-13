@@ -14,7 +14,7 @@ import { ScrollWheelPicker } from "../components/ScrollWheelPicker";
 import SuggestionButton from "../components/SuggestionButton";
 import { useBackend } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
-import { OBSTACLE_TEMPLATES } from "../types/index";
+import { OBSTACLE_TEMPLATES, useResolveObstacleLabel } from "../types/index";
 import { GOAL_ICONS } from "../utils/goalIcons";
 
 const THEME_COLORS = [
@@ -94,6 +94,7 @@ export function EditHabitPage() {
   const navigate = useNavigate();
   const { actor } = useBackend();
   const queryClient = useQueryClient();
+  const resolveObstacleLabel = useResolveObstacleLabel();
 
   // ── Tabs ───────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"general" | "time">("general");
@@ -140,6 +141,13 @@ export function EditHabitPage() {
   const [iconName, setIconName] = useState("target");
   const [themeColor, setThemeColor] = useState("#2563EB");
   const [obstacles, setObstacles] = useState<SelectedObstacle[]>([]);
+  // Resolved reusable obstacle template ids keyed by built-in label. Populated
+  // when a built-in obstacle is picked; the resolved id is sent as
+  // obstacleTemplateId in the update payload so the habit links to a real,
+  // reusable template record (find-or-create dedup on the backend).
+  const [obstacleTemplateIds, setObstacleTemplateIds] = useState<
+    Record<string, bigint>
+  >({});
   const [scheduledDays, setScheduledDays] = useState<string[]>([
     "mon",
     "tue",
@@ -284,10 +292,22 @@ export function EditHabitPage() {
   ];
 
   function toggleObstacle(chip: SelectedObstacle) {
-    setObstacles((prev) => {
-      const exists = prev.find((o) => o.id === chip.id);
-      return exists ? prev.filter((o) => o.id !== chip.id) : [...prev, chip];
-    });
+    const isAdding = !obstacles.some((o) => o.id === chip.id);
+    setObstacles((prev) =>
+      isAdding ? [...prev, chip] : prev.filter((o) => o.id !== chip.id),
+    );
+    // Resolve the built-in label to a real, reusable obstacle template id
+    // (find-or-create). The first pick creates the record; every later pick
+    // of the same label reuses the same one — the existing dedup pattern.
+    if (isAdding && chip.kind === "builtin") {
+      void resolveObstacleLabel(chip.label)
+        .then((id) =>
+          setObstacleTemplateIds((prev) => ({ ...prev, [chip.label]: id })),
+        )
+        .catch(() => {
+          // Backend not ready — the chip stays selected without a template id.
+        });
+    }
   }
 
   // ── Save mutation ─────────────────────────────────────────────────────────
@@ -310,9 +330,14 @@ export function EditHabitPage() {
 
   function buildPayload(
     overrides?: Partial<UpdateHabitRequest>,
-  ): UpdateHabitRequest {
-    const outcomeStr = obstacles.map((o) => o.label).join(", ");
-    void outcomeStr;
+  ): UpdateHabitRequest & { obstacleTemplateId?: bigint } {
+    // Persist the resolved reusable obstacle template link for the selected
+    // built-in obstacle. The backend replaces the habit's single
+    // obstacleTemplateId when provided and leaves it unchanged when absent.
+    const selectedBuiltin = obstacles.find((o) => o.kind === "builtin");
+    const obstacleTemplateId = selectedBuiltin
+      ? obstacleTemplateIds[selectedBuiltin.label]
+      : undefined;
     // wish (goal text) and wishDescription (habit name) are immutable for ALL
     // existing goals after creation. EditHabitPage only edits existing habits,
     // so we never send these fields on update — the backend preserves them.
@@ -344,6 +369,7 @@ export function EditHabitPage() {
               ),
             )
           : BigInt(0),
+      ...(obstacleTemplateId !== undefined ? { obstacleTemplateId } : {}),
       ...overrides,
     };
   }

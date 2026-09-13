@@ -16,6 +16,7 @@ import CheckInsApi "mixins/checkins-api";
 import ConnectionsApi "mixins/connections-api";
 import FeedApi "mixins/feed-api";
 import AnalyticsApi "mixins/analytics-api";
+import ObstacleResolutionApi "mixins/obstacle-resolution-api";
 import ApiDocMixin "mixins/api-doc";
 import PartnerHabitsApi "mixins/partner-habits-api";
 import CheckInsLib "lib/checkins";
@@ -85,6 +86,7 @@ actor {
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
   include AnalyticsApi(goals, checkIns, obstacleTemplates);
+  include ObstacleResolutionApi(obstacleTemplates, nextObstacleTemplateId);
   include PartnerHabitsApi(connections, goals, checkIns, profiles);
   include ApiDocMixin();
 

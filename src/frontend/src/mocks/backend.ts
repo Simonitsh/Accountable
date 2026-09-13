@@ -438,6 +438,29 @@ export const mockBackend: backendInterface = {
 
   listMyObstacleTemplates: async () => [sampleObstacle],
 
+  // resolveObstacleLabel mirrors the real backend find-or-create: given a
+  // labelText, return the existing mock obstacle template whose title matches
+  // case-insensitively, or create and return a new one. This builds on the
+  // existing dedup pattern (WoopWizard's uniqueUserObstacles + the backend's
+  // case-insensitive label-to-template match) so a built-in label always
+  // resolves to one reusable template id rather than creating a duplicate per
+  // pick. The sampleObstacle ("Low Energy", id BigInt(1)) is the seeded store.
+  resolveObstacleLabel: async (request) => {
+    const label = request.labelText.trim();
+    const existing = [sampleObstacle].find(
+      (t) => t.title.toLowerCase() === label.toLowerCase(),
+    );
+    if (existing) {
+      return { ...existing };
+    }
+    return {
+      id: BigInt(10),
+      title: request.labelText,
+      owner: mockPrincipal,
+      description: "",
+    };
+  },
+
   // ─── Goal state ────────────────────────────────────────────────────────────
   updateGoalState: async () => true,
 

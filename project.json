@@ -1,16 +1,15 @@
 {
-  "overview": "A habit-tracking app with if-then plans, check-ins, skips, and an effectiveness insight comparing plan usage across outcomes.",
+  "overview": "Cumulative is a behavioral-science habit tracker that helps people set habits, track check-ins, and compare expected obstacles against what actually came up.",
   "features": [
-    "Track daily check-ins and skips for habits",
-    "Set if-then plans and get rescue prompts",
-    "Optionally note that you tried your if-then plan even when you skipped",
-    "See an effectiveness insight comparing plan usage across good and bad outcomes"
+    "Set and edit habits with expected obstacles",
+    "Check in, skip, or resolve missed windows with an obstacle",
+    "Compare expected vs. actual obstacles in insights"
   ],
   "category": "productivity",
   "tags": [
     "habits",
-    "productivity",
-    "if-then-planning"
+    "behavioral-science",
+    "tracking"
   ],
-  "last_updated": "2026-09-13T09:33:22.483Z"
+  "last_updated": "2026-09-13T10:48:08.957Z"
 }

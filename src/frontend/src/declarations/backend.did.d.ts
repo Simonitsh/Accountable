@@ -217,6 +217,7 @@ export interface RecordCheckInRequest {
   'lockInEndedAt' : [] | [bigint],
   'customObstacleNote' : [] | [string],
 }
+export interface ResolveObstacleRequest { 'labelText' : string }
 export interface Result { 'hasMore' : boolean, 'rows' : Array<Array<Cell>> }
 export interface ReusableGoalPublic {
   'id' : GoalId,
@@ -237,6 +238,7 @@ export interface UpdateHabitRequest {
   'isTimeEdit' : [] | [boolean],
   'iconName' : [] | [string],
   'ifThenPlan' : [] | [string],
+  'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'isLockIn' : [] | [boolean],
   'lockInDurationMinutes' : [] | [bigint],
 }
@@ -390,6 +392,20 @@ export interface _SERVICE {
   'recordCheckIn' : ActorMethod<[RecordCheckInRequest], CheckIn>,
   'recordInteraction' : ActorMethod<[CheckInId, InteractionType], Interaction>,
   'register' : ActorMethod<[string], UserProfilePublic>,
+  /**
+   * / Resolves a built-in obstacle label to a reusable obstacle template owned
+   * / by the caller. Searches the caller's existing templates for one whose
+   * / title matches `request.labelText` case-insensitively and returns it; if
+   * / none exists, creates a new ObstacleTemplate for that label (owner =
+   * / caller) and returns it. The first pick creates a record; every later pick
+   * / of the same label reuses the same one. Owner-scoped — only the caller's
+   * / own templates are searched or created. Never modifies or repairs
+   * / previously saved habits or check-ins.
+   */
+  'resolveObstacleLabel' : ActorMethod<
+    [ResolveObstacleRequest],
+    ObstacleTemplate
+  >,
   'respondToConnection' : ActorMethod<[ConnectionId, boolean], boolean>,
   'schema' : ActorMethod<[], string>,
   'sendConnectionRequest' : ActorMethod<[UserId], ConnectionPublic>,

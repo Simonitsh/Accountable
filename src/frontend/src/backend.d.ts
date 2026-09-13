@@ -145,10 +145,14 @@ export interface UpdateHabitRequest {
     isTimeEdit?: boolean;
     iconName?: string;
     ifThenPlan?: string;
+    obstacleTemplateId?: ObstacleTemplateId;
     isLockIn?: boolean;
     lockInDurationMinutes?: bigint;
 }
 export type GoalId = bigint;
+export interface ResolveObstacleRequest {
+    labelText: string;
+}
 export type AvatarColor = string | null;
 export interface IfThenEffectiveness {
     notUsedPlan: FollowThroughRate;
@@ -450,6 +454,17 @@ export interface backendInterface {
     recordCheckIn(request: RecordCheckInRequest): Promise<CheckIn>;
     recordInteraction(checkInId: CheckInId, interactionType: InteractionType): Promise<Interaction>;
     register(username: string): Promise<UserProfilePublic>;
+    /**
+     * / Resolves a built-in obstacle label to a reusable obstacle template owned
+     * / by the caller. Searches the caller's existing templates for one whose
+     * / title matches `request.labelText` case-insensitively and returns it; if
+     * / none exists, creates a new ObstacleTemplate for that label (owner =
+     * / caller) and returns it. The first pick creates a record; every later pick
+     * / of the same label reuses the same one. Owner-scoped — only the caller's
+     * / own templates are searched or created. Never modifies or repairs
+     * / previously saved habits or check-ins.
+     */
+    resolveObstacleLabel(request: ResolveObstacleRequest): Promise<ObstacleTemplate>;
     respondToConnection(connectionId: ConnectionId, accept: boolean): Promise<boolean>;
     schema(): Promise<string>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;

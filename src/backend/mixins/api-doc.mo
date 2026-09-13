@@ -50,13 +50,14 @@ mixin () {
     "- `updateGoalState(goalId, newState) : Bool` — transitions a goal's state; traps on error.\n" #
     "- `deleteGoal(goalId) : { #ok; #err : Text }` — hard-deletes a macro goal and all child habits, check-ins, and interactions atomically.\n" #
     "- `deleteHabit(habitId) : { #ok; #err : Text }` — hard-deletes a single habit and its check-ins/interactions atomically.\n" #
-    "- `updateHabit(habitId, request) : { #ok : HabitPublic; #err : Text }` — edits editable habit fields; wish/outcome/category are immutable.\n" #
+    "- `updateHabit(habitId, request) : { #ok : HabitPublic; #err : Text }` — edits editable habit fields; wish/outcome/category are immutable. `UpdateHabitRequest` now accepts an optional `obstacleTemplateId` (`?Nat`): when provided, the habit's expected-obstacle template link is updated; when absent, it is left unchanged.\n" #
     "- `updateMacroGoal(goalId, request) : { #ok : MacroGoalPublic; #err : Text }` — edits cosmetic macro-goal fields only.\n" #
     "- `listMyGoals() : [GoalWithHabitsPublic]` — query; macro goals grouped with linked habits.\n" #
     "- `listHabitsByParent(parentGoalId) : { #ok : [HabitPublic]; #err : Text }` — query.\n" #
     "- `listMyReusableGoals() : [ReusableGoalPublic]` — query.\n" #
     "- `createObstacleTemplate(request) : ObstacleTemplate` — creates an obstacle template.\n" #
     "- `listMyObstacleTemplates() : [ObstacleTemplate]` — query.\n" #
+    "- `resolveObstacleLabel(request) : ObstacleTemplate` — resolves a built-in obstacle label (e.g. \"Low Energy\", \"Time Crunch\") to a real, reusable obstacle template for the calling user. Find-or-create: the first time a user picks a given label it becomes a saved `ObstacleTemplate` record for them; every later pick of the same label reuses that same record instead of creating a duplicate. The match is case-insensitive on the template title, so picking \"low energy\" reuses a previously saved \"Low Energy\" template. Owner-scoped — only the caller's own templates are searched or created. The six built-in labels are never changed or extended, and previously saved habits or check-ins are never modified or repaired.\n" #
     "\n" #
     "### Check-ins\n" #
     "- `recordCheckIn(request) : CheckIn` — records a check-in against an active owned habit. Enforces one-per-day and Lock-In rules; traps on violation.\n" #

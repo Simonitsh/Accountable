@@ -41,6 +41,7 @@ type UpdateHabitRequest =
    isLockIn: opt bool;
    isTimeEdit: opt bool;
    lockInDurationMinutes: opt nat;
+   obstacleTemplateId: opt ObstacleTemplateId;
    scheduledDays: opt vec text;
    startTime: opt text;
    startTimeMinutes: opt nat;
@@ -61,6 +62,7 @@ type Result =
    hasMore: bool;
    rows: vec vec Cell;
  };
+type ResolveObstacleRequest = record {labelText: text;};
 type RecordCheckInRequest = 
  record {
    checkInType: CheckInType;
@@ -421,6 +423,16 @@ service : {
   recordInteraction: (checkInId: CheckInId, interactionType:
    InteractionType) -> (Interaction);
   register: (username: text) -> (UserProfilePublic);
+  /// Resolves a built-in obstacle label to a reusable obstacle template owned
+  /// by the caller. Searches the caller's existing templates for one whose
+  /// title matches `request.labelText` case-insensitively and returns it; if
+  /// none exists, creates a new ObstacleTemplate for that label (owner =
+  /// caller) and returns it. The first pick creates a record; every later pick
+  /// of the same label reuses the same one. Owner-scoped — only the caller's
+  /// own templates are searched or created. Never modifies or repairs
+  /// previously saved habits or check-ins.
+  resolveObstacleLabel: (request: ResolveObstacleRequest) ->
+   (ObstacleTemplate);
   respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);
   schema: () -> (text) query;
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);

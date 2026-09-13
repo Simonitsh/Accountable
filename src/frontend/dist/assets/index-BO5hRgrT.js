@@ -33154,6 +33154,7 @@ const Interaction = Record({
   "checkInId": CheckInId,
   "timestamp": Timestamp
 });
+const ResolveObstacleRequest = Record({ "labelText": Text$1 });
 const UpdateHabitRequest = Record({
   "startTime": Opt(Text$1),
   "endTimeMinutes": Opt(Nat),
@@ -33165,6 +33166,7 @@ const UpdateHabitRequest = Record({
   "isTimeEdit": Opt(Bool),
   "iconName": Opt(Text$1),
   "ifThenPlan": Opt(Text$1),
+  "obstacleTemplateId": Opt(ObstacleTemplateId),
   "isLockIn": Opt(Bool),
   "lockInDurationMinutes": Opt(Nat)
 });
@@ -33284,6 +33286,11 @@ Service({
     []
   ),
   "register": Func([Text$1], [UserProfilePublic], []),
+  "resolveObstacleLabel": Func(
+    [ResolveObstacleRequest],
+    [ObstacleTemplate],
+    []
+  ),
   "respondToConnection": Func([ConnectionId, Bool], [Bool], []),
   "schema": Func([], [Text$1], ["query"]),
   "sendConnectionRequest": Func([UserId], [ConnectionPublic], []),
@@ -33570,6 +33577,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "checkInId": CheckInId2,
     "timestamp": Timestamp2
   });
+  const ResolveObstacleRequest2 = IDL2.Record({ "labelText": IDL2.Text });
   const UpdateHabitRequest2 = IDL2.Record({
     "startTime": IDL2.Opt(IDL2.Text),
     "endTimeMinutes": IDL2.Opt(IDL2.Nat),
@@ -33581,6 +33589,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "isTimeEdit": IDL2.Opt(IDL2.Bool),
     "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Opt(IDL2.Text),
+    "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
     "isLockIn": IDL2.Opt(IDL2.Bool),
     "lockInDurationMinutes": IDL2.Opt(IDL2.Nat)
   });
@@ -33708,6 +33717,11 @@ const idlFactory = ({ IDL: IDL2 }) => {
       []
     ),
     "register": IDL2.Func([IDL2.Text], [UserProfilePublic2], []),
+    "resolveObstacleLabel": IDL2.Func(
+      [ResolveObstacleRequest2],
+      [ObstacleTemplate2],
+      []
+    ),
     "respondToConnection": IDL2.Func([ConnectionId2, IDL2.Bool], [IDL2.Bool], []),
     "schema": IDL2.Func([], [IDL2.Text], ["query"]),
     "sendConnectionRequest": IDL2.Func([UserId2], [ConnectionPublic2], []),
@@ -34338,6 +34352,20 @@ class Backend {
     } else {
       const result = await this.actor.register(arg0);
       return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async resolveObstacleLabel(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.resolveObstacleLabel(arg0);
+        return result;
+      } catch (e3) {
+        this.processError(e3);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.resolveObstacleLabel(arg0);
+      return result;
     }
   }
   async respondToConnection(arg0, arg1) {
@@ -34976,6 +35004,7 @@ function to_candid_record_n103(_uploadFile, _downloadFile, value) {
     isTimeEdit: value.isTimeEdit ? candid_some(value.isTimeEdit) : candid_none(),
     iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
+    obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
     lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
   };
@@ -101055,6 +101084,19 @@ const OBSTACLE_TEMPLATES = [
     description: "Physical or mental health issues got in the way"
   }
 ];
+function useResolveObstacleLabel() {
+  const { actor, actorReady } = useBackend();
+  return reactExports.useCallback(
+    async (labelText) => {
+      if (!actor || !actorReady) {
+        throw new Error("Backend is not ready");
+      }
+      const template = await actor.resolveObstacleLabel({ labelText });
+      return template.id;
+    },
+    [actor, actorReady]
+  );
+}
 const OCEAN_BLUE = "#0369A1";
 function MissedWindowSheet({
   goal,
@@ -101067,15 +101109,25 @@ function MissedWindowSheet({
   const [selectedIndex, setSelectedIndex] = reactExports.useState(0);
   const [customNote, setCustomNote] = reactExports.useState("");
   const [isNoteFocused, setIsNoteFocused] = reactExports.useState(false);
+  const resolveObstacleLabel = useResolveObstacleLabel();
   function handleClose() {
     setSelectedIndex(0);
     setCustomNote("");
     setIsNoteFocused(false);
     onClose();
   }
-  function handleConfirm() {
+  async function handleConfirm() {
     const note = customNote.trim() || void 0;
-    onConfirm(BigInt(selectedIndex), note);
+    const selected = OBSTACLE_TEMPLATES[selectedIndex];
+    let templateId;
+    if (selected) {
+      try {
+        templateId = await resolveObstacleLabel(selected.label);
+      } catch {
+        templateId = void 0;
+      }
+    }
+    onConfirm(templateId, note);
     setSelectedIndex(0);
     setCustomNote("");
     setIsNoteFocused(false);
@@ -101278,9 +101330,19 @@ function SkipModal({
   const [selectedObstacleIndex, setSelectedObstacleIndex] = reactExports.useState(0);
   const [customNote, setCustomNote] = reactExports.useState("");
   const [isNoteFocused, setIsNoteFocused] = reactExports.useState(false);
-  function handleConfirm() {
+  const resolveObstacleLabel = useResolveObstacleLabel();
+  async function handleConfirm() {
     const note = customNote.trim() || void 0;
-    onConfirm(BigInt(selectedObstacleIndex), note);
+    const selected = OBSTACLE_TEMPLATES[selectedObstacleIndex];
+    let templateId;
+    if (selected) {
+      try {
+        templateId = await resolveObstacleLabel(selected.label);
+      } catch {
+        templateId = void 0;
+      }
+    }
+    onConfirm(templateId, note);
     setCustomNote("");
     setIsNoteFocused(false);
     onClose();
@@ -103047,11 +103109,10 @@ function formatDateLabel(nanoTs) {
     month: "short"
   });
 }
-function obstacleLabel(id2) {
-  var _a3;
+function obstacleLabel(id2, templates) {
   if (id2 === void 0 || id2 === null) return "Unspecified";
-  const idx = Number(id2);
-  return ((_a3 = OBSTACLE_TEMPLATES[idx]) == null ? void 0 : _a3.label) ?? "Unspecified";
+  const found = templates.find((t2) => t2.id === id2);
+  return (found == null ? void 0 : found.title) ?? "Unspecified";
 }
 function TimelineNodeCircle({
   type
@@ -103114,7 +103175,10 @@ function TimelineNodeCircle({
     }
   );
 }
-function TimelineItem({ checkIn }) {
+function TimelineItem({
+  checkIn,
+  obstacleTemplates
+}) {
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
@@ -103153,7 +103217,10 @@ function TimelineItem({ checkIn }) {
             primaryText,
             (isSkip || isMissedLockIn) && (checkIn.obstacleTemplateId !== void 0 && checkIn.obstacleTemplateId !== null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
               " • ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F97316" }, children: obstacleLabel(checkIn.obstacleTemplateId) })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F97316" }, children: obstacleLabel(
+                checkIn.obstacleTemplateId,
+                obstacleTemplates
+              ) })
             ] }) : isMissedLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
               " • ",
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
@@ -103236,6 +103303,18 @@ function GoalInsightSheet({
   const [checkIns, setCheckIns] = reactExports.useState([]);
   const [isLoading, setIsLoading] = reactExports.useState(false);
   const [error, setError] = reactExports.useState(null);
+  const { data: obstacleTemplates = [] } = useQuery({
+    queryKey: ["obstacleTemplates"],
+    queryFn: async () => {
+      if (!actor || !actorReady) return [];
+      try {
+        return await actor.listMyObstacleTemplates();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && actorReady
+  });
   reactExports.useEffect(() => {
     if (!isOpen || !actorReady || !actor) return;
     let cancelled = false;
@@ -103556,7 +103635,8 @@ function GoalInsightSheet({
                             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ml-3 flex flex-col gap-0", children: group.items.map((ci) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                               TimelineItem,
                               {
-                                checkIn: ci
+                                checkIn: ci,
+                                obstacleTemplates
                               },
                               ci.id.toString()
                             )) })
@@ -105797,6 +105877,7 @@ function WoopWizard({
   const scrollRef = reactExports.useRef(null);
   const { actor, isFetching } = useBackend();
   const queryClient2 = useQueryClient();
+  const resolveObstacleLabel = useResolveObstacleLabel();
   const hasPreset = presetGoalId !== void 0 && presetGoalId !== null;
   const showGoalStep = !hasPreset;
   const showDomainStep = !isHabitMode;
@@ -105961,10 +106042,15 @@ function WoopWizard({
   const createGoalMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Actor not ready — please wait and retry.");
-      const primaryUserObs = form.selectedObstacles.find(
-        (o2) => o2.kind === "user" && o2.backendId !== void 0
-      );
-      const obstacleTemplateId = primaryUserObs == null ? void 0 : primaryUserObs.backendId;
+      const primaryObs = form.selectedObstacles[0];
+      let obstacleTemplateId;
+      if (primaryObs) {
+        if (primaryObs.kind === "builtin") {
+          obstacleTemplateId = await resolveObstacleLabel(primaryObs.label);
+        } else if (primaryObs.kind === "user" && primaryObs.backendId !== void 0) {
+          obstacleTemplateId = primaryObs.backendId;
+        }
+      }
       if (isHabitMode) {
         const goalId = presetGoalId !== void 0 && presetGoalId !== null ? toBigInt(presetGoalId) : selectedGoalId !== null ? toBigInt(selectedGoalId) : void 0;
         if (goalId === void 0)
@@ -109874,6 +109960,7 @@ function EditHabitPage$1() {
   const navigate = useNavigate();
   const { actor } = useBackend();
   const queryClient2 = useQueryClient();
+  const resolveObstacleLabel = useResolveObstacleLabel();
   const [activeTab, setActiveTab] = reactExports.useState("general");
   const [timeEditsToday, setTimeEditsToday] = reactExports.useState(0);
   const [showTimeConfirmation, setShowTimeConfirmation] = reactExports.useState(false);
@@ -109897,6 +109984,7 @@ function EditHabitPage$1() {
   const [iconName, setIconName] = reactExports.useState("target");
   const [themeColor, setThemeColor] = reactExports.useState("#2563EB");
   const [obstacles, setObstacles] = reactExports.useState([]);
+  const [obstacleTemplateIds, setObstacleTemplateIds] = reactExports.useState({});
   const [scheduledDays, setScheduledDays] = reactExports.useState([
     "mon",
     "tue",
@@ -110009,10 +110097,16 @@ function EditHabitPage$1() {
     }))
   ];
   function toggleObstacle(chip) {
-    setObstacles((prev) => {
-      const exists = prev.find((o2) => o2.id === chip.id);
-      return exists ? prev.filter((o2) => o2.id !== chip.id) : [...prev, chip];
-    });
+    const isAdding = !obstacles.some((o2) => o2.id === chip.id);
+    setObstacles(
+      (prev) => isAdding ? [...prev, chip] : prev.filter((o2) => o2.id !== chip.id)
+    );
+    if (isAdding && chip.kind === "builtin") {
+      void resolveObstacleLabel(chip.label).then(
+        (id22) => setObstacleTemplateIds((prev) => ({ ...prev, [chip.label]: id22 }))
+      ).catch(() => {
+      });
+    }
   }
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
@@ -110031,7 +110125,8 @@ function EditHabitPage$1() {
     }
   });
   function buildPayload(overrides) {
-    obstacles.map((o2) => o2.label).join(", ");
+    const selectedBuiltin = obstacles.find((o2) => o2.kind === "builtin");
+    const obstacleTemplateId = selectedBuiltin ? obstacleTemplateIds[selectedBuiltin.label] : void 0;
     return {
       timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
       ifThenPlan: ifThenPlan.trim(),
@@ -110049,6 +110144,7 @@ function EditHabitPage$1() {
           parseHHMMToMinutes(lockInStartTime) + lockInDurationHours * 60 + lockInDurationMinutes
         )
       ) : BigInt(0),
+      ...obstacleTemplateId !== void 0 ? { obstacleTemplateId } : {},
       ...overrides
     };
   }
@@ -113579,11 +113675,20 @@ function GoalEditForm({
   });
   const [focusedField, setFocusedField] = reactExports.useState(null);
   const [overlapError, setOverlapError] = reactExports.useState(null);
+  const resolveObstacleLabel = useResolveObstacleLabel();
+  const [obstacleTemplateIds, setObstacleTemplateIds] = reactExports.useState({});
   function togglePreset(label) {
+    const isAdding = !form.obstacles.includes(label);
     setForm((f2) => ({
       ...f2,
-      obstacles: f2.obstacles.includes(label) ? f2.obstacles.filter((o2) => o2 !== label) : [...f2.obstacles, label]
+      obstacles: isAdding ? [...f2.obstacles, label] : f2.obstacles.filter((o2) => o2 !== label)
     }));
+    if (isAdding) {
+      void resolveObstacleLabel(label).then(
+        (id2) => setObstacleTemplateIds((prev) => ({ ...prev, [label]: id2 }))
+      ).catch(() => {
+      });
+    }
   }
   function recalcEndTime2(startTime, durationHours, durationMinutes) {
     if (!startTime) return "";
@@ -113609,10 +113714,14 @@ function GoalEditForm({
       req.startTime = form.lockInStartTime || void 0;
     if (form.lockInEndTime !== (goal.endTime ?? ""))
       req.endTime = form.lockInEndTime || void 0;
+    const selectedBuiltin = form.obstacles[0];
+    const resolvedId = selectedBuiltin ? obstacleTemplateIds[selectedBuiltin] : void 0;
+    if (resolvedId !== void 0) req.obstacleTemplateId = resolvedId;
     onSave(req);
   }
   const isDurationZero = form.isLockIn && form.lockInDurationHours === 0 && form.lockInDurationMinutes === 0;
-  const hasChanges = form.ifThenPlan.trim() !== goal.ifThenPlan || form.iconName !== (goal.iconName ?? "target") || form.themeColor !== (goal.themeColor ?? "#2563EB") || form.isLockIn !== (goal.isLockIn ?? false) || form.lockInStartTime !== (goal.startTime ?? "") || form.lockInEndTime !== (goal.endTime ?? "");
+  const obstaclesChanged = form.obstacles.length !== existingPreset.length || form.obstacles.some((o2) => !existingPreset.includes(o2));
+  const hasChanges = form.ifThenPlan.trim() !== goal.ifThenPlan || form.iconName !== (goal.iconName ?? "target") || form.themeColor !== (goal.themeColor ?? "#2563EB") || form.isLockIn !== (goal.isLockIn ?? false) || form.lockInStartTime !== (goal.startTime ?? "") || form.lockInEndTime !== (goal.endTime ?? "") || obstaclesChanged;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     motion.div,
     {
@@ -115876,8 +115985,22 @@ function FeedItem({ item, index: index2 }) {
   const [highFiveCount, setHighFiveCount] = reactExports.useState(item.highFiveCount);
   const [hasHighFived, setHasHighFived] = reactExports.useState(false);
   const [isLoading, setIsLoading] = reactExports.useState(false);
+  const { data: obstacleTemplates = [] } = useQuery({
+    queryKey: ["obstacleTemplates"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.listMyObstacleTemplates();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor
+  });
   const isSuccess = item.checkIn.checkInType === "success";
-  const obstacleLabel2 = item.checkIn.obstacleTemplateId ? (_a3 = OBSTACLE_TEMPLATES.find((t2) => t2.id === item.checkIn.obstacleTemplateId)) == null ? void 0 : _a3.label : void 0;
+  const obstacleLabel2 = item.checkIn.obstacleTemplateId ? (_a3 = obstacleTemplates.find(
+    (t2) => t2.id.toString() === String(item.checkIn.obstacleTemplateId)
+  )) == null ? void 0 : _a3.title : void 0;
   async function handleHighFive() {
     if (hasHighFived || isLoading || !actor) return;
     setIsLoading(true);

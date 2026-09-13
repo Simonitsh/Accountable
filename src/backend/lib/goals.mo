@@ -445,7 +445,6 @@ module {
       case null {};
       case (?d) { habit.scheduledDays := d };
     };
-
     let now = Time.now();
     habit.updatedAt := now;
     // Track last edit time only when the time-tab lockout was applied.
@@ -454,7 +453,45 @@ module {
       case _ {};
     };
 
-    #ok(toHabitPublic(habit));
+    // Expected-obstacle template link: update only when the edit supplies one.
+    // `obstacleTemplateId` is an immutable field, so when the edit provides a
+    // new value the record must be rebuilt and replaced in the list rather than
+    // mutated in place.
+    switch (request.obstacleTemplateId) {
+      case null { #ok(toHabitPublic(habit)) };
+      case (?id) {
+        let updated : GoalTypes.Goal = {
+          id = habit.id;
+          owner = habit.owner;
+          var goalId = habit.goalId;
+          var wish = habit.wish;
+          var wishDescription = habit.wishDescription;
+          outcome = habit.outcome;
+          obstacleTemplateId = ?id;
+          var ifThenPlan = habit.ifThenPlan;
+          var state = habit.state;
+          createdAt = habit.createdAt;
+          var updatedAt = habit.updatedAt;
+          var iconName = habit.iconName;
+          var themeColor = habit.themeColor;
+          var isLockIn = habit.isLockIn;
+          var startTime = habit.startTime;
+          var endTime = habit.endTime;
+          var lastEditedAt = habit.lastEditedAt;
+          var lockInDurationMinutes = habit.lockInDurationMinutes;
+          var startTimeMinutes = habit.startTimeMinutes;
+          var endTimeMinutes = habit.endTimeMinutes;
+          var scheduledDays = habit.scheduledDays;
+          var category = habit.category;
+        };
+        let snapshot = goals.toArray();
+        goals.clear();
+        for (g in snapshot.values()) {
+          if (g.id == habit.id) { goals.add(updated) } else { goals.add(g) };
+        };
+        #ok(toHabitPublic(updated));
+      };
+    };
   };
 
   /// Updates an editable macro goal. Only cosmetic fields (iconName,

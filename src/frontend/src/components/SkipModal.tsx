@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import type { HabitPublic } from "../types";
 import type { ObstacleTemplate } from "../types";
-import { OBSTACLE_TEMPLATES } from "../types";
+import { OBSTACLE_TEMPLATES, useResolveObstacleLabel } from "../types";
 
 // Ocean Blue — skip accent
 const SKIP_COLOR = "#0369A1";
@@ -32,10 +32,22 @@ export function SkipModal({
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedObstacleIndex];
 
-  function handleConfirm() {
-    // Pass the numeric index as BigInt — backend accepts any non-null Nat
+  const resolveObstacleLabel = useResolveObstacleLabel();
+
+  async function handleConfirm() {
     const note = customNote.trim() || undefined;
-    onConfirm(BigInt(selectedObstacleIndex), note);
+    // Resolve the selected built-in obstacle label to a real, reusable obstacle
+    // template id (find-or-create) instead of passing the array index 0-5.
+    const selected = OBSTACLE_TEMPLATES[selectedObstacleIndex];
+    let templateId: bigint | undefined;
+    if (selected) {
+      try {
+        templateId = await resolveObstacleLabel(selected.label);
+      } catch {
+        templateId = undefined;
+      }
+    }
+    onConfirm(templateId, note);
     setCustomNote("");
     setIsNoteFocused(false);
     onClose();
