@@ -2140,7 +2140,6 @@ export function DashboardPage() {
 
       {/* WOOP Wizard — opened from dashboard Create Habit button */}
       <WoopWizard
-        mode="habit"
         open={showWoop}
         presetGoalId={habitWizardGoalId}
         onClose={() => {

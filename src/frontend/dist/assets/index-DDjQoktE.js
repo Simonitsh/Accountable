@@ -83812,8 +83812,6 @@ const THEME_COLORS$1 = [
 const ALL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const EMPTY = {
   category: "",
-  goalAction: "",
-  goalReason: "",
   habitAction: "",
   habitMinutes: "",
   isLockIn: false,
@@ -83824,20 +83822,12 @@ const EMPTY = {
   scheduledDays: [...ALL_DAYS],
   selectedObstacles: [],
   ifThenPlan: "",
-  iconName: "target",
   themeColor: "#2563EB"
 };
 const getEmptyForm = () => ({ ...EMPTY });
 function parseHHMMToMinutes$1(time2) {
   const [h2, m2] = time2.split(":").map(Number);
   return h2 * 60 + m2;
-}
-function parseWish(wish) {
-  const match = /^I want to (.+?) so that I can (.+)$/.exec(wish.trim());
-  if (!match) return null;
-  const [, goalAction, goalReason] = match;
-  if (!goalAction || !goalReason) return null;
-  return { goalAction: goalAction.trim(), goalReason: goalReason.trim() };
 }
 function toBigInt(value) {
   if (typeof value === "bigint") return value;
@@ -83848,7 +83838,6 @@ function WoopWizard({
   open,
   onClose,
   onGoalCreated,
-  mode: mode2 = "goal",
   existingLockInGoals = [],
   existingGoals = [],
   existingGoalsLoading = false,
@@ -83856,7 +83845,6 @@ function WoopWizard({
   presetGoalId
 }) {
   var _a3, _b3, _c2, _d2, _e2;
-  const isHabitMode = mode2 === "habit";
   const [step, setStep] = reactExports.useState(1);
   const [animating, setAnimating] = reactExports.useState(false);
   const [animDir, setAnimDir] = reactExports.useState("fwd");
@@ -83866,7 +83854,6 @@ function WoopWizard({
   const [focusedField, setFocusedField] = reactExports.useState(null);
   const [overlapError, setOverlapError] = reactExports.useState(null);
   const [selectedGoalId, setSelectedGoalId] = reactExports.useState(null);
-  const [goalFillKey, setGoalFillKey] = reactExports.useState(0);
   const [showExitConfirm, setShowExitConfirm] = reactExports.useState(false);
   const scrollRef = reactExports.useRef(null);
   const { actor, isFetching } = useBackend();
@@ -83874,14 +83861,12 @@ function WoopWizard({
   const resolveObstacleLabel = useResolveObstacleLabel();
   const hasPreset = presetGoalId !== void 0 && presetGoalId !== null;
   const showGoalStep = !hasPreset;
-  const showDomainStep = !isHabitMode;
   const stepSequence = reactExports.useMemo(() => {
     const seq = [];
     if (showGoalStep) seq.push("GOAL");
-    if (showDomainStep) seq.push("DOMAIN");
     seq.push("WISH", "OBSTACLE", "PLAN", "REVIEW");
     return seq;
-  }, [showGoalStep, showDomainStep]);
+  }, [showGoalStep]);
   const stepIndex = reactExports.useMemo(() => {
     const m2 = {};
     stepSequence.forEach((name, i) => {
@@ -83890,7 +83875,6 @@ function WoopWizard({
     return m2;
   }, [stepSequence]);
   const GOAL_STEP = stepIndex.GOAL ?? -1;
-  const DOMAIN_STEP = stepIndex.DOMAIN ?? -1;
   const WISH_STEP = stepIndex.WISH;
   const OBSTACLE_STEP = stepIndex.OBSTACLE;
   const PLAN_STEP = stepIndex.PLAN;
@@ -83900,8 +83884,6 @@ function WoopWizard({
       switch (name) {
         case "GOAL":
           return "Goal";
-        case "DOMAIN":
-          return "Domain";
         case "WISH":
           return "Wish";
         case "OBSTACLE":
@@ -83929,7 +83911,6 @@ function WoopWizard({
     setStep(1);
     setErrors({});
     setSelectedGoalId(null);
-    setGoalFillKey(0);
     if (presetGoalId !== void 0 && presetGoalId !== null) {
       setSelectedGoalId(String(presetGoalId));
     }
@@ -83952,7 +83933,6 @@ function WoopWizard({
       };
     }
   }, [open]);
-  const assembledWish = form.goalAction.trim() && form.goalReason.trim() ? `I want to ${form.goalAction.trim()} so that I can ${form.goalReason.trim()}` : "";
   const presetGoal = presetGoalId !== void 0 && presetGoalId !== null ? existingGoals.find((g2) => g2.id === presetGoalId) : void 0;
   const effectiveHabitMinutes = form.isLockIn ? form.lockInDurationHours * 60 + form.lockInDurationMinutes : Number(form.habitMinutes) || 0;
   const assembledHabit = form.habitAction.trim() && effectiveHabitMinutes > 0 ? `I will ${form.habitAction.trim()} for ${effectiveHabitMinutes} minutes` : "";
@@ -84019,7 +83999,6 @@ function WoopWizard({
     existingLockInGoals,
     editingGoalId
   ]);
-  const assembledObstacles = form.selectedObstacles.map((o2) => o2.label).join(", ");
   const primaryObstacle = ((_a3 = form.selectedObstacles[0]) == null ? void 0 : _a3.label) ?? "";
   const { data: userObstacles = [] } = useQuery({
     queryKey: ["obstacleTemplates"],
@@ -84045,47 +84024,35 @@ function WoopWizard({
           obstacleTemplateId = primaryObs.backendId;
         }
       }
-      if (isHabitMode) {
-        const goalId = presetGoalId !== void 0 && presetGoalId !== null ? toBigInt(presetGoalId) : selectedGoalId !== null ? toBigInt(selectedGoalId) : void 0;
-        if (goalId === void 0)
-          throw new Error("No goal selected — cannot create habit.");
-        const created2 = await actor.createHabit({
-          goalId,
-          // The habit's stored name is the user's typed daily action
-          // (assembledHabit = "I will <habitAction> for <N> minutes"), NOT the
-          // parent goal's wishDescription. Without this the saved habit fell
-          // back to the parent goal's keystone-habit name. The backend's
-          // CreateHabitRequest now accepts an optional wishDescription for
-          // exactly this. Pass the trimmed typed habit name here.
-          wishDescription: assembledHabit || form.habitAction.trim() || void 0,
-          ifThenPlan: form.ifThenPlan.trim(),
-          obstacleTemplateId,
-          isLockIn: form.isLockIn,
-          scheduledDays: form.scheduledDays,
-          startTime: form.isLockIn && form.lockInStartTime ? form.lockInStartTime : void 0,
-          endTime: form.isLockIn && form.lockInEndTime ? form.lockInEndTime : void 0,
-          lockInDurationMinutes: form.isLockIn ? BigInt(form.lockInDurationHours * 60 + form.lockInDurationMinutes) : BigInt(0),
-          startTimeMinutes: form.isLockIn && form.lockInStartTime ? BigInt(parseHHMMToMinutes$1(form.lockInStartTime)) : BigInt(0),
-          endTimeMinutes: form.isLockIn && form.lockInStartTime ? BigInt(
-            Math.min(
-              1435,
-              parseHHMMToMinutes$1(form.lockInStartTime) + form.lockInDurationHours * 60 + form.lockInDurationMinutes
-            )
-          ) : BigInt(0),
-          // Habits do not get an icon (only goals do). iconName is omitted
-          // entirely in habit mode so the backend stores nothing for it.
-          iconName: void 0,
-          themeColor: form.themeColor || void 0
-        });
-        if (created2.__kind__ === "err") throw new Error(created2.err);
-        return created2.ok;
-      }
-      const created = await actor.createMacroGoal({
-        category: form.category,
-        wish: assembledWish,
-        wishDescription: assembledHabit,
-        outcome: assembledObstacles,
-        iconName: form.iconName || void 0,
+      const goalId = presetGoalId !== void 0 && presetGoalId !== null ? toBigInt(presetGoalId) : selectedGoalId !== null ? toBigInt(selectedGoalId) : void 0;
+      if (goalId === void 0)
+        throw new Error("No goal selected — cannot create habit.");
+      const created = await actor.createHabit({
+        goalId,
+        // The habit's stored name is the user's typed daily action
+        // (assembledHabit = "I will <habitAction> for <N> minutes"), NOT the
+        // parent goal's wishDescription. Without this the saved habit fell
+        // back to the parent goal's keystone-habit name. The backend's
+        // CreateHabitRequest now accepts an optional wishDescription for
+        // exactly this. Pass the trimmed typed habit name here.
+        wishDescription: assembledHabit || form.habitAction.trim() || void 0,
+        ifThenPlan: form.ifThenPlan.trim(),
+        obstacleTemplateId,
+        isLockIn: form.isLockIn,
+        scheduledDays: form.scheduledDays,
+        startTime: form.isLockIn && form.lockInStartTime ? form.lockInStartTime : void 0,
+        endTime: form.isLockIn && form.lockInEndTime ? form.lockInEndTime : void 0,
+        lockInDurationMinutes: form.isLockIn ? BigInt(form.lockInDurationHours * 60 + form.lockInDurationMinutes) : BigInt(0),
+        startTimeMinutes: form.isLockIn && form.lockInStartTime ? BigInt(parseHHMMToMinutes$1(form.lockInStartTime)) : BigInt(0),
+        endTimeMinutes: form.isLockIn && form.lockInStartTime ? BigInt(
+          Math.min(
+            1435,
+            parseHHMMToMinutes$1(form.lockInStartTime) + form.lockInDurationHours * 60 + form.lockInDurationMinutes
+          )
+        ) : BigInt(0),
+        // Habits do not get an icon (only goals do). iconName is omitted
+        // entirely so the backend stores nothing for it.
+        iconName: void 0,
         themeColor: form.themeColor || void 0
       });
       if (created.__kind__ === "err") throw new Error(created.err);
@@ -84098,13 +84065,10 @@ function WoopWizard({
       });
       await queryClient2.refetchQueries({ queryKey: ["myGoals"] });
       queryClient2.invalidateQueries({ queryKey: ["analytics"] });
-      ue.success(
-        isHabitMode ? "Habit created! Check it out on your dashboard." : "Goal created! Check it out on your dashboard.",
-        {
-          description: assembledHabit,
-          duration: 5e3
-        }
-      );
+      ue.success("Habit created! Check it out on your dashboard.", {
+        description: assembledHabit,
+        duration: 5e3
+      });
       const goalIdStr = (data == null ? void 0 : data.id) !== void 0 ? String(data.id) : void 0;
       onGoalCreated == null ? void 0 : onGoalCreated(goalIdStr);
       handleClose();
@@ -84125,8 +84089,6 @@ function WoopWizard({
   const isFormDirty = reactExports.useCallback(() => {
     if (step > 1) return true;
     if (form.category !== EMPTY.category) return true;
-    if (form.goalAction !== EMPTY.goalAction) return true;
-    if (form.goalReason !== EMPTY.goalReason) return true;
     if (form.habitAction !== EMPTY.habitAction) return true;
     if (form.habitMinutes !== EMPTY.habitMinutes) return true;
     if (form.isLockIn !== EMPTY.isLockIn) return true;
@@ -84135,7 +84097,6 @@ function WoopWizard({
     if (form.lockInDurationHours !== EMPTY.lockInDurationHours) return true;
     if (form.lockInDurationMinutes !== EMPTY.lockInDurationMinutes) return true;
     if (form.ifThenPlan !== EMPTY.ifThenPlan) return true;
-    if (form.iconName !== EMPTY.iconName) return true;
     if (form.themeColor !== EMPTY.themeColor) return true;
     const emptyDays = new Set(EMPTY.scheduledDays);
     if (form.scheduledDays.length !== EMPTY.scheduledDays.length) return true;
@@ -84162,20 +84123,11 @@ function WoopWizard({
   const validate = (s) => {
     const e = {};
     if (s === GOAL_STEP) {
-      if (isHabitMode && selectedGoalId === null) {
+      if (selectedGoalId === null) {
         e.goal = "Select an existing goal to build this habit inside.";
       }
     }
-    if (s === DOMAIN_STEP) {
-      if (!form.category) e.category = "Select a category for your habit.";
-    }
     if (s === WISH_STEP) {
-      if (!isHabitMode) {
-        if (!form.goalAction.trim())
-          e.goalAction = "Tell us what you want to achieve.";
-        if (!form.goalReason.trim())
-          e.goalReason = "What's your deeper reason?";
-      }
       if (!form.habitAction.trim()) e.habitAction = "Name the daily action.";
       if (!effectiveHabitMinutes) e.habitMinutes = "How many minutes?";
       if (form.isLockIn) {
@@ -84232,47 +84184,6 @@ function WoopWizard({
     });
     setErrors((e) => ({ ...e, obstacles: void 0 }));
   };
-  const handleReuseGoal = reactExports.useCallback(
-    (goal) => {
-      setSelectedGoalId(String(goal.id));
-      setErrors((e) => ({
-        ...e,
-        goal: void 0,
-        goalAction: void 0,
-        goalReason: void 0,
-        habitAction: void 0
-      }));
-      const parsed = parseWish(goal.wish);
-      if (!parsed) return;
-      setForm((f2) => ({
-        ...f2,
-        goalAction: parsed.goalAction,
-        goalReason: parsed.goalReason
-        // The habit input (habitAction) is intentionally NOT filled from the
-        // reused goal — it must start fresh and empty so the user enters the
-        // new habit's own action. Only the Macro Goal fields are populated.
-        // The new habit is still linked to the selected goal via
-        // selectedGoalId (set above) when it is created.
-      }));
-      setGoalFillKey((k2) => k2 + 1);
-    },
-    []
-  );
-  const handleClearGoal = reactExports.useCallback(() => {
-    setForm((f2) => ({
-      ...f2,
-      goalAction: "",
-      goalReason: "",
-      habitAction: ""
-    }));
-    setSelectedGoalId(null);
-    setErrors((e) => ({
-      ...e,
-      goalAction: void 0,
-      goalReason: void 0,
-      habitAction: void 0
-    }));
-  }, []);
   if (!open) return null;
   const slideClass = animating ? animDir === "fwd" ? "opacity-0 translate-x-8" : "opacity-0 -translate-x-8" : "opacity-100 translate-x-0";
   const presetIds = new Set(OBSTACLE_TEMPLATES.map((t) => t.id));
@@ -84418,9 +84329,9 @@ function WoopWizard({
             className: `max-w-2xl mx-auto px-6 sm:px-10 pt-5 pb-8 transition-all duration-180 ${slideClass}`,
             children: [
               step === GOAL_STEP && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: isHabitMode ? "Every habit belongs to a goal. Pick the goal you want to build this habit inside." : "Every habit belongs to a goal. Pick an existing goal to build this habit inside it, or continue to create a fresh goal." }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Every habit belongs to a goal. Pick the goal you want to build this habit inside." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-semibold font-mono tracking-widest text-foreground uppercase", children: isHabitMode ? "Which goal does this habit belong to?" : "Which goal does this habit belong to?" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-semibold font-mono tracking-widest text-foreground uppercase", children: "Which goal does this habit belong to?" }),
                   existingGoalsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
                     "div",
                     {
@@ -84450,7 +84361,10 @@ function WoopWizard({
                         {
                           goal: g2,
                           selected: selectedGoalId === String(g2.id),
-                          onSelect: handleReuseGoal,
+                          onSelect: (goal) => {
+                            setSelectedGoalId(String(goal.id));
+                            setErrors((e) => ({ ...e, goal: void 0 }));
+                          },
                           index: i + 1
                         },
                         String(g2.id)
@@ -84461,14 +84375,17 @@ function WoopWizard({
                     {
                       className: "text-base text-muted-foreground",
                       "data-ocid": "woop_wizard.no_existing_goals_state",
-                      children: isHabitMode ? "You don't have any goals yet. Create a goal first, then add a habit to it." : "You don't have any goals yet. Continue to create a new goal."
+                      children: "You don't have any goals yet. Create a goal first, then add a habit to it."
                     }
                   ),
                   selectedGoalId !== null && /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "button",
                     {
                       type: "button",
-                      onClick: handleClearGoal,
+                      onClick: () => {
+                        setSelectedGoalId(null);
+                        setErrors((e) => ({ ...e, goal: void 0 }));
+                      },
                       "data-ocid": "woop_wizard.clear_goal_button",
                       className: "button-clear-neumorphic",
                       children: "Clear selection"
@@ -84484,308 +84401,58 @@ function WoopWizard({
                   )
                 ] })
               ] }),
-              step === DOMAIN_STEP && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Every habit belongs to a domain of your life. Pick the one that fits best — this helps you see patterns across your goals." }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: CATEGORY_DETAILS.map((cat) => {
-                  const isSelected2 = form.category === cat.id;
-                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      type: "button",
-                      "data-ocid": `woop_wizard.category.${cat.id.toLowerCase()}`,
-                      onClick: () => {
-                        setForm((f2) => ({ ...f2, category: cat.id }));
-                        setErrors((er) => ({ ...er, category: void 0 }));
-                      },
-                      className: "w-full text-left rounded-2xl p-5 transition-all duration-200",
-                      style: {
-                        background: isSelected2 ? "oklch(var(--card))" : "oklch(var(--muted))",
-                        border: isSelected2 ? "2px solid oklch(var(--color-accent-success))" : "1px solid oklch(var(--border))",
-                        boxShadow: isSelected2 ? "-4px -4px 10px rgba(70,70,80,0.45), 6px 6px 14px rgba(0,0,0,0.8), 0 0 16px 3px oklch(var(--color-accent-success) / 0.25)" : "-4px -4px 10px rgba(70,70,80,0.35), 6px 6px 14px rgba(0,0,0,0.7)"
-                      },
-                      "aria-pressed": isSelected2,
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-4", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "span",
-                          {
-                            className: "shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-200",
-                            style: {
-                              background: isSelected2 ? "oklch(var(--color-accent-success) / 0.15)" : "oklch(var(--background))",
-                              border: isSelected2 ? "1.5px solid oklch(var(--color-accent-success) / 0.5)" : "1px solid oklch(var(--border))",
-                              color: isSelected2 ? "oklch(var(--color-accent-success))" : "oklch(var(--muted-foreground))"
-                            },
-                            "aria-hidden": "true",
-                            children: /* @__PURE__ */ jsxRuntimeExports.jsx(cat.icon, { size: 22, strokeWidth: 1.5 })
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "h3",
-                              {
-                                className: "text-xl font-display font-semibold",
-                                style: {
-                                  color: isSelected2 ? "oklch(var(--color-accent-success))" : "oklch(var(--foreground))"
-                                },
-                                children: cat.title
-                              }
-                            ),
-                            isSelected2 && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "div",
-                              {
-                                className: "w-6 h-6 rounded-full flex items-center justify-center",
-                                style: {
-                                  backgroundColor: "oklch(var(--color-accent-success))",
-                                  boxShadow: "0 0 8px oklch(var(--color-accent-success) / 0.5)"
-                                },
-                                children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  Check,
-                                  {
-                                    size: 14,
-                                    color: "#000",
-                                    strokeWidth: 3
-                                  }
-                                )
-                              }
-                            )
-                          ] }),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground leading-relaxed", children: cat.description })
-                        ] })
-                      ] })
-                    },
-                    cat.id
-                  );
-                }) }),
-                errors.category && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "p",
-                  {
-                    className: "text-base text-destructive",
-                    "data-ocid": "woop_wizard.category.field_error",
-                    children: errors.category
-                  }
-                )
-              ] }),
               step === WISH_STEP && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Your keystone habit is the daily action. Your goal is the destination. Focus on the action." }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: (!isHabitMode || hasPreset) && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: hasPreset && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base font-semibold font-mono tracking-widest text-foreground uppercase", children: "The Macro goal" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "rounded-2xl border border-border/20 p-5 space-y-4 shadow-neumorphic-inset macrogoal-vibrate macrogoal-reused-bg", children: presetGoalId !== void 0 && presetGoalId !== null && presetGoal && /* @__PURE__ */ jsxRuntimeExports.jsxs(
                     "div",
                     {
-                      className: `rounded-2xl border border-border/20 p-5 space-y-4 shadow-neumorphic-inset macrogoal-vibrate${selectedGoalId !== null ? " macrogoal-reused-bg" : " bg-muted/30"}`,
+                      "data-ocid": "woop_wizard.preset_goal_locked_indicator",
+                      className: "rounded-2xl p-4 space-y-2",
+                      style: {
+                        background: "oklch(var(--goal-reuse-accent) / 0.10)",
+                        border: "1px solid oklch(var(--goal-reuse-accent) / 0.35)",
+                        boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(80,80,85,0.12), 0 0 12px oklch(var(--goal-reuse-accent) / 0.10)"
+                      },
                       children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: selectedGoalId === null && existingGoals.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          motion.div,
-                          {
-                            className: "space-y-3",
-                            "data-ocid": "woop_wizard.existing_goal_chips",
-                            initial: "hidden",
-                            animate: "visible",
-                            exit: "exit",
-                            children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                motion.p,
-                                {
-                                  className: "text-sm font-mono tracking-widest text-muted-foreground uppercase",
-                                  variants: {
-                                    hidden: { opacity: 0, y: -6 },
-                                    visible: { opacity: 1, y: 0 },
-                                    exit: { opacity: 0, y: -4 }
-                                  },
-                                  transition: {
-                                    duration: 0.18,
-                                    ease: "easeOut"
-                                  },
-                                  children: "Reuse an existing goal"
-                                }
-                              ),
-                              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-2", children: existingGoals.map((g2, i) => /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                ExistingGoalChip,
-                                {
-                                  goal: g2,
-                                  selected: selectedGoalId === String(g2.id),
-                                  onSelect: handleReuseGoal,
-                                  index: i + 1
-                                }
-                              ) }, String(g2.id))) })
-                            ]
-                          },
-                          "goal-reuse-chips"
-                        ) }),
-                        presetGoalId !== void 0 && presetGoalId !== null && presetGoal && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          "div",
-                          {
-                            "data-ocid": "woop_wizard.preset_goal_locked_indicator",
-                            className: "rounded-2xl p-4 space-y-2",
-                            style: {
-                              background: "oklch(var(--goal-reuse-accent) / 0.10)",
-                              border: "1px solid oklch(var(--goal-reuse-accent) / 0.35)",
-                              boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(80,80,85,0.12), 0 0 12px oklch(var(--goal-reuse-accent) / 0.10)"
-                            },
-                            children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "span",
-                                  {
-                                    className: "shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
-                                    style: {
-                                      background: "oklch(var(--goal-reuse-accent) / 0.18)",
-                                      border: "1px solid oklch(var(--goal-reuse-accent) / 0.5)",
-                                      color: "oklch(var(--goal-reuse-accent))"
-                                    },
-                                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 13, "aria-hidden": "true" })
-                                  }
-                                ),
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "span",
-                                  {
-                                    className: "text-xs font-mono tracking-widest uppercase",
-                                    style: {
-                                      color: "oklch(var(--goal-reuse-accent))"
-                                    },
-                                    children: "Creating habit inside"
-                                  }
-                                )
-                              ] }),
-                              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "p",
-                                {
-                                  className: "text-base font-medium leading-relaxed break-words",
-                                  style: {
-                                    color: "oklch(var(--goal-reuse-accent))"
-                                  },
-                                  children: presetGoal.wish
-                                }
-                              )
-                            ]
-                          }
-                        ),
-                        !isHabitMode && selectedGoalId === null && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex flex-wrap items-center gap-3 text-xl", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "I want to" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                           /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "div",
+                            "span",
                             {
-                              className: "relative flex flex-1 min-w-32 items-center",
-                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "input",
-                                {
-                                  "data-ocid": "woop_wizard.goal_action_input",
-                                  value: form.goalAction,
-                                  onChange: (e) => {
-                                    const val = e.target.value.slice(0, 40);
-                                    setForm((f2) => ({ ...f2, goalAction: val }));
-                                    setErrors((er) => ({
-                                      ...er,
-                                      goalAction: void 0
-                                    }));
-                                  },
-                                  onFocus: () => setFocusedField("goalAction"),
-                                  onBlur: () => setFocusedField(null),
-                                  placeholder: getPlaceholder(
-                                    form.category,
-                                    "goalAction"
-                                  ),
-                                  maxLength: 40,
-                                  readOnly: selectedGoalId !== null,
-                                  className: `input-neumorphic w-full text-foreground text-xl font-medium${selectedGoalId !== null ? " input-goal-filled" : ""}`,
-                                  "aria-label": "What do you want to achieve",
-                                  "aria-readonly": selectedGoalId !== null,
-                                  autoComplete: "off",
-                                  name: "woop-wizard-goal-action",
-                                  autoCorrect: "off",
-                                  spellCheck: false,
-                                  autoCapitalize: "off"
-                                }
-                              )
-                            },
-                            `goalAction-${goalFillKey}`
+                              className: "shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
+                              style: {
+                                background: "oklch(var(--goal-reuse-accent) / 0.18)",
+                                border: "1px solid oklch(var(--goal-reuse-accent) / 0.5)",
+                                color: "oklch(var(--goal-reuse-accent))"
+                              },
+                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { size: 13, "aria-hidden": "true" })
+                            }
                           ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground shrink-0", children: "so that I can" }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "div",
+                            "span",
                             {
-                              className: "relative flex flex-1 min-w-32 items-center",
-                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                "input",
-                                {
-                                  "data-ocid": "woop_wizard.goal_reason_input",
-                                  value: form.goalReason,
-                                  onChange: (e) => {
-                                    const val = e.target.value.slice(0, 40);
-                                    setForm((f2) => ({ ...f2, goalReason: val }));
-                                    setErrors((er) => ({
-                                      ...er,
-                                      goalReason: void 0
-                                    }));
-                                  },
-                                  onFocus: () => setFocusedField("goalReason"),
-                                  onBlur: () => setFocusedField(null),
-                                  placeholder: getPlaceholder(
-                                    form.category,
-                                    "goalReason"
-                                  ),
-                                  maxLength: 40,
-                                  readOnly: selectedGoalId !== null,
-                                  className: `input-neumorphic w-full text-foreground text-xl font-medium${selectedGoalId !== null ? " input-goal-filled" : ""}`,
-                                  "aria-label": "Your deeper reason",
-                                  "aria-readonly": selectedGoalId !== null,
-                                  autoComplete: "off",
-                                  name: "woop-wizard-goal-reason",
-                                  autoCorrect: "off",
-                                  spellCheck: false,
-                                  autoCapitalize: "off"
-                                }
-                              )
-                            },
-                            `goalReason-${goalFillKey}`
+                              className: "text-xs font-mono tracking-widest uppercase",
+                              style: {
+                                color: "oklch(var(--goal-reuse-accent))"
+                              },
+                              children: "Creating habit inside"
+                            }
                           )
                         ] }),
-                        !isHabitMode && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between gap-2 text-xs text-muted-foreground/60 font-mono", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                              "span",
-                              {
-                                className: `transition-opacity duration-200 ${focusedField === "goalAction" ? "opacity-100" : "opacity-0"}`,
-                                children: [
-                                  form.goalAction.length,
-                                  "/40"
-                                ]
-                              }
-                            ),
-                            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                              "span",
-                              {
-                                className: `transition-opacity duration-200 ${focusedField === "goalReason" ? "opacity-100" : "opacity-0"}`,
-                                children: [
-                                  form.goalReason.length,
-                                  "/40"
-                                ]
-                              }
-                            )
-                          ] }),
-                          (errors.goalAction || errors.goalReason) && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "p",
-                            {
-                              className: "text-base text-destructive",
-                              "data-ocid": "woop_wizard.goal.field_error",
-                              children: errors.goalAction || errors.goalReason
-                            }
-                          ),
-                          assembledWish && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-base text-accent-success font-medium leading-relaxed", children: assembledWish }),
-                          selectedGoalId !== null && presetGoalId === void 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              type: "button",
-                              onClick: handleClearGoal,
-                              "data-ocid": "woop_wizard.clear_goal_button",
-                              className: "button-clear-neumorphic",
-                              children: "Clear selection"
-                            }
-                          )
-                        ] })
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "p",
+                          {
+                            className: "text-base font-medium leading-relaxed break-words",
+                            style: {
+                              color: "oklch(var(--goal-reuse-accent))"
+                            },
+                            children: presetGoal.wish
+                          }
+                        )
                       ]
                     }
-                  )
+                  ) })
                 ] }) }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-base font-semibold font-mono tracking-widest text-foreground uppercase flex items-center gap-2", children: [
@@ -85408,10 +85075,6 @@ function WoopWizard({
               step === REVIEW_STEP && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-muted-foreground border-l-4 border-primary/30 pl-4 italic leading-relaxed", children: "Review your commitment and personalize your goal. This is the contract with yourself — make it real." }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-2xl border border-border/20 bg-muted/30 p-5 shadow-neumorphic-inset space-y-1.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-mono tracking-widest text-muted-foreground uppercase", children: "Macro Goal" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-lg text-foreground font-medium leading-relaxed", children: assembledWish })
-                  ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs(
                     "div",
                     {
@@ -85465,43 +85128,6 @@ function WoopWizard({
                       form.ifThenPlan
                     ] })
                   ] })
-                ] }),
-                !isHabitMode && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Choose an Icon" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "div",
-                    {
-                      className: "grid grid-cols-7 gap-3",
-                      "data-ocid": "woop_wizard.icon_selector",
-                      children: GOAL_ICONS.map((icon) => {
-                        const isIconSelected = form.iconName === icon.id;
-                        return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "button",
-                          {
-                            type: "button",
-                            onClick: () => setForm((f2) => ({ ...f2, iconName: icon.id })),
-                            "aria-label": `Select ${icon.label} icon`,
-                            "aria-pressed": isIconSelected,
-                            "data-ocid": `woop_wizard.icon.${icon.id}`,
-                            className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5",
-                            style: isIconSelected ? {
-                              backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                              border: "2.5px solid oklch(var(--color-accent-success))",
-                              color: "oklch(var(--color-accent-success))",
-                              boxShadow: "0 0 16px 3px oklch(var(--color-accent-success) / 0.35)"
-                            } : {
-                              backgroundColor: "oklch(var(--card))",
-                              border: "1.5px solid oklch(var(--border))",
-                              color: "oklch(var(--muted-foreground))",
-                              boxShadow: "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)"
-                            },
-                            children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 block", children: icon.svg })
-                          },
-                          icon.id
-                        );
-                      })
-                    }
-                  )
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-mono tracking-widest text-muted-foreground uppercase", children: "Theme Color" }),
@@ -85607,7 +85233,7 @@ function WoopWizard({
                 // until the user selects an existing goal. This also covers
                 // the empty-state (no existing goals) — the user is told to
                 // create a goal first and cannot proceed.
-                step === GOAL_STEP && isHabitMode && selectedGoalId === null,
+                step === GOAL_STEP && selectedGoalId === null,
                 className: "gap-2 button-primary-neon text-base min-w-[130px]",
                 children: step === REVIEW_STEP ? createGoalMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" }),
@@ -87268,7 +86894,6 @@ function DashboardPage$1() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       WoopWizard,
       {
-        mode: "habit",
         open: showWoop,
         presetGoalId: habitWizardGoalId,
         onClose: () => {
