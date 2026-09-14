@@ -58,6 +58,44 @@ export function formatDate(ts: bigint): string {
   });
 }
 
+/**
+ * Returns true if the current time falls within the Lock-In active window:
+ * [startTime - 5 min, endTime + 5 min] on today's date.
+ *
+ * Both times are 'HH:MM' strings. The caller is responsible for guarding on
+ * whether the habit is a Lock-In and that both times are present before
+ * calling this helper. This is the single source of truth for the active-window
+ * check shared by EditHabitPage and GoalsPage (previously duplicated in both).
+ */
+export function isLockInActiveWindow(
+  startTime: string,
+  endTime: string,
+): boolean {
+  const now = Date.now();
+  const today = new Date();
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const windowStart =
+    new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      sh,
+      sm,
+    ).getTime() -
+    5 * 60 * 1000;
+  const windowEnd =
+    new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      eh,
+      em,
+    ).getTime() +
+    5 * 60 * 1000;
+  return now >= windowStart && now <= windowEnd;
+}
+
 /** A Lock-In goal/habit reference used for overlap validation. */
 export interface LockInGoalRef {
   id: bigint;

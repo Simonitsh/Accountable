@@ -83297,6 +83297,27 @@ function formatDate(ts) {
     year: "numeric"
   });
 }
+function isLockInActiveWindow$1(startTime, endTime) {
+  const now2 = Date.now();
+  const today = /* @__PURE__ */ new Date();
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const windowStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    sh,
+    sm
+  ).getTime() - 5 * 60 * 1e3;
+  const windowEnd = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    eh,
+    em
+  ).getTime() + 5 * 60 * 1e3;
+  return now2 >= windowStart && now2 <= windowEnd;
+}
 function findOverlapGoal$1(goals, newStartTime, newEndTime, editingGoalId) {
   if (!newStartTime) return null;
   for (const g2 of goals) {
@@ -87534,27 +87555,6 @@ const THEME_COLORS = [
   { id: "copper", label: "Copper", value: "#C2410C" },
   { id: "teal", label: "Teal", value: "#0D9488" }
 ];
-function isLockInActiveWindow$1(startTime, endTime) {
-  const now2 = Date.now();
-  const today = /* @__PURE__ */ new Date();
-  const [sh, sm] = startTime.split(":").map(Number);
-  const [eh, em] = endTime.split(":").map(Number);
-  const windowStart = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    sh,
-    sm
-  ).getTime() - 5 * 60 * 1e3;
-  const windowEnd = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    eh,
-    em
-  ).getTime() + 5 * 60 * 1e3;
-  return now2 >= windowStart && now2 <= windowEnd;
-}
 function recalcEndTime(startTime, durationHours, durationMinutes) {
   if (!startTime) return "";
   const [h2, m2] = startTime.split(":").map(Number);
@@ -91228,31 +91228,7 @@ function addMinutesToTime(timeStr, minutes) {
 }
 function isLockInActiveWindow(goal) {
   if (!goal.isLockIn || !goal.startTime || !goal.endTime) return false;
-  const now2 = Date.now();
-  const [sh, sm] = goal.startTime.split(":").map(Number);
-  const [eh, em] = goal.endTime.split(":").map(Number);
-  const today = /* @__PURE__ */ new Date();
-  const startDate = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    sh,
-    sm,
-    0,
-    0
-  );
-  const endDate = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    eh,
-    em,
-    0,
-    0
-  );
-  const windowStart = startDate.getTime() - 5 * 60 * 1e3;
-  const windowEnd = endDate.getTime() + 5 * 60 * 1e3;
-  return now2 >= windowStart && now2 <= windowEnd;
+  return isLockInActiveWindow$1(goal.startTime, goal.endTime);
 }
 function findOverlapGoal(newStart, newEnd, existing, excludeId) {
   if (!newStart || !newEnd || newStart > newEnd) return null;

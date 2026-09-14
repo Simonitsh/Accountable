@@ -38,6 +38,7 @@ import {
   type LockInGoalRef,
   findOverlapGoal as findOverlapGoalShared,
   formatDate,
+  isLockInActiveWindow as isLockInActiveWindowShared,
   stateBadgeStyle,
   stateLabel,
 } from "../utils/goalDisplay";
@@ -125,35 +126,13 @@ function addMinutesToTime(timeStr: string, minutes: number): string {
 /**
  * Returns true if the current time falls within the Active Lock-In Window:
  * [startTime - 5 min, endTime + 5 min].
- * Returns false if the goal is not a Lock-In or is missing times.
+ * Returns false if the goal is not a Lock-In or is missing times. The guard is
+ * preserved here at the call site; the window math itself is delegated to the
+ * shared isLockInActiveWindow helper in utils/goalDisplay.
  */
 function isLockInActiveWindow(goal: HabitPublic): boolean {
   if (!goal.isLockIn || !goal.startTime || !goal.endTime) return false;
-  const now = Date.now();
-  const [sh, sm] = goal.startTime.split(":").map(Number);
-  const [eh, em] = goal.endTime.split(":").map(Number);
-  const today = new Date();
-  const startDate = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    sh,
-    sm,
-    0,
-    0,
-  );
-  const endDate = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    eh,
-    em,
-    0,
-    0,
-  );
-  const windowStart = startDate.getTime() - 5 * 60 * 1000;
-  const windowEnd = endDate.getTime() + 5 * 60 * 1000;
-  return now >= windowStart && now <= windowEnd;
+  return isLockInActiveWindowShared(goal.startTime, goal.endTime);
 }
 
 /**

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoalState } from "../backend";
 import {
   type LockInGoalRef,
   findOverlapGoal,
   formatDate,
+  isLockInActiveWindow,
   stateBadgeStyle,
   stateLabel,
 } from "./goalDisplay";
@@ -86,5 +87,51 @@ describe("findOverlapGoal", () => {
 
   it("returns null when the new start time is empty", () => {
     expect(findOverlapGoal(existing, "", "10:00")).toBeNull();
+  });
+});
+
+// ─── isLockInActiveWindow ─────────────────────────────────────────────────────
+// The shared implementation (previously duplicated in EditHabitPage and
+// GoalsPage) is the single source of truth for the Lock-In active-window check.
+// The window is [startTime - 5 min, endTime + 5 min] on today's date. Fake
+// timers pin "now" so the boundary math is deterministic.
+
+describe("isLockInActiveWindow", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("returns true when now is inside the window", () => {
+    // Window 09:00–10:00 → active [08:55, 10:05].
+    vi.setSystemTime(new Date(2024, 2, 15, 9, 30));
+    expect(isLockInActiveWindow("09:00", "10:00")).toBe(true);
+  });
+
+  it("returns true at the exact window boundaries", () => {
+    // startTime - 5 min.
+    vi.setSystemTime(new Date(2024, 2, 15, 8, 55));
+    expect(isLockInActiveWindow("09:00", "10:00")).toBe(true);
+    // endTime + 5 min.
+    vi.setSystemTime(new Date(2024, 2, 15, 10, 5));
+    expect(isLockInActiveWindow("09:00", "10:00")).toBe(true);
+  });
+
+  it("returns false just before the window opens", () => {
+    vi.setSystemTime(new Date(2024, 2, 15, 8, 54, 59));
+    expect(isLockInActiveWindow("09:00", "10:00")).toBe(false);
+  });
+
+  it("returns false just after the window closes", () => {
+    vi.setSystemTime(new Date(2024, 2, 15, 10, 5, 1));
+    expect(isLockInActiveWindow("09:00", "10:00")).toBe(false);
+  });
+
+  it("returns false well outside the window", () => {
+    vi.setSystemTime(new Date(2024, 2, 15, 12, 0));
+    expect(isLockInActiveWindow("09:00", "10:00")).toBe(false);
   });
 });

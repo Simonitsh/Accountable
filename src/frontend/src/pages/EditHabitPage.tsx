@@ -15,6 +15,7 @@ import SuggestionButton from "../components/SuggestionButton";
 import { useBackend } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
 import { OBSTACLE_TEMPLATES, useResolveObstacleLabel } from "../types/index";
+import { isLockInActiveWindow } from "../utils/goalDisplay";
 import { GOAL_ICONS } from "../utils/goalIcons";
 
 const THEME_COLORS = [
@@ -27,32 +28,6 @@ const THEME_COLORS = [
   { id: "copper", label: "Copper", value: "#C2410C" },
   { id: "teal", label: "Teal", value: "#0D9488" },
 ];
-
-function isLockInActiveWindow(startTime: string, endTime: string): boolean {
-  const now = Date.now();
-  const today = new Date();
-  const [sh, sm] = startTime.split(":").map(Number);
-  const [eh, em] = endTime.split(":").map(Number);
-  const windowStart =
-    new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      sh,
-      sm,
-    ).getTime() -
-    5 * 60 * 1000;
-  const windowEnd =
-    new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      eh,
-      em,
-    ).getTime() +
-    5 * 60 * 1000;
-  return now >= windowStart && now <= windowEnd;
-}
 
 function recalcEndTime(
   startTime: string,
