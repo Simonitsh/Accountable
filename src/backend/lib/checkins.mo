@@ -8,16 +8,9 @@ import GoalTypes "../types/goals";
 import AuthTypes "../types/auth";
 import Int "mo:core/Int";
 import Debug "mo:core/Debug";
+import DateUtils "./date-utils";
 
 module {
-  // 86400 seconds in nanoseconds
-  let DAY_NS : Int = 86_400_000_000_000;
-
-  func sameDay(a : Common.Timestamp, b : Common.Timestamp, timezoneOffsetMinutes : Int) : Bool {
-    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    ((a + offsetNs) / DAY_NS) == ((b + offsetNs) / DAY_NS);
-  };
-
   public func hasSameDayCheckIn(
     checkIns : List.List<CheckInTypes.CheckIn>,
     goalId : Common.GoalId,
@@ -26,7 +19,7 @@ module {
     timezoneOffsetMinutes : Int,
   ) : Bool {
     switch (checkIns.find(func(c) {
-      c.goalId == goalId and c.owner == caller and sameDay(c.timestamp, now, timezoneOffsetMinutes)
+      c.goalId == goalId and c.owner == caller and DateUtils.sameDay(c.timestamp, now, timezoneOffsetMinutes)
     })) {
       case (?_) true;
       case null false;
@@ -59,14 +52,14 @@ module {
         case (#inProgress) {
           let alreadyStarted = checkIns.find(func(c) {
             c.goalId == request.goalId and c.owner == caller and
-            sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and c.checkInType == #inProgress
+            DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and c.checkInType == #inProgress
           }) != null;
           if (alreadyStarted) Runtime.trap("Lock-In already started today");
         };
         case (#success) {
           let alreadyDone = checkIns.find(func(c) {
             c.goalId == request.goalId and c.owner == caller and
-            sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and c.checkInType == #success
+            DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and c.checkInType == #success
           }) != null;
           if (alreadyDone) Runtime.trap("Lock-In already completed today");
         };
@@ -74,7 +67,7 @@ module {
           // Block if any terminal record already exists today
           let alreadyTerminal = checkIns.find(func(c) {
             c.goalId == request.goalId and c.owner == caller and
-            sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
+DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
             (c.checkInType == #success or c.checkInType == #missedCheckIn or c.checkInType == #missedCheckOut)
           }) != null;
           if (alreadyTerminal) Runtime.trap("Lock-In already finalized today");
@@ -126,36 +119,6 @@ module {
     checkIn;
   };
 
-  /// Returns true if the given day-of-week abbreviation ("mon".."sun") is in scheduledDays.
-  func isScheduledDay(dayAbbr : Text, scheduledDays : [Text]) : Bool {
-    scheduledDays.find(func(d) { d == dayAbbr }) != null;
-  };
-
-  /// Derives the day-of-week abbreviation ("mon".."sun") from a nanosecond timestamp,
-  /// adjusted for the user's timezone offset in minutes.
-  /// Unix epoch (1970-01-01) was a Thursday, so epoch day 0 = Thursday (index 3).
-  /// Days: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-  func dayOfWeekAbbr(timestampNs : Int, timezoneOffsetMinutes : Int) : Text {
-    // Shift the timestamp into local time, then compute the day index
-    let localNs : Int = timestampNs + (timezoneOffsetMinutes * 60 * 1_000_000_000);
-    // Days since epoch (truncate toward zero for both positive and negative)
-    let daysSinceEpoch : Int = localNs / DAY_NS;
-    // Epoch day 0 (1970-01-01) was a Thursday = weekday index 4 (0=Sun)
-    // dayOfWeek: (4 + daysSinceEpoch) mod 7, always positive
-    let raw : Int = Int.rem(4 + daysSinceEpoch, 7);
-    let idx : Int = if (raw < 0) { raw + 7 } else { raw };
-    switch (idx) {
-      case 0 "sun";
-      case 1 "mon";
-      case 2 "tue";
-      case 3 "wed";
-      case 4 "thu";
-      case 5 "fri";
-      case 6 "sat";
-      case _ "mon"; // unreachable
-    };
-  };
-
   /// Midnight auto-fail: generate a #Missed check-in for every active goal that
   /// had no terminal check-in yesterday — but only if yesterday was a scheduled day.
   /// If yesterday was NOT in goal.scheduledDays (rest day), skip silently.
@@ -181,16 +144,16 @@ module {
       let offsetNs : Int = timezoneOffsetMinutes * 60 * 1_000_000_000;
       // Local "now" and "yesterday" day boundaries
       let localNowNs : Int = nowNs + offsetNs;
-      let localYesterdayNs : Int = localNowNs - DAY_NS;
+      let localYesterdayNs : Int = localNowNs - DateUtils.DAY_NS;
       // Yesterday's start/end in UTC (for querying check-ins stored in UTC)
-      let localMidnightNs : Int = (localNowNs / DAY_NS) * DAY_NS;
-      let yesterdayStartUtc : Int = localMidnightNs - DAY_NS - offsetNs;
+      let localMidnightNs : Int = (localNowNs / DateUtils.DAY_NS) * DateUtils.DAY_NS;
+      let yesterdayStartUtc : Int = localMidnightNs - DateUtils.DAY_NS - offsetNs;
       let yesterdayEndUtc : Int = localMidnightNs - offsetNs;
       // Day-of-week abbreviation for yesterday in user's local timezone
       // Pass 0 for tzOffset since localYesterdayNs is already in local time
-      let yesterdayAbbr : Text = dayOfWeekAbbr(localYesterdayNs, 0);
+      let yesterdayAbbr : Text = DateUtils.dayOfWeekAbbr(localYesterdayNs, 0);
       // Skip if yesterday was not a scheduled day (rest day)
-      if (not isScheduledDay(yesterdayAbbr, goal.scheduledDays)) continue goalLoop;
+      if (not DateUtils.isScheduledDay(yesterdayAbbr, goal.scheduledDays)) continue goalLoop;
       // Check if there is any terminal check-in for this goal yesterday (UTC window)
       let hadTerminal = checkIns.find(func(c) {
         c.goalId == goal.id and

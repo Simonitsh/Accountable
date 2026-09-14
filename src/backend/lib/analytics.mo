@@ -7,25 +7,12 @@ import AnalyticsTypes "../types/analytics";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
 import GoalLib "./goals";
+import DateUtils "./date-utils";
 
 module {
-  let DAY_NS : Int = 86_400_000_000_000;
-
   /// Follow-through rate helper: successes / total, or 0.0 when total is 0.
   func rate(successes : Nat, total : Nat) : Float {
     if (total == 0) 0.0 else successes.toFloat() / total.toFloat();
-  };
-
-  /// Day-of-week index (0 = Sunday ... 6 = Saturday) for a nanosecond
-  /// timestamp, adjusted for the user's timezone offset in minutes.
-  /// Unix epoch (1970-01-01) was a Thursday = index 4.
-  func dayOfWeek(ts : Common.Timestamp, timezoneOffsetMinutes : Int) : Nat {
-    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    let localTs = ts + offsetNs;
-    let daysSinceEpoch = localTs / DAY_NS;
-    let raw = (4 + daysSinceEpoch) % 7;
-    let idx = if (raw < 0) { raw + 7 } else { raw };
-    idx.toNat();
   };
 
   func dayName(d : Nat) : Text {
@@ -80,7 +67,7 @@ module {
     var successes = [var 0, 0, 0, 0, 0, 0, 0];
     var totals = [var 0, 0, 0, 0, 0, 0, 0];
     for (c in checkIns.values()) {
-      let d = dayOfWeek(c.timestamp, timezoneOffsetMinutes);
+      let d = DateUtils.dayOfWeek(c.timestamp, timezoneOffsetMinutes);
       totals[d] += 1;
       if (c.checkInType == #success) successes[d] += 1;
     };

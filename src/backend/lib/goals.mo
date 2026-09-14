@@ -5,6 +5,7 @@ import Common "../types/common";
 import GoalTypes "../types/goals";
 import CheckInTypes "../types/checkins";
 import FeedTypes "../types/feed";
+import DateUtils "./date-utils";
 
 /// Goals — pure domain logic module.
 ///
@@ -20,14 +21,6 @@ import FeedTypes "../types/feed";
 /// (goalId required); the habit inherits the parent's category and its
 /// wish/wishDescription/outcome are sourced from the parent (read-only).
 module {
-  // 86400 seconds in nanoseconds
-  let DAY_NS : Int = 86_400_000_000_000;
-
-  func sameDay(a : Common.Timestamp, b : Common.Timestamp, timezoneOffsetMinutes : Int) : Bool {
-    let offsetNs = timezoneOffsetMinutes * 60 * 1_000_000_000;
-    ((a + offsetNs) / DAY_NS) == ((b + offsetNs) / DAY_NS);
-  };
-
   /// Projects a stored Goal to its macro-goal public form.
   /// Caller must ensure the Goal is a macro goal (goalId = null).
   public func toMacroGoalPublic(goal : GoalTypes.Goal) : GoalTypes.MacroGoalPublic {
@@ -365,7 +358,7 @@ module {
         // daily edit lockout below.
         if (habit.isLockIn) {
           let offsetNs = request.timezoneOffsetMinutes * 60 * 1_000_000_000;
-          let localNowMinutes = ((now + offsetNs) % DAY_NS) / 60_000_000_000;
+          let localNowMinutes = ((now + offsetNs) % DateUtils.DAY_NS) / 60_000_000_000;
           let windowStart = habit.startTimeMinutes.toInt() - 5;
           let windowEnd = habit.endTimeMinutes.toInt() + 5;
           if (localNowMinutes >= windowStart and localNowMinutes <= windowEnd) {
@@ -377,7 +370,7 @@ module {
         switch (habit.lastEditedAt) {
           case null {};
           case (?last) {
-            if (sameDay(last, now, request.timezoneOffsetMinutes)) {
+            if (DateUtils.sameDay(last, now, request.timezoneOffsetMinutes)) {
               return #err(#dailyEditLockout);
             };
           };

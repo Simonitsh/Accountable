@@ -2,7 +2,6 @@ import List "mo:core/List";
 import Map "mo:core/Map";
 import Array "mo:core/Array";
 import Time "mo:core/Time";
-import Int "mo:core/Int";
 import Common "../types/common";
 import AuthTypes "../types/auth";
 import GoalTypes "../types/goals";
@@ -12,6 +11,7 @@ import PartnerHabitTypes "../types/partner-habits";
 import ConnectionLib "connections";
 import AuthLib "auth";
 import GoalLib "goals";
+import DateUtils "./date-utils";
 
 /// Partner-habits — pure domain logic module.
 ///
@@ -20,9 +20,6 @@ import GoalLib "goals";
 /// data. Reuses ConnectionLib.getAcceptedPartnerIds so the partner set is
 /// always the accepted, mutual partner set.
 module {
-  // 86400 seconds in nanoseconds
-  let DAY_NS : Int = 86_400_000_000_000;
-
   /// Returns true iff `target` is an accepted, mutual partner of `caller`.
   /// Reuses ConnectionLib.getAcceptedPartnerIds — no leaking to pending or
   /// non-partners.
@@ -56,30 +53,6 @@ module {
     goals.values().filter(func(g) {
       g.owner == target and g.state == #active and g.goalId != null
     }).map(func(g) { GoalLib.toHabitPublic(g) }).toArray();
-  };
-
-  /// Derives the day-of-week abbreviation ("mon".."sun") from a nanosecond
-  /// timestamp in UTC. Unix epoch (1970-01-01) was a Thursday (index 4).
-  /// Days: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-  func dayOfWeekAbbrUtc(timestampNs : Int) : Text {
-    let daysSinceEpoch : Int = timestampNs / DAY_NS;
-    let raw : Int = Int.rem(4 + daysSinceEpoch, 7);
-    let idx : Int = if (raw < 0) { raw + 7 } else { raw };
-    switch (idx) {
-      case 0 "sun";
-      case 1 "mon";
-      case 2 "tue";
-      case 3 "wed";
-      case 4 "thu";
-      case 5 "fri";
-      case 6 "sat";
-      case _ "mon"; // unreachable
-    };
-  };
-
-  /// Returns true iff `dayAbbr` is in `scheduledDays`.
-  func isScheduledDay(dayAbbr : Text, scheduledDays : [Text]) : Bool {
-    scheduledDays.find(func(d) { d == dayAbbr }) != null;
   };
 
   /// Computes the current streak for `target` across all their active goals.
@@ -116,18 +89,18 @@ module {
     }).toArray();
 
     let nowNs : Int = Time.now();
-    let todayStartNs : Int = (nowNs / DAY_NS) * DAY_NS;
+    let todayStartNs : Int = (nowNs / DateUtils.DAY_NS) * DateUtils.DAY_NS;
     var streak : Nat = 0;
     var dayOffset : Int = 0;
     label walk while (dayOffset < 365) {
-      let dayStartNs : Int = todayStartNs - (dayOffset * DAY_NS);
-      let dayEndNs : Int = dayStartNs + DAY_NS;
-      let dayAbbr : Text = dayOfWeekAbbrUtc(dayStartNs);
+      let dayStartNs : Int = todayStartNs - (dayOffset * DateUtils.DAY_NS);
+      let dayEndNs : Int = dayStartNs + DateUtils.DAY_NS;
+      let dayAbbr : Text = DateUtils.dayOfWeekAbbrUtc(dayStartNs);
       // Is this day scheduled for ANY of the target's active goals?
       var dayScheduled : Bool = false;
       for (days in scheduledDaysPerGoal.vals()) {
         if (not dayScheduled) {
-          if (isScheduledDay(dayAbbr, days)) { dayScheduled := true };
+          if (DateUtils.isScheduledDay(dayAbbr, days)) { dayScheduled := true };
         };
       };
       if (dayScheduled) {

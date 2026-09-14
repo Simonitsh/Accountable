@@ -1,15 +1,16 @@
 {
-  "overview": "A habit-tracking app that helps people follow through on their goals with encouraging, non-judgmental insights.",
+  "overview": "Cumulative is a habit-tracking PWA with a Motoko backend and React frontend.",
   "features": [
-    "Track daily habits across five categories",
-    "Record check-ins and obstacles",
-    "See encouraging analytics on an Insights page"
+    "Track habits and goals",
+    "Check in daily",
+    "View analytics and insights",
+    "Partner habits"
   ],
   "category": "productivity",
   "tags": [
     "habits",
     "productivity",
-    "analytics"
+    "tracking"
   ],
-  "last_updated": "2026-09-13T18:34:45.556Z"
+  "last_updated": "2026-09-14T12:35:39.960Z"
 }
