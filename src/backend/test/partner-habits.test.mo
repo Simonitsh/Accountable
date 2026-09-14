@@ -40,8 +40,11 @@ test("dayOfWeekAbbrUtc: seven days after epoch returns to Thursday 'thu' (full w
   expect.text(DateUtils.dayOfWeekAbbrUtc(7 * DAY_NS)).equal("thu");
 });
 
-test("dayOfWeekAbbrUtc: negative timestamp (day before epoch) is Wednesday 'wed'", func() {
-  // -1 day: 4 + (-1) = 3 → Wednesday.
+test("dayOfWeekAbbrUtc: exact whole-day multiple before epoch is Wednesday 'wed'", func() {
+  // -1 day: 4 + (-1) = 3 → Wednesday. This only covers the exact whole-day
+  // multiple boundary — a negative timestamp that is NOT an exact multiple of
+  // a day truncates toward zero and lands one day off, which is not covered
+  // here (real timestamps are always positive).
   expect.text(DateUtils.dayOfWeekAbbrUtc(-DAY_NS)).equal("wed");
 });
 

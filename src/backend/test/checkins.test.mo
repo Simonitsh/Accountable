@@ -157,8 +157,13 @@ suite(
     );
 
     test(
-      "one day before epoch wraps to Wednesday (index 3)",
+      "exact whole-day multiple before epoch wraps to Wednesday (index 3)",
       func() {
+        // -1 * DAY_NS is an exact whole-day multiple, so integer division
+        // truncates cleanly to -1 day. This only verifies the exact-multiple
+        // boundary — a negative timestamp that is NOT an exact multiple of a
+        // day truncates toward zero and lands one day off, which is not
+        // covered here (real timestamps are always positive).
         expect.nat(DateUtils.dayOfWeek(-1 * DAY_NS, UTC_0)).equal(3);
       },
     );
@@ -297,6 +302,10 @@ suite(
         expect.nat(recorded.size()).equal(1);
         expect.nat(recorded[0].goalId).equal(1);
         expect.principal(recorded[0].owner).equal(owner);
+        switch (recorded[0].checkInType) {
+          case (#skip) {};
+          case (_) { assert false };
+        };
         // timestamp is one ns before yesterday's local midnight (Sunday 23:59:59.999999999 UTC)
         expect.int(recorded[0].timestamp).equal(MON_2024_01_01 - 1);
       },
