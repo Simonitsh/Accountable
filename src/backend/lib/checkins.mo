@@ -113,6 +113,7 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
       lockInStartedAt = request.lockInStartedAt;
       lockInEndedAt = request.lockInEndedAt;
       executedIfThen = request.executedIfThen;
+      note = request.note;
     };
     checkIns.add(checkIn);
     checkIn;
@@ -173,6 +174,7 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
           lockInStartedAt = null;
           lockInEndedAt = null;
           executedIfThen = false;
+          note = null;
         };
         checkIns.add(missedCheckIn);
         nextCheckInId[0] += 1;

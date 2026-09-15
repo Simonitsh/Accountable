@@ -1104,6 +1104,7 @@ export function DashboardPage() {
       lockInStartedAt,
       lockInEndedAt,
       executedIfThen,
+      note,
     }: {
       goalId: bigint;
       checkInType: CheckInType;
@@ -1111,6 +1112,7 @@ export function DashboardPage() {
       lockInStartedAt?: bigint;
       lockInEndedAt?: bigint;
       executedIfThen?: boolean;
+      note?: string;
     }) => {
       if (!actor) return null;
       return actor.recordCheckIn({
@@ -1120,6 +1122,7 @@ export function DashboardPage() {
         lockInStartedAt,
         lockInEndedAt,
         executedIfThen: executedIfThen ?? false,
+        note,
         timezoneOffsetMinutes: BigInt(
           getTimezoneOffsetMinutes(userTimezone ?? ""),
         ),
@@ -1230,6 +1233,7 @@ export function DashboardPage() {
     lockInStartedAtMs?: number,
     lockInEndedAtMs?: number,
     executedIfThen?: boolean,
+    note?: string,
   ) {
     const key = goalKey(goalId);
     const goal = activeGoals.find((g) => goalKey(g.id) === key);
@@ -1344,6 +1348,7 @@ export function DashboardPage() {
           ? BigInt(Math.floor(lockInEndedAtMs)) * 1_000_000n
           : undefined,
       executedIfThen: executedIfThen ?? false,
+      note,
     });
   }
 

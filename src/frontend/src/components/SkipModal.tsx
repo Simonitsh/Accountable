@@ -13,7 +13,7 @@ interface SkipModalProps {
   goal: HabitPublic;
   open: boolean;
   onClose: () => void;
-  onConfirm: (obstacleTemplateId?: bigint) => void;
+  onConfirm: (obstacleTemplateId?: bigint, note?: string) => void;
   isLoading?: boolean;
 }
 
@@ -26,6 +26,9 @@ export function SkipModal({
 }: SkipModalProps) {
   // Store the numeric INDEX (0-based) so BigInt(index) is always safe
   const [selectedObstacleIndex, setSelectedObstacleIndex] = useState<number>(0);
+  // Optional free-text note — purely personal context attached to this one
+  // check-in, in the user's own words. Never a custom obstacle category.
+  const [note, setNote] = useState("");
 
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedObstacleIndex];
@@ -44,11 +47,14 @@ export function SkipModal({
         templateId = undefined;
       }
     }
-    onConfirm(templateId);
+    const trimmedNote = note.trim();
+    onConfirm(templateId, trimmedNote === "" ? undefined : trimmedNote);
+    setNote("");
     onClose();
   }
 
   function handleClose() {
+    setNote("");
     onClose();
   }
 
@@ -165,6 +171,26 @@ export function SkipModal({
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Optional note — personal context, never a custom obstacle */}
+              <div className="mb-4">
+                <label
+                  htmlFor="skip-modal-note"
+                  className="block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono"
+                >
+                  Add a note (optional)
+                </label>
+                <textarea
+                  id="skip-modal-note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  maxLength={280}
+                  placeholder="In your own words — what happened?"
+                  className="input-neumorphic w-full resize-none placeholder-subtle"
+                  data-ocid="skip_modal.note_input"
+                />
               </div>
 
               {/* Actions */}

@@ -33042,6 +33042,7 @@ const CheckInType$1 = Variant({
 const CheckIn = Record({
   "id": CheckInId,
   "owner": UserId,
+  "note": Opt(Text),
   "goalId": GoalId,
   "checkInType": CheckInType$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
@@ -33126,6 +33127,7 @@ const PartnerOverview = Record({
 });
 const RecordCheckInRequest = Record({
   "timezoneOffsetMinutes": Int,
+  "note": Opt(Text),
   "goalId": GoalId,
   "checkInType": CheckInType$1,
   "obstacleTemplateId": Opt(ObstacleTemplateId),
@@ -33449,6 +33451,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const CheckIn2 = IDL2.Record({
     "id": CheckInId2,
     "owner": UserId2,
+    "note": IDL2.Opt(IDL2.Text),
     "goalId": GoalId2,
     "checkInType": CheckInType2,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
@@ -33533,6 +33536,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const RecordCheckInRequest2 = IDL2.Record({
     "timezoneOffsetMinutes": IDL2.Int,
+    "note": IDL2.Opt(IDL2.Text),
     "goalId": GoalId2,
     "checkInType": CheckInType2,
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
@@ -34602,6 +34606,7 @@ function from_candid_record_n46(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
+    note: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.note)),
     goalId: value.goalId,
     checkInType: from_candid_CheckInType_n47(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
@@ -34984,6 +34989,7 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
 function to_candid_record_n91(_uploadFile, _downloadFile, value) {
   return {
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
+    note: value.note ? candid_some(value.note) : candid_none(),
     goalId: value.goalId,
     checkInType: to_candid_CheckInType_n92(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
@@ -79039,9 +79045,11 @@ function MissedWindowSheet({
   failureType = "missed-start"
 }) {
   const [selectedIndex, setSelectedIndex] = reactExports.useState(0);
+  const [note, setNote] = reactExports.useState("");
   const resolveObstacleLabel = useResolveObstacleLabel();
   function handleClose() {
     setSelectedIndex(0);
+    setNote("");
     onClose();
   }
   async function handleConfirm() {
@@ -79054,8 +79062,10 @@ function MissedWindowSheet({
         templateId = void 0;
       }
     }
-    onConfirm(templateId);
+    const trimmedNote = note.trim();
+    onConfirm(templateId, trimmedNote === "" ? void 0 : trimmedNote);
     setSelectedIndex(0);
+    setNote("");
     onClose();
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -79159,6 +79169,29 @@ function MissedWindowSheet({
                 obstacle.id
               );
             }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "label",
+                {
+                  htmlFor: "missed-window-note",
+                  className: "block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono",
+                  children: "Add a note (optional)"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "textarea",
+                {
+                  id: "missed-window-note",
+                  value: note,
+                  onChange: (e) => setNote(e.target.value),
+                  rows: 2,
+                  maxLength: 280,
+                  placeholder: "In your own words — what happened?",
+                  className: "input-neumorphic w-full resize-none placeholder-subtle",
+                  "data-ocid": "missed_window_sheet.note_input"
+                }
+              )
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
@@ -79205,6 +79238,7 @@ function SkipModal({
   isLoading = false
 }) {
   const [selectedObstacleIndex, setSelectedObstacleIndex] = reactExports.useState(0);
+  const [note, setNote] = reactExports.useState("");
   const resolveObstacleLabel = useResolveObstacleLabel();
   async function handleConfirm() {
     const selected = OBSTACLE_TEMPLATES[selectedObstacleIndex];
@@ -79216,10 +79250,13 @@ function SkipModal({
         templateId = void 0;
       }
     }
-    onConfirm(templateId);
+    const trimmedNote = note.trim();
+    onConfirm(templateId, trimmedNote === "" ? void 0 : trimmedNote);
+    setNote("");
     onClose();
   }
   function handleClose() {
+    setNote("");
     onClose();
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -79321,6 +79358,29 @@ function SkipModal({
                 obstacle.id
               );
             }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "label",
+                {
+                  htmlFor: "skip-modal-note",
+                  className: "block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono",
+                  children: "Add a note (optional)"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "textarea",
+                {
+                  id: "skip-modal-note",
+                  value: note,
+                  onChange: (e) => setNote(e.target.value),
+                  rows: 2,
+                  maxLength: 280,
+                  placeholder: "In your own words — what happened?",
+                  className: "input-neumorphic w-full resize-none placeholder-subtle",
+                  "data-ocid": "skip_modal.note_input"
+                }
+              )
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Button,
@@ -79959,18 +80019,19 @@ function GoalCard$1({
     return () => {
     };
   }, []);
-  function handleSkipConfirm(obstacleTemplateId) {
+  function handleSkipConfirm(obstacleTemplateId, note) {
     onCheckIn == null ? void 0 : onCheckIn(
       goal.id,
       "skip",
       obstacleTemplateId,
       void 0,
       void 0,
-      false
+      false,
+      note
     );
     setShowSkipModal(false);
   }
-  function handleMissedConfirm(obstacleTemplateId) {
+  function handleMissedConfirm(obstacleTemplateId, note) {
     exitCommittedRef.current = true;
     setShowMissedSheet(false);
     onCheckIn == null ? void 0 : onCheckIn(
@@ -79979,7 +80040,8 @@ function GoalCard$1({
       obstacleTemplateId,
       void 0,
       void 0,
-      false
+      false,
+      note
     );
   }
   function handleWoopCatchExecutedPlan() {
@@ -80605,7 +80667,7 @@ function GoalCard$1({
           setShowMissedSheet(false);
           autoMissedTriggeredRef.current = false;
         },
-        onConfirm: (obstacleTemplateId) => handleMissedConfirm(obstacleTemplateId),
+        onConfirm: (obstacleTemplateId, note) => handleMissedConfirm(obstacleTemplateId, note),
         isLoading: isCheckingIn,
         failureType: currentFailureType
       }
@@ -80991,6 +81053,7 @@ function TimelineNodeCircle({
   );
 }
 function TimelineItem({ checkIn }) {
+  var _a3;
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
@@ -80999,6 +81062,7 @@ function TimelineItem({ checkIn }) {
   checkIn.checkInType === CheckInType.inProgress;
   const time2 = formatTime$1(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
+  const note = (_a3 = checkIn.note) == null ? void 0 : _a3.trim();
   let primaryText;
   let primaryColor;
   if (isSuccess) {
@@ -81017,22 +81081,34 @@ function TimelineItem({ checkIn }) {
     primaryText = "Missed • No action taken";
     primaryColor = MISSED_COLOR;
   }
+  const showNoReasonFallback = isMissedLockIn && !note;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", "data-ocid": "goal_insight.timeline_item", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 pb-5", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "p",
-      {
-        className: "text-sm font-display font-medium leading-snug",
-        style: { color: primaryColor },
-        children: [
-          primaryText,
-          isMissedLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            " • ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
-          ] })
-        ]
-      }
-    ) }) })
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "p",
+        {
+          className: "text-sm font-display font-medium leading-snug",
+          style: { color: primaryColor },
+          children: [
+            primaryText,
+            showNoReasonFallback && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              " • ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
+            ] })
+          ]
+        }
+      ) }),
+      note && (isSkip || isMissedLockIn) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "p",
+        {
+          className: "text-xs mt-1 leading-snug",
+          style: { color: "oklch(var(--muted-foreground))" },
+          "data-ocid": "goal_insight.timeline_note",
+          children: note
+        }
+      )
+    ] })
   ] });
 }
 function groupByDay(checkIns) {
@@ -85887,7 +85963,8 @@ function DashboardPage$1() {
       obstacleTemplateId,
       lockInStartedAt,
       lockInEndedAt,
-      executedIfThen
+      executedIfThen,
+      note
     }) => {
       if (!actor) return null;
       return actor.recordCheckIn({
@@ -85897,6 +85974,7 @@ function DashboardPage$1() {
         lockInStartedAt,
         lockInEndedAt,
         executedIfThen: executedIfThen ?? false,
+        note,
         timezoneOffsetMinutes: BigInt(
           getTimezoneOffsetMinutes(userTimezone ?? "")
         )
@@ -85961,7 +86039,7 @@ function DashboardPage$1() {
     setBadgeAnimKey((k2) => k2 + 1);
     setActiveTab("done");
   }, []);
-  function handleGoalCardCheckIn(goalId, type, obstacleId, lockInStartedAtMs, lockInEndedAtMs, executedIfThen) {
+  function handleGoalCardCheckIn(goalId, type, obstacleId, lockInStartedAtMs, lockInEndedAtMs, executedIfThen, note) {
     const key = goalKey(goalId);
     const goal = activeGoals.find((g2) => goalKey(g2.id) === key);
     let backendType;
@@ -86026,7 +86104,8 @@ function DashboardPage$1() {
       obstacleTemplateId: obstacleId,
       lockInStartedAt: lockInStartedAtMs !== void 0 ? BigInt(Math.floor(lockInStartedAtMs)) * 1000000n : void 0,
       lockInEndedAt: lockInEndedAtMs !== void 0 ? BigInt(Math.floor(lockInEndedAtMs)) * 1000000n : void 0,
-      executedIfThen: executedIfThen ?? false
+      executedIfThen: executedIfThen ?? false,
+      note
     });
   }
   function handleMarkIfThenUsed(_goalId, checkInId) {
@@ -87313,6 +87392,11 @@ function parseHHMMToMinutes(time2) {
   const [h2, m2] = time2.split(":").map(Number);
   return h2 * 60 + m2;
 }
+function obstacleLabelForId$1(id2) {
+  if (id2 === void 0) return void 0;
+  const template = OBSTACLE_TEMPLATES[Number(id2) - 1];
+  return template == null ? void 0 : template.label;
+}
 const sectionLabel$1 = "block text-xs font-mono tracking-widest text-muted-foreground uppercase mb-2";
 const insetCard$1 = {
   background: "oklch(var(--card))",
@@ -87384,11 +87468,11 @@ function EditHabitPage$1() {
       setLockInDurationHours(0);
       setLockInDurationMinutes(0);
     }
-    const existingLabels = (habit.outcome ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const savedLabel = obstacleLabelForId$1(habit.obstacleTemplateId);
     const builtinChips = [];
-    for (const label of existingLabels) {
+    if (savedLabel) {
       const preset = OBSTACLE_TEMPLATES.find(
-        (t) => t.label.toLowerCase() === label.toLowerCase()
+        (t) => t.label.toLowerCase() === savedLabel.toLowerCase()
       );
       if (preset) {
         builtinChips.push({
@@ -90951,6 +91035,11 @@ function renderGoalIcon(name, size = 16) {
   };
   return iconMap[name] ?? /* @__PURE__ */ jsxRuntimeExports.jsx(Target, { size });
 }
+function obstacleLabelForId(id2) {
+  if (id2 === void 0) return void 0;
+  const template = OBSTACLE_TEMPLATES[Number(id2) - 1];
+  return template == null ? void 0 : template.label;
+}
 function formatTime12h(timeStr) {
   const [h2, m2] = timeStr.split(":").map(Number);
   const suffix2 = h2 >= 12 ? "PM" : "AM";
@@ -90979,12 +91068,10 @@ function GoalEditForm({
   isSaving,
   existingLockInGoals = []
 }) {
-  const existingObstacles = goal.outcome ? goal.outcome.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const existingPreset = existingObstacles.filter(
-    (o2) => OBSTACLE_TEMPLATES.map((t) => t.label.toLowerCase()).includes(
-      o2.toLowerCase()
-    )
-  );
+  const existingPreset = (() => {
+    const label = obstacleLabelForId(goal.obstacleTemplateId);
+    return label ? [label] : [];
+  })();
   const initDuration = (() => {
     if ((goal.isLockIn ?? false) && goal.startTime && goal.endTime) {
       const [sh, sm] = goal.startTime.split(":").map(Number);
@@ -91590,6 +91677,7 @@ function GoalDetailPanel({
   const isActive = goal.state === GoalState.active;
   const isPaused = goal.state === GoalState.paused;
   const isCompleted = goal.state === GoalState.completed;
+  const obstacleLabel = obstacleLabelForId(goal.obstacleTemplateId);
   function handleSaveEdit(req) {
     onUpdateGoal(goal.id, req);
     setIsEditing(false);
@@ -91739,9 +91827,9 @@ function GoalDetailPanel({
             className: "space-y-3",
             "data-ocid": "goals.detail_view",
             children: [
-              goal.outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              obstacleLabel && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "Obstacles" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-foreground leading-relaxed", children: goal.outcome })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-foreground leading-relaxed", children: obstacleLabel })
               ] }),
               goal.ifThenPlan && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1", children: "If-Then Plan" }),

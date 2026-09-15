@@ -91,6 +91,20 @@ function renderGoalIcon(name: string, size = 16) {
 }
 
 /**
+ * Resolves a habit's saved obstacleTemplateId (a stable 1-7 bigint matching
+ * the backend's built-in obstacles) to its display label. OBSTACLE_TEMPLATES
+ * is ordered identically to the backend's builtinObstacles, so the id maps
+ * directly to an index. Returns undefined when the habit has no obstacle or
+ * the id is out of range. The habit's obstacle is unrelated to the parent
+ * goal's outcome text.
+ */
+function obstacleLabelForId(id: bigint | undefined): string | undefined {
+  if (id === undefined) return undefined;
+  const template = OBSTACLE_TEMPLATES[Number(id) - 1];
+  return template?.label;
+}
+
+/**
  * Formats an HH:MM time string to 12-hour display (e.g. "14:05" → "2:05 PM").
  * Mirrors formatTime12h in GoalCard.tsx.
  */
@@ -172,20 +186,13 @@ function GoalEditForm({
   isSaving,
   existingLockInGoals = [],
 }: GoalEditFormProps) {
-  // Parse existing obstacles from goal.outcome (stored as comma-separated labels)
-  const existingObstacles = goal.outcome
-    ? goal.outcome
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : [];
-
-  // Keep only preset obstacles (custom obstacles are no longer supported)
-  const existingPreset = existingObstacles.filter((o) =>
-    OBSTACLE_TEMPLATES.map((t) => t.label.toLowerCase()).includes(
-      o.toLowerCase(),
-    ),
-  );
+  // Pre-select the habit's saved obstacle from its own obstacleTemplateId
+  // (a stable 1-7 bigint matching the backend's built-in obstacles). The
+  // obstacle is unrelated to the parent goal's outcome text.
+  const existingPreset = (() => {
+    const label = obstacleLabelForId(goal.obstacleTemplateId);
+    return label ? [label] : [];
+  })();
 
   // Pre-populate duration wheels from stored startTime/endTime
   const initDuration = (() => {
@@ -899,6 +906,10 @@ function GoalDetailPanel({
   const isPaused = goal.state === GoalState.paused;
   const isCompleted = goal.state === GoalState.completed;
 
+  // The habit's saved obstacle label, resolved from its own obstacleTemplateId
+  // (unrelated to the parent goal's outcome text).
+  const obstacleLabel = obstacleLabelForId(goal.obstacleTemplateId);
+
   function handleSaveEdit(req: UpdateHabitRequest) {
     onUpdateGoal(goal.id, req);
     setIsEditing(false);
@@ -1051,13 +1062,13 @@ function GoalDetailPanel({
             className="space-y-3"
             data-ocid="goals.detail_view"
           >
-            {goal.outcome && (
+            {obstacleLabel && (
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
                   Obstacles
                 </p>
                 <p className="text-sm text-foreground leading-relaxed">
-                  {goal.outcome}
+                  {obstacleLabel}
                 </p>
               </div>
             )}

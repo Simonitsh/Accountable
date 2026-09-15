@@ -263,6 +263,11 @@ export interface CheckIn {
   owner: string;
   checkInType: CheckInType;
   obstacleTemplateId?: string;
+  /** Optional free-text note attached to this one check-in, in the user's own
+   *  words. Purely personal context on top of the selected built-in obstacle
+   *  category — it is never a custom obstacle category and is never counted or
+   *  grouped in the obstacle-breakdown analytics. */
+  note?: string;
   timestamp: bigint;
   lockInStartedAt?: number;
   lockInEndedAt?: number;

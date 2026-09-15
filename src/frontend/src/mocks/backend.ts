@@ -202,7 +202,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     executedIfThen: true,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
-    customObstacleNote: undefined,
+    note: undefined,
   },
   // Yesterday — normal success
   {
@@ -215,7 +215,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     executedIfThen: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
-    customObstacleNote: undefined,
+    note: undefined,
   },
   // 2 days ago — skipped with note
   {
@@ -228,7 +228,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     executedIfThen: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
-    customObstacleNote: "Had a particularly draining work meeting that ran late into the evening.",
+    note: "Had a particularly draining work meeting that ran late into the evening.",
   },
   // 3 days ago — missed (missedCheckIn)
   {
@@ -241,7 +241,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     executedIfThen: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
-    customObstacleNote: undefined,
+    note: undefined,
   },
   // 4 days ago — normal success
   {
@@ -254,7 +254,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     executedIfThen: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
-    customObstacleNote: undefined,
+    note: undefined,
   },
   // 5 days ago — skipped, no note
   {
@@ -267,7 +267,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     executedIfThen: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
-    customObstacleNote: undefined,
+    note: undefined,
   },
   // 6 days ago — revival success
   {
@@ -280,7 +280,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     executedIfThen: true,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
-    customObstacleNote: undefined,
+    note: undefined,
   },
 ];
 
@@ -502,6 +502,7 @@ export const mockBackend: backendInterface = {
     goalId: request.goalId,
     checkInType: request.checkInType,
     obstacleTemplateId: request.obstacleTemplateId,
+    note: request.note,
     timestamp: BigInt(Date.now()) * BigInt(1_000_000),
     lockInStartedAt: request.lockInStartedAt,
     lockInEndedAt: request.lockInEndedAt,

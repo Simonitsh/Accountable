@@ -119,6 +119,11 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   const time = formatTime(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
 
+  // Optional free-text note attached to this check-in (skip or missed). It is
+  // purely personal context in the user's own words — never a custom obstacle
+  // category and never counted in the obstacle-breakdown analytics.
+  const note = checkIn.note?.trim();
+
   let primaryText: string;
   let primaryColor: string;
 
@@ -141,6 +146,9 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
     primaryColor = MISSED_COLOR;
   }
 
+  // For missed Lock-In check-ins with no note, keep the existing fallback.
+  const showNoReasonFallback = isMissedLockIn && !note;
+
   return (
     <div className="flex gap-3" data-ocid="goal_insight.timeline_item">
       {/* Node */}
@@ -154,7 +162,7 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
             style={{ color: primaryColor }}
           >
             {primaryText}
-            {isMissedLockIn && (
+            {showNoReasonFallback && (
               <>
                 {" \u2022 "}
                 <span style={{ color: "oklch(var(--muted-foreground))" }}>
@@ -164,6 +172,15 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
             )}
           </p>
         </div>
+        {note && (isSkip || isMissedLockIn) && (
+          <p
+            className="text-xs mt-1 leading-snug"
+            style={{ color: "oklch(var(--muted-foreground))" }}
+            data-ocid="goal_insight.timeline_note"
+          >
+            {note}
+          </p>
+        )}
       </div>
     </div>
   );

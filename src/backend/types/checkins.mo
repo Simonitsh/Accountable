@@ -11,6 +11,7 @@ module {
     lockInStartedAt : ?Int;
     lockInEndedAt : ?Int;
     executedIfThen : Bool;
+    note : ?Text;
   };
 
   public type RecordCheckInRequest = {
@@ -21,5 +22,6 @@ module {
     lockInEndedAt : ?Int;
     executedIfThen : Bool;
     timezoneOffsetMinutes : Int;
+    note : ?Text;
   };
 };

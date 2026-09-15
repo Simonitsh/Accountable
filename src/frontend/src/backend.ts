@@ -76,6 +76,7 @@ export interface Cell {
 export interface CheckIn {
     id: CheckInId;
     owner: UserId;
+    note?: string;
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
@@ -223,6 +224,7 @@ export interface PartnerOverview {
 }
 export interface RecordCheckInRequest {
     timezoneOffsetMinutes: bigint;
+    note?: string;
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
@@ -1465,6 +1467,7 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
 function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: _CheckInId;
     owner: _UserId;
+    note: [] | [string];
     goalId: _GoalId;
     checkInType: _CheckInType;
     obstacleTemplateId: [] | [_ObstacleTemplateId];
@@ -1475,6 +1478,7 @@ function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }): {
     id: CheckInId;
     owner: UserId;
+    note?: string;
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
@@ -1486,6 +1490,7 @@ function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uin
     return {
         id: value.id,
         owner: value.owner,
+        note: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.note)),
         goalId: value.goalId,
         checkInType: from_candid_CheckInType_n47(_uploadFile, _downloadFile, value.checkInType),
         obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
@@ -2299,6 +2304,7 @@ function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 }
 function to_candid_record_n91(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     timezoneOffsetMinutes: bigint;
+    note?: string;
     goalId: GoalId;
     checkInType: CheckInType;
     obstacleTemplateId?: ObstacleTemplateId;
@@ -2307,6 +2313,7 @@ function to_candid_record_n91(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     lockInEndedAt?: bigint;
 }): {
     timezoneOffsetMinutes: bigint;
+    note: [] | [string];
     goalId: _GoalId;
     checkInType: _CheckInType;
     obstacleTemplateId: [] | [_ObstacleTemplateId];
@@ -2316,6 +2323,7 @@ function to_candid_record_n91(_uploadFile: (file: ExternalBlob) => Promise<Uint8
 } {
     return {
         timezoneOffsetMinutes: value.timezoneOffsetMinutes,
+        note: value.note ? candid_some(value.note) : candid_none(),
         goalId: value.goalId,
         checkInType: to_candid_CheckInType_n92(_uploadFile, _downloadFile, value.checkInType),
         obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),

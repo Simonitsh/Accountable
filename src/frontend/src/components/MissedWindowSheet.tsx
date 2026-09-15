@@ -14,7 +14,7 @@ interface MissedWindowSheetProps {
   goal: HabitPublic;
   open: boolean;
   onClose: () => void;
-  onConfirm: (obstacleTemplateId?: bigint) => void;
+  onConfirm: (obstacleTemplateId?: bigint, note?: string) => void;
   isLoading?: boolean;
   failureType?: "missed-start" | "missed-checkout";
 }
@@ -28,6 +28,9 @@ export function MissedWindowSheet({
   failureType = "missed-start",
 }: MissedWindowSheetProps) {
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  // Optional free-text note — purely personal context attached to this one
+  // check-in, in the user's own words. Never a custom obstacle category.
+  const [note, setNote] = useState("");
 
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedIndex];
@@ -36,6 +39,7 @@ export function MissedWindowSheet({
 
   function handleClose() {
     setSelectedIndex(0);
+    setNote("");
     onClose();
   }
 
@@ -51,8 +55,10 @@ export function MissedWindowSheet({
         templateId = undefined;
       }
     }
-    onConfirm(templateId);
+    const trimmedNote = note.trim();
+    onConfirm(templateId, trimmedNote === "" ? undefined : trimmedNote);
     setSelectedIndex(0);
+    setNote("");
     onClose();
   }
 
@@ -177,6 +183,26 @@ export function MissedWindowSheet({
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Optional note — personal context, never a custom obstacle */}
+              <div className="mb-5">
+                <label
+                  htmlFor="missed-window-note"
+                  className="block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono"
+                >
+                  Add a note (optional)
+                </label>
+                <textarea
+                  id="missed-window-note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  maxLength={280}
+                  placeholder="In your own words — what happened?"
+                  className="input-neumorphic w-full resize-none placeholder-subtle"
+                  data-ocid="missed_window_sheet.note_input"
+                />
               </div>
 
               {/* Actions */}

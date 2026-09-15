@@ -273,6 +273,7 @@ func makeCheckIn(
     lockInStartedAt = null;
     lockInEndedAt = null;
     executedIfThen = false;
+    note = null;
   };
 };
 

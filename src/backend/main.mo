@@ -229,6 +229,7 @@ actor {
           lockInStartedAt = null : ?Int;
           lockInEndedAt = null : ?Int;
           executedIfThen = false;
+          note = null : ?Text;
         })
         .payload("id", func (c : CheckInTypes.CheckIn) : Nat = c.id)
         .payload("goalId", func (c : CheckInTypes.CheckIn) : Nat = c.goalId)

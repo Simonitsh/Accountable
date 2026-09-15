@@ -47,6 +47,20 @@ function parseHHMMToMinutes(time: string): number {
   return h * 60 + m;
 }
 
+/**
+ * Resolves a habit's saved obstacleTemplateId (a stable 1-7 bigint matching
+ * the backend's built-in obstacles) to its display label. OBSTACLE_TEMPLATES
+ * is ordered identically to the backend's builtinObstacles, so the id maps
+ * directly to an index. Returns undefined when the habit has no obstacle or
+ * the id is out of range. The habit's obstacle is unrelated to the parent
+ * goal's outcome text.
+ */
+function obstacleLabelForId(id: bigint | undefined): string | undefined {
+  if (id === undefined) return undefined;
+  const template = OBSTACLE_TEMPLATES[Number(id) - 1];
+  return template?.label;
+}
+
 interface SelectedObstacle {
   id: string;
   label: string;
@@ -164,14 +178,14 @@ export function EditHabitPage() {
       setLockInDurationMinutes(0);
     }
 
-    const existingLabels = (habit.outcome ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    // Pre-select the habit's saved obstacle from its own obstacleTemplateId
+    // (a stable 1-7 bigint matching the backend's built-in obstacles). The
+    // obstacle is unrelated to the parent goal's outcome text.
+    const savedLabel = obstacleLabelForId(habit.obstacleTemplateId);
     const builtinChips: SelectedObstacle[] = [];
-    for (const label of existingLabels) {
+    if (savedLabel) {
       const preset = OBSTACLE_TEMPLATES.find(
-        (t) => t.label.toLowerCase() === label.toLowerCase(),
+        (t) => t.label.toLowerCase() === savedLabel.toLowerCase(),
       );
       if (preset) {
         builtinChips.push({

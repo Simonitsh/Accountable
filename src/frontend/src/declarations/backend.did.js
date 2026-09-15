@@ -152,6 +152,7 @@ export const CheckInType = IDL.Variant({
 export const CheckIn = IDL.Record({
   'id' : CheckInId,
   'owner' : UserId,
+  'note' : IDL.Opt(IDL.Text),
   'goalId' : GoalId,
   'checkInType' : CheckInType,
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
@@ -236,6 +237,7 @@ export const PartnerOverview = IDL.Record({
 });
 export const RecordCheckInRequest = IDL.Record({
   'timezoneOffsetMinutes' : IDL.Int,
+  'note' : IDL.Opt(IDL.Text),
   'goalId' : GoalId,
   'checkInType' : CheckInType,
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
@@ -563,6 +565,7 @@ export const idlFactory = ({ IDL }) => {
   const CheckIn = IDL.Record({
     'id' : CheckInId,
     'owner' : UserId,
+    'note' : IDL.Opt(IDL.Text),
     'goalId' : GoalId,
     'checkInType' : CheckInType,
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
@@ -647,6 +650,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const RecordCheckInRequest = IDL.Record({
     'timezoneOffsetMinutes' : IDL.Int,
+    'note' : IDL.Opt(IDL.Text),
     'goalId' : GoalId,
     'checkInType' : CheckInType,
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),

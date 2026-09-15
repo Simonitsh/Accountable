@@ -38,6 +38,7 @@ export interface Cell { 'value' : Value, 'name' : string }
 export interface CheckIn {
   'id' : CheckInId,
   'owner' : UserId,
+  'note' : [] | [string],
   'goalId' : GoalId,
   'checkInType' : CheckInType,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
@@ -204,6 +205,7 @@ export interface PartnerOverview {
 }
 export interface RecordCheckInRequest {
   'timezoneOffsetMinutes' : bigint,
+  'note' : [] | [string],
   'goalId' : GoalId,
   'checkInType' : CheckInType,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
