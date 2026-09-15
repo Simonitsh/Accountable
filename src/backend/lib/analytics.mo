@@ -28,10 +28,10 @@ module {
     };
   };
 
-  /// Resolves an obstacle template id to its title, or a fallback when the
-  /// template no longer exists.
-  func obstacleName(id : Common.ObstacleTemplateId, templates : List.List<GoalTypes.ObstacleTemplate>) : Text {
-    switch (templates.find(func(t) { t.id == id })) {
+  /// Resolves an obstacle template id to its built-in title, or a fallback
+  /// when the id does not match any of the seven built-ins.
+  func obstacleName(id : Common.ObstacleTemplateId) : Text {
+    switch (GoalTypes.builtinObstacles().find(func(t) { t.id == id })) {
       case null "Unknown obstacle";
       case (?t) t.title;
     };
@@ -141,7 +141,6 @@ module {
   /// id and sorted by frequency (most frequent first).
   func computeActualObstacles(
     checkIns : [CheckInTypes.CheckIn],
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
   ) : [AnalyticsTypes.ObstacleStat] {
     let counts = Map.empty<Common.ObstacleTemplateId, Nat>();
     for (c in checkIns.values()) {
@@ -155,7 +154,7 @@ module {
     let stats = counts.entries().map(func((id, count)) {
       {
         obstacleTemplateId = ?id;
-        obstacleName = obstacleName(id, obstacleTemplates);
+        obstacleName = obstacleName(id);
         count;
       };
     }).toArray();
@@ -170,7 +169,6 @@ module {
   public func computeHabitAnalytics(
     habit : GoalTypes.HabitPublic,
     checkIns : [CheckInTypes.CheckIn],
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
   ) : AnalyticsTypes.HabitAnalytics {
     // Shown-up days: count only genuine successes. Skips and auto-filled
     // forgotten days (recorded as skips by the auto-fail timer) are excluded.
@@ -185,12 +183,12 @@ module {
       case null null;
       case (?id) ?{
         obstacleTemplateId = ?id;
-        obstacleName = obstacleName(id, obstacleTemplates);
+        obstacleName = obstacleName(id);
         count = 0;
       };
     };
 
-    let actualObstacles = computeActualObstacles(checkIns, obstacleTemplates);
+    let actualObstacles = computeActualObstacles(checkIns);
 
     {
       habitId = habit.id;
@@ -209,7 +207,6 @@ module {
   public func getAnalytics(
     goals : List.List<GoalTypes.Goal>,
     checkIns : List.List<CheckInTypes.CheckIn>,
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
     caller : Common.UserId,
     timezoneOffsetMinutes : Int,
   ) : AnalyticsTypes.AnalyticsSummary {
@@ -223,7 +220,7 @@ module {
     let habitAnalytics = ownedHabits.map(func(g) {
       let gPublic = GoalLib.toHabitPublic(g);
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
-      computeHabitAnalytics(gPublic, goalCheckIns, obstacleTemplates);
+      computeHabitAnalytics(gPublic, goalCheckIns);
     });
 
     let overallIfThen = computeIfThenEffectiveness(allCheckIns);

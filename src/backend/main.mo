@@ -53,19 +53,17 @@ actor {
   let profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // GOAL & OBSTACLE STORAGE — READ THIS BEFORE EDITING
+  // GOAL STORAGE — READ THIS BEFORE EDITING
   // ─────────────────────────────────────────────────────────────────────────
-  // `goals` and `obstacleTemplates` use List (mutable growable arrays).
-  // List.add() mutates in place — the binding itself never needs reassignment.
+  // `goals` uses List (mutable growable arrays). List.add() mutates in place —
+  // the binding itself never needs reassignment.
   //
-  // `nextGoalId` and `nextObstacleTemplateId` are single-element mutable
-  // arrays ([var Nat]) so the Goals module can increment them by reference.
-  // They MUST remain [var Nat] — never [Nat].
+  // `nextGoalId` is a single-element mutable array ([var Nat]) so the Goals
+  // module can increment it by reference. It MUST remain [var Nat] — never
+  // [Nat].
   // ─────────────────────────────────────────────────────────────────────────
   let goals : List.List<GoalTypes.Goal>;
-  let obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>;
   let nextGoalId : [var Nat];               // ⚠️ MUST be [var Nat]
-  let nextObstacleTemplateId : [var Nat];   // ⚠️ MUST be [var Nat]
 
   // Check-in state
   let checkIns : List.List<CheckInTypes.CheckIn>;
@@ -81,12 +79,12 @@ actor {
 
   // Mixins
   include AuthApi(profiles);
-  include GoalsApi(goals, obstacleTemplates, nextGoalId, nextObstacleTemplateId, checkIns, interactions);
+  include GoalsApi(goals, nextGoalId, checkIns, interactions);
   include CheckInsApi(checkIns, goals, nextCheckInId);
   include ConnectionsApi(connections, nextConnectionId);
   include FeedApi(checkIns, goals, profiles, connections, interactions, nextInteractionId);
-  include AnalyticsApi(goals, checkIns, obstacleTemplates);
-  include ObstacleResolutionApi(obstacleTemplates, nextObstacleTemplateId);
+  include AnalyticsApi(goals, checkIns);
+  include ObstacleResolutionApi();
   include PartnerHabitsApi(connections, goals, checkIns, profiles);
   include ApiDocMixin();
 
@@ -110,7 +108,7 @@ actor {
   // endpoints, types, or data are touched.
   //
   // Per-entity authorization:
-  //   • UserProfile, Goal, ObstacleTemplate, CheckIn — #controllerOrScoped:
+  //   • UserProfile, Goal, CheckIn — #controllerOrScoped:
   //     the agent (controller) reads all rows for aggregate analysis; a signed-
   //     in user reads only their own rows (owner column). UserProfile hides the
   //     private `email` column.
@@ -161,7 +159,7 @@ actor {
       // and habits (goalId set to parent macro goal id). Mutable record →
       // manual mode. Owner = owner. goalId is a self-referential edge: on a
       // habit it points to its parent macro goal; on a macro goal it is null.
-      // obstacleTemplateId is an edge to the obstacleTemplate entity.
+      // obstacleTemplateId references one of the seven built-in obstacles.
       // scheduledDays is a [Text] collection → exposed as its size.
       // category is goal-level: on a macro goal it is the canonical value;
       // on a habit it mirrors the parent (synced by migration 20260815_120000).
@@ -198,7 +196,6 @@ actor {
         .payload("wishDescription", func (g : GoalTypes.Goal) : Text = g.wishDescription)
         .payload("outcome", func (g : GoalTypes.Goal) : Text = g.outcome)
         .payload("obstacleTemplateId", func (g : GoalTypes.Goal) : Nat = switch (g.obstacleTemplateId) { case null 0; case (?n) n })
-        .edge("obstacleTemplateId", "obstacleTemplate")
         .payload("ifThenPlan", func (g : GoalTypes.Goal) : Text = g.ifThenPlan)
         .payload("state", func (g : GoalTypes.Goal) : Text = switch (g.state) { case (#active) "active"; case (#paused) "paused"; case (#completed) "completed" })
         .payload("createdAt", func (g : GoalTypes.Goal) : Int = g.createdAt)
@@ -218,17 +215,9 @@ actor {
         .controllerOrScoped()
         .build(),
 
-      // ObstacleTemplate — all-primitive immutable record → auto-derive.
-      // Owner = owner.
-      obstacleTemplates.toEntity("obstacleTemplate", "ObstacleTemplate", "id")
-        .sample({ id = 0; owner = anyP; title = ""; description = "" })
-        .ownedBy("owner")
-        .controllerOrScoped()
-        .build(),
-
       // CheckIn — has a variant field (checkInType) and option fields → manual
-      // mode. Owner = owner. goalId edges to goal; obstacleTemplateId edges to
-      // obstacleTemplate.
+      // mode. Owner = owner. goalId edges to goal; obstacleTemplateId
+      // references one of the seven built-in obstacles.
       checkIns.toEntityManual("checkIn", "CheckIn", "id")
         .sample({
           id = 0;
@@ -236,7 +225,6 @@ actor {
           owner = anyP;
           checkInType = #success : Common.CheckInType;
           obstacleTemplateId = null : ?Common.ObstacleTemplateId;
-          customObstacleNote = null : ?Text;
           timestamp = 0 : Common.Timestamp;
           lockInStartedAt = null : ?Int;
           lockInEndedAt = null : ?Int;
@@ -248,8 +236,6 @@ actor {
         .payload("owner", func (c : CheckInTypes.CheckIn) : Principal = c.owner)
         .payload("checkInType", func (c : CheckInTypes.CheckIn) : Text = switch (c.checkInType) { case (#success) "success"; case (#skip) "skip"; case (#inProgress) "inProgress"; case (#missedCheckIn) "missedCheckIn"; case (#missedCheckOut) "missedCheckOut" })
         .payload("obstacleTemplateId", func (c : CheckInTypes.CheckIn) : Nat = switch (c.obstacleTemplateId) { case null 0; case (?n) n })
-        .edge("obstacleTemplateId", "obstacleTemplate")
-        .payload("customObstacleNote", func (c : CheckInTypes.CheckIn) : Text = switch (c.customObstacleNote) { case null ""; case (?n) n })
         .payload("timestamp", func (c : CheckInTypes.CheckIn) : Int = c.timestamp)
         .payload("lockInStartedAt", func (c : CheckInTypes.CheckIn) : Int = switch (c.lockInStartedAt) { case null 0; case (?t) t })
         .payload("lockInEndedAt", func (c : CheckInTypes.CheckIn) : Int = switch (c.lockInEndedAt) { case null 0; case (?t) t })
@@ -308,9 +294,7 @@ actor {
   public func devReset() : async () {
     profiles.clear();
     goals.clear();
-    obstacleTemplates.clear();
     nextGoalId[0] := 0;
-    nextObstacleTemplateId[0] := 0;
     checkIns.clear();
     nextCheckInId[0] := 0;
     connections.clear();

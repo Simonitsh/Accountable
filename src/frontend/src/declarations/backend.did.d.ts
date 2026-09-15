@@ -45,7 +45,6 @@ export interface CheckIn {
   'executedIfThen' : boolean,
   'lockInStartedAt' : [] | [bigint],
   'lockInEndedAt' : [] | [bigint],
-  'customObstacleNote' : [] | [string],
 }
 export type CheckInId = bigint;
 export type CheckInType = { 'skip' : null } |
@@ -86,10 +85,6 @@ export interface CreateMacroGoalRequest {
   'iconName' : [] | [string],
   'category' : GoalCategory,
   'outcome' : string,
-}
-export interface CreateObstacleRequest {
-  'title' : string,
-  'description' : string,
 }
 export interface DayOfWeekStat {
   'successes' : bigint,
@@ -215,7 +210,6 @@ export interface RecordCheckInRequest {
   'executedIfThen' : boolean,
   'lockInStartedAt' : [] | [bigint],
   'lockInEndedAt' : [] | [bigint],
-  'customObstacleNote' : [] | [string],
 }
 export interface ResolveObstacleRequest { 'labelText' : string }
 export interface Result { 'hasMore' : boolean, 'rows' : Array<Array<Cell>> }
@@ -292,10 +286,6 @@ export interface _SERVICE {
     { 'ok' : MacroGoalPublic } |
       { 'err' : string }
   >,
-  'createObstacleTemplate' : ActorMethod<
-    [CreateObstacleRequest],
-    ObstacleTemplate
-  >,
   'deleteCheckIn' : ActorMethod<
     [CheckInId],
     { 'ok' : null } |
@@ -371,7 +361,6 @@ export interface _SERVICE {
    * / Supports the dashboard grouping requirement.
    */
   'listMyGoals' : ActorMethod<[], Array<GoalWithHabitsPublic>>,
-  'listMyObstacleTemplates' : ActorMethod<[], Array<ObstacleTemplate>>,
   /**
    * / Returns the caller's reusable macro goals for the wizard chips.
    * / Each entry exposes id, wish, wishDescription, state, and category.
@@ -393,14 +382,11 @@ export interface _SERVICE {
   'recordInteraction' : ActorMethod<[CheckInId, InteractionType], Interaction>,
   'register' : ActorMethod<[string], UserProfilePublic>,
   /**
-   * / Resolves a built-in obstacle label to a reusable obstacle template owned
-   * / by the caller. Searches the caller's existing templates for one whose
-   * / title matches `request.labelText` case-insensitively and returns it; if
-   * / none exists, creates a new ObstacleTemplate for that label (owner =
-   * / caller) and returns it. The first pick creates a record; every later pick
-   * / of the same label reuses the same one. Owner-scoped — only the caller's
-   * / own templates are searched or created. Never modifies or repairs
-   * / previously saved habits or check-ins.
+   * / Resolves a built-in obstacle label to one of the seven fixed built-in
+   * / obstacles. The match is case-insensitive on the built-in title. If the
+   * / label is not one of the seven built-ins, the call traps — a custom
+   * / obstacle can never be created. Returns the matching built-in
+   * / `ObstacleTemplate` with its stable id.
    */
   'resolveObstacleLabel' : ActorMethod<
     [ResolveObstacleRequest],

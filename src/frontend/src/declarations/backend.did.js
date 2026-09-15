@@ -84,16 +84,6 @@ export const MacroGoalPublic = IDL.Record({
   'category' : GoalCategory,
   'outcome' : IDL.Text,
 });
-export const CreateObstacleRequest = IDL.Record({
-  'title' : IDL.Text,
-  'description' : IDL.Text,
-});
-export const ObstacleTemplate = IDL.Record({
-  'id' : ObstacleTemplateId,
-  'title' : IDL.Text,
-  'owner' : UserId,
-  'description' : IDL.Text,
-});
 export const CheckInId = IDL.Nat;
 export const Value = IDL.Variant({
   'int' : IDL.Int,
@@ -169,7 +159,6 @@ export const CheckIn = IDL.Record({
   'executedIfThen' : IDL.Bool,
   'lockInStartedAt' : IDL.Opt(IDL.Int),
   'lockInEndedAt' : IDL.Opt(IDL.Int),
-  'customObstacleNote' : IDL.Opt(IDL.Text),
 });
 export const UserRole = IDL.Variant({ 'admin' : IDL.Null, 'user' : IDL.Null });
 export const AvatarColor = IDL.Opt(IDL.Text);
@@ -253,7 +242,6 @@ export const RecordCheckInRequest = IDL.Record({
   'executedIfThen' : IDL.Bool,
   'lockInStartedAt' : IDL.Opt(IDL.Int),
   'lockInEndedAt' : IDL.Opt(IDL.Int),
-  'customObstacleNote' : IDL.Opt(IDL.Text),
 });
 export const InteractionType = IDL.Variant({ 'highFive' : IDL.Null });
 export const InteractionId = IDL.Nat;
@@ -265,6 +253,12 @@ export const Interaction = IDL.Record({
   'timestamp' : Timestamp,
 });
 export const ResolveObstacleRequest = IDL.Record({ 'labelText' : IDL.Text });
+export const ObstacleTemplate = IDL.Record({
+  'id' : ObstacleTemplateId,
+  'title' : IDL.Text,
+  'owner' : UserId,
+  'description' : IDL.Text,
+});
 export const UpdateHabitRequest = IDL.Record({
   'startTime' : IDL.Opt(IDL.Text),
   'endTimeMinutes' : IDL.Opt(IDL.Nat),
@@ -294,11 +288,6 @@ export const idlService = IDL.Service({
   'createMacroGoal' : IDL.Func(
       [CreateMacroGoalRequest],
       [IDL.Variant({ 'ok' : MacroGoalPublic, 'err' : IDL.Text })],
-      [],
-    ),
-  'createObstacleTemplate' : IDL.Func(
-      [CreateObstacleRequest],
-      [ObstacleTemplate],
       [],
     ),
   'deleteCheckIn' : IDL.Func(
@@ -365,11 +354,6 @@ export const idlService = IDL.Service({
     ),
   'listMyCheckIns' : IDL.Func([], [IDL.Vec(CheckIn)], ['query']),
   'listMyGoals' : IDL.Func([], [IDL.Vec(GoalWithHabitsPublic)], ['query']),
-  'listMyObstacleTemplates' : IDL.Func(
-      [],
-      [IDL.Vec(ObstacleTemplate)],
-      ['query'],
-    ),
   'listMyReusableGoals' : IDL.Func(
       [],
       [IDL.Vec(ReusableGoalPublic)],
@@ -511,16 +495,6 @@ export const idlFactory = ({ IDL }) => {
     'category' : GoalCategory,
     'outcome' : IDL.Text,
   });
-  const CreateObstacleRequest = IDL.Record({
-    'title' : IDL.Text,
-    'description' : IDL.Text,
-  });
-  const ObstacleTemplate = IDL.Record({
-    'id' : ObstacleTemplateId,
-    'title' : IDL.Text,
-    'owner' : UserId,
-    'description' : IDL.Text,
-  });
   const CheckInId = IDL.Nat;
   const Value = IDL.Variant({
     'int' : IDL.Int,
@@ -596,7 +570,6 @@ export const idlFactory = ({ IDL }) => {
     'executedIfThen' : IDL.Bool,
     'lockInStartedAt' : IDL.Opt(IDL.Int),
     'lockInEndedAt' : IDL.Opt(IDL.Int),
-    'customObstacleNote' : IDL.Opt(IDL.Text),
   });
   const UserRole = IDL.Variant({ 'admin' : IDL.Null, 'user' : IDL.Null });
   const AvatarColor = IDL.Opt(IDL.Text);
@@ -680,7 +653,6 @@ export const idlFactory = ({ IDL }) => {
     'executedIfThen' : IDL.Bool,
     'lockInStartedAt' : IDL.Opt(IDL.Int),
     'lockInEndedAt' : IDL.Opt(IDL.Int),
-    'customObstacleNote' : IDL.Opt(IDL.Text),
   });
   const InteractionType = IDL.Variant({ 'highFive' : IDL.Null });
   const InteractionId = IDL.Nat;
@@ -692,6 +664,12 @@ export const idlFactory = ({ IDL }) => {
     'timestamp' : Timestamp,
   });
   const ResolveObstacleRequest = IDL.Record({ 'labelText' : IDL.Text });
+  const ObstacleTemplate = IDL.Record({
+    'id' : ObstacleTemplateId,
+    'title' : IDL.Text,
+    'owner' : UserId,
+    'description' : IDL.Text,
+  });
   const UpdateHabitRequest = IDL.Record({
     'startTime' : IDL.Opt(IDL.Text),
     'endTimeMinutes' : IDL.Opt(IDL.Nat),
@@ -721,11 +699,6 @@ export const idlFactory = ({ IDL }) => {
     'createMacroGoal' : IDL.Func(
         [CreateMacroGoalRequest],
         [IDL.Variant({ 'ok' : MacroGoalPublic, 'err' : IDL.Text })],
-        [],
-      ),
-    'createObstacleTemplate' : IDL.Func(
-        [CreateObstacleRequest],
-        [ObstacleTemplate],
         [],
       ),
     'deleteCheckIn' : IDL.Func(
@@ -792,11 +765,6 @@ export const idlFactory = ({ IDL }) => {
       ),
     'listMyCheckIns' : IDL.Func([], [IDL.Vec(CheckIn)], ['query']),
     'listMyGoals' : IDL.Func([], [IDL.Vec(GoalWithHabitsPublic)], ['query']),
-    'listMyObstacleTemplates' : IDL.Func(
-        [],
-        [IDL.Vec(ObstacleTemplate)],
-        ['query'],
-      ),
     'listMyReusableGoals' : IDL.Func(
         [],
         [IDL.Vec(ReusableGoalPublic)],

@@ -41,8 +41,8 @@ module {
   };
 
   /// An obstacle and how often it was recorded on check-ins.
-  /// `obstacleTemplateId` is null only for a custom (free-text) obstacle that
-  /// has no template; `obstacleName` is the template title or the custom note.
+  /// `obstacleTemplateId` references one of the seven built-in obstacles;
+  /// `obstacleName` is that built-in's title.
   public type ObstacleStat = {
     obstacleTemplateId : ?Common.ObstacleTemplateId;
     obstacleName : Text;

@@ -7,7 +7,6 @@ module {
     owner : Common.UserId;
     checkInType : Common.CheckInType;
     obstacleTemplateId : ?Common.ObstacleTemplateId;
-    customObstacleNote : ?Text;
     timestamp : Common.Timestamp;
     lockInStartedAt : ?Int;
     lockInEndedAt : ?Int;
@@ -18,7 +17,6 @@ module {
     goalId : Common.GoalId;
     checkInType : Common.CheckInType;
     obstacleTemplateId : ?Common.ObstacleTemplateId;
-    customObstacleNote : ?Text;
     lockInStartedAt : ?Int;
     lockInEndedAt : ?Int;
     executedIfThen : Bool;

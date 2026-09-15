@@ -28,9 +28,7 @@ module {
     // They are passed in from main.mo so the actor's orthogonal persistence
     // covers them — but they MUST remain var/mutable at the declaration site.
     goals : List.List<GoalTypes.Goal>,
-    obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
     nextGoalId : [var Nat],           // ⚠️ MUST be [var Nat], NOT [Nat]
-    nextObstacleTemplateId : [var Nat], // ⚠️ MUST be [var Nat], NOT [Nat]
   ) {
     /// Create a new macro goal (a container) for `caller`.
     public func createMacroGoal(
@@ -146,21 +144,6 @@ module {
     /// List the caller's reusable macro goals for the wizard chips.
     public func listReusableGoals(caller : Common.UserId) : [GoalTypes.ReusableGoalPublic] {
       GoalLib.listReusableGoals(goals, caller);
-    };
-
-    /// Create an obstacle template for `caller`.
-    public func createObstacleTemplate(
-      caller : Common.UserId,
-      request : GoalTypes.CreateObstacleRequest,
-    ) : GoalTypes.ObstacleTemplate {
-      let template = GoalLib.createObstacleTemplate(obstacleTemplates, nextObstacleTemplateId[0], caller, request);
-      nextObstacleTemplateId[0] += 1;
-      template;
-    };
-
-    /// List all obstacle templates owned by `caller`.
-    public func listObstacleTemplates(caller : Common.UserId) : [GoalTypes.ObstacleTemplate] {
-      GoalLib.listObstacleTemplates(obstacleTemplates, caller);
     };
   };
 };

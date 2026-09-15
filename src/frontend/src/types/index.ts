@@ -267,7 +267,6 @@ export interface CheckIn {
   lockInStartedAt?: number;
   lockInEndedAt?: number;
   executedIfThen: boolean;
-  customObstacleNote?: string;
 }
 
 export interface Connection {

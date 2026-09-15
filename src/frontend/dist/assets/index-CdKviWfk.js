@@ -32974,16 +32974,6 @@ const MacroGoalPublic = Record({
   "category": GoalCategory$1,
   "outcome": Text
 });
-const CreateObstacleRequest = Record({
-  "title": Text,
-  "description": Text
-});
-const ObstacleTemplate = Record({
-  "id": ObstacleTemplateId,
-  "title": Text,
-  "owner": UserId,
-  "description": Text
-});
 const CheckInId = Nat;
 const Value = Variant({
   "int": Int,
@@ -33058,8 +33048,7 @@ const CheckIn = Record({
   "timestamp": Timestamp,
   "executedIfThen": Bool,
   "lockInStartedAt": Opt(Int),
-  "lockInEndedAt": Opt(Int),
-  "customObstacleNote": Opt(Text)
+  "lockInEndedAt": Opt(Int)
 });
 const UserRole$1 = Variant({ "admin": Null, "user": Null });
 const AvatarColor = Opt(Text);
@@ -33142,8 +33131,7 @@ const RecordCheckInRequest = Record({
   "obstacleTemplateId": Opt(ObstacleTemplateId),
   "executedIfThen": Bool,
   "lockInStartedAt": Opt(Int),
-  "lockInEndedAt": Opt(Int),
-  "customObstacleNote": Opt(Text)
+  "lockInEndedAt": Opt(Int)
 });
 const InteractionType$1 = Variant({ "highFive": Null });
 const InteractionId = Nat;
@@ -33155,6 +33143,12 @@ const Interaction = Record({
   "timestamp": Timestamp
 });
 const ResolveObstacleRequest = Record({ "labelText": Text });
+const ObstacleTemplate = Record({
+  "id": ObstacleTemplateId,
+  "title": Text,
+  "owner": UserId,
+  "description": Text
+});
 const UpdateHabitRequest = Record({
   "startTime": Opt(Text),
   "endTimeMinutes": Opt(Nat),
@@ -33183,11 +33177,6 @@ Service({
   "createMacroGoal": Func(
     [CreateMacroGoalRequest],
     [Variant({ "ok": MacroGoalPublic, "err": Text })],
-    []
-  ),
-  "createObstacleTemplate": Func(
-    [CreateObstacleRequest],
-    [ObstacleTemplate],
     []
   ),
   "deleteCheckIn": Func(
@@ -33254,11 +33243,6 @@ Service({
   ),
   "listMyCheckIns": Func([], [Vec(CheckIn)], ["query"]),
   "listMyGoals": Func([], [Vec(GoalWithHabitsPublic)], ["query"]),
-  "listMyObstacleTemplates": Func(
-    [],
-    [Vec(ObstacleTemplate)],
-    ["query"]
-  ),
   "listMyReusableGoals": Func(
     [],
     [Vec(ReusableGoalPublic)],
@@ -33397,16 +33381,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "category": GoalCategory2,
     "outcome": IDL2.Text
   });
-  const CreateObstacleRequest2 = IDL2.Record({
-    "title": IDL2.Text,
-    "description": IDL2.Text
-  });
-  const ObstacleTemplate2 = IDL2.Record({
-    "id": ObstacleTemplateId2,
-    "title": IDL2.Text,
-    "owner": UserId2,
-    "description": IDL2.Text
-  });
   const CheckInId2 = IDL2.Nat;
   const Value2 = IDL2.Variant({
     "int": IDL2.Int,
@@ -33481,8 +33455,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "timestamp": Timestamp2,
     "executedIfThen": IDL2.Bool,
     "lockInStartedAt": IDL2.Opt(IDL2.Int),
-    "lockInEndedAt": IDL2.Opt(IDL2.Int),
-    "customObstacleNote": IDL2.Opt(IDL2.Text)
+    "lockInEndedAt": IDL2.Opt(IDL2.Int)
   });
   const UserRole2 = IDL2.Variant({ "admin": IDL2.Null, "user": IDL2.Null });
   const AvatarColor2 = IDL2.Opt(IDL2.Text);
@@ -33565,8 +33538,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
     "executedIfThen": IDL2.Bool,
     "lockInStartedAt": IDL2.Opt(IDL2.Int),
-    "lockInEndedAt": IDL2.Opt(IDL2.Int),
-    "customObstacleNote": IDL2.Opt(IDL2.Text)
+    "lockInEndedAt": IDL2.Opt(IDL2.Int)
   });
   const InteractionType2 = IDL2.Variant({ "highFive": IDL2.Null });
   const InteractionId2 = IDL2.Nat;
@@ -33578,6 +33550,12 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "timestamp": Timestamp2
   });
   const ResolveObstacleRequest2 = IDL2.Record({ "labelText": IDL2.Text });
+  const ObstacleTemplate2 = IDL2.Record({
+    "id": ObstacleTemplateId2,
+    "title": IDL2.Text,
+    "owner": UserId2,
+    "description": IDL2.Text
+  });
   const UpdateHabitRequest2 = IDL2.Record({
     "startTime": IDL2.Opt(IDL2.Text),
     "endTimeMinutes": IDL2.Opt(IDL2.Nat),
@@ -33606,11 +33584,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "createMacroGoal": IDL2.Func(
       [CreateMacroGoalRequest2],
       [IDL2.Variant({ "ok": MacroGoalPublic2, "err": IDL2.Text })],
-      []
-    ),
-    "createObstacleTemplate": IDL2.Func(
-      [CreateObstacleRequest2],
-      [ObstacleTemplate2],
       []
     ),
     "deleteCheckIn": IDL2.Func(
@@ -33677,11 +33650,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     ),
     "listMyCheckIns": IDL2.Func([], [IDL2.Vec(CheckIn2)], ["query"]),
     "listMyGoals": IDL2.Func([], [IDL2.Vec(GoalWithHabitsPublic2)], ["query"]),
-    "listMyObstacleTemplates": IDL2.Func(
-      [],
-      [IDL2.Vec(ObstacleTemplate2)],
-      ["query"]
-    ),
     "listMyReusableGoals": IDL2.Func(
       [],
       [IDL2.Vec(ReusableGoalPublic2)],
@@ -33904,20 +33872,6 @@ class Backend {
     } else {
       const result = await this.actor.createMacroGoal(to_candid_CreateMacroGoalRequest_n13(this._uploadFile, this._downloadFile, arg0));
       return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
-    }
-  }
-  async createObstacleTemplate(arg0) {
-    if (this.processError) {
-      try {
-        const result = await this.actor.createObstacleTemplate(arg0);
-        return result;
-      } catch (e) {
-        this.processError(e);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.createObstacleTemplate(arg0);
-      return result;
     }
   }
   async deleteCheckIn(arg0) {
@@ -34240,20 +34194,6 @@ class Backend {
     } else {
       const result = await this.actor.listMyGoals();
       return from_candid_vec_n79(this._uploadFile, this._downloadFile, result);
-    }
-  }
-  async listMyObstacleTemplates() {
-    if (this.processError) {
-      try {
-        const result = await this.actor.listMyObstacleTemplates();
-        return result;
-      } catch (e) {
-        this.processError(e);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.listMyObstacleTemplates();
-      return result;
     }
   }
   async listMyReusableGoals() {
@@ -34668,8 +34608,7 @@ function from_candid_record_n46(_uploadFile, _downloadFile, value) {
     timestamp: value.timestamp,
     executedIfThen: value.executedIfThen,
     lockInStartedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInStartedAt)),
-    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInEndedAt)),
-    customObstacleNote: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customObstacleNote))
+    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInEndedAt))
   };
 }
 function from_candid_record_n5(_uploadFile, _downloadFile, value) {
@@ -35050,8 +34989,7 @@ function to_candid_record_n91(_uploadFile, _downloadFile, value) {
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     executedIfThen: value.executedIfThen,
     lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
-    lockInEndedAt: value.lockInEndedAt ? candid_some(value.lockInEndedAt) : candid_none(),
-    customObstacleNote: value.customObstacleNote ? candid_some(value.customObstacleNote) : candid_none()
+    lockInEndedAt: value.lockInEndedAt ? candid_some(value.lockInEndedAt) : candid_none()
   };
 }
 function to_candid_variant_n101(_uploadFile, _downloadFile, value) {
@@ -79101,17 +79039,12 @@ function MissedWindowSheet({
   failureType = "missed-start"
 }) {
   const [selectedIndex, setSelectedIndex] = reactExports.useState(0);
-  const [customNote, setCustomNote] = reactExports.useState("");
-  const [isNoteFocused, setIsNoteFocused] = reactExports.useState(false);
   const resolveObstacleLabel = useResolveObstacleLabel();
   function handleClose() {
     setSelectedIndex(0);
-    setCustomNote("");
-    setIsNoteFocused(false);
     onClose();
   }
   async function handleConfirm() {
-    const note = customNote.trim() || void 0;
     const selected = OBSTACLE_TEMPLATES[selectedIndex];
     let templateId;
     if (selected) {
@@ -79121,13 +79054,10 @@ function MissedWindowSheet({
         templateId = void 0;
       }
     }
-    onConfirm(templateId, note);
+    onConfirm(templateId);
     setSelectedIndex(0);
-    setCustomNote("");
-    setIsNoteFocused(false);
     onClose();
   }
-  const showCounter = isNoteFocused && customNote.length > 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       motion.div,
@@ -79229,53 +79159,6 @@ function MissedWindowSheet({
                 obstacle.id
               );
             }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-5", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "label",
-                {
-                  htmlFor: "missed-custom-note",
-                  className: "block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono",
-                  children: "Add a note (optional)"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "textarea",
-                {
-                  id: "missed-custom-note",
-                  name: "missed-window-note",
-                  value: customNote,
-                  onChange: (e) => {
-                    if (e.target.value.length <= 140) {
-                      setCustomNote(e.target.value);
-                    }
-                  },
-                  onFocus: () => setIsNoteFocused(true),
-                  onBlur: () => setIsNoteFocused(false),
-                  placeholder: "What happened during this window?",
-                  rows: 3,
-                  autoComplete: "off",
-                  autoCorrect: "off",
-                  autoCapitalize: "off",
-                  spellCheck: false,
-                  className: "w-full rounded-xl bg-muted/30 text-foreground text-sm p-3 resize-none outline-none transition-smooth border border-border focus:border-[rgba(3,105,161,0.5)]",
-                  style: {
-                    boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.03)"
-                  },
-                  "data-ocid": "missed_window_sheet.note_input"
-                }
-              ),
-              showCounter && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: "text-right text-xs mt-1 font-mono",
-                  style: { color: OCEAN_BLUE },
-                  children: [
-                    customNote.length,
-                    "/140"
-                  ]
-                }
-              )
-            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
@@ -79322,11 +79205,8 @@ function SkipModal({
   isLoading = false
 }) {
   const [selectedObstacleIndex, setSelectedObstacleIndex] = reactExports.useState(0);
-  const [customNote, setCustomNote] = reactExports.useState("");
-  const [isNoteFocused, setIsNoteFocused] = reactExports.useState(false);
   const resolveObstacleLabel = useResolveObstacleLabel();
   async function handleConfirm() {
-    const note = customNote.trim() || void 0;
     const selected = OBSTACLE_TEMPLATES[selectedObstacleIndex];
     let templateId;
     if (selected) {
@@ -79336,17 +79216,12 @@ function SkipModal({
         templateId = void 0;
       }
     }
-    onConfirm(templateId, note);
-    setCustomNote("");
-    setIsNoteFocused(false);
+    onConfirm(templateId);
     onClose();
   }
   function handleClose() {
-    setCustomNote("");
-    setIsNoteFocused(false);
     onClose();
   }
-  const showCounter = isNoteFocused && customNote.length > 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       motion.div,
@@ -79446,53 +79321,6 @@ function SkipModal({
                 obstacle.id
               );
             }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "label",
-                {
-                  htmlFor: "skip-custom-note",
-                  className: "block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono",
-                  children: "Add a note (optional)"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "textarea",
-                {
-                  id: "skip-custom-note",
-                  name: "skip-modal-note",
-                  value: customNote,
-                  onChange: (e) => {
-                    if (e.target.value.length <= 140) {
-                      setCustomNote(e.target.value);
-                    }
-                  },
-                  onFocus: () => setIsNoteFocused(true),
-                  onBlur: () => setIsNoteFocused(false),
-                  placeholder: "Why did this obstacle get in the way today?",
-                  rows: 3,
-                  autoComplete: "off",
-                  autoCorrect: "off",
-                  autoCapitalize: "off",
-                  spellCheck: false,
-                  className: "w-full rounded-xl bg-muted/30 text-foreground text-sm p-3 resize-none outline-none transition-smooth border border-border focus:border-[rgba(3,105,161,0.5)]",
-                  style: {
-                    boxShadow: "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.03)"
-                  },
-                  "data-ocid": "skip_modal.note_input"
-                }
-              ),
-              showCounter && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "p",
-                {
-                  className: "text-right text-xs mt-1 font-mono",
-                  style: { color: SKIP_COLOR$4 },
-                  children: [
-                    customNote.length,
-                    "/140"
-                  ]
-                }
-              )
-            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Button,
@@ -80131,19 +79959,18 @@ function GoalCard$1({
     return () => {
     };
   }, []);
-  function handleSkipConfirm(obstacleTemplateId, customNote) {
+  function handleSkipConfirm(obstacleTemplateId) {
     onCheckIn == null ? void 0 : onCheckIn(
       goal.id,
       "skip",
       obstacleTemplateId,
       void 0,
       void 0,
-      false,
-      customNote
+      false
     );
     setShowSkipModal(false);
   }
-  function handleMissedConfirm(obstacleTemplateId, customNote) {
+  function handleMissedConfirm(obstacleTemplateId) {
     exitCommittedRef.current = true;
     setShowMissedSheet(false);
     onCheckIn == null ? void 0 : onCheckIn(
@@ -80152,8 +79979,7 @@ function GoalCard$1({
       obstacleTemplateId,
       void 0,
       void 0,
-      false,
-      customNote
+      false
     );
   }
   function handleWoopCatchExecutedPlan() {
@@ -80779,7 +80605,7 @@ function GoalCard$1({
           setShowMissedSheet(false);
           autoMissedTriggeredRef.current = false;
         },
-        onConfirm: (obstacleTemplateId, customNote) => handleMissedConfirm(obstacleTemplateId, customNote),
+        onConfirm: (obstacleTemplateId) => handleMissedConfirm(obstacleTemplateId),
         isLoading: isCheckingIn,
         failureType: currentFailureType
       }
@@ -81103,11 +80929,6 @@ function formatDateLabel(nanoTs) {
     month: "short"
   });
 }
-function obstacleLabel(id2, templates) {
-  if (id2 === void 0 || id2 === null) return "Unspecified";
-  const found = templates.find((t) => t.id === id2);
-  return (found == null ? void 0 : found.title) ?? "Unspecified";
-}
 function TimelineNodeCircle({
   type
 }) {
@@ -81169,10 +80990,7 @@ function TimelineNodeCircle({
     }
   );
 }
-function TimelineItem({
-  checkIn,
-  obstacleTemplates
-}) {
+function TimelineItem({ checkIn }) {
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
@@ -81201,36 +81019,20 @@ function TimelineItem({
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", "data-ocid": "goal_insight.timeline_item", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "p",
-        {
-          className: "text-sm font-display font-medium leading-snug",
-          style: { color: primaryColor },
-          children: [
-            primaryText,
-            (isSkip || isMissedLockIn) && (checkIn.obstacleTemplateId !== void 0 && checkIn.obstacleTemplateId !== null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              " • ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "#F97316" }, children: obstacleLabel(
-                checkIn.obstacleTemplateId,
-                obstacleTemplates
-              ) })
-            ] }) : isMissedLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              " • ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
-            ] }) : null)
-          ]
-        }
-      ) }),
-      (isSkip || isMissedLockIn) && checkIn.customObstacleNote && /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "p",
-        {
-          className: "text-xs italic mt-0.5",
-          style: { color: "oklch(var(--muted-foreground) / 0.7)" },
-          children: checkIn.customObstacleNote
-        }
-      )
-    ] })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 pb-5", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "p",
+      {
+        className: "text-sm font-display font-medium leading-snug",
+        style: { color: primaryColor },
+        children: [
+          primaryText,
+          isMissedLockIn && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            " • ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "oklch(var(--muted-foreground))" }, children: "No reason logged" })
+          ] })
+        ]
+      }
+    ) }) })
   ] });
 }
 function groupByDay(checkIns) {
@@ -81297,18 +81099,6 @@ function GoalInsightSheet({
   const [checkIns, setCheckIns] = reactExports.useState([]);
   const [isLoading, setIsLoading] = reactExports.useState(false);
   const [error, setError] = reactExports.useState(null);
-  const { data: obstacleTemplates = [] } = useQuery({
-    queryKey: ["obstacleTemplates"],
-    queryFn: async () => {
-      if (!actor || !actorReady) return [];
-      try {
-        return await actor.listMyObstacleTemplates();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor && actorReady
-  });
   reactExports.useEffect(() => {
     if (!isOpen || !actorReady || !actor) return;
     let cancelled = false;
@@ -81629,8 +81419,7 @@ function GoalInsightSheet({
                             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ml-3 flex flex-col gap-0", children: group.items.map((ci) => /* @__PURE__ */ jsxRuntimeExports.jsx(
                               TimelineItem,
                               {
-                                checkIn: ci,
-                                obstacleTemplates
+                                checkIn: ci
                               },
                               ci.id.toString()
                             )) })
@@ -83877,7 +83666,7 @@ function WoopWizard({
   const [selectedGoalId, setSelectedGoalId] = reactExports.useState(null);
   const [showExitConfirm, setShowExitConfirm] = reactExports.useState(false);
   const scrollRef = reactExports.useRef(null);
-  const { actor, isFetching } = useBackend();
+  const { actor } = useBackend();
   const queryClient2 = useQueryClient();
   const resolveObstacleLabel = useResolveObstacleLabel();
   const hasPreset = presetGoalId !== void 0 && presetGoalId !== null;
@@ -84021,29 +83810,13 @@ function WoopWizard({
     editingGoalId
   ]);
   const primaryObstacle = ((_a3 = form.selectedObstacles[0]) == null ? void 0 : _a3.label) ?? "";
-  const { data: userObstacles = [] } = useQuery({
-    queryKey: ["obstacleTemplates"],
-    queryFn: async () => {
-      if (!actor || !("listMyObstacleTemplates" in actor)) return [];
-      try {
-        return await actor.listMyObstacleTemplates();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor && !isFetching
-  });
   const createGoalMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Actor not ready — please wait and retry.");
       const primaryObs = form.selectedObstacles[0];
       let obstacleTemplateId;
       if (primaryObs) {
-        if (primaryObs.kind === "builtin") {
-          obstacleTemplateId = await resolveObstacleLabel(primaryObs.label);
-        } else if (primaryObs.kind === "user" && primaryObs.backendId !== void 0) {
-          obstacleTemplateId = primaryObs.backendId;
-        }
+        obstacleTemplateId = await resolveObstacleLabel(primaryObs.label);
       }
       const goalId = presetGoalId !== void 0 && presetGoalId !== null ? toBigInt(presetGoalId) : selectedGoalId !== null ? toBigInt(selectedGoalId) : void 0;
       if (goalId === void 0)
@@ -84129,8 +83902,7 @@ function WoopWizard({
     for (const o2 of form.selectedObstacles) {
       const match = EMPTY.selectedObstacles.find((e) => e.id === o2.id);
       if (!match) return true;
-      if (match.label !== o2.label || match.kind !== o2.kind || match.backendId !== o2.backendId)
-        return true;
+      if (match.label !== o2.label) return true;
     }
     return false;
   }, [step, form]);
@@ -84207,31 +83979,10 @@ function WoopWizard({
   };
   if (!open) return null;
   const slideClass = animating ? animDir === "fwd" ? "opacity-0 translate-x-8" : "opacity-0 -translate-x-8" : "opacity-100 translate-x-0";
-  const presetIds = new Set(OBSTACLE_TEMPLATES.map((t) => t.id));
-  const BLOCKED_OBSTACLE_LABELS = /* @__PURE__ */ new Set([
-    "my brain",
-    "drugs",
-    "drug",
-    "brain"
-  ]);
-  const uniqueUserObstacles = userObstacles.filter(
-    (o2) => !presetIds.has(String(o2.id)) && !OBSTACLE_TEMPLATES.some(
-      (t) => t.label.toLowerCase() === o2.title.toLowerCase()
-    ) && !BLOCKED_OBSTACLE_LABELS.has(o2.title.toLowerCase().trim())
-  ).map((o2) => ({
-    id: `user_${String(o2.id)}`,
-    label: o2.title,
-    kind: "user",
-    backendId: o2.id
+  const allObstacleChips = OBSTACLE_TEMPLATES.map((o2) => ({
+    id: o2.id,
+    label: o2.label
   }));
-  const allObstacleChips = [
-    ...OBSTACLE_TEMPLATES.map((o2) => ({
-      id: o2.id,
-      label: o2.label,
-      kind: "builtin"
-    })),
-    ...uniqueUserObstacles
-  ];
   const isSelected = (id2) => form.selectedObstacles.some((o2) => o2.id === id2);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "dialog",
@@ -86136,8 +85887,7 @@ function DashboardPage$1() {
       obstacleTemplateId,
       lockInStartedAt,
       lockInEndedAt,
-      executedIfThen,
-      customObstacleNote
+      executedIfThen
     }) => {
       if (!actor) return null;
       return actor.recordCheckIn({
@@ -86149,8 +85899,7 @@ function DashboardPage$1() {
         executedIfThen: executedIfThen ?? false,
         timezoneOffsetMinutes: BigInt(
           getTimezoneOffsetMinutes(userTimezone ?? "")
-        ),
-        customObstacleNote: customObstacleNote || void 0
+        )
       });
     },
     onSuccess: (data, variables) => {
@@ -86212,7 +85961,7 @@ function DashboardPage$1() {
     setBadgeAnimKey((k2) => k2 + 1);
     setActiveTab("done");
   }, []);
-  function handleGoalCardCheckIn(goalId, type, obstacleId, lockInStartedAtMs, lockInEndedAtMs, executedIfThen, customObstacleNote) {
+  function handleGoalCardCheckIn(goalId, type, obstacleId, lockInStartedAtMs, lockInEndedAtMs, executedIfThen) {
     const key = goalKey(goalId);
     const goal = activeGoals.find((g2) => goalKey(g2.id) === key);
     let backendType;
@@ -86256,8 +86005,7 @@ function DashboardPage$1() {
           checkInType: optimisticCheckInType,
           executedIfThen: executedIfThen ?? false,
           isLockIn: (goal == null ? void 0 : goal.isLockIn) ?? false,
-          obstacleTemplateId: obstacleId,
-          customObstacleNote
+          obstacleTemplateId: obstacleId
         });
         return next;
       });
@@ -86278,8 +86026,7 @@ function DashboardPage$1() {
       obstacleTemplateId: obstacleId,
       lockInStartedAt: lockInStartedAtMs !== void 0 ? BigInt(Math.floor(lockInStartedAtMs)) * 1000000n : void 0,
       lockInEndedAt: lockInEndedAtMs !== void 0 ? BigInt(Math.floor(lockInEndedAtMs)) * 1000000n : void 0,
-      executedIfThen: executedIfThen ?? false,
-      customObstacleNote
+      executedIfThen: executedIfThen ?? false
     });
   }
   function handleMarkIfThenUsed(_goalId, checkInId) {
@@ -86873,8 +86620,7 @@ function DashboardPage$1() {
                         goal,
                         checkInToday: entryDone ? {
                           checkInType: entryDone.checkInType,
-                          obstacleTemplateId: entryDone.obstacleTemplateId,
-                          customObstacleNote: entryDone.customObstacleNote
+                          obstacleTemplateId: entryDone.obstacleTemplateId
                         } : void 0,
                         analytics: analyticsMap.get(key),
                         index: index2,
@@ -93894,27 +93640,11 @@ function formatRelativeTime(timestamp) {
   return `${diffDays}d ago`;
 }
 function FeedItem({ item, index: index2 }) {
-  var _a3;
   const { actor } = useBackend();
   const [highFiveCount, setHighFiveCount] = reactExports.useState(item.highFiveCount);
   const [hasHighFived, setHasHighFived] = reactExports.useState(false);
   const [isLoading, setIsLoading] = reactExports.useState(false);
-  const { data: obstacleTemplates = [] } = useQuery({
-    queryKey: ["obstacleTemplates"],
-    queryFn: async () => {
-      if (!actor) return [];
-      try {
-        return await actor.listMyObstacleTemplates();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor
-  });
   const isSuccess = item.checkIn.checkInType === "success";
-  const obstacleLabel2 = item.checkIn.obstacleTemplateId ? (_a3 = obstacleTemplates.find(
-    (t) => t.id.toString() === String(item.checkIn.obstacleTemplateId)
-  )) == null ? void 0 : _a3.title : void 0;
   async function handleHighFive() {
     if (hasHighFived || isLoading || !actor) return;
     setIsLoading(true);
@@ -93970,10 +93700,6 @@ function FeedItem({ item, index: index2 }) {
               children: "↻ Skip"
             }
           )
-        ] }),
-        !isSuccess && obstacleLabel2 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 rounded-lg px-3 py-1.5 w-fit", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "opacity-60", children: "Obstacle:" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-accent-skip font-medium", children: obstacleLabel2 })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-1 border-t border-border/30", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground", children: formatRelativeTime(item.checkIn.timestamp) }),

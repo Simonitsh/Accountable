@@ -269,7 +269,6 @@ func makeCheckIn(
     owner;
     checkInType;
     obstacleTemplateId = null;
-    customObstacleNote = null;
     timestamp;
     lockInStartedAt = null;
     lockInEndedAt = null;

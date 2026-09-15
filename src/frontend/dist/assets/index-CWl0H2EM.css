@@ -4248,9 +4248,6 @@ video {
 .focus\:z-10:focus {
   z-index: 10;
 }
-.focus\:border-\[rgba\(3\2c 105\2c 161\2c 0\.5\)\]:focus {
-  border-color: rgba(3,105,161,0.5);
-}
 .focus\:border-primary:focus {
   --tw-border-opacity: 1;
   border-color: oklch(var(--primary) / var(--tw-border-opacity, 1));

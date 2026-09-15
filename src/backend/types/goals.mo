@@ -1,14 +1,36 @@
+import Principal "mo:core/Principal";
 import Common "common";
 
 module {
   /// Default scheduled days — every day of the week.
   public let DEFAULT_SCHEDULED_DAYS : [Text] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
+  /// A habit obstacle. Obstacles are locked to exactly seven built-in values
+  /// (see `builtinObstacles`) — no custom obstacles can ever be created. The
+  /// `owner` field is retained for type stability but is not meaningful for
+  /// the global built-ins.
   public type ObstacleTemplate = {
     id : Common.ObstacleTemplateId;
     owner : Common.UserId;
     title : Text;
     description : Text;
+  };
+
+  /// The seven built-in obstacle values. These are the ONLY obstacles a habit
+  /// can ever reference — the backend rejects any label outside this fixed
+  /// list. Ids are stable (1-7) so a given label always resolves to the same
+  /// obstacle.
+  public func builtinObstacles() : [ObstacleTemplate] {
+    let anon = Principal.fromText("aaaaa-aa");
+    [
+      { id = 1; owner = anon; title = "Low Energy"; description = "" },
+      { id = 2; owner = anon; title = "Time Crunch"; description = "" },
+      { id = 3; owner = anon; title = "Distraction"; description = "" },
+      { id = 4; owner = anon; title = "Social Pressure"; description = "" },
+      { id = 5; owner = anon; title = "Environment"; description = "" },
+      { id = 6; owner = anon; title = "Health"; description = "" },
+      { id = 7; owner = anon; title = "Something else"; description = "" },
+    ];
   };
 
   public type GoalCategory = { #Health; #Learning; #Social; #Productivity; #Leisure };
@@ -167,11 +189,6 @@ module {
     /// wishDescription on this habit record. When null/absent, the habit
     /// inherits the parent's wishDescription (legacy behaviour).
     wishDescription : ?Text;
-  };
-
-  public type CreateObstacleRequest = {
-    title : Text;
-    description : Text;
   };
 
   /// Update request for a habit. `wish`/`wishDescription`/`outcome`/`category`

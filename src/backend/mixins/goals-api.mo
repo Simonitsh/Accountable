@@ -21,16 +21,14 @@ import Goals "../modules/Goals";
 /// for a specific macro goal.
 mixin (
   goals : List.List<GoalTypes.Goal>,
-  obstacleTemplates : List.List<GoalTypes.ObstacleTemplate>,
   nextGoalId : [var Nat],
-  nextObstacleTemplateId : [var Nat],
   checkIns : List.List<CheckInTypes.CheckIn>,
   interactions : List.List<FeedTypes.Interaction>,
 ) {
   // GoalStore holds only references to the shared mutable collections above
   // — it owns no state of its own, so re-initializing it on every restart is
   // safe and correct. `transient` keeps it out of stable storage.
-  transient let store = Goals.GoalStore(goals, obstacleTemplates, nextGoalId, nextObstacleTemplateId);
+  transient let store = Goals.GoalStore(goals, nextGoalId);
 
   /// Create a macro goal (a container). Captured by the goal wizard:
   /// category, wish, outcome (wishDescription). Does NOT accept Lock-In or
@@ -141,15 +139,6 @@ mixin (
   /// Each entry exposes id, wish, wishDescription, state, and category.
   public shared query ({ caller }) func listMyReusableGoals() : async [GoalTypes.ReusableGoalPublic] {
     store.listReusableGoals(caller);
-  };
-
-  public shared ({ caller }) func createObstacleTemplate(request : GoalTypes.CreateObstacleRequest) : async GoalTypes.ObstacleTemplate {
-    if (caller.isAnonymous()) Runtime.trap("Anonymous callers cannot create obstacle templates");
-    store.createObstacleTemplate(caller, request);
-  };
-
-  public shared query ({ caller }) func listMyObstacleTemplates() : async [GoalTypes.ObstacleTemplate] {
-    store.listObstacleTemplates(caller);
   };
 
   // Local helper — converts a typed GoalError to a stable Text for the API

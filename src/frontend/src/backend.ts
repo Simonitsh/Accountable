@@ -83,7 +83,6 @@ export interface CheckIn {
     executedIfThen: boolean;
     lockInStartedAt?: bigint;
     lockInEndedAt?: bigint;
-    customObstacleNote?: string;
 }
 export type CheckInId = bigint;
 export type ConnectionId = bigint;
@@ -116,10 +115,6 @@ export interface CreateMacroGoalRequest {
     iconName?: string;
     category: GoalCategory;
     outcome: string;
-}
-export interface CreateObstacleRequest {
-    title: string;
-    description: string;
 }
 export interface DayOfWeekStat {
     successes: bigint;
@@ -234,7 +229,6 @@ export interface RecordCheckInRequest {
     executedIfThen: boolean;
     lockInStartedAt?: bigint;
     lockInEndedAt?: bigint;
-    customObstacleNote?: string;
 }
 export interface ResolveObstacleRequest {
     labelText: string;
@@ -381,7 +375,6 @@ export interface backendInterface {
         __kind__: "err";
         err: string;
     }>;
-    createObstacleTemplate(request: CreateObstacleRequest): Promise<ObstacleTemplate>;
     deleteCheckIn(checkInId: CheckInId): Promise<{
         __kind__: "ok";
         ok: null;
@@ -477,7 +470,6 @@ export interface backendInterface {
      * / Supports the dashboard grouping requirement.
      */
     listMyGoals(): Promise<Array<GoalWithHabitsPublic>>;
-    listMyObstacleTemplates(): Promise<Array<ObstacleTemplate>>;
     /**
      * / Returns the caller's reusable macro goals for the wizard chips.
      * / Each entry exposes id, wish, wishDescription, state, and category.
@@ -501,14 +493,11 @@ export interface backendInterface {
     recordInteraction(checkInId: CheckInId, interactionType: InteractionType): Promise<Interaction>;
     register(username: string): Promise<UserProfilePublic>;
     /**
-     * / Resolves a built-in obstacle label to a reusable obstacle template owned
-     * / by the caller. Searches the caller's existing templates for one whose
-     * / title matches `request.labelText` case-insensitively and returns it; if
-     * / none exists, creates a new ObstacleTemplate for that label (owner =
-     * / caller) and returns it. The first pick creates a record; every later pick
-     * / of the same label reuses the same one. Owner-scoped — only the caller's
-     * / own templates are searched or created. Never modifies or repairs
-     * / previously saved habits or check-ins.
+     * / Resolves a built-in obstacle label to one of the seven fixed built-in
+     * / obstacles. The match is case-insensitive on the built-in title. If the
+     * / label is not one of the seven built-ins, the call traps — a custom
+     * / obstacle can never be created. Returns the matching built-in
+     * / `ObstacleTemplate` with its stable id.
      */
     resolveObstacleLabel(request: ResolveObstacleRequest): Promise<ObstacleTemplate>;
     respondToConnection(connectionId: ConnectionId, accept: boolean): Promise<boolean>;
@@ -590,20 +579,6 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.createMacroGoal(to_candid_CreateMacroGoalRequest_n13(this._uploadFile, this._downloadFile, arg0));
             return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async createObstacleTemplate(arg0: CreateObstacleRequest): Promise<ObstacleTemplate> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.createObstacleTemplate(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.createObstacleTemplate(arg0);
-            return result;
         }
     }
     async deleteCheckIn(arg0: CheckInId): Promise<{
@@ -965,20 +940,6 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.listMyGoals();
             return from_candid_vec_n79(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async listMyObstacleTemplates(): Promise<Array<ObstacleTemplate>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.listMyObstacleTemplates();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.listMyObstacleTemplates();
-            return result;
         }
     }
     async listMyReusableGoals(): Promise<Array<ReusableGoalPublic>> {
@@ -1511,7 +1472,6 @@ function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uin
     executedIfThen: boolean;
     lockInStartedAt: [] | [bigint];
     lockInEndedAt: [] | [bigint];
-    customObstacleNote: [] | [string];
 }): {
     id: CheckInId;
     owner: UserId;
@@ -1522,7 +1482,6 @@ function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uin
     executedIfThen: boolean;
     lockInStartedAt?: bigint;
     lockInEndedAt?: bigint;
-    customObstacleNote?: string;
 } {
     return {
         id: value.id,
@@ -1533,8 +1492,7 @@ function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uin
         timestamp: value.timestamp,
         executedIfThen: value.executedIfThen,
         lockInStartedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInStartedAt)),
-        lockInEndedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInEndedAt)),
-        customObstacleNote: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customObstacleNote))
+        lockInEndedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInEndedAt))
     };
 }
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -2347,7 +2305,6 @@ function to_candid_record_n91(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     executedIfThen: boolean;
     lockInStartedAt?: bigint;
     lockInEndedAt?: bigint;
-    customObstacleNote?: string;
 }): {
     timezoneOffsetMinutes: bigint;
     goalId: _GoalId;
@@ -2356,7 +2313,6 @@ function to_candid_record_n91(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     executedIfThen: boolean;
     lockInStartedAt: [] | [bigint];
     lockInEndedAt: [] | [bigint];
-    customObstacleNote: [] | [string];
 } {
     return {
         timezoneOffsetMinutes: value.timezoneOffsetMinutes,
@@ -2365,8 +2321,7 @@ function to_candid_record_n91(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
         executedIfThen: value.executedIfThen,
         lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
-        lockInEndedAt: value.lockInEndedAt ? candid_some(value.lockInEndedAt) : candid_none(),
-        customObstacleNote: value.customObstacleNote ? candid_some(value.customObstacleNote) : candid_none()
+        lockInEndedAt: value.lockInEndedAt ? candid_some(value.lockInEndedAt) : candid_none()
     };
 }
 function to_candid_variant_n101(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: GoalState): {

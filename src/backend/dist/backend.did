@@ -66,7 +66,6 @@ type ResolveObstacleRequest = record {labelText: text;};
 type RecordCheckInRequest = 
  record {
    checkInType: CheckInType;
-   customObstacleNote: opt text;
    executedIfThen: bool;
    goalId: GoalId;
    lockInEndedAt: opt int;
@@ -212,11 +211,6 @@ type DayOfWeekStat =
    successes: nat;
    total: nat;
  };
-type CreateObstacleRequest = 
- record {
-   description: text;
-   title: text;
- };
 type CreateMacroGoalRequest = 
  record {
    category: GoalCategory;
@@ -269,7 +263,6 @@ type CheckInId = nat;
 type CheckIn = 
  record {
    checkInType: CheckInType;
-   customObstacleNote: opt text;
    executedIfThen: bool;
    goalId: GoalId;
    id: CheckInId;
@@ -334,8 +327,6 @@ service : {
       err: text;
       ok: MacroGoalPublic;
     });
-  createObstacleTemplate: (request: CreateObstacleRequest) ->
-   (ObstacleTemplate);
   deleteCheckIn: (checkInId: CheckInId) ->
    (variant {
       err: variant {
@@ -402,7 +393,6 @@ service : {
   /// List the caller's macro goals, each grouped with its linked habits.
   /// Supports the dashboard grouping requirement.
   listMyGoals: () -> (vec GoalWithHabitsPublic) query;
-  listMyObstacleTemplates: () -> (vec ObstacleTemplate) query;
   /// Returns the caller's reusable macro goals for the wizard chips.
   /// Each entry exposes id, wish, wishDescription, state, and category.
   listMyReusableGoals: () -> (vec ReusableGoalPublic) query;
@@ -423,14 +413,11 @@ service : {
   recordInteraction: (checkInId: CheckInId, interactionType:
    InteractionType) -> (Interaction);
   register: (username: text) -> (UserProfilePublic);
-  /// Resolves a built-in obstacle label to a reusable obstacle template owned
-  /// by the caller. Searches the caller's existing templates for one whose
-  /// title matches `request.labelText` case-insensitively and returns it; if
-  /// none exists, creates a new ObstacleTemplate for that label (owner =
-  /// caller) and returns it. The first pick creates a record; every later pick
-  /// of the same label reuses the same one. Owner-scoped — only the caller's
-  /// own templates are searched or created. Never modifies or repairs
-  /// previously saved habits or check-ins.
+  /// Resolves a built-in obstacle label to one of the seven fixed built-in
+  /// obstacles. The match is case-insensitive on the built-in title. If the
+  /// label is not one of the seven built-ins, the call traps — a custom
+  /// obstacle can never be created. Returns the matching built-in
+  /// `ObstacleTemplate` with its stable id.
   resolveObstacleLabel: (request: ResolveObstacleRequest) ->
    (ObstacleTemplate);
   respondToConnection: (connectionId: ConnectionId, accept: bool) -> (bool);

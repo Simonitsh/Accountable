@@ -109,7 +109,6 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
       owner = caller;
       checkInType = request.checkInType;
       obstacleTemplateId = request.obstacleTemplateId;
-      customObstacleNote = request.customObstacleNote;
       timestamp = now;
       lockInStartedAt = request.lockInStartedAt;
       lockInEndedAt = request.lockInEndedAt;
@@ -170,7 +169,6 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
           owner = goal.owner;
           checkInType = #skip; // auto-missed recorded as skip for analytics consistency
           obstacleTemplateId = null;
-          customObstacleNote = null;
           timestamp = yesterdayEndUtc - 1; // one ns before midnight
           lockInStartedAt = null;
           lockInEndedAt = null;

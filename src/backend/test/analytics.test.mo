@@ -14,7 +14,6 @@ func makeCheckIn(id : Nat, ts : Int, checkInType : Common.CheckInType) : CheckIn
     owner = Principal.fromText("aaaaa-aa");
     checkInType;
     obstacleTemplateId = null;
-    customObstacleNote = null;
     timestamp = ts;
     lockInStartedAt = null;
     lockInEndedAt = null;

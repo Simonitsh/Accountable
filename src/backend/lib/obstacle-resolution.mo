@@ -1,56 +1,34 @@
-import List "mo:core/List";
-import Common "../types/common";
+import Runtime "mo:core/Runtime";
 import GoalTypes "../types/goals";
 
 /// Obstacle resolution — pure domain logic module.
 ///
-/// Resolves a built-in obstacle label (e.g. "Low Energy", "Time Crunch") to a
-/// real, reusable obstacle template owned by the calling user. This is the
-/// find-or-create pattern: the first time a user picks a given label it becomes
-/// a saved ObstacleTemplate record for them; every later pick of the same label
-/// reuses that same record instead of creating a duplicate.
-///
-/// The match is case-insensitive on the template title, so picking "low energy"
-/// reuses a previously saved "Low Energy" template. The six built-in labels are
-/// never changed or extended here — the function operates purely on the label
-/// text passed in. It never modifies or repairs previously saved habits or
-/// check-ins.
+/// Resolves a built-in obstacle label (e.g. "Low Energy", "Time Crunch") to
+/// one of the seven fixed built-in obstacles. Obstacles are locked down to
+/// exactly those seven values — this function NEVER creates a new obstacle for
+/// arbitrary text. It matches the label case-insensitively against the fixed
+/// built-in list and returns the matching built-in, or traps if the label is
+/// not one of the seven.
 module {
-  /// Request to resolve an obstacle label to a reusable template.
+  /// Request to resolve an obstacle label to a built-in obstacle.
   public type ResolveObstacleRequest = {
     labelText : Text;
   };
 
-  /// Finds the caller's existing obstacle template whose title matches
-  /// `request.labelText` case-insensitively and returns it. If none exists,
-  /// creates a new ObstacleTemplate for that label (owner = caller) and returns
-  /// it.
-  ///
-  /// `nextId` is the current value of the caller's obstacle-template id counter;
-  /// a newly created template is assigned this id. The caller (mixin) is
-  /// responsible for incrementing the counter only when a new template was
-  /// actually created.
+  /// Resolves `request.labelText` to one of the seven built-in obstacles.
+  /// The match is case-insensitive on the built-in title. If the label is not
+  /// one of the seven built-ins, the call traps — a custom obstacle can never
+  /// be created. Returns the matching built-in `ObstacleTemplate` with its
+  /// stable id.
   public func resolveObstacleLabel(
-    templates : List.List<GoalTypes.ObstacleTemplate>,
-    nextId : Common.ObstacleTemplateId,
-    caller : Common.UserId,
     request : ResolveObstacleRequest,
   ) : GoalTypes.ObstacleTemplate {
     let labelLower = request.labelText.toLower();
-    switch (templates.find(func(t : GoalTypes.ObstacleTemplate) : Bool {
-      t.owner == caller and t.title.toLower() == labelLower;
+    switch (GoalTypes.builtinObstacles().find(func(t : GoalTypes.ObstacleTemplate) : Bool {
+      t.title.toLower() == labelLower;
     })) {
-      case (?existing) existing;
-      case null {
-        let template : GoalTypes.ObstacleTemplate = {
-          id = nextId;
-          owner = caller;
-          title = request.labelText;
-          description = "";
-        };
-        templates.add(template);
-        template;
-      };
+      case (?builtin) builtin;
+      case null Runtime.trap("Unknown obstacle label: \"" # request.labelText # "\" — only the seven built-in obstacles are allowed");
     };
   };
 };

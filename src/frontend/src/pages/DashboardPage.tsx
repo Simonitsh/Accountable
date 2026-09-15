@@ -155,7 +155,6 @@ interface DoneEntry {
   executedIfThen?: boolean;
   isLockIn?: boolean;
   obstacleTemplateId?: bigint;
-  customObstacleNote?: string;
 }
 
 type DoneMap = Map<string, DoneEntry>;
@@ -1105,7 +1104,6 @@ export function DashboardPage() {
       lockInStartedAt,
       lockInEndedAt,
       executedIfThen,
-      customObstacleNote,
     }: {
       goalId: bigint;
       checkInType: CheckInType;
@@ -1113,7 +1111,6 @@ export function DashboardPage() {
       lockInStartedAt?: bigint;
       lockInEndedAt?: bigint;
       executedIfThen?: boolean;
-      customObstacleNote?: string;
     }) => {
       if (!actor) return null;
       return actor.recordCheckIn({
@@ -1126,7 +1123,6 @@ export function DashboardPage() {
         timezoneOffsetMinutes: BigInt(
           getTimezoneOffsetMinutes(userTimezone ?? ""),
         ),
-        customObstacleNote: customObstacleNote || undefined,
       });
     },
     onSuccess: (data, variables) => {
@@ -1234,7 +1230,6 @@ export function DashboardPage() {
     lockInStartedAtMs?: number,
     lockInEndedAtMs?: number,
     executedIfThen?: boolean,
-    customObstacleNote?: string,
   ) {
     const key = goalKey(goalId);
     const goal = activeGoals.find((g) => goalKey(g.id) === key);
@@ -1320,7 +1315,6 @@ export function DashboardPage() {
           executedIfThen: executedIfThen ?? false,
           isLockIn: goal?.isLockIn ?? false,
           obstacleTemplateId: obstacleId,
-          customObstacleNote: customObstacleNote,
         });
         return next;
       });
@@ -1350,7 +1344,6 @@ export function DashboardPage() {
           ? BigInt(Math.floor(lockInEndedAtMs)) * 1_000_000n
           : undefined,
       executedIfThen: executedIfThen ?? false,
-      customObstacleNote,
     });
   }
 
@@ -2094,8 +2087,6 @@ export function DashboardPage() {
                                     checkInType: entryDone.checkInType,
                                     obstacleTemplateId:
                                       entryDone.obstacleTemplateId,
-                                    customObstacleNote:
-                                      entryDone.customObstacleNote,
                                   }
                                 : undefined
                             }

@@ -216,7 +216,6 @@ interface GoalCardProps {
           | "missedCheckIn"
           | "missedCheckOut";
         obstacleTemplateId?: bigint;
-        customObstacleNote?: string;
       }
     | undefined;
   analytics?: GoalAnalytics;
@@ -231,7 +230,6 @@ interface GoalCardProps {
     lockInStartedAt?: number,
     lockInEndedAt?: number,
     executedIfThen?: boolean,
-    customObstacleNote?: string,
   ) => void;
   onDoneCardTap?: (goalId: bigint) => void;
   onExitComplete?: (goalId: bigint) => void;
@@ -680,7 +678,7 @@ export function GoalCard({
   }, []);
 
   // ── Skip/Missed confirm ────────────────────────────────────────────────
-  function handleSkipConfirm(obstacleTemplateId?: bigint, customNote?: string) {
+  function handleSkipConfirm(obstacleTemplateId?: bigint) {
     onCheckIn?.(
       goal.id,
       "skip",
@@ -688,15 +686,11 @@ export function GoalCard({
       undefined,
       undefined,
       false,
-      customNote,
     );
     setShowSkipModal(false);
   }
 
-  function handleMissedConfirm(
-    obstacleTemplateId?: bigint,
-    customNote?: string,
-  ) {
+  function handleMissedConfirm(obstacleTemplateId?: bigint) {
     // Commit exit immediately — prevents any subsequent re-render from
     // re-triggering the justification sheet or reverting the card to Active.
     exitCommittedRef.current = true;
@@ -710,7 +704,6 @@ export function GoalCard({
       undefined,
       undefined,
       false,
-      customNote,
     );
   }
 
@@ -1479,8 +1472,8 @@ export function GoalCard({
             setShowMissedSheet(false);
             autoMissedTriggeredRef.current = false; // allow re-trigger if user dismisses without submitting
           }}
-          onConfirm={(obstacleTemplateId, customNote) =>
-            handleMissedConfirm(obstacleTemplateId, customNote)
+          onConfirm={(obstacleTemplateId) =>
+            handleMissedConfirm(obstacleTemplateId)
           }
           isLoading={isCheckingIn}
           failureType={currentFailureType}

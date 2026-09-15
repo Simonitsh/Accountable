@@ -1,14 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronLeft, Lock, X, Zap } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type {
-  ObstacleTemplate as BackendObstacleTemplate,
-  ReusableGoalPublic,
-} from "../backend.d.ts";
+import type { ReusableGoalPublic } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
 import { OBSTACLE_TEMPLATES, useResolveObstacleLabel } from "../types/index";
@@ -83,8 +80,6 @@ interface WoopWizardProps {
 interface SelectedObstacle {
   id: string;
   label: string;
-  kind: "builtin" | "user" | "custom";
-  backendId?: bigint;
 }
 
 interface FormState {
@@ -207,7 +202,7 @@ export default function WoopWizard({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { actor, isFetching } = useBackend();
+  const { actor } = useBackend();
   const queryClient = useQueryClient();
   // Resolves a built-in obstacle label to a real, reusable obstacle template
   // id (find-or-create). The first pick creates the record; later picks of the
@@ -446,42 +441,20 @@ export default function WoopWizard({
   ]);
   const primaryObstacle = form.selectedObstacles[0]?.label ?? "";
 
-  const { data: userObstacles = [] } = useQuery<BackendObstacleTemplate[]>({
-    queryKey: ["obstacleTemplates"],
-    queryFn: async () => {
-      if (!actor || !("listMyObstacleTemplates" in actor)) return [];
-      try {
-        return await actor.listMyObstacleTemplates();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor && !isFetching,
-  });
-
   const createGoalMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Actor not ready — please wait and retry.");
 
       // Resolve the primary obstacle to a real, reusable obstacle template id
       // so the habit links to a persisted ObstacleTemplate record instead of
-      // storing the builtin label only as text in goal.outcome.
-      //   - builtin obstacles: resolve via useResolveObstacleLabel
-      //     (find-or-create — the first pick creates the record, later picks
-      //     of the same label reuse the same template id).
-      //   - user obstacles: already carry a real backendId from the chip list.
-      //   - custom obstacles: no template id (stored as text only).
+      // storing the builtin label only as text in goal.outcome. Obstacles are
+      // locked to the seven built-in OBSTACLE_TEMPLATES, so every selection
+      // resolves via useResolveObstacleLabel (find-or-create — the first pick
+      // creates the record, later picks of the same label reuse the same id).
       const primaryObs = form.selectedObstacles[0];
       let obstacleTemplateId: bigint | undefined;
       if (primaryObs) {
-        if (primaryObs.kind === "builtin") {
-          obstacleTemplateId = await resolveObstacleLabel(primaryObs.label);
-        } else if (
-          primaryObs.kind === "user" &&
-          primaryObs.backendId !== undefined
-        ) {
-          obstacleTemplateId = primaryObs.backendId;
-        }
+        obstacleTemplateId = await resolveObstacleLabel(primaryObs.label);
       }
 
       // goalId is required as BigInt. Prefer presetGoalId (the wizard was
@@ -599,18 +572,13 @@ export default function WoopWizard({
     for (const d of form.scheduledDays) {
       if (!emptyDays.has(d)) return true;
     }
-    // Array deep-compare: selectedObstacles (compare by id, label, kind, backendId)
+    // Array deep-compare: selectedObstacles (compare by id, label)
     if (form.selectedObstacles.length !== EMPTY.selectedObstacles.length)
       return true;
     for (const o of form.selectedObstacles) {
       const match = EMPTY.selectedObstacles.find((e) => e.id === o.id);
       if (!match) return true;
-      if (
-        match.label !== o.label ||
-        match.kind !== o.kind ||
-        match.backendId !== o.backendId
-      )
-        return true;
+      if (match.label !== o.label) return true;
     }
     return false;
   }, [step, form]);
@@ -724,40 +692,13 @@ export default function WoopWizard({
       : "opacity-0 -translate-x-8"
     : "opacity-100 translate-x-0";
 
-  const presetIds = new Set(OBSTACLE_TEMPLATES.map((t) => t.id));
-
-  // Strings that must never appear as obstacle options regardless of backend state
-  const BLOCKED_OBSTACLE_LABELS = new Set([
-    "my brain",
-    "drugs",
-    "drug",
-    "brain",
-  ]);
-
-  const uniqueUserObstacles = userObstacles
-    .filter(
-      (o) =>
-        !presetIds.has(String(o.id)) &&
-        !OBSTACLE_TEMPLATES.some(
-          (t) => t.label.toLowerCase() === o.title.toLowerCase(),
-        ) &&
-        !BLOCKED_OBSTACLE_LABELS.has(o.title.toLowerCase().trim()),
-    )
-    .map((o) => ({
-      id: `user_${String(o.id)}`,
-      label: o.title,
-      kind: "user" as const,
-      backendId: o.id,
-    }));
-
-  const allObstacleChips: SelectedObstacle[] = [
-    ...OBSTACLE_TEMPLATES.map((o) => ({
-      id: o.id,
-      label: o.label,
-      kind: "builtin" as const,
-    })),
-    ...uniqueUserObstacles,
-  ];
+  // Obstacles are locked to exactly the seven built-in OBSTACLE_TEMPLATES.
+  // There are no user-created or custom obstacles, so the chip list is simply
+  // the built-in templates.
+  const allObstacleChips: SelectedObstacle[] = OBSTACLE_TEMPLATES.map((o) => ({
+    id: o.id,
+    label: o.label,
+  }));
 
   const isSelected = (id: string) =>
     form.selectedObstacles.some((o) => o.id === id);

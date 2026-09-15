@@ -13,7 +13,7 @@ interface SkipModalProps {
   goal: HabitPublic;
   open: boolean;
   onClose: () => void;
-  onConfirm: (obstacleTemplateId?: bigint, customNote?: string) => void;
+  onConfirm: (obstacleTemplateId?: bigint) => void;
   isLoading?: boolean;
 }
 
@@ -26,8 +26,6 @@ export function SkipModal({
 }: SkipModalProps) {
   // Store the numeric INDEX (0-based) so BigInt(index) is always safe
   const [selectedObstacleIndex, setSelectedObstacleIndex] = useState<number>(0);
-  const [customNote, setCustomNote] = useState<string>("");
-  const [isNoteFocused, setIsNoteFocused] = useState<boolean>(false);
 
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedObstacleIndex];
@@ -35,7 +33,6 @@ export function SkipModal({
   const resolveObstacleLabel = useResolveObstacleLabel();
 
   async function handleConfirm() {
-    const note = customNote.trim() || undefined;
     // Resolve the selected built-in obstacle label to a real, reusable obstacle
     // template id (find-or-create) instead of passing the array index 0-5.
     const selected = OBSTACLE_TEMPLATES[selectedObstacleIndex];
@@ -47,19 +44,13 @@ export function SkipModal({
         templateId = undefined;
       }
     }
-    onConfirm(templateId, note);
-    setCustomNote("");
-    setIsNoteFocused(false);
+    onConfirm(templateId);
     onClose();
   }
 
   function handleClose() {
-    setCustomNote("");
-    setIsNoteFocused(false);
     onClose();
   }
-
-  const showCounter = isNoteFocused && customNote.length > 0;
 
   return (
     <AnimatePresence>
@@ -174,48 +165,6 @@ export function SkipModal({
                     </button>
                   );
                 })}
-              </div>
-
-              {/* Optional note textarea */}
-              <div className="mb-4">
-                <label
-                  htmlFor="skip-custom-note"
-                  className="block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono"
-                >
-                  Add a note (optional)
-                </label>
-                <textarea
-                  id="skip-custom-note"
-                  name="skip-modal-note"
-                  value={customNote}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 140) {
-                      setCustomNote(e.target.value);
-                    }
-                  }}
-                  onFocus={() => setIsNoteFocused(true)}
-                  onBlur={() => setIsNoteFocused(false)}
-                  placeholder="Why did this obstacle get in the way today?"
-                  rows={3}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  className="w-full rounded-xl bg-muted/30 text-foreground text-sm p-3 resize-none outline-none transition-smooth border border-border focus:border-[rgba(3,105,161,0.5)]"
-                  style={{
-                    boxShadow:
-                      "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.03)",
-                  }}
-                  data-ocid="skip_modal.note_input"
-                />
-                {showCounter && (
-                  <p
-                    className="text-right text-xs mt-1 font-mono"
-                    style={{ color: SKIP_COLOR }}
-                  >
-                    {customNote.length}/140
-                  </p>
-                )}
               </div>
 
               {/* Actions */}

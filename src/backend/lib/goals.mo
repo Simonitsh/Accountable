@@ -514,31 +514,6 @@ module {
     #ok(toMacroGoalPublic(goal));
   };
 
-  public func createObstacleTemplate(
-    templates : List.List<GoalTypes.ObstacleTemplate>,
-    nextId : Nat,
-    caller : Common.UserId,
-    request : GoalTypes.CreateObstacleRequest,
-  ) : GoalTypes.ObstacleTemplate {
-    let template : GoalTypes.ObstacleTemplate = {
-      id = nextId;
-      owner = caller;
-      title = request.title;
-      description = request.description;
-    };
-    templates.add(template);
-    template;
-  };
-
-  public func listObstacleTemplates(
-    templates : List.List<GoalTypes.ObstacleTemplate>,
-    caller : Common.UserId,
-  ) : [GoalTypes.ObstacleTemplate] {
-    templates.values()
-      .filter(func(t : GoalTypes.ObstacleTemplate) : Bool { t.owner == caller })
-      .toArray();
-  };
-
   /// Returns the caller's reusable macro goals for the wizard chips.
   /// Each entry exposes id, wish, wishDescription, state, and category.
   public func listReusableGoals(

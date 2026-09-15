@@ -55,9 +55,7 @@ mixin () {
     "- `listMyGoals() : [GoalWithHabitsPublic]` — query; macro goals grouped with linked habits.\n" #
     "- `listHabitsByParent(parentGoalId) : { #ok : [HabitPublic]; #err : Text }` — query.\n" #
     "- `listMyReusableGoals() : [ReusableGoalPublic]` — query.\n" #
-    "- `createObstacleTemplate(request) : ObstacleTemplate` — creates an obstacle template.\n" #
-    "- `listMyObstacleTemplates() : [ObstacleTemplate]` — query.\n" #
-    "- `resolveObstacleLabel(request) : ObstacleTemplate` — resolves a built-in obstacle label (e.g. \"Low Energy\", \"Time Crunch\") to a real, reusable obstacle template for the calling user. Find-or-create: the first time a user picks a given label it becomes a saved `ObstacleTemplate` record for them; every later pick of the same label reuses that same record instead of creating a duplicate. The match is case-insensitive on the template title, so picking \"low energy\" reuses a previously saved \"Low Energy\" template. Owner-scoped — only the caller's own templates are searched or created. The six built-in labels are never changed or extended, and previously saved habits or check-ins are never modified or repaired.\n" #
+    "- `resolveObstacleLabel(request) : ObstacleTemplate` — resolves a built-in obstacle label (e.g. \"Low Energy\", \"Time Crunch\") to one of the seven fixed built-in obstacles. Obstacles are locked down to exactly seven values — Low Energy, Time Crunch, Distraction, Social Pressure, Environment, Health, and Something else — and nothing else can ever exist. The match is case-insensitive on the built-in title, and each built-in has a stable id, so the same label always resolves to the same obstacle. If the label is not one of the seven built-ins, the call traps — a custom obstacle can never be created.\n" #
     "\n" #
     "### Check-ins\n" #
     "- `recordCheckIn(request) : CheckIn` — records a check-in against an active owned habit. Enforces one-per-day and Lock-In rules; traps on violation.\n" #

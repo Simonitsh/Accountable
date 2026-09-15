@@ -1,7 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { HandMetal } from "lucide-react";
 import { useState } from "react";
-import type { ObstacleTemplate } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import type { FeedItem as FeedItemType } from "../types";
 import { Avatar } from "./Avatar";
@@ -32,29 +30,7 @@ export function FeedItem({ item, index }: FeedItemProps) {
   const [hasHighFived, setHasHighFived] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch the caller's saved obstacle templates so a check-in's
-  // obstacleTemplateId (a bigint referencing a saved template) can be resolved
-  // to its display title. The feed's obstacleTemplateId is a numeric backend id,
-  // not a string key, so it cannot be matched against the built-in label list.
-  const { data: obstacleTemplates = [] } = useQuery<ObstacleTemplate[]>({
-    queryKey: ["obstacleTemplates"],
-    queryFn: async () => {
-      if (!actor) return [];
-      try {
-        return await actor.listMyObstacleTemplates();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor,
-  });
-
   const isSuccess = item.checkIn.checkInType === "success";
-  const obstacleLabel = item.checkIn.obstacleTemplateId
-    ? obstacleTemplates.find(
-        (t) => t.id.toString() === String(item.checkIn.obstacleTemplateId),
-      )?.title
-    : undefined;
 
   async function handleHighFive() {
     if (hasHighFived || isLoading || !actor) return;
@@ -123,14 +99,6 @@ export function FeedItem({ item, index }: FeedItemProps) {
           </span>
         )}
       </div>
-
-      {/* Obstacle label (skip only) */}
-      {!isSuccess && obstacleLabel && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 rounded-lg px-3 py-1.5 w-fit">
-          <span className="opacity-60">Obstacle:</span>
-          <span className="text-accent-skip font-medium">{obstacleLabel}</span>
-        </div>
-      )}
 
       {/* Footer row */}
       <div className="flex items-center justify-between pt-1 border-t border-border/30">

@@ -14,7 +14,7 @@ interface MissedWindowSheetProps {
   goal: HabitPublic;
   open: boolean;
   onClose: () => void;
-  onConfirm: (obstacleTemplateId?: bigint, customNote?: string) => void;
+  onConfirm: (obstacleTemplateId?: bigint) => void;
   isLoading?: boolean;
   failureType?: "missed-start" | "missed-checkout";
 }
@@ -28,8 +28,6 @@ export function MissedWindowSheet({
   failureType = "missed-start",
 }: MissedWindowSheetProps) {
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [customNote, setCustomNote] = useState<string>("");
-  const [isNoteFocused, setIsNoteFocused] = useState<boolean>(false);
 
   const _selectedObstacle: ObstacleTemplate | undefined =
     OBSTACLE_TEMPLATES[selectedIndex];
@@ -38,13 +36,10 @@ export function MissedWindowSheet({
 
   function handleClose() {
     setSelectedIndex(0);
-    setCustomNote("");
-    setIsNoteFocused(false);
     onClose();
   }
 
   async function handleConfirm() {
-    const note = customNote.trim() || undefined;
     // Resolve the selected built-in obstacle label to a real, reusable obstacle
     // template id (find-or-create) instead of passing the array index 0-5.
     const selected = OBSTACLE_TEMPLATES[selectedIndex];
@@ -56,14 +51,10 @@ export function MissedWindowSheet({
         templateId = undefined;
       }
     }
-    onConfirm(templateId, note);
+    onConfirm(templateId);
     setSelectedIndex(0);
-    setCustomNote("");
-    setIsNoteFocused(false);
     onClose();
   }
-
-  const showCounter = isNoteFocused && customNote.length > 0;
 
   return (
     <AnimatePresence>
@@ -186,48 +177,6 @@ export function MissedWindowSheet({
                     </button>
                   );
                 })}
-              </div>
-
-              {/* Optional note textarea */}
-              <div className="mb-5">
-                <label
-                  htmlFor="missed-custom-note"
-                  className="block text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-mono"
-                >
-                  Add a note (optional)
-                </label>
-                <textarea
-                  id="missed-custom-note"
-                  name="missed-window-note"
-                  value={customNote}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 140) {
-                      setCustomNote(e.target.value);
-                    }
-                  }}
-                  onFocus={() => setIsNoteFocused(true)}
-                  onBlur={() => setIsNoteFocused(false)}
-                  placeholder="What happened during this window?"
-                  rows={3}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  className="w-full rounded-xl bg-muted/30 text-foreground text-sm p-3 resize-none outline-none transition-smooth border border-border focus:border-[rgba(3,105,161,0.5)]"
-                  style={{
-                    boxShadow:
-                      "inset 2px 2px 6px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(255,255,255,0.03)",
-                  }}
-                  data-ocid="missed_window_sheet.note_input"
-                />
-                {showCounter && (
-                  <p
-                    className="text-right text-xs mt-1 font-mono"
-                    style={{ color: OCEAN_BLUE }}
-                  >
-                    {customNote.length}/140
-                  </p>
-                )}
               </div>
 
               {/* Actions */}
