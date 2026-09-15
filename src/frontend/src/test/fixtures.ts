@@ -19,7 +19,6 @@ export function makeHabit(overrides: Partial<HabitPublic> = {}): HabitPublic {
     goalId: 1n,
     themeColor: "#10B981",
     wishDescription: "Run every morning",
-    iconName: "running",
     ifThenPlan: "If I feel tired, I will put on my shoes",
     updatedAt: FIXED_TS_NS,
     state: GoalState.active,

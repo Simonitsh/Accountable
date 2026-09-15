@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { HabitPublic } from "../types";
-import { getGoalIcon } from "../utils/goalIcons";
 
 const SUCCESS_COLOR = "#10B981";
 const SKIP_COLOR = "#0369A1";
@@ -25,8 +24,6 @@ export function UndoPopup({
 }: UndoPopupProps) {
   if (!goal || !checkInType) return null;
 
-  const goalIcon = getGoalIcon(goal.iconName);
-  const themeColor = goal.themeColor;
   const keystoneText = goal.wishDescription || goal.wish;
   const isSuccess = checkInType === "success";
 
@@ -90,27 +87,6 @@ export function UndoPopup({
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
-              {/* Icon orb */}
-              <div
-                className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
-                style={{
-                  background: themeColor
-                    ? `color-mix(in srgb, ${themeColor} 20%, oklch(var(--card)))`
-                    : "oklch(var(--muted) / 0.5)",
-                  boxShadow:
-                    "inset 1px 1px 3px rgba(0,0,0,0.55), inset -1px -1px 2px rgba(80,80,85,0.2)",
-                }}
-              >
-                <span
-                  className="w-5 h-5 shrink-0"
-                  style={{
-                    color: themeColor ?? "oklch(var(--muted-foreground))",
-                  }}
-                >
-                  {goalIcon.svg}
-                </span>
-              </div>
-
               {/* Habit name */}
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">

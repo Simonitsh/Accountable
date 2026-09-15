@@ -15,7 +15,6 @@ import {
   Save,
   Target,
   X,
-  Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -63,32 +62,6 @@ const EDIT_THEME_COLORS = [
   { id: "copper", value: "#C2410C" },
   { id: "teal", value: "#0D9488" },
 ];
-
-const EDIT_ICONS = [
-  "target",
-  "flame",
-  "zap",
-  "star",
-  "heart",
-  "trophy",
-  "activity",
-  "book",
-  "music",
-  "coffee",
-  "moon",
-  "sun",
-  "running",
-  "bicycle",
-];
-
-function renderGoalIcon(name: string, size = 16) {
-  const iconMap: Record<string, React.ReactNode> = {
-    target: <Target size={size} />,
-    flame: <Flame size={size} />,
-    zap: <Zap size={size} />,
-  };
-  return iconMap[name] ?? <Target size={size} />;
-}
 
 /**
  * Resolves a habit's saved obstacleTemplateId (a stable 1-7 bigint matching
@@ -161,7 +134,6 @@ interface EditFormData {
   wish: string;
   wishDescription: string;
   ifThenPlan: string;
-  iconName: string;
   themeColor: string;
   obstacles: string[];
   isLockIn: boolean;
@@ -210,7 +182,6 @@ function GoalEditForm({
     wish: goal.wish,
     wishDescription: goal.wishDescription,
     ifThenPlan: goal.ifThenPlan,
-    iconName: goal.iconName ?? "target",
     themeColor: goal.themeColor ?? "#2563EB",
     obstacles: existingPreset,
     isLockIn: goal.isLockIn ?? false,
@@ -273,8 +244,6 @@ function GoalEditForm({
     };
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
       req.ifThenPlan = form.ifThenPlan.trim();
-    if (form.iconName !== (goal.iconName ?? "target"))
-      req.iconName = form.iconName;
     if (form.themeColor !== (goal.themeColor ?? "#2563EB"))
       req.themeColor = form.themeColor;
     if (form.isLockIn !== (goal.isLockIn ?? false))
@@ -305,7 +274,6 @@ function GoalEditForm({
     form.obstacles.some((o) => !existingPreset.includes(o));
   const hasChanges =
     form.ifThenPlan.trim() !== goal.ifThenPlan ||
-    form.iconName !== (goal.iconName ?? "target") ||
     form.themeColor !== (goal.themeColor ?? "#2563EB") ||
     form.isLockIn !== (goal.isLockIn ?? false) ||
     form.lockInStartTime !== (goal.startTime ?? "") ||
@@ -451,43 +419,6 @@ function GoalEditForm({
             {form.obstacles.length !== 1 ? "s" : ""} selected
           </p>
         )}
-      </div>
-
-      {/* Icon picker */}
-      <div className="space-y-2">
-        <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-          Icon
-        </Label>
-        <div className="flex flex-wrap gap-2">
-          {EDIT_ICONS.map((icon) => {
-            const selected = form.iconName === icon;
-            return (
-              <button
-                key={icon}
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, iconName: icon }))}
-                data-ocid={`goals.edit_icon_${icon}`}
-                aria-label={icon}
-                className="w-9 h-9 rounded-xl flex items-center justify-center border transition-smooth"
-                style={
-                  selected
-                    ? {
-                        background: "oklch(var(--color-accent-success) / 0.15)",
-                        borderColor: "oklch(var(--color-accent-success) / 0.5)",
-                        color: "oklch(var(--color-accent-success))",
-                      }
-                    : {
-                        background: "oklch(var(--muted) / 0.4)",
-                        borderColor: "oklch(var(--border))",
-                        color: "oklch(var(--muted-foreground))",
-                      }
-                }
-              >
-                {renderGoalIcon(icon, 15)}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Color picker */}

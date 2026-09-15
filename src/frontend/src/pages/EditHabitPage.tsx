@@ -16,7 +16,6 @@ import { useBackend } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
 import { OBSTACLE_TEMPLATES, useResolveObstacleLabel } from "../types/index";
 import { isLockInActiveWindow } from "../utils/goalDisplay";
-import { GOAL_ICONS } from "../utils/goalIcons";
 
 const THEME_COLORS = [
   { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
@@ -127,7 +126,6 @@ export function EditHabitPage() {
   const [wish, setWish] = useState("");
   const [wishDescription, setWishDescription] = useState("");
   const [ifThenPlan, setIfThenPlan] = useState("");
-  const [iconName, setIconName] = useState("target");
   const [themeColor, setThemeColor] = useState("#2563EB");
   const [obstacles, setObstacles] = useState<SelectedObstacle[]>([]);
   // Resolved reusable obstacle template ids keyed by built-in label. Populated
@@ -162,7 +160,6 @@ export function EditHabitPage() {
     setWish(habit.wish ?? "");
     setWishDescription(habit.wishDescription ?? "");
     setIfThenPlan(habit.ifThenPlan ?? "");
-    setIconName(habit.iconName ?? "target");
     setThemeColor(habit.themeColor ?? "#2563EB");
     setLockInStartTime(habit.startTime ?? "");
     setLockInEndTime(habit.endTime ?? "");
@@ -333,7 +330,6 @@ export function EditHabitPage() {
     return {
       timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
       ifThenPlan: ifThenPlan.trim(),
-      iconName,
       themeColor,
       isLockIn: habit?.isLockIn ?? false,
       scheduledDays,
@@ -721,51 +717,6 @@ export function EditHabitPage() {
                             />
                           )}
                           {chip.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Icon Selector */}
-                <div className="space-y-3" style={insetCard}>
-                  <p className={sectionLabel}>Icon</p>
-                  <div
-                    className="grid grid-cols-7 gap-2"
-                    data-ocid="edit_habit.icon_selector"
-                  >
-                    {GOAL_ICONS.map((icon) => {
-                      const isSelected = iconName === icon.id;
-                      return (
-                        <button
-                          key={icon.id}
-                          type="button"
-                          onClick={() => setIconName(icon.id)}
-                          aria-label={`Select ${icon.label} icon`}
-                          aria-pressed={isSelected}
-                          data-ocid={`edit_habit.icon.${icon.id}`}
-                          className="relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2"
-                          style={
-                            isSelected
-                              ? {
-                                  backgroundColor:
-                                    "oklch(var(--color-accent-success) / 0.15)",
-                                  border:
-                                    "2px solid oklch(var(--color-accent-success))",
-                                  color: "oklch(var(--color-accent-success))",
-                                  boxShadow:
-                                    "0 0 14px oklch(var(--color-accent-success) / 0.3)",
-                                }
-                              : {
-                                  backgroundColor: "oklch(var(--muted) / 0.35)",
-                                  border: "1px solid rgba(255,255,255,0.08)",
-                                  color: "oklch(var(--muted-foreground))",
-                                  boxShadow:
-                                    "2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.03)",
-                                }
-                          }
-                        >
-                          <span className="w-5 h-5 block">{icon.svg}</span>
                         </button>
                       );
                     })}

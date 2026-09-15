@@ -140,7 +140,6 @@ type HabitPublic =
    endTime: opt text;
    endTimeMinutes: nat;
    goalId: GoalId;
-   iconName: opt text;
    id: GoalId;
    ifThenPlan: text;
    isLockIn: bool;

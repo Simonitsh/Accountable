@@ -144,7 +144,6 @@ export interface HabitPublic {
   'goalId' : GoalId,
   'themeColor' : [] | [string],
   'wishDescription' : string,
-  'iconName' : [] | [string],
   'ifThenPlan' : string,
   'updatedAt' : Timestamp,
   'state' : GoalState,

@@ -166,7 +166,6 @@ export interface HabitPublic {
     goalId: GoalId;
     themeColor?: string;
     wishDescription: string;
-    iconName?: string;
     ifThenPlan: string;
     updatedAt: Timestamp;
     state: GoalState;
@@ -1514,7 +1513,6 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     goalId: _GoalId;
     themeColor: [] | [string];
     wishDescription: string;
-    iconName: [] | [string];
     ifThenPlan: string;
     updatedAt: _Timestamp;
     state: _GoalState;
@@ -1537,7 +1535,6 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
     goalId: GoalId;
     themeColor?: string;
     wishDescription: string;
-    iconName?: string;
     ifThenPlan: string;
     updatedAt: Timestamp;
     state: GoalState;
@@ -1561,7 +1558,6 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         goalId: value.goalId,
         themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
         wishDescription: value.wishDescription,
-        iconName: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.iconName)),
         ifThenPlan: value.ifThenPlan,
         updatedAt: value.updatedAt,
         state: from_candid_GoalState_n8(_uploadFile, _downloadFile, value.state),

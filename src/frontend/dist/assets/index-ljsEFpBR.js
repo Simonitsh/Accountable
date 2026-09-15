@@ -32943,7 +32943,6 @@ const HabitPublic = Record({
   "goalId": GoalId,
   "themeColor": Opt(Text),
   "wishDescription": Text,
-  "iconName": Opt(Text),
   "ifThenPlan": Text,
   "updatedAt": Timestamp,
   "state": GoalState$1,
@@ -33352,7 +33351,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "goalId": GoalId2,
     "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Text,
-    "iconName": IDL2.Opt(IDL2.Text),
     "ifThenPlan": IDL2.Text,
     "updatedAt": Timestamp2,
     "state": GoalState2,
@@ -34631,7 +34629,6 @@ function from_candid_record_n5(_uploadFile, _downloadFile, value) {
     goalId: value.goalId,
     themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
     wishDescription: value.wishDescription,
-    iconName: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.iconName)),
     ifThenPlan: value.ifThenPlan,
     updatedAt: value.updatedAt,
     state: from_candid_GoalState_n8(_uploadFile, _downloadFile, value.state),
@@ -80685,286 +80682,6 @@ function GoalCard$1({
     )
   ] });
 }
-const GOAL_ICONS = [
-  {
-    id: "target",
-    label: "Target",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "6" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "2" })
-        ]
-      }
-    )
-  },
-  {
-    id: "flame",
-    label: "Flame",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8.5 14.5A2.5 2.5 0 0 0 11 17c2 0 3-1.5 3-3s-1-3-3-5c0 0 0 2.5-1.5 3.5S8.5 14.5 8.5 14.5Z" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22c-4.418 0-8-3.582-8-8 0-3.5 2-6.5 5-8 0 1 .5 2 1.5 2.5C11 7 12 4 12 2c3 2 5 5 5 8 0 4.418-3.582 8-8 8Z" })
-        ]
-      }
-    )
-  },
-  {
-    id: "bolt",
-    label: "Lightning",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M13 2L3 14h9l-1 8 10-12h-9l1-8z" })
-      }
-    )
-  },
-  {
-    id: "star",
-    label: "Star",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" })
-      }
-    )
-  },
-  {
-    id: "trophy",
-    label: "Trophy",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 22h16" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 2H6v7a6 6 0 0 0 12 0V2Z" })
-        ]
-      }
-    )
-  },
-  {
-    id: "mountain",
-    label: "Mountain",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "m8 3 4 8 5-5 5 15H2L8 3z" })
-      }
-    )
-  },
-  {
-    id: "run",
-    label: "Running",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "13", cy: "4", r: "1" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M7 17l2-5.5 2 2.5 2-3 2 1" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9 11.5l-2 2.5" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M15 10l2 2" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22v-4" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 20l-2-2" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20l2-2" })
-        ]
-      }
-    )
-  },
-  {
-    id: "book",
-    label: "Book",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" })
-        ]
-      }
-    )
-  },
-  {
-    id: "heart",
-    label: "Heart",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" })
-      }
-    )
-  },
-  {
-    id: "brain",
-    label: "Mind",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.16Z" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.16Z" })
-        ]
-      }
-    )
-  },
-  {
-    id: "clock",
-    label: "Clock",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "12 6 12 12 16 14" })
-        ]
-      }
-    )
-  },
-  {
-    id: "chart",
-    label: "Growth",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "22 7 13.5 15.5 8.5 10.5 2 17" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "16 7 22 7 22 13" })
-        ]
-      }
-    )
-  },
-  {
-    id: "compass",
-    label: "Compass",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" })
-        ]
-      }
-    )
-  },
-  {
-    id: "shield",
-    label: "Shield",
-    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "svg",
-      {
-        role: "presentation",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: 1.5,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" })
-      }
-    )
-  }
-];
-function getGoalIcon(iconId) {
-  return GOAL_ICONS.find((i) => i.id === iconId) ?? GOAL_ICONS[0];
-}
 const SUCCESS_COLOR$2 = "#10B981";
 const SKIP_COLOR$2 = "#0369A1";
 const MISSED_COLOR = "#6B7280";
@@ -81249,7 +80966,6 @@ function GoalInsightSheet({
   const habitName = goal.wishDescription || goal.wish || "Habit";
   const macroWish = goal.wish;
   const outcome = goal.outcome;
-  const goalIcon = getGoalIcon(goal.iconName);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: isOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       motion.div,
@@ -81303,39 +81019,13 @@ function GoalInsightSheet({
               },
               children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex items-start justify-between gap-3", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "h2",
                     {
-                      className: "font-display text-xl font-bold leading-tight truncate flex items-center gap-2",
+                      className: "font-display text-xl font-bold leading-tight truncate",
                       style: { color: "oklch(var(--foreground))" },
                       "data-ocid": "goal_insight.habit_name",
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "span",
-                          {
-                            className: "inline-flex items-center justify-center shrink-0",
-                            style: {
-                              width: "1.125em",
-                              height: "1.125em"
-                            },
-                            "aria-hidden": "true",
-                            "data-ocid": "goal_insight.icon",
-                            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "span",
-                              {
-                                className: "shrink-0",
-                                style: {
-                                  width: "0.833em",
-                                  height: "0.833em",
-                                  color: "oklch(0.85 0 0)"
-                                },
-                                children: goalIcon.svg
-                              }
-                            )
-                          }
-                        ),
-                        habitName
-                      ]
+                      children: habitName
                     }
                   ),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1.5 space-y-0.5", children: [
@@ -81647,6 +81337,283 @@ function GoalInsightSheet({
     )
   ] }) });
 }
+const GOAL_ICONS = [
+  {
+    id: "target",
+    label: "Target",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "6" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "2" })
+        ]
+      }
+    )
+  },
+  {
+    id: "flame",
+    label: "Flame",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8.5 14.5A2.5 2.5 0 0 0 11 17c2 0 3-1.5 3-3s-1-3-3-5c0 0 0 2.5-1.5 3.5S8.5 14.5 8.5 14.5Z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22c-4.418 0-8-3.582-8-8 0-3.5 2-6.5 5-8 0 1 .5 2 1.5 2.5C11 7 12 4 12 2c3 2 5 5 5 8 0 4.418-3.582 8-8 8Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "bolt",
+    label: "Lightning",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M13 2L3 14h9l-1 8 10-12h-9l1-8z" })
+      }
+    )
+  },
+  {
+    id: "star",
+    label: "Star",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" })
+      }
+    )
+  },
+  {
+    id: "trophy",
+    label: "Trophy",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 22h16" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 2H6v7a6 6 0 0 0 12 0V2Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "mountain",
+    label: "Mountain",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "m8 3 4 8 5-5 5 15H2L8 3z" })
+      }
+    )
+  },
+  {
+    id: "run",
+    label: "Running",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "13", cy: "4", r: "1" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M7 17l2-5.5 2 2.5 2-3 2 1" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9 11.5l-2 2.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M15 10l2 2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22v-4" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M16 20l-2-2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 20l2-2" })
+        ]
+      }
+    )
+  },
+  {
+    id: "book",
+    label: "Book",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "heart",
+    label: "Heart",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" })
+      }
+    )
+  },
+  {
+    id: "brain",
+    label: "Mind",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.16Z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.16Z" })
+        ]
+      }
+    )
+  },
+  {
+    id: "clock",
+    label: "Clock",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "12 6 12 12 16 14" })
+        ]
+      }
+    )
+  },
+  {
+    id: "chart",
+    label: "Growth",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "22 7 13.5 15.5 8.5 10.5 2 17" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "16 7 22 7 22 13" })
+        ]
+      }
+    )
+  },
+  {
+    id: "compass",
+    label: "Compass",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("polygon", { points: "16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" })
+        ]
+      }
+    )
+  },
+  {
+    id: "shield",
+    label: "Shield",
+    svg: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "svg",
+      {
+        role: "presentation",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" })
+      }
+    )
+  }
+];
 const TOTAL_STEPS = 4;
 const STEPS = [
   { id: 1, label: "Bloom" },
@@ -82909,8 +82876,6 @@ function UndoPopup({
   onKeep
 }) {
   if (!goal || !checkInType) return null;
-  const goalIcon = getGoalIcon(goal.iconName);
-  const themeColor = goal.themeColor;
   const keystoneText2 = goal.wishDescription || goal.wish;
   const isSuccess = checkInType === "success";
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -82967,32 +82932,10 @@ function UndoPopup({
               children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "div",
-              {
-                className: "shrink-0 w-11 h-11 rounded-xl flex items-center justify-center",
-                style: {
-                  background: themeColor ? `color-mix(in srgb, ${themeColor} 20%, oklch(var(--card)))` : "oklch(var(--muted) / 0.5)",
-                  boxShadow: "inset 1px 1px 3px rgba(0,0,0,0.55), inset -1px -1px 2px rgba(80,80,85,0.2)"
-                },
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "span",
-                  {
-                    className: "w-5 h-5 shrink-0",
-                    style: {
-                      color: themeColor ?? "oklch(var(--muted-foreground))"
-                    },
-                    children: goalIcon.svg
-                  }
-                )
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wider mb-0.5", children: "Undo check-in?" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display font-semibold text-foreground leading-snug line-clamp-2 text-sm", children: keystoneText2 })
-            ] })
-          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3 mb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground uppercase tracking-wider mb-0.5", children: "Undo check-in?" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "font-display font-semibold text-foreground leading-snug line-clamp-2 text-sm", children: keystoneText2 })
+          ] }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mb-5 leading-relaxed", children: isSuccess ? "This habit was marked as completed. Undo to move it back to your active list." : "This habit was skipped. Undo to move it back to your active list." }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -87430,7 +87373,6 @@ function EditHabitPage$1() {
   const [wish, setWish] = reactExports.useState("");
   const [wishDescription, setWishDescription] = reactExports.useState("");
   const [ifThenPlan, setIfThenPlan] = reactExports.useState("");
-  const [iconName, setIconName] = reactExports.useState("target");
   const [themeColor, setThemeColor] = reactExports.useState("#2563EB");
   const [obstacles, setObstacles] = reactExports.useState([]);
   const [obstacleTemplateIds, setObstacleTemplateIds] = reactExports.useState({});
@@ -87454,7 +87396,6 @@ function EditHabitPage$1() {
     setWish(habit.wish ?? "");
     setWishDescription(habit.wishDescription ?? "");
     setIfThenPlan(habit.ifThenPlan ?? "");
-    setIconName(habit.iconName ?? "target");
     setThemeColor(habit.themeColor ?? "#2563EB");
     setLockInStartTime(habit.startTime ?? "");
     setLockInEndTime(habit.endTime ?? "");
@@ -87579,7 +87520,6 @@ function EditHabitPage$1() {
     return {
       timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
       ifThenPlan: ifThenPlan.trim(),
-      iconName,
       themeColor,
       isLockIn: (habit == null ? void 0 : habit.isLockIn) ?? false,
       scheduledDays,
@@ -87900,43 +87840,6 @@ function EditHabitPage$1() {
                       ]
                     },
                     chip.id
-                  );
-                })
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", style: insetCard$1, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: sectionLabel$1, children: "Icon" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "div",
-              {
-                className: "grid grid-cols-7 gap-2",
-                "data-ocid": "edit_habit.icon_selector",
-                children: GOAL_ICONS.map((icon) => {
-                  const isSelected = iconName === icon.id;
-                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      type: "button",
-                      onClick: () => setIconName(icon.id),
-                      "aria-label": `Select ${icon.label} icon`,
-                      "aria-pressed": isSelected,
-                      "data-ocid": `edit_habit.icon.${icon.id}`,
-                      className: "relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2",
-                      style: isSelected ? {
-                        backgroundColor: "oklch(var(--color-accent-success) / 0.15)",
-                        border: "2px solid oklch(var(--color-accent-success))",
-                        color: "oklch(var(--color-accent-success))",
-                        boxShadow: "0 0 14px oklch(var(--color-accent-success) / 0.3)"
-                      } : {
-                        backgroundColor: "oklch(var(--muted) / 0.35)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        color: "oklch(var(--muted-foreground))",
-                        boxShadow: "2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.03)"
-                      },
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 block", children: icon.svg })
-                    },
-                    icon.id
                   );
                 })
               }
@@ -91011,30 +90914,6 @@ const EDIT_THEME_COLORS = [
   { id: "copper", value: "#C2410C" },
   { id: "teal", value: "#0D9488" }
 ];
-const EDIT_ICONS = [
-  "target",
-  "flame",
-  "zap",
-  "star",
-  "heart",
-  "trophy",
-  "activity",
-  "book",
-  "music",
-  "coffee",
-  "moon",
-  "sun",
-  "running",
-  "bicycle"
-];
-function renderGoalIcon(name, size = 16) {
-  const iconMap = {
-    target: /* @__PURE__ */ jsxRuntimeExports.jsx(Target, { size }),
-    flame: /* @__PURE__ */ jsxRuntimeExports.jsx(Flame, { size }),
-    zap: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { size })
-  };
-  return iconMap[name] ?? /* @__PURE__ */ jsxRuntimeExports.jsx(Target, { size });
-}
 function obstacleLabelForId(id2) {
   if (id2 === void 0) return void 0;
   const template = OBSTACLE_TEMPLATES[Number(id2) - 1];
@@ -91086,7 +90965,6 @@ function GoalEditForm({
     wish: goal.wish,
     wishDescription: goal.wishDescription,
     ifThenPlan: goal.ifThenPlan,
-    iconName: goal.iconName ?? "target",
     themeColor: goal.themeColor ?? "#2563EB",
     obstacles: existingPreset,
     isLockIn: goal.isLockIn ?? false,
@@ -91126,8 +91004,6 @@ function GoalEditForm({
     };
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
       req.ifThenPlan = form.ifThenPlan.trim();
-    if (form.iconName !== (goal.iconName ?? "target"))
-      req.iconName = form.iconName;
     if (form.themeColor !== (goal.themeColor ?? "#2563EB"))
       req.themeColor = form.themeColor;
     if (form.isLockIn !== (goal.isLockIn ?? false))
@@ -91143,7 +91019,7 @@ function GoalEditForm({
   }
   const isDurationZero = form.isLockIn && form.lockInDurationHours === 0 && form.lockInDurationMinutes === 0;
   const obstaclesChanged = form.obstacles.length !== existingPreset.length || form.obstacles.some((o2) => !existingPreset.includes(o2));
-  const hasChanges = form.ifThenPlan.trim() !== goal.ifThenPlan || form.iconName !== (goal.iconName ?? "target") || form.themeColor !== (goal.themeColor ?? "#2563EB") || form.isLockIn !== (goal.isLockIn ?? false) || form.lockInStartTime !== (goal.startTime ?? "") || form.lockInEndTime !== (goal.endTime ?? "") || obstaclesChanged;
+  const hasChanges = form.ifThenPlan.trim() !== goal.ifThenPlan || form.themeColor !== (goal.themeColor ?? "#2563EB") || form.isLockIn !== (goal.isLockIn ?? false) || form.lockInStartTime !== (goal.startTime ?? "") || form.lockInEndTime !== (goal.endTime ?? "") || obstaclesChanged;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     motion.div,
     {
@@ -91282,33 +91158,6 @@ function GoalEditForm({
             form.obstacles.length !== 1 ? "s" : "",
             " selected"
           ] })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Icon" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: EDIT_ICONS.map((icon) => {
-            const selected = form.iconName === icon;
-            return /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                type: "button",
-                onClick: () => setForm((f2) => ({ ...f2, iconName: icon })),
-                "data-ocid": `goals.edit_icon_${icon}`,
-                "aria-label": icon,
-                className: "w-9 h-9 rounded-xl flex items-center justify-center border transition-smooth",
-                style: selected ? {
-                  background: "oklch(var(--color-accent-success) / 0.15)",
-                  borderColor: "oklch(var(--color-accent-success) / 0.5)",
-                  color: "oklch(var(--color-accent-success))"
-                } : {
-                  background: "oklch(var(--muted) / 0.4)",
-                  borderColor: "oklch(var(--border))",
-                  color: "oklch(var(--muted-foreground))"
-                },
-                children: renderGoalIcon(icon, 15)
-              },
-              icon
-            );
-          }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Color" }),

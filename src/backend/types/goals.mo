@@ -122,7 +122,6 @@ module {
     state : Common.GoalState;
     createdAt : Common.Timestamp;
     updatedAt : Common.Timestamp;
-    iconName : ?Text;
     themeColor : ?Text;
     isLockIn : Bool;
     startTime : ?Text;

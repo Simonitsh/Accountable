@@ -5,7 +5,6 @@ import { CheckInType } from "../backend";
 import type { CheckIn } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import type { HabitPublic } from "../types";
-import { getGoalIcon } from "../utils/goalIcons";
 
 // ─── Accent colours (matching index.css semantic tokens) ─────────────────────
 const SUCCESS_COLOR = "#10B981"; // Emerald Green
@@ -382,7 +381,6 @@ export function GoalInsightSheet({
   const habitName = goal.wishDescription || goal.wish || "Habit";
   const macroWish = goal.wish;
   const outcome = goal.outcome;
-  const goalIcon = getGoalIcon(goal.iconName);
 
   return (
     <AnimatePresence>
@@ -444,30 +442,10 @@ export function GoalInsightSheet({
                 <div className="flex-1 min-w-0">
                   {/* Habit name — prominent */}
                   <h2
-                    className="font-display text-xl font-bold leading-tight truncate flex items-center gap-2"
+                    className="font-display text-xl font-bold leading-tight truncate"
                     style={{ color: "oklch(var(--foreground))" }}
                     data-ocid="goal_insight.habit_name"
                   >
-                    <span
-                      className="inline-flex items-center justify-center shrink-0"
-                      style={{
-                        width: "1.125em",
-                        height: "1.125em",
-                      }}
-                      aria-hidden="true"
-                      data-ocid="goal_insight.icon"
-                    >
-                      <span
-                        className="shrink-0"
-                        style={{
-                          width: "0.833em",
-                          height: "0.833em",
-                          color: "oklch(0.85 0 0)",
-                        }}
-                      >
-                        {goalIcon.svg}
-                      </span>
-                    </span>
                     {habitName}
                   </h2>
 

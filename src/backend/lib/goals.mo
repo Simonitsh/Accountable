@@ -54,7 +54,6 @@ module {
       state = goal.state;
       createdAt = goal.createdAt;
       updatedAt = goal.updatedAt;
-      iconName = goal.iconName;
       themeColor = goal.themeColor;
       isLockIn = goal.isLockIn;
       startTime = goal.startTime;
@@ -171,7 +170,7 @@ module {
       var state = #active;
       createdAt = now;
       var updatedAt = now;
-      var iconName = request.iconName;
+      var iconName = null;
       var themeColor = request.themeColor;
       var isLockIn = isLockIn;
       var startTime = request.startTime;
@@ -414,10 +413,6 @@ module {
     switch (request.ifThenPlan) {
       case null {};
       case (?v) { habit.ifThenPlan := v };
-    };
-    switch (request.iconName) {
-      case null {};
-      case (?v) { habit.iconName := ?v };
     };
     switch (request.themeColor) {
       case null {};
