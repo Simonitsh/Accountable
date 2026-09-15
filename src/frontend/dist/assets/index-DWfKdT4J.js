@@ -79787,7 +79787,7 @@ function GoalCard$1({
   const hasIfThenPlan = !!((_a3 = goal.ifThenPlan) == null ? void 0 : _a3.trim());
   const rawWishDescription = goal.wishDescription || goal.wish;
   const keystoneText2 = rawWishDescription.startsWith("Every day, I will ") ? `I will ${rawWishDescription.slice("Every day, I will ".length)}` : rawWishDescription.startsWith("Every day ,") ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}` : rawWishDescription;
-  const cardBgIdle = "color-mix(in srgb, oklch(var(--goal-wizard-gold)) 8%, oklch(var(--card)))";
+  const cardBgIdle = goal.themeColor ? `color-mix(in srgb, ${goal.themeColor} 8%, oklch(var(--card)))` : "color-mix(in srgb, oklch(var(--goal-wizard-gold)) 8%, oklch(var(--card)))";
   function getCardStyle() {
     const embossed = isDarkMode ? "-5px -5px 14px rgba(70,70,80,0.55), 8px 8px 20px rgba(0,0,0,0.9)" : "-5px -5px 14px rgba(90,90,100,0.6), 8px 8px 20px rgba(0,0,0,0.75)";
     const litBorderOpacity = isDarkMode ? 0.12 : 0.18;
