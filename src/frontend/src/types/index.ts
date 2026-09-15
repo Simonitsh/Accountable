@@ -12,6 +12,7 @@ import type {
   GoalState as BackendGoalState,
   HabitPublic as BackendHabitPublic,
   MacroGoalPublic as BackendMacroGoalPublic,
+  UpdateHabitRequest as BackendUpdateHabitRequest,
 } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 
@@ -173,24 +174,13 @@ export interface CreateHabitRequest {
 }
 
 /**
- * UpdateHabitRequest — mirrors the backend UpdateHabitRequest.
- * Updates an existing habit's schedule, Lock-In, icon, color, and ifThenPlan.
- * Carries timezoneOffsetMinutes (required) and an optional isTimeEdit flag.
+ * UpdateHabitRequest — DERIVED from the auto-generated backend type
+ * (backend.d.ts) so it can never drift out of sync with the backend shape.
+ * Habits intentionally have no icon, so `iconName` is omitted. This
+ * automatically includes `obstacleTemplateId` (from the backend type) and
+ * drops `iconName`.
  */
-export interface UpdateHabitRequest {
-  timezoneOffsetMinutes: bigint;
-  startTime?: string;
-  endTime?: string;
-  startTimeMinutes?: bigint;
-  endTimeMinutes?: bigint;
-  scheduledDays?: string[];
-  isLockIn?: boolean;
-  lockInDurationMinutes?: bigint;
-  ifThenPlan?: string;
-  iconName?: string;
-  themeColor?: string;
-  isTimeEdit?: boolean;
-}
+export type UpdateHabitRequest = Omit<BackendUpdateHabitRequest, "iconName">;
 
 /**
  * UpdateMacroGoalRequest — mirrors the backend UpdateMacroGoalRequest.

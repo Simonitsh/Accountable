@@ -239,7 +239,7 @@ function GoalEditForm({
   }
 
   function handleSave() {
-    const req: UpdateHabitRequest & { obstacleTemplateId?: bigint } = {
+    const req: UpdateHabitRequest = {
       timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
     };
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)

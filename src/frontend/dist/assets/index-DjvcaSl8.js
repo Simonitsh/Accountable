@@ -87517,7 +87517,7 @@ function EditHabitPage$1() {
   function buildPayload(overrides) {
     const selectedBuiltin = obstacles.find((o2) => o2.kind === "builtin");
     const obstacleTemplateId = selectedBuiltin ? obstacleTemplateIds[selectedBuiltin.label] : void 0;
-    return {
+    const payload = {
       timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
       ifThenPlan: ifThenPlan.trim(),
       themeColor,
@@ -87533,9 +87533,12 @@ function EditHabitPage$1() {
           parseHHMMToMinutes(lockInStartTime) + lockInDurationHours * 60 + lockInDurationMinutes
         )
       ) : BigInt(0),
-      ...obstacleTemplateId !== void 0 ? { obstacleTemplateId } : {},
       ...overrides
     };
+    if (obstacleTemplateId !== void 0) {
+      payload.obstacleTemplateId = obstacleTemplateId;
+    }
+    return payload;
   }
   function canSaveGeneral() {
     if (overlapError) return false;

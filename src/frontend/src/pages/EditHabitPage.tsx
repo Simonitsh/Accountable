@@ -316,10 +316,7 @@ export function EditHabitPage() {
 
   function buildPayload(
     overrides?: Partial<UpdateHabitRequest>,
-  ): UpdateHabitRequest & { obstacleTemplateId?: bigint } {
-    // Persist the resolved reusable obstacle template link for the selected
-    // built-in obstacle. The backend replaces the habit's single
-    // obstacleTemplateId when provided and leaves it unchanged when absent.
+  ): UpdateHabitRequest {
     const selectedBuiltin = obstacles.find((o) => o.kind === "builtin");
     const obstacleTemplateId = selectedBuiltin
       ? obstacleTemplateIds[selectedBuiltin.label]
@@ -327,7 +324,7 @@ export function EditHabitPage() {
     // wish (goal text) and wishDescription (habit name) are immutable for ALL
     // existing goals after creation. EditHabitPage only edits existing habits,
     // so we never send these fields on update — the backend preserves them.
-    return {
+    const payload: UpdateHabitRequest = {
       timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
       ifThenPlan: ifThenPlan.trim(),
       themeColor,
@@ -354,9 +351,15 @@ export function EditHabitPage() {
               ),
             )
           : BigInt(0),
-      ...(obstacleTemplateId !== undefined ? { obstacleTemplateId } : {}),
       ...overrides,
     };
+    // Persist the resolved reusable obstacle template link for the selected
+    // built-in obstacle. The backend replaces the habit's single
+    // obstacleTemplateId when provided and leaves it unchanged when absent.
+    if (obstacleTemplateId !== undefined) {
+      payload.obstacleTemplateId = obstacleTemplateId;
+    }
+    return payload;
   }
 
   function canSaveGeneral(): boolean {
