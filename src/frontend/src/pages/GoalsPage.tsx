@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -329,38 +328,18 @@ function GoalEditForm({
         >
           Keystone Habit
         </Label>
-        <div className="flex items-start gap-2">
-          <Textarea
-            id="edit-desc"
-            name="goals-edit-description"
-            data-ocid="goals.edit_description_input"
-            value={form.wishDescription}
-            maxLength={140}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, wishDescription: e.target.value }))
-            }
-            onFocus={() => setFocusedField("wishDescription")}
-            onBlur={() => setFocusedField(null)}
-            rows={2}
-            placeholder={getPlaceholder(goal.category, "wishDescription")}
-            className="flex-1 bg-muted/60 border-border focus:border-primary resize-none text-sm"
-          />
-          <SuggestionButton
-            category={goal.category}
-            field="wishDescription"
-            onSelect={(value) =>
-              setForm((f) => ({ ...f, wishDescription: value }))
-            }
-          />
-        </div>
         <p
-          className={`text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`}
+          data-ocid="goals.edit_description_readonly"
+          className="rounded-xl px-4 py-3 text-sm text-foreground/90 leading-snug cursor-not-allowed select-text whitespace-pre-wrap"
+          style={{
+            background: "oklch(var(--muted) / 0.3)",
+            boxShadow:
+              "inset 2px 2px 5px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(255,255,255,0.03)",
+            border: "1px solid oklch(var(--border) / 0.25)",
+          }}
         >
-          {form.wishDescription.length}/140
+          {goal.wishDescription ||
+            getPlaceholder(goal.category, "wishDescription")}
         </p>
       </div>
 
@@ -372,25 +351,20 @@ function GoalEditForm({
         >
           Macro Goal
         </Label>
-        <Input
-          id="edit-wish"
-          name="goals-edit-wish"
-          data-ocid="goals.edit_wish_input"
-          value={form.wish}
-          maxLength={140}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          onChange={(e) => setForm((f) => ({ ...f, wish: e.target.value }))}
-          onFocus={() => setFocusedField("wish")}
-          onBlur={() => setFocusedField(null)}
-          className="bg-muted/60 border-border focus:border-primary text-sm"
-        />
         <p
-          className={`text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`}
+          data-ocid="goals.edit_wish_readonly"
+          className="rounded-xl px-4 py-3 text-sm text-foreground/90 leading-snug cursor-not-allowed select-text"
+          style={{
+            background: "oklch(var(--muted) / 0.3)",
+            boxShadow:
+              "inset 2px 2px 5px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(255,255,255,0.03)",
+            border: "1px solid oklch(var(--border) / 0.25)",
+          }}
         >
-          {form.wish.length}/140
+          {goal.wish || getPlaceholder(goal.category, "wish")}
+        </p>
+        <p className="text-xs text-muted-foreground/70 leading-snug">
+          The habit name and goal text are permanent and cannot be changed.
         </p>
       </div>
 

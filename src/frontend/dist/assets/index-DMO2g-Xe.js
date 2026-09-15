@@ -91335,44 +91335,17 @@ function GoalEditForm({
               children: "Keystone Habit"
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Textarea,
-              {
-                id: "edit-desc",
-                name: "goals-edit-description",
-                "data-ocid": "goals.edit_description_input",
-                value: form.wishDescription,
-                maxLength: 140,
-                autoComplete: "off",
-                autoCorrect: "off",
-                autoCapitalize: "off",
-                spellCheck: false,
-                onChange: (e) => setForm((f2) => ({ ...f2, wishDescription: e.target.value })),
-                onFocus: () => setFocusedField("wishDescription"),
-                onBlur: () => setFocusedField(null),
-                rows: 2,
-                placeholder: getPlaceholder(goal.category, "wishDescription"),
-                className: "flex-1 bg-muted/60 border-border focus:border-primary resize-none text-sm"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              SuggestionButton,
-              {
-                category: goal.category,
-                field: "wishDescription",
-                onSelect: (value) => setForm((f2) => ({ ...f2, wishDescription: value }))
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
             "p",
             {
-              className: `text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wishDescription" ? "opacity-100" : "opacity-0"}`,
-              children: [
-                form.wishDescription.length,
-                "/140"
-              ]
+              "data-ocid": "goals.edit_description_readonly",
+              className: "rounded-xl px-4 py-3 text-sm text-foreground/90 leading-snug cursor-not-allowed select-text whitespace-pre-wrap",
+              style: {
+                background: "oklch(var(--muted) / 0.3)",
+                boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(255,255,255,0.03)",
+                border: "1px solid oklch(var(--border) / 0.25)"
+              },
+              children: goal.wishDescription || getPlaceholder(goal.category, "wishDescription")
             }
           )
         ] }),
@@ -91386,33 +91359,19 @@ function GoalEditForm({
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              id: "edit-wish",
-              name: "goals-edit-wish",
-              "data-ocid": "goals.edit_wish_input",
-              value: form.wish,
-              maxLength: 140,
-              autoComplete: "off",
-              autoCorrect: "off",
-              autoCapitalize: "off",
-              spellCheck: false,
-              onChange: (e) => setForm((f2) => ({ ...f2, wish: e.target.value })),
-              onFocus: () => setFocusedField("wish"),
-              onBlur: () => setFocusedField(null),
-              className: "bg-muted/60 border-border focus:border-primary text-sm"
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "p",
             {
-              className: `text-[10px] text-muted-foreground/60 text-right transition-opacity duration-200 ${focusedField === "wish" ? "opacity-100" : "opacity-0"}`,
-              children: [
-                form.wish.length,
-                "/140"
-              ]
+              "data-ocid": "goals.edit_wish_readonly",
+              className: "rounded-xl px-4 py-3 text-sm text-foreground/90 leading-snug cursor-not-allowed select-text",
+              style: {
+                background: "oklch(var(--muted) / 0.3)",
+                boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.45), inset -1px -1px 3px rgba(255,255,255,0.03)",
+                border: "1px solid oklch(var(--border) / 0.25)"
+              },
+              children: goal.wish || getPlaceholder(goal.category, "wish")
             }
-          )
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/70 leading-snug", children: "The habit name and goal text are permanent and cannot be changed." })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
