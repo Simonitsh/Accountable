@@ -7,24 +7,6 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export type Timestamp = bigint;
-export interface RecordCheckInRequest {
-    timezoneOffsetMinutes: bigint;
-    goalId: GoalId;
-    checkInType: CheckInType;
-    obstacleTemplateId?: ObstacleTemplateId;
-    executedIfThen: boolean;
-    lockInStartedAt?: bigint;
-    lockInEndedAt?: bigint;
-    customObstacleNote?: string;
-}
-export interface DayOfWeekStat {
-    successes: bigint;
-    total: bigint;
-    dayOfWeek: bigint;
-    rate: number;
-    dayName: string;
-}
 export interface AnalyticsSummary {
     categoryBreakdown: Array<CategoryStat>;
     dayOfWeek: Array<DayOfWeekStat>;
@@ -33,31 +15,38 @@ export interface AnalyticsSummary {
     habits: Array<HabitAnalytics>;
     worstDayOfWeek?: bigint;
 }
-export interface CreateMacroGoalRequest {
-    wish: string;
-    themeColor?: string;
-    wishDescription: string;
-    iconName?: string;
-    category: GoalCategory;
-    outcome: string;
-}
-export interface ReusableGoalPublic {
-    id: GoalId;
-    wish: string;
-    wishDescription: string;
-    state: GoalState;
-    category: GoalCategory;
-}
-export interface PartnerOverview {
-    activeHabitCount: bigint;
-    profile: UserProfilePublic;
-    currentStreak: bigint;
-}
+export type AvatarColor = string | null;
+export type AvatarShape = Variant_Star_Pentagon_Triangle_Hexagon_Square | null;
 export interface CategoryStat {
     successes: bigint;
     total: bigint;
     rate: number;
     category: GoalCategory;
+}
+export interface Cell {
+    value: Value;
+    name: string;
+}
+export interface CheckIn {
+    id: CheckInId;
+    owner: UserId;
+    goalId: GoalId;
+    checkInType: CheckInType;
+    obstacleTemplateId?: ObstacleTemplateId;
+    timestamp: Timestamp;
+    executedIfThen: boolean;
+    lockInStartedAt?: bigint;
+    lockInEndedAt?: bigint;
+    customObstacleNote?: string;
+}
+export type CheckInId = bigint;
+export type ConnectionId = bigint;
+export interface ConnectionPublic {
+    id: ConnectionId;
+    status: ConnectionStatus;
+    createdAt: Timestamp;
+    toPrincipal: UserId;
+    fromPrincipal: UserId;
 }
 export interface CreateHabitRequest {
     startTime?: string;
@@ -74,128 +63,24 @@ export interface CreateHabitRequest {
     isLockIn: boolean;
     lockInDurationMinutes?: bigint;
 }
-export interface CheckIn {
-    id: CheckInId;
-    owner: UserId;
-    goalId: GoalId;
-    checkInType: CheckInType;
-    obstacleTemplateId?: ObstacleTemplateId;
-    timestamp: Timestamp;
-    executedIfThen: boolean;
-    lockInStartedAt?: bigint;
-    lockInEndedAt?: bigint;
-    customObstacleNote?: string;
-}
-export type AvatarShape = Variant_Star_Pentagon_Triangle_Hexagon_Square | null;
-export interface HabitAnalytics {
-    ifThenEffectiveness: IfThenEffectiveness;
-    predictedObstacle?: ObstacleStat;
-    habitName: string;
-    habitId: GoalId;
-    actualObstacles: Array<ObstacleStat>;
-    shownUpDays: bigint;
+export interface CreateMacroGoalRequest {
+    wish: string;
+    themeColor?: string;
+    wishDescription: string;
+    iconName?: string;
     category: GoalCategory;
-}
-export interface Cell {
-    value: Value;
-    name: string;
-}
-export interface ConnectionPublic {
-    id: ConnectionId;
-    status: ConnectionStatus;
-    createdAt: Timestamp;
-    toPrincipal: UserId;
-    fromPrincipal: UserId;
-}
-export type CheckInId = bigint;
-export interface Interaction {
-    id: InteractionId;
-    interactionType: InteractionType;
-    fromPrincipal: UserId;
-    checkInId: CheckInId;
-    timestamp: Timestamp;
-}
-export type Value = {
-    __kind__: "int";
-    int: bigint;
-} | {
-    __kind__: "nat";
-    nat: bigint;
-} | {
-    __kind__: "float";
-    float: number;
-} | {
-    __kind__: "bool";
-    bool: boolean;
-} | {
-    __kind__: "null";
-    null: null;
-} | {
-    __kind__: "text";
-    text: string;
-};
-export interface UpdateHabitRequest {
-    startTime?: string;
-    endTimeMinutes?: bigint;
-    endTime?: string;
-    scheduledDays?: Array<string>;
-    timezoneOffsetMinutes: bigint;
-    startTimeMinutes?: bigint;
-    themeColor?: string;
-    isTimeEdit?: boolean;
-    iconName?: string;
-    ifThenPlan?: string;
-    obstacleTemplateId?: ObstacleTemplateId;
-    isLockIn?: boolean;
-    lockInDurationMinutes?: bigint;
-}
-export type GoalId = bigint;
-export interface ResolveObstacleRequest {
-    labelText: string;
-}
-export type AvatarColor = string | null;
-export interface IfThenEffectiveness {
-    notUsedPlan: FollowThroughRate;
-    usedPlan: FollowThroughRate;
-}
-export type ObstacleTemplateId = bigint;
-export interface UpdateMacroGoalRequest {
-    themeColor?: string;
-    iconName?: string;
-}
-export type ConnectionId = bigint;
-export interface UserProfilePublic {
-    id: UserId;
-    bio?: string;
-    timezone: string;
-    username: string;
-    displayName: string;
-    timezoneOffsetMinutes: bigint;
-    role: UserRole;
-    email?: string;
-    avatarColor: AvatarColor;
-    avatarColorMode: AvatarColorMode;
-    avatarShape: AvatarShape;
+    outcome: string;
 }
 export interface CreateObstacleRequest {
     title: string;
     description: string;
 }
-export type UserId = Principal;
-export interface ObstacleTemplate {
-    id: ObstacleTemplateId;
-    title: string;
-    owner: UserId;
-    description: string;
-}
-export interface Result {
-    hasMore: boolean;
-    rows: Array<Array<Cell>>;
-}
-export type InteractionId = bigint;
-export interface GoalWithHabitsPublic {
-    goal: MacroGoalPublic;
-    habits: Array<HabitPublic>;
+export interface DayOfWeekStat {
+    successes: bigint;
+    total: bigint;
+    dayOfWeek: bigint;
+    rate: number;
+    dayName: string;
 }
 export interface FeedItem {
     checkIn: CheckIn;
@@ -211,22 +96,19 @@ export interface FollowThroughRate {
     total: bigint;
     rate: number;
 }
-export interface PartnerHabitDetail {
+export type GoalId = bigint;
+export interface GoalWithHabitsPublic {
+    goal: MacroGoalPublic;
     habits: Array<HabitPublic>;
-    profile: UserProfilePublic;
 }
-export interface MacroGoalPublic {
-    id: GoalId;
-    owner: UserId;
-    createdAt: Timestamp;
-    wish: string;
-    themeColor?: string;
-    wishDescription: string;
-    iconName?: string;
-    updatedAt: Timestamp;
-    state: GoalState;
+export interface HabitAnalytics {
+    ifThenEffectiveness: IfThenEffectiveness;
+    predictedObstacle?: ObstacleStat;
+    habitName: string;
+    habitId: GoalId;
+    actualObstacles: Array<ObstacleStat>;
+    shownUpDays: bigint;
     category: GoalCategory;
-    outcome: string;
 }
 export interface HabitPublic {
     id: GoalId;
@@ -252,11 +134,129 @@ export interface HabitPublic {
     outcome: string;
     lockInDurationMinutes: bigint;
 }
+export interface IfThenEffectiveness {
+    notUsedPlan: FollowThroughRate;
+    usedPlan: FollowThroughRate;
+}
+export interface Interaction {
+    id: InteractionId;
+    interactionType: InteractionType;
+    fromPrincipal: UserId;
+    checkInId: CheckInId;
+    timestamp: Timestamp;
+}
+export type InteractionId = bigint;
+export interface MacroGoalPublic {
+    id: GoalId;
+    owner: UserId;
+    createdAt: Timestamp;
+    wish: string;
+    themeColor?: string;
+    wishDescription: string;
+    iconName?: string;
+    updatedAt: Timestamp;
+    state: GoalState;
+    category: GoalCategory;
+    outcome: string;
+}
 export interface ObstacleStat {
     obstacleName: string;
     count: bigint;
     obstacleTemplateId?: ObstacleTemplateId;
 }
+export interface ObstacleTemplate {
+    id: ObstacleTemplateId;
+    title: string;
+    owner: UserId;
+    description: string;
+}
+export type ObstacleTemplateId = bigint;
+export interface PartnerHabitDetail {
+    habits: Array<HabitPublic>;
+    profile: UserProfilePublic;
+}
+export interface PartnerOverview {
+    activeHabitCount: bigint;
+    profile: UserProfilePublic;
+    currentStreak: bigint;
+}
+export interface RecordCheckInRequest {
+    timezoneOffsetMinutes: bigint;
+    goalId: GoalId;
+    checkInType: CheckInType;
+    obstacleTemplateId?: ObstacleTemplateId;
+    executedIfThen: boolean;
+    lockInStartedAt?: bigint;
+    lockInEndedAt?: bigint;
+    customObstacleNote?: string;
+}
+export interface ResolveObstacleRequest {
+    labelText: string;
+}
+export interface Result {
+    hasMore: boolean;
+    rows: Array<Array<Cell>>;
+}
+export interface ReusableGoalPublic {
+    id: GoalId;
+    wish: string;
+    wishDescription: string;
+    state: GoalState;
+    category: GoalCategory;
+}
+export type Timestamp = bigint;
+export interface UpdateHabitRequest {
+    startTime?: string;
+    endTimeMinutes?: bigint;
+    endTime?: string;
+    scheduledDays?: Array<string>;
+    timezoneOffsetMinutes: bigint;
+    startTimeMinutes?: bigint;
+    themeColor?: string;
+    isTimeEdit?: boolean;
+    iconName?: string;
+    ifThenPlan?: string;
+    obstacleTemplateId?: ObstacleTemplateId;
+    isLockIn?: boolean;
+    lockInDurationMinutes?: bigint;
+}
+export interface UpdateMacroGoalRequest {
+    themeColor?: string;
+    iconName?: string;
+}
+export type UserId = Principal;
+export interface UserProfilePublic {
+    id: UserId;
+    bio?: string;
+    timezone: string;
+    username: string;
+    displayName: string;
+    timezoneOffsetMinutes: bigint;
+    role: UserRole;
+    email?: string;
+    avatarColor: AvatarColor;
+    avatarColorMode: AvatarColorMode;
+    avatarShape: AvatarShape;
+}
+export type Value = {
+    __kind__: "int";
+    int: bigint;
+} | {
+    __kind__: "nat";
+    nat: bigint;
+} | {
+    __kind__: "float";
+    float: number;
+} | {
+    __kind__: "bool";
+    bool: boolean;
+} | {
+    __kind__: "null";
+    null: null;
+} | {
+    __kind__: "text";
+    text: string;
+};
 export enum AvatarColorMode {
     Fill = "Fill",
     BorderOnly = "BorderOnly"

@@ -32,7 +32,7 @@ import type {
   HabitPublic,
   UpdateHabitRequest,
 } from "../types";
-import { useResolveObstacleLabel } from "../types";
+import { OBSTACLE_TEMPLATES, useResolveObstacleLabel } from "../types";
 import {
   type LockInGoalRef,
   findOverlapGoal as findOverlapGoalShared,
@@ -62,15 +62,6 @@ const EDIT_THEME_COLORS = [
   { id: "slate", value: "#475569" },
   { id: "copper", value: "#C2410C" },
   { id: "teal", value: "#0D9488" },
-];
-
-const EDIT_OBSTACLE_PRESETS = [
-  "Low Energy",
-  "Time Crunch",
-  "Distraction",
-  "Social Pressure",
-  "Travel / Change of Routine",
-  "Poor Sleep",
 ];
 
 const EDIT_ICONS = [
@@ -191,7 +182,9 @@ function GoalEditForm({
 
   // Keep only preset obstacles (custom obstacles are no longer supported)
   const existingPreset = existingObstacles.filter((o) =>
-    EDIT_OBSTACLE_PRESETS.map((p) => p.toLowerCase()).includes(o.toLowerCase()),
+    OBSTACLE_TEMPLATES.map((t) => t.label.toLowerCase()).includes(
+      o.toLowerCase(),
+    ),
   );
 
   // Pre-populate duration wheels from stored startTime/endTime
@@ -416,11 +409,12 @@ function GoalEditForm({
         </Label>
         {/* Preset chips */}
         <div className="flex flex-wrap gap-1.5">
-          {EDIT_OBSTACLE_PRESETS.map((label) => {
+          {OBSTACLE_TEMPLATES.map((template) => {
+            const label = template.label;
             const selected = form.obstacles.includes(label);
             return (
               <button
-                key={label}
+                key={template.id}
                 type="button"
                 onClick={() => togglePreset(label)}
                 data-ocid={`goals.edit_obstacle_${label.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`}

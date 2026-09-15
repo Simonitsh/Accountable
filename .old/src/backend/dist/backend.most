@@ -168,7 +168,7 @@ type Connection__958172943 =
     var status : ConnectionStatus__476958165;
     toPrincipal : Principal
   };
-type Data__265875254<K, V> = {var count : Nat__58649523; kvs : [var ?(K, V)]};
+type Data__44217153<K, V> = {var count : Nat__227979830; kvs : [var ?(K, V)]};
 type GoalCategory__13320071 =
   {#Health; #Learning; #Leisure; #Productivity; #Social};
 type GoalCategory__161294933 =
@@ -340,91 +340,91 @@ type Interaction__699697562 =
     interactionType : InteractionType__991750817;
     timestamp : Int
   };
-type Internal__161573640<K, V> =
-  {children : [var ?Node__430031793<K, V>]; data : Data__265875254<K, V>};
-type Leaf__1045638083<K, V> = {data : Data__265875254<K, V>};
-type List__1004628775<T> =
+type Internal__283199666<K, V> =
+  {children : [var ?Node__204828119<K, V>]; data : Data__44217153<K, V>};
+type Leaf__598469445<K, V> = {data : Data__44217153<K, V>};
+type List__355132335<T> =
   {
-    var blockIndex : Nat__58649523;
+    var blockIndex : Nat__227979830;
     var blocks : [var [var ?T]];
-    var elementIndex : Nat__58649523
+    var elementIndex : Nat__227979830
   };
-type List__89170296<T> = List__1004628775<T>;
-type Map__13625999<K, V> =
-  {var root : Node__430031793<K, V>; var size : Nat__58649523};
-type Map__386906547<K, V> = Map__670138087<K, V>;
-type Map__670138087<K, V> = Map__13625999<K, V>;
-type Nat__58649523 = Nat__920180692;
+type List__836382695<T> = List__355132335<T>;
+type Map__230067015<K, V> = Map__405889023<K, V>;
+type Map__405889023<K, V> = Map__603270868<K, V>;
+type Map__603270868<K, V> =
+  {var root : Node__204828119<K, V>; var size : Nat__227979830};
+type Nat__227979830 = Nat__920180692;
 type Nat__920180692 = Nat;
 type NewActor__234370823 =
   {
-    checkIns : List__89170296<CheckIn__85332932>;
-    connections : List__89170296<Connection__495383401>;
-    goals : List__89170296<Goal__684986154>;
-    interactions : List__89170296<Interaction__699697562>;
+    checkIns : List__836382695<CheckIn__85332932>;
+    connections : List__836382695<Connection__495383401>;
+    goals : List__836382695<Goal__684986154>;
+    interactions : List__836382695<Interaction__699697562>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__71724481>;
-    profiles : Map__386906547<Principal, UserProfile__442158699>
+    obstacleTemplates : List__836382695<ObstacleTemplate__71724481>;
+    profiles : Map__230067015<Principal, UserProfile__442158699>
   };
 type NewActor__280465323 =
   {
-    checkIns : List__89170296<CheckIn__1031332090>;
-    connections : List__89170296<Connection__922696786>;
-    goals : List__89170296<NewGoal__387772817>;
-    interactions : List__89170296<Interaction__632620706>;
+    checkIns : List__836382695<CheckIn__1031332090>;
+    connections : List__836382695<Connection__922696786>;
+    goals : List__836382695<NewGoal__387772817>;
+    interactions : List__836382695<Interaction__632620706>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__814147267>;
-    profiles : Map__386906547<Principal, UserProfile__750612286>
+    obstacleTemplates : List__836382695<ObstacleTemplate__814147267>;
+    profiles : Map__230067015<Principal, UserProfile__750612286>
   };
 type NewActor__687382730 =
   {
-    checkIns : List__89170296<CheckIn__924130555>;
-    connections : List__89170296<Connection__1022826935>;
-    goals : List__89170296<Goal__857474235>;
-    interactions : List__89170296<Interaction__118900069>;
+    checkIns : List__836382695<CheckIn__924130555>;
+    connections : List__836382695<Connection__1022826935>;
+    goals : List__836382695<Goal__857474235>;
+    interactions : List__836382695<Interaction__118900069>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__1006382060>;
-    profiles : Map__386906547<Principal, UserProfile__1045268795>
+    obstacleTemplates : List__836382695<ObstacleTemplate__1006382060>;
+    profiles : Map__230067015<Principal, UserProfile__1045268795>
   };
 type NewActor__746836280 =
   {
-    checkIns : List__89170296<CheckIn__159274937>;
-    connections : List__89170296<Connection__58224560>;
-    goals : List__89170296<Goal__920983468>;
-    interactions : List__89170296<Interaction__381793954>;
+    checkIns : List__836382695<CheckIn__159274937>;
+    connections : List__836382695<Connection__58224560>;
+    goals : List__836382695<Goal__920983468>;
+    interactions : List__836382695<Interaction__381793954>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__538809208>;
-    profiles : Map__386906547<Principal, UserProfile__155337192>
+    obstacleTemplates : List__836382695<ObstacleTemplate__538809208>;
+    profiles : Map__230067015<Principal, UserProfile__155337192>
   };
 type NewActor__858795446 =
   {
-    checkIns : List__89170296<CheckIn__648676375>;
-    connections : List__89170296<Connection__958172943>;
-    goals : List__89170296<NewGoal__151231491>;
-    interactions : List__89170296<Interaction__5991596>;
+    checkIns : List__836382695<CheckIn__648676375>;
+    connections : List__836382695<Connection__958172943>;
+    goals : List__836382695<NewGoal__151231491>;
+    interactions : List__836382695<Interaction__5991596>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__118614227>;
-    profiles : Map__386906547<Principal, UserProfile__974196033>
+    obstacleTemplates : List__836382695<ObstacleTemplate__118614227>;
+    profiles : Map__230067015<Principal, UserProfile__974196033>
   };
 type NewGoalState__375925966 = {#active; #completed; #paused};
 type NewGoal__151231491 =
@@ -477,8 +477,8 @@ type NewGoal__387772817 =
     var wish : Text;
     var wishDescription : Text
   };
-type Node__430031793<K, V> =
-  {#internal : Internal__161573640<K, V>; #leaf : Leaf__1045638083<K, V>};
+type Node__204828119<K, V> =
+  {#internal : Internal__283199666<K, V>; #leaf : Leaf__598469445<K, V>};
 type ObstacleTemplateId__228170292 = Nat;
 type ObstacleTemplate__1006382060 =
   {description : Text; id : Nat; owner : Principal; title : Text};
@@ -499,73 +499,73 @@ type ObstacleTemplate__814147267 =
   {description : Text; id : Nat; owner : Principal; title : Text};
 type OldActor__1057455195 =
   {
-    checkIns : List__89170296<CheckIn__85332932>;
-    connections : List__89170296<Connection__495383401>;
-    goals : List__89170296<Goal__684986154>;
-    interactions : List__89170296<Interaction__699697562>;
+    checkIns : List__836382695<CheckIn__85332932>;
+    connections : List__836382695<Connection__495383401>;
+    goals : List__836382695<Goal__684986154>;
+    interactions : List__836382695<Interaction__699697562>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__71724481>;
-    profiles : Map__386906547<Principal, UserProfile__442158699>
+    obstacleTemplates : List__836382695<ObstacleTemplate__71724481>;
+    profiles : Map__230067015<Principal, UserProfile__442158699>
   };
 type OldActor__227222829 =
   {
-    checkIns : List__89170296<CheckIn__1031332090>;
-    connections : List__89170296<Connection__922696786>;
-    goals : List__89170296<OldGoal__203712811>;
-    interactions : List__89170296<Interaction__632620706>;
+    checkIns : List__836382695<CheckIn__1031332090>;
+    connections : List__836382695<Connection__922696786>;
+    goals : List__836382695<OldGoal__203712811>;
+    interactions : List__836382695<Interaction__632620706>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__814147267>;
-    profiles : Map__386906547<Principal, UserProfile__750612286>
+    obstacleTemplates : List__836382695<ObstacleTemplate__814147267>;
+    profiles : Map__230067015<Principal, UserProfile__750612286>
   };
 type OldActor__393743114 =
   {
-    checkIns : List__89170296<CheckIn__648676375>;
-    connections : List__89170296<Connection__958172943>;
-    goals : List__89170296<OldGoal__894856465>;
-    interactions : List__89170296<Interaction__5991596>;
+    checkIns : List__836382695<CheckIn__648676375>;
+    connections : List__836382695<Connection__958172943>;
+    goals : List__836382695<OldGoal__894856465>;
+    interactions : List__836382695<Interaction__5991596>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__118614227>;
-    profiles : Map__386906547<Principal, UserProfile__974196033>
+    obstacleTemplates : List__836382695<ObstacleTemplate__118614227>;
+    profiles : Map__230067015<Principal, UserProfile__974196033>
   };
 type OldActor__866877789 =
   {
-    checkIns : List__89170296<CheckIn__159274937>;
-    connections : List__89170296<Connection__58224560>;
-    goals : List__89170296<Goal__920983468>;
-    interactions : List__89170296<Interaction__381793954>;
+    checkIns : List__836382695<CheckIn__159274937>;
+    connections : List__836382695<Connection__58224560>;
+    goals : List__836382695<Goal__920983468>;
+    interactions : List__836382695<Interaction__381793954>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__538809208>;
-    profiles : Map__386906547<Principal, UserProfile__155337192>
+    obstacleTemplates : List__836382695<ObstacleTemplate__538809208>;
+    profiles : Map__230067015<Principal, UserProfile__155337192>
   };
 type OldActor__903587445 =
   {
-    checkIns : List__89170296<CheckIn__924130555>;
-    connections : List__89170296<Connection__1022826935>;
-    goals : List__89170296<Goal__857474235>;
-    interactions : List__89170296<Interaction__118900069>;
+    checkIns : List__836382695<CheckIn__924130555>;
+    connections : List__836382695<Connection__1022826935>;
+    goals : List__836382695<Goal__857474235>;
+    interactions : List__836382695<Interaction__118900069>;
     nextCheckInId : [var Nat];
     nextConnectionId : [var Nat];
     nextGoalId : [var Nat];
     nextInteractionId : [var Nat];
     nextObstacleTemplateId : [var Nat];
-    obstacleTemplates : List__89170296<ObstacleTemplate__1006382060>;
-    profiles : Map__386906547<Principal, UserProfile__1045268795>
+    obstacleTemplates : List__836382695<ObstacleTemplate__1006382060>;
+    profiles : Map__230067015<Principal, UserProfile__1045268795>
   };
 type OldGoalState__527508590 = {#abandoned; #active; #completed; #paused};
 type OldGoal__203712811 =
@@ -725,27 +725,27 @@ type UserRole__977768852 = {#admin; #user};
 actor  {
   stable checkIns :
     {
-      var blockIndex : Nat__58649523;
+      var blockIndex : Nat__227979830;
       var blocks : [var [var ?CheckIn__661112040]];
-      var elementIndex : Nat__58649523
+      var elementIndex : Nat__227979830
     };
   stable connections :
     {
-      var blockIndex : Nat__58649523;
+      var blockIndex : Nat__227979830;
       var blocks : [var [var ?Connection__54064141]];
-      var elementIndex : Nat__58649523
+      var elementIndex : Nat__227979830
     };
   stable goals :
     {
-      var blockIndex : Nat__58649523;
+      var blockIndex : Nat__227979830;
       var blocks : [var [var ?Goal__520167328]];
-      var elementIndex : Nat__58649523
+      var elementIndex : Nat__227979830
     };
   stable interactions :
     {
-      var blockIndex : Nat__58649523;
+      var blockIndex : Nat__227979830;
       var blocks : [var [var ?Interaction__467696781]];
-      var elementIndex : Nat__58649523
+      var elementIndex : Nat__227979830
     };
   stable nextCheckInId : [var Nat];
   stable nextConnectionId : [var Nat];
@@ -754,13 +754,13 @@ actor  {
   stable nextObstacleTemplateId : [var Nat];
   stable obstacleTemplates :
     {
-      var blockIndex : Nat__58649523;
+      var blockIndex : Nat__227979830;
       var blocks : [var [var ?ObstacleTemplate__309430647]];
-      var elementIndex : Nat__58649523
+      var elementIndex : Nat__227979830
     };
   stable profiles :
     {
-      var root : Node__430031793<UserId__158757552, UserProfile__775633023>;
-      var size : Nat__58649523
+      var root : Node__204828119<UserId__158757552, UserProfile__775633023>;
+      var size : Nat__227979830
     }
 };

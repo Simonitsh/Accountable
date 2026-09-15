@@ -91181,14 +91181,6 @@ const EDIT_THEME_COLORS = [
   { id: "copper", value: "#C2410C" },
   { id: "teal", value: "#0D9488" }
 ];
-const EDIT_OBSTACLE_PRESETS = [
-  "Low Energy",
-  "Time Crunch",
-  "Distraction",
-  "Social Pressure",
-  "Travel / Change of Routine",
-  "Poor Sleep"
-];
 const EDIT_ICONS = [
   "target",
   "flame",
@@ -91243,7 +91235,9 @@ function GoalEditForm({
 }) {
   const existingObstacles = goal.outcome ? goal.outcome.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const existingPreset = existingObstacles.filter(
-    (o2) => EDIT_OBSTACLE_PRESETS.map((p2) => p2.toLowerCase()).includes(o2.toLowerCase())
+    (o2) => OBSTACLE_TEMPLATES.map((t) => t.label.toLowerCase()).includes(
+      o2.toLowerCase()
+    )
   );
   const initDuration = (() => {
     if ((goal.isLockIn ?? false) && goal.startTime && goal.endTime) {
@@ -91425,7 +91419,8 @@ function GoalEditForm({
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-mono uppercase tracking-widest text-muted-foreground", children: "Obstacles" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5", children: EDIT_OBSTACLE_PRESETS.map((label) => {
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5", children: OBSTACLE_TEMPLATES.map((template) => {
+            const label = template.label;
             const selected = form.obstacles.includes(label);
             return /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
@@ -91445,7 +91440,7 @@ function GoalEditForm({
                 },
                 children: label
               },
-              label
+              template.id
             );
           }) }),
           form.obstacles.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-muted-foreground/60", children: [
