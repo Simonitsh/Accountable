@@ -32954,7 +32954,6 @@ const HabitPublic = Record({
 });
 const CreateMacroGoalRequest = Record({
   "wish": Text,
-  "themeColor": Opt(Text),
   "wishDescription": Text,
   "iconName": Opt(Text),
   "category": GoalCategory$1,
@@ -32965,7 +32964,6 @@ const MacroGoalPublic = Record({
   "owner": UserId,
   "createdAt": Timestamp,
   "wish": Text,
-  "themeColor": Opt(Text),
   "wishDescription": Text,
   "iconName": Opt(Text),
   "updatedAt": Timestamp,
@@ -33166,7 +33164,6 @@ const UpdateHabitRequest = Record({
   "lockInDurationMinutes": Opt(Nat)
 });
 const UpdateMacroGoalRequest = Record({
-  "themeColor": Opt(Text),
   "iconName": Opt(Text)
 });
 Service({
@@ -33362,7 +33359,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const CreateMacroGoalRequest2 = IDL2.Record({
     "wish": IDL2.Text,
-    "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Text,
     "iconName": IDL2.Opt(IDL2.Text),
     "category": GoalCategory2,
@@ -33373,7 +33369,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "owner": UserId2,
     "createdAt": Timestamp2,
     "wish": IDL2.Text,
-    "themeColor": IDL2.Opt(IDL2.Text),
     "wishDescription": IDL2.Text,
     "iconName": IDL2.Opt(IDL2.Text),
     "updatedAt": Timestamp2,
@@ -33573,10 +33568,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "isLockIn": IDL2.Opt(IDL2.Bool),
     "lockInDurationMinutes": IDL2.Opt(IDL2.Nat)
   });
-  const UpdateMacroGoalRequest2 = IDL2.Record({
-    "themeColor": IDL2.Opt(IDL2.Text),
-    "iconName": IDL2.Opt(IDL2.Text)
-  });
+  const UpdateMacroGoalRequest2 = IDL2.Record({ "iconName": IDL2.Opt(IDL2.Text) });
   return IDL2.Service({
     "createHabit": IDL2.Func(
       [CreateHabitRequest2],
@@ -34543,7 +34535,6 @@ function from_candid_record_n19(_uploadFile, _downloadFile, value) {
     owner: value.owner,
     createdAt: value.createdAt,
     wish: value.wish,
-    themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
     wishDescription: value.wishDescription,
     iconName: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.iconName)),
     updatedAt: value.updatedAt,
@@ -34952,14 +34943,12 @@ function to_candid_record_n103(_uploadFile, _downloadFile, value) {
 }
 function to_candid_record_n105(_uploadFile, _downloadFile, value) {
   return {
-    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     iconName: value.iconName ? candid_some(value.iconName) : candid_none()
   };
 }
 function to_candid_record_n14(_uploadFile, _downloadFile, value) {
   return {
     wish: value.wish,
-    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
     wishDescription: value.wishDescription,
     iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
     category: to_candid_GoalCategory_n15(_uploadFile, _downloadFile, value.category),
@@ -79796,10 +79785,9 @@ function GoalCard$1({
   const isMissedCheckOut = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut";
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
   const hasIfThenPlan = !!((_a3 = goal.ifThenPlan) == null ? void 0 : _a3.trim());
-  const themeColor = goal.themeColor;
   const rawWishDescription = goal.wishDescription || goal.wish;
   const keystoneText2 = rawWishDescription.startsWith("Every day, I will ") ? `I will ${rawWishDescription.slice("Every day, I will ".length)}` : rawWishDescription.startsWith("Every day ,") ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}` : rawWishDescription;
-  const cardBgIdle = themeColor ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))` : "oklch(var(--card))";
+  const cardBgIdle = "color-mix(in srgb, oklch(var(--goal-wizard-gold)) 8%, oklch(var(--card)))";
   function getCardStyle() {
     const embossed = isDarkMode ? "-5px -5px 14px rgba(70,70,80,0.55), 8px 8px 20px rgba(0,0,0,0.9)" : "-5px -5px 14px rgba(90,90,100,0.6), 8px 8px 20px rgba(0,0,0,0.75)";
     const litBorderOpacity = isDarkMode ? 0.12 : 0.18;
@@ -81621,22 +81609,11 @@ const STEPS = [
   { id: 3, label: "Outcome" },
   { id: 4, label: "Confirm" }
 ];
-const THEME_COLORS$2 = [
-  { id: "emerald", label: "Emerald", value: "#10B981" },
-  { id: "gold", label: "Gold", value: "#D4AF37" },
-  { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
-  { id: "sapphire", label: "Sapphire", value: "#2563EB" },
-  { id: "rose", label: "Rose", value: "#E11D48" },
-  { id: "teal", label: "Teal", value: "#0D9488" },
-  { id: "copper", label: "Copper", value: "#C2410C" },
-  { id: "slate", label: "Slate", value: "#475569" }
-];
 const EMPTY$1 = {
   category: "",
   wish: "",
   outcome: "",
-  iconName: "target",
-  themeColor: "#10B981"
+  iconName: "target"
 };
 function findSimilarGoal(existing, wish) {
   const trimmed = wish.trim().toLowerCase();
@@ -81759,8 +81736,7 @@ function GoalWizard({
         // carries the user's desired outcome alongside the wish.
         wishDescription: form.outcome.trim(),
         outcome: form.outcome.trim(),
-        iconName: form.iconName || void 0,
-        themeColor: form.themeColor || void 0
+        iconName: form.iconName || void 0
       });
       if (created.__kind__ === "err") throw new Error(created.err);
       return created.ok;
@@ -81795,7 +81771,7 @@ function GoalWizard({
   }, [onClose]);
   const isFormDirty = reactExports.useCallback(() => {
     if (step > 1) return true;
-    return form.category !== EMPTY$1.category || form.wish !== EMPTY$1.wish || form.outcome !== EMPTY$1.outcome || form.iconName !== EMPTY$1.iconName || form.themeColor !== EMPTY$1.themeColor;
+    return form.category !== EMPTY$1.category || form.wish !== EMPTY$1.wish || form.outcome !== EMPTY$1.outcome || form.iconName !== EMPTY$1.iconName;
   }, [step, form]);
   const requestClose = reactExports.useCallback(() => {
     if (isFormDirty()) {
@@ -82579,66 +82555,6 @@ function GoalWizard({
                                     children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 block", children: icon.svg })
                                   },
                                   icon.id
-                                );
-                              })
-                            }
-                          )
-                        ] }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "p",
-                            {
-                              className: "text-xs font-mono tracking-widest uppercase",
-                              style: {
-                                color: "oklch(var(--muted-foreground))"
-                              },
-                              children: "Theme Color"
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "div",
-                            {
-                              className: "flex flex-wrap gap-4",
-                              "data-ocid": "goal_wizard.color_selector",
-                              children: THEME_COLORS$2.map((color2) => {
-                                const isColorSelected = form.themeColor === color2.value;
-                                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                                  "div",
-                                  {
-                                    className: "flex flex-col items-center gap-2",
-                                    children: [
-                                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                        "button",
-                                        {
-                                          type: "button",
-                                          onClick: () => setForm((f2) => ({
-                                            ...f2,
-                                            themeColor: color2.value
-                                          })),
-                                          "aria-label": color2.label,
-                                          "aria-pressed": isColorSelected,
-                                          "data-ocid": `goal_wizard.color.${color2.id}`,
-                                          className: "w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                          style: {
-                                            backgroundColor: color2.value,
-                                            boxShadow: isColorSelected ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color2.value}, 0 0 14px 3px ${color2.value}66` : "inset 0 1px 2px rgba(0,0,0,0.3)",
-                                            transform: isColorSelected ? "scale(1.2)" : "scale(1)"
-                                          }
-                                        }
-                                      ),
-                                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                        "span",
-                                        {
-                                          className: "text-xs font-mono",
-                                          style: {
-                                            color: "oklch(var(--muted-foreground))"
-                                          },
-                                          children: color2.label
-                                        }
-                                      )
-                                    ]
-                                  },
-                                  color2.id
                                 );
                               })
                             }
@@ -85641,7 +85557,7 @@ function GoalGroupHeader({
             children: (_a3 = group.goal) == null ? void 0 : _a3.wish
           }
         ) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
           "span",
           {
             className: "inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full text-[0.65rem] font-medium uppercase tracking-wider",
@@ -85651,10 +85567,7 @@ function GoalGroupHeader({
               border: "1px solid oklch(var(--goal-wizard-gold) / 0.35)",
               boxShadow: "inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(90,90,70,0.15)"
             },
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(CategoryIcon, { size: 11, style: { color: categoryColor } }),
-              categoryTitle
-            ]
+            children: categoryTitle
           }
         )
       ]
@@ -87491,7 +87404,7 @@ function EditHabitPage$1() {
     setObstacles(
       (prev) => isAdding ? [...prev, chip] : prev.filter((o2) => o2.id !== chip.id)
     );
-    if (isAdding && chip.kind === "builtin") {
+    if (isAdding) {
       void resolveObstacleLabel(chip.label).then(
         (id22) => setObstacleTemplateIds((prev) => ({ ...prev, [chip.label]: id22 }))
       ).catch(() => {
@@ -92867,7 +92780,7 @@ function GoalCard({
   const cat = categoryDetail(goal.category);
   const CatIcon = cat.icon;
   const iconSvg = goalIconSvg(goal.iconName);
-  const accent = goal.themeColor ?? "oklch(var(--color-accent-success))";
+  const accent = "oklch(var(--goal-wizard-gold))";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     GoalCardShell,
     {

@@ -329,7 +329,9 @@ function GoalCard({
   const cat = categoryDetail(goal.category);
   const CatIcon = cat.icon;
   const iconSvg = goalIconSvg(goal.iconName);
-  const accent = goal.themeColor ?? "oklch(var(--color-accent-success))";
+  // Goals always use the fixed gold accent (same as the dashboard goal
+  // header). Goals have no selectable color — the accent can never vary.
+  const accent = "oklch(var(--goal-wizard-gold))";
 
   return (
     <GoalCardShell

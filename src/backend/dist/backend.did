@@ -27,11 +27,7 @@ type UserProfilePublic =
    username: text;
  };
 type UserId = principal;
-type UpdateMacroGoalRequest = 
- record {
-   iconName: opt text;
-   themeColor: opt text;
- };
+type UpdateMacroGoalRequest = record {iconName: opt text;};
 type UpdateHabitRequest = 
  record {
    endTime: opt text;
@@ -113,7 +109,6 @@ type MacroGoalPublic =
    outcome: text;
    owner: UserId;
    state: GoalState;
-   themeColor: opt text;
    updatedAt: Timestamp;
    wish: text;
    wishDescription: text;
@@ -216,7 +211,6 @@ type CreateMacroGoalRequest =
    category: GoalCategory;
    iconName: opt text;
    outcome: text;
-   themeColor: opt text;
    wish: text;
    wishDescription: text;
  };

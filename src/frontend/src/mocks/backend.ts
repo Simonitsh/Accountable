@@ -297,7 +297,6 @@ export const mockBackend: backendInterface = {
       wishDescription: request.wishDescription,
       outcome: request.outcome,
       state: GoalState.active,
-      themeColor: request.themeColor,
       iconName: request.iconName,
       category: request.category,
     },
@@ -318,7 +317,6 @@ export const mockBackend: backendInterface = {
       ok: {
         ...found,
         id: goalId,
-        themeColor: request.themeColor ?? found.themeColor,
         iconName: request.iconName ?? found.iconName,
         updatedAt: BigInt(Date.now()) * BigInt(1_000_000),
       },

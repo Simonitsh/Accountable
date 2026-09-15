@@ -76,6 +76,9 @@ module {
     createdAt : Common.Timestamp;
     var updatedAt : Common.Timestamp;
     var iconName : ?Text;
+    // Habit color — meaningful only on habits (goalId set). Macro goals never
+    // carry a custom color; this field is retained on the shared storage record
+    // so habits can keep their own color picker.
     var themeColor : ?Text;
     // Lock-In + schedule fields — meaningful only on habits (goalId set).
     // Macro goals keep these null/zero.
@@ -103,7 +106,6 @@ module {
     createdAt : Common.Timestamp;
     updatedAt : Common.Timestamp;
     iconName : ?Text;
-    themeColor : ?Text;
     category : GoalCategory;
   };
 
@@ -159,7 +161,6 @@ module {
     wishDescription : Text;
     outcome : Text;
     iconName : ?Text;
-    themeColor : ?Text;
     category : GoalCategory;
   };
 
@@ -218,7 +219,6 @@ module {
   /// are editable.
   public type UpdateMacroGoalRequest = {
     iconName : ?Text;
-    themeColor : ?Text;
   };
 
   /// Typed error variants for goal operations.

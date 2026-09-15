@@ -63,7 +63,7 @@ function obstacleLabelForId(id: bigint | undefined): string | undefined {
 interface SelectedObstacle {
   id: string;
   label: string;
-  kind: "builtin" | "custom";
+  kind: "builtin";
 }
 
 const sectionLabel =
@@ -285,7 +285,7 @@ export function EditHabitPage() {
     // Resolve the built-in label to a real, reusable obstacle template id
     // (find-or-create). The first pick creates the record; every later pick
     // of the same label reuses the same one — the existing dedup pattern.
-    if (isAdding && chip.kind === "builtin") {
+    if (isAdding) {
       void resolveObstacleLabel(chip.label)
         .then((id) =>
           setObstacleTemplateIds((prev) => ({ ...prev, [chip.label]: id })),

@@ -32,9 +32,10 @@ import { GOAL_ICONS } from "../utils/goalIcons";
  * Captures: category, wish, outcome (wishDescription) — extensible for more
  * inputs later. On submit calls actor.createMacroGoal() with
  * CreateMacroGoalRequest (category, wish, wishDescription as outcome,
- * iconName, themeColor). The backend's CreateMacroGoalRequest has an `outcome`
- * field; this wizard maps the user's "outcome" input to that field and leaves
- * `wishDescription` as a short summary derived from the wish.
+ * iconName). Goals use a fixed gold accent (same as the dashboard goal
+ * header) and have no selectable color. The backend's CreateMacroGoalRequest
+ * has an `outcome` field; this wizard maps the user's "outcome" input to that
+ * field and leaves `wishDescription` as a short summary derived from the wish.
  */
 
 const TOTAL_STEPS = 4;
@@ -45,17 +46,6 @@ const STEPS = [
   { id: 3, label: "Outcome" },
   { id: 4, label: "Confirm" },
 ] as const;
-
-const THEME_COLORS = [
-  { id: "emerald", label: "Emerald", value: "#10B981" },
-  { id: "gold", label: "Gold", value: "#D4AF37" },
-  { id: "amethyst", label: "Amethyst", value: "#7C3AED" },
-  { id: "sapphire", label: "Sapphire", value: "#2563EB" },
-  { id: "rose", label: "Rose", value: "#E11D48" },
-  { id: "teal", label: "Teal", value: "#0D9488" },
-  { id: "copper", label: "Copper", value: "#C2410C" },
-  { id: "slate", label: "Slate", value: "#475569" },
-];
 
 interface GoalWizardProps {
   open: boolean;
@@ -71,7 +61,6 @@ interface FormState {
   wish: string;
   outcome: string;
   iconName: string;
-  themeColor: string;
 }
 
 type StepError = Partial<Record<"category" | "wish" | "outcome", string>>;
@@ -81,7 +70,6 @@ const EMPTY: FormState = {
   wish: "",
   outcome: "",
   iconName: "target",
-  themeColor: "#10B981",
 };
 
 /**
@@ -238,7 +226,6 @@ export default function GoalWizard({
         wishDescription: form.outcome.trim(),
         outcome: form.outcome.trim(),
         iconName: form.iconName || undefined,
-        themeColor: form.themeColor || undefined,
       });
       if (created.__kind__ === "err") throw new Error(created.err);
       return created.ok;
@@ -279,8 +266,7 @@ export default function GoalWizard({
       form.category !== EMPTY.category ||
       form.wish !== EMPTY.wish ||
       form.outcome !== EMPTY.outcome ||
-      form.iconName !== EMPTY.iconName ||
-      form.themeColor !== EMPTY.themeColor
+      form.iconName !== EMPTY.iconName
     );
   }, [step, form]);
 
@@ -1089,63 +1075,6 @@ export default function GoalWizard({
                         >
                           <span className="w-6 h-6 block">{icon.svg}</span>
                         </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Theme color picker */}
-                <div className="space-y-3">
-                  <p
-                    className="text-xs font-mono tracking-widest uppercase"
-                    style={{
-                      color: "oklch(var(--muted-foreground))",
-                    }}
-                  >
-                    Theme Color
-                  </p>
-                  <div
-                    className="flex flex-wrap gap-4"
-                    data-ocid="goal_wizard.color_selector"
-                  >
-                    {THEME_COLORS.map((color) => {
-                      const isColorSelected = form.themeColor === color.value;
-                      return (
-                        <div
-                          key={color.id}
-                          className="flex flex-col items-center gap-2"
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setForm((f) => ({
-                                ...f,
-                                themeColor: color.value,
-                              }))
-                            }
-                            aria-label={color.label}
-                            aria-pressed={isColorSelected}
-                            data-ocid={`goal_wizard.color.${color.id}`}
-                            className="w-11 h-11 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            style={{
-                              backgroundColor: color.value,
-                              boxShadow: isColorSelected
-                                ? `0 0 0 3px oklch(var(--card)), 0 0 0 5px ${color.value}, 0 0 14px 3px ${color.value}66`
-                                : "inset 0 1px 2px rgba(0,0,0,0.3)",
-                              transform: isColorSelected
-                                ? "scale(1.2)"
-                                : "scale(1)",
-                            }}
-                          />
-                          <span
-                            className="text-xs font-mono"
-                            style={{
-                              color: "oklch(var(--muted-foreground))",
-                            }}
-                          >
-                            {color.label}
-                          </span>
-                        </div>
                       );
                     })}
                   </div>

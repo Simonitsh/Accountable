@@ -64,7 +64,6 @@ export const HabitPublic = IDL.Record({
 });
 export const CreateMacroGoalRequest = IDL.Record({
   'wish' : IDL.Text,
-  'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Text,
   'iconName' : IDL.Opt(IDL.Text),
   'category' : GoalCategory,
@@ -75,7 +74,6 @@ export const MacroGoalPublic = IDL.Record({
   'owner' : UserId,
   'createdAt' : Timestamp,
   'wish' : IDL.Text,
-  'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Text,
   'iconName' : IDL.Opt(IDL.Text),
   'updatedAt' : Timestamp,
@@ -276,7 +274,6 @@ export const UpdateHabitRequest = IDL.Record({
   'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
 });
 export const UpdateMacroGoalRequest = IDL.Record({
-  'themeColor' : IDL.Opt(IDL.Text),
   'iconName' : IDL.Opt(IDL.Text),
 });
 
@@ -476,7 +473,6 @@ export const idlFactory = ({ IDL }) => {
   });
   const CreateMacroGoalRequest = IDL.Record({
     'wish' : IDL.Text,
-    'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Text,
     'iconName' : IDL.Opt(IDL.Text),
     'category' : GoalCategory,
@@ -487,7 +483,6 @@ export const idlFactory = ({ IDL }) => {
     'owner' : UserId,
     'createdAt' : Timestamp,
     'wish' : IDL.Text,
-    'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Text,
     'iconName' : IDL.Opt(IDL.Text),
     'updatedAt' : Timestamp,
@@ -687,10 +682,7 @@ export const idlFactory = ({ IDL }) => {
     'isLockIn' : IDL.Opt(IDL.Bool),
     'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
   });
-  const UpdateMacroGoalRequest = IDL.Record({
-    'themeColor' : IDL.Opt(IDL.Text),
-    'iconName' : IDL.Opt(IDL.Text),
-  });
+  const UpdateMacroGoalRequest = IDL.Record({ 'iconName' : IDL.Opt(IDL.Text) });
   
   return IDL.Service({
     'createHabit' : IDL.Func(

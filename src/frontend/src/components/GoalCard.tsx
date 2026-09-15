@@ -396,7 +396,6 @@ export function GoalCard({
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
   // Whether this habit has an if-then plan set — gates the optional success note.
   const hasIfThenPlan = !!goal.ifThenPlan?.trim();
-  const themeColor = goal.themeColor;
   const rawWishDescription = goal.wishDescription || goal.wish;
   // Strip the wizard-assembled prefix "Every day, I will " → display "I will …"
   const keystoneText = rawWishDescription.startsWith("Every day, I will ")
@@ -405,9 +404,11 @@ export function GoalCard({
       ? `I will ${rawWishDescription.slice("Every day ,".length).trimStart()}`
       : rawWishDescription;
 
-  const cardBgIdle = themeColor
-    ? `color-mix(in srgb, ${themeColor} 8%, oklch(var(--card)))`
-    : "oklch(var(--card))";
+  // Dashboard goal card background tint — always the fixed gold accent (same
+  // as the dashboard goal header). Goals have no selectable color, so the
+  // tint can never vary per goal.
+  const cardBgIdle =
+    "color-mix(in srgb, oklch(var(--goal-wizard-gold)) 8%, oklch(var(--card)))";
 
   // ── Card style ────────────────────────────────────────────────────────────────
   function getCardStyle(): React.CSSProperties {

@@ -689,7 +689,6 @@ function GoalGroupHeader({
             "inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(90,90,70,0.15)",
         }}
       >
-        <CategoryIcon size={11} style={{ color: categoryColor }} />
         {categoryTitle}
       </span>
     </div>

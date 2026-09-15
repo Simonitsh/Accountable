@@ -111,7 +111,6 @@ export interface CreateHabitRequest {
 }
 export interface CreateMacroGoalRequest {
     wish: string;
-    themeColor?: string;
     wishDescription: string;
     iconName?: string;
     category: GoalCategory;
@@ -192,7 +191,6 @@ export interface MacroGoalPublic {
     owner: UserId;
     createdAt: Timestamp;
     wish: string;
-    themeColor?: string;
     wishDescription: string;
     iconName?: string;
     updatedAt: Timestamp;
@@ -262,7 +260,6 @@ export interface UpdateHabitRequest {
     lockInDurationMinutes?: bigint;
 }
 export interface UpdateMacroGoalRequest {
-    themeColor?: string;
     iconName?: string;
 }
 export type UserId = Principal;
@@ -1321,7 +1318,6 @@ function from_candid_record_n19(_uploadFile: (file: ExternalBlob) => Promise<Uin
     owner: _UserId;
     createdAt: _Timestamp;
     wish: string;
-    themeColor: [] | [string];
     wishDescription: string;
     iconName: [] | [string];
     updatedAt: _Timestamp;
@@ -1333,7 +1329,6 @@ function from_candid_record_n19(_uploadFile: (file: ExternalBlob) => Promise<Uin
     owner: UserId;
     createdAt: Timestamp;
     wish: string;
-    themeColor?: string;
     wishDescription: string;
     iconName?: string;
     updatedAt: Timestamp;
@@ -1346,7 +1341,6 @@ function from_candid_record_n19(_uploadFile: (file: ExternalBlob) => Promise<Uin
         owner: value.owner,
         createdAt: value.createdAt,
         wish: value.wish,
-        themeColor: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.themeColor)),
         wishDescription: value.wishDescription,
         iconName: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.iconName)),
         updatedAt: value.updatedAt,
@@ -2218,27 +2212,22 @@ function to_candid_record_n103(_uploadFile: (file: ExternalBlob) => Promise<Uint
     };
 }
 function to_candid_record_n105(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    themeColor?: string;
     iconName?: string;
 }): {
-    themeColor: [] | [string];
     iconName: [] | [string];
 } {
     return {
-        themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
         iconName: value.iconName ? candid_some(value.iconName) : candid_none()
     };
 }
 function to_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     wish: string;
-    themeColor?: string;
     wishDescription: string;
     iconName?: string;
     category: GoalCategory;
     outcome: string;
 }): {
     wish: string;
-    themeColor: [] | [string];
     wishDescription: string;
     iconName: [] | [string];
     category: _GoalCategory;
@@ -2246,7 +2235,6 @@ function to_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8
 } {
     return {
         wish: value.wish,
-        themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
         wishDescription: value.wishDescription,
         iconName: value.iconName ? candid_some(value.iconName) : candid_none(),
         category: to_candid_GoalCategory_n15(_uploadFile, _downloadFile, value.category),

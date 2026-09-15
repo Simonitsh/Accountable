@@ -1,17 +1,15 @@
 {
-  "overview": "A goal and habit tracking app where users set goals, build habits, and plan obstacles to overcome.",
+  "overview": "A habit-tracking app that helps people follow through on their goals with encouraging, non-judgmental insights.",
   "features": [
-    "Set and track goals with custom icons",
-    "Build daily habits with scheduled times",
-    "Plan obstacles and if-then strategies for habits",
-    "Track progress over time"
+    "Track daily habits across five categories",
+    "Record check-ins and obstacles",
+    "See encouraging analytics on an Insights page"
   ],
-  "category": "productivity",
+  "category": "habit-tracker",
   "tags": [
-    "goals",
     "habits",
-    "productivity",
-    "tracking"
+    "goals",
+    "analytics"
   ],
-  "last_updated": "2026-09-15T21:43:20.892Z"
+  "last_updated": "2026-09-15T22:26:11.376Z"
 }

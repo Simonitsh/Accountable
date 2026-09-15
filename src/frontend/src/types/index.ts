@@ -137,9 +137,10 @@ export interface ReusableGoalPublic {
 /**
  * CreateMacroGoalRequest — mirrors the backend CreateMacroGoalRequest.
  * Creates a new macro goal (the destination). Carries only the macro-level
- * fields: category, wish, wishDescription, outcome, plus optional
- * iconName/themeColor. NO Lock-In, schedule, obstacle, or ifThenPlan fields
- * (those belong to CreateHabitRequest).
+ * fields: category, wish, wishDescription, outcome, plus optional iconName.
+ * Goals use a fixed gold accent and carry NO themeColor. NO Lock-In,
+ * schedule, obstacle, or ifThenPlan fields (those belong to
+ * CreateHabitRequest).
  */
 export interface CreateMacroGoalRequest {
   category: GoalCategory;
@@ -147,7 +148,6 @@ export interface CreateMacroGoalRequest {
   wishDescription: string;
   outcome: string;
   iconName?: string;
-  themeColor?: string;
 }
 
 /**
@@ -184,12 +184,12 @@ export type UpdateHabitRequest = Omit<BackendUpdateHabitRequest, "iconName">;
 
 /**
  * UpdateMacroGoalRequest — mirrors the backend UpdateMacroGoalRequest.
- * Updates an existing macro goal's icon and theme color only (the wish,
- * wishDescription, outcome, and category are immutable after creation).
+ * Updates an existing macro goal's icon only (the wish, wishDescription,
+ * outcome, and category are immutable after creation). Goals use a fixed
+ * gold accent and carry no themeColor.
  */
 export interface UpdateMacroGoalRequest {
   iconName?: string;
-  themeColor?: string;
 }
 
 // ─── Storage mirror type ──────────────────────────────────────────────────────

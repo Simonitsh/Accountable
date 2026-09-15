@@ -65,7 +65,6 @@ export interface CreateHabitRequest {
 }
 export interface CreateMacroGoalRequest {
     wish: string;
-    themeColor?: string;
     wishDescription: string;
     iconName?: string;
     category: GoalCategory;
@@ -146,7 +145,6 @@ export interface MacroGoalPublic {
     owner: UserId;
     createdAt: Timestamp;
     wish: string;
-    themeColor?: string;
     wishDescription: string;
     iconName?: string;
     updatedAt: Timestamp;
@@ -216,7 +214,6 @@ export interface UpdateHabitRequest {
     lockInDurationMinutes?: bigint;
 }
 export interface UpdateMacroGoalRequest {
-    themeColor?: string;
     iconName?: string;
 }
 export type UserId = Principal;
