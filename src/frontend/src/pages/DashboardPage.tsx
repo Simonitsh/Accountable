@@ -155,6 +155,9 @@ interface DoneEntry {
   executedIfThen?: boolean;
   isLockIn?: boolean;
   obstacleTemplateId?: bigint;
+  /** Persisted check-in timestamp (IC nanoseconds) — used to derive the
+   *  if-then follow-up note's visibility from real elapsed time. */
+  timestamp?: bigint;
 }
 
 type DoneMap = Map<string, DoneEntry>;
@@ -969,6 +972,7 @@ export function DashboardPage() {
           executedIfThen,
           isLockIn: doneGoal?.isLockIn ?? false,
           obstacleTemplateId: c.obstacleTemplateId,
+          timestamp: c.timestamp,
         });
       }
     }
@@ -2108,6 +2112,7 @@ export function DashboardPage() {
                             lockInEndTime={goal.endTime}
                             executedIfThen={entryDone?.executedIfThen ?? false}
                             ifThenCheckInId={ifThenCheckInIdMap.get(key)}
+                            ifThenCheckInTimestamp={entryDone?.timestamp}
                             onMarkIfThenUsed={handleMarkIfThenUsed}
                           />
                         );

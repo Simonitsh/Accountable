@@ -255,6 +255,10 @@ interface GoalCardProps {
   /** Check-in id for the if-then follow-up note (Done card). Set only for
    *  habits with an if-then plan that were just completed. */
   ifThenCheckInId?: bigint;
+  /** Persisted timestamp (IC nanoseconds) of the check-in the if-then
+   *  follow-up note refers to. Used to derive the note's visibility from real
+   *  elapsed time so it can never reappear once the display window passes. */
+  ifThenCheckInTimestamp?: bigint;
   /** Called when the user taps 'Used it' on the if-then follow-up note. */
   onMarkIfThenUsed?: (goalId: bigint, checkInId: bigint) => void;
 }
@@ -286,20 +290,20 @@ export function GoalCard({
   inProgressPulse = false,
   executedIfThen = false,
   ifThenCheckInId,
+  ifThenCheckInTimestamp,
   onMarkIfThenUsed,
 }: GoalCardProps) {
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showMissedSheet, setShowMissedSheet] = useState(false);
   // WOOP Catch sheet — shown on left swipe for normal (non-LockIn) habits
   const [showWoopCatch, setShowWoopCatch] = useState(false);
-  // If-then follow-up note — shown on the Done card for a short window after a
-  // habit with an if-then plan is completed. Non-blocking: the habit is already
-  // done. Tapping 'Used it' tags the already-created check-in; dismissing or
-  // ignoring simply leaves the habit done without the tag. Dismissal is
-  // persisted to localStorage keyed by check-in id so it survives remounts.
-  const [showIfThenNote, setShowIfThenNote] = useState(
-    () => !isIfThenDismissed(ifThenCheckInId),
-  );
+  // Re-render trigger for the if-then note. The note's visibility is DERIVED
+  // fresh on every render from persisted inputs (check-in timestamp,
+  // executedIfThen, localStorage dismissal) — this state only forces a
+  // re-render so a localStorage dismissal write takes effect immediately. It
+  // never holds the note's visibility, so it cannot cause the note to reappear
+  // on remount.
+  const [, setIfThenDismissTick] = useState(0);
   // Press feedback: brief scale-down + inward shadow on clean tap
   const [isTapped, _setIsTapped] = useState(false);
   // Auto-trigger missed sheet once per transition to a missed state
@@ -729,24 +733,27 @@ export function GoalCard({
   // tags the already-created check-in via markCheckInIfThenUsed; dismissing or
   // ignoring just hides the note (the habit stays done without the tag).
   function handleIfThenUsed() {
-    setShowIfThenNote(false);
+    // Tagging the check-in as used flips executedIfThen to true (via
+    // markCheckInIfThenUsed → backend refetch), which the derived visibility
+    // reads to hide the note. No in-moment state to clear.
     if (ifThenCheckInId !== undefined) {
       onMarkIfThenUsed?.(goal.id, ifThenCheckInId);
     }
   }
 
   function handleIfThenDismiss() {
-    setShowIfThenNote(false);
     // Persist the dismissal keyed by check-in id so the note stays hidden for
     // this check-in across page/tab navigation (GoalCard unmounts on tab
     // switch). Mirrors the localStorage persistent-UI pattern used by useTheme
-    // and DashboardPage's NEW_HABIT_KEY.
+    // and DashboardPage's NEW_HABIT_KEY. The tick forces a re-render so the
+    // derived visibility re-evaluates and hides the note immediately.
     if (ifThenCheckInId !== undefined) {
       localStorage.setItem(
         `${IF_THEN_DISMISS_KEY_PREFIX}${ifThenCheckInId}`,
         "1",
       );
     }
+    setIfThenDismissTick((n) => n + 1);
   }
 
   function handleSkipModalClose() {
@@ -795,33 +802,38 @@ export function GoalCard({
     onExitCompleteRef.current = onExitComplete;
   });
 
-  // ── If-then follow-up note auto-dismiss ───────────────────────────────────
-  // When a Done card for a habit with an if-then plan has a captured check-in
-  // id, show the note and auto-hide it after a short window. The habit is
-  // already done; the note is purely a non-blocking follow-up. It appears
-  // after both a successful check-in and a skip (for habits that have an
-  // if-then plan set), so the user can tag either outcome as having tried the
-  // plan. It never shows for habits without an if-then plan (hasIfThenPlan),
-  // and never for check-ins already tagged (executedIfThen).
+  // ── If-then follow-up note visibility ────────────────────────────────────
+  // The note appears on the Done card after both a successful check-in and a
+  // skip (for habits that have an if-then plan set), so the user can tag either
+  // outcome as having tried the plan. It never shows for habits without an
+  // if-then plan (hasIfThenPlan), and never for check-ins already tagged
+  // (executedIfThen).
   const isSuccessOrSkip =
     checkInToday?.checkInType === "success" ||
     checkInToday?.checkInType === "skip";
-  useEffect(() => {
-    if (
-      mode === "done" &&
-      hasIfThenPlan &&
-      ifThenCheckInId !== undefined &&
-      isSuccessOrSkip &&
-      !executedIfThen
-    ) {
-      setShowIfThenNote(true);
-      const t = setTimeout(
-        () => setShowIfThenNote(false),
-        IF_THEN_NOTE_WINDOW_MS,
-      );
-      return () => clearTimeout(t);
-    }
-  }, [mode, hasIfThenPlan, ifThenCheckInId, isSuccessOrSkip, executedIfThen]);
+  // If-then follow-up note visibility — DERIVED fresh on every render from
+  // persisted, non-volatile inputs so it can never reappear after navigating
+  // away and back:
+  //   (a) real elapsed time since the check-in is still within the display
+  //       window (Date.now() - persisted timestamp),
+  //   (b) the check-in has not already been tagged as used (executedIfThen),
+  //   (c) the note was not explicitly dismissed (localStorage, keyed by
+  //       check-in id — survives remounts).
+  // Because elapsed time is derived from the persisted timestamp rather than an
+  // in-moment timer, once the window passes the note stays hidden on every
+  // remount, and letting it fade naturally needs no saved flag.
+  const ifThenNoteWithinWindow =
+    ifThenCheckInTimestamp !== undefined &&
+    Date.now() - Number(ifThenCheckInTimestamp / 1_000_000n) <=
+      IF_THEN_NOTE_WINDOW_MS;
+  const showIfThenNote =
+    mode === "done" &&
+    hasIfThenPlan &&
+    ifThenCheckInId !== undefined &&
+    isSuccessOrSkip &&
+    !executedIfThen &&
+    ifThenNoteWithinWindow &&
+    !isIfThenDismissed(ifThenCheckInId);
 
   // We intentionally only depend on isExiting and goal.id here.
   useEffect(() => {

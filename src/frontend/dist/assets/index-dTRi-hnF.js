@@ -79725,15 +79725,14 @@ function GoalCard$1({
   inProgressPulse = false,
   executedIfThen = false,
   ifThenCheckInId,
+  ifThenCheckInTimestamp,
   onMarkIfThenUsed
 }) {
   var _a3;
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
   const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
-  const [showIfThenNote, setShowIfThenNote] = reactExports.useState(
-    () => !isIfThenDismissed(ifThenCheckInId)
-  );
+  const [, setIfThenDismissTick] = reactExports.useState(0);
   const [isTapped, _setIsTapped] = reactExports.useState(false);
   const autoMissedTriggeredRef = reactExports.useRef(false);
   const exitCommittedRef = reactExports.useRef(false);
@@ -80038,19 +80037,18 @@ function GoalCard$1({
     setShowSkipModal(true);
   }
   function handleIfThenUsed() {
-    setShowIfThenNote(false);
     if (ifThenCheckInId !== void 0) {
       onMarkIfThenUsed == null ? void 0 : onMarkIfThenUsed(goal.id, ifThenCheckInId);
     }
   }
   function handleIfThenDismiss() {
-    setShowIfThenNote(false);
     if (ifThenCheckInId !== void 0) {
       localStorage.setItem(
         `${IF_THEN_DISMISS_KEY_PREFIX}${ifThenCheckInId}`,
         "1"
       );
     }
+    setIfThenDismissTick((n) => n + 1);
   }
   function handleSkipModalClose() {
     setShowSkipModal(false);
@@ -80086,16 +80084,8 @@ function GoalCard$1({
     onExitCompleteRef.current = onExitComplete;
   });
   const isSuccessOrSkip = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
-  reactExports.useEffect(() => {
-    if (mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && isSuccessOrSkip && !executedIfThen) {
-      setShowIfThenNote(true);
-      const t = setTimeout(
-        () => setShowIfThenNote(false),
-        IF_THEN_NOTE_WINDOW_MS
-      );
-      return () => clearTimeout(t);
-    }
-  }, [mode2, hasIfThenPlan, ifThenCheckInId, isSuccessOrSkip, executedIfThen]);
+  const ifThenNoteWithinWindow = ifThenCheckInTimestamp !== void 0 && Date.now() - Number(ifThenCheckInTimestamp / 1000000n) <= IF_THEN_NOTE_WINDOW_MS;
+  const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && isSuccessOrSkip && !executedIfThen && ifThenNoteWithinWindow && !isIfThenDismissed(ifThenCheckInId);
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -85710,7 +85700,8 @@ function DashboardPage$1() {
           checkInType,
           executedIfThen,
           isLockIn: (doneGoal == null ? void 0 : doneGoal.isLockIn) ?? false,
-          obstacleTemplateId: c2.obstacleTemplateId
+          obstacleTemplateId: c2.obstacleTemplateId,
+          timestamp: c2.timestamp
         });
       }
     }
@@ -86571,6 +86562,7 @@ function DashboardPage$1() {
                         lockInEndTime: goal.endTime,
                         executedIfThen: (entryDone == null ? void 0 : entryDone.executedIfThen) ?? false,
                         ifThenCheckInId: ifThenCheckInIdMap.get(key),
+                        ifThenCheckInTimestamp: entryDone == null ? void 0 : entryDone.timestamp,
                         onMarkIfThenUsed: handleMarkIfThenUsed
                       },
                       key
