@@ -803,14 +803,20 @@ export function GoalCard({
   });
 
   // ── If-then follow-up note visibility ────────────────────────────────────
-  // The note appears on the Done card after both a successful check-in and a
-  // skip (for habits that have an if-then plan set), so the user can tag either
-  // outcome as having tried the plan. It never shows for habits without an
-  // if-then plan (hasIfThenPlan), and never for check-ins already tagged
-  // (executedIfThen).
+  // The note appears on the Done card after a successful check-in, a skip, or
+  // a missed Lock-In check-in (for habits that have an if-then plan set), so
+  // the user can tag any of these outcomes as having tried the plan. It never
+  // shows for habits without an if-then plan (hasIfThenPlan), and never for
+  // check-ins already tagged (executedIfThen). For missed check-ins it only
+  // shows on Lock-In habits (isLockIn) — never for missed check-ins on regular
+  // habits.
   const isSuccessOrSkip =
     checkInToday?.checkInType === "success" ||
     checkInToday?.checkInType === "skip";
+  const isMissedLockIn =
+    isLockIn &&
+    (checkInToday?.checkInType === "missedCheckIn" ||
+      checkInToday?.checkInType === "missedCheckOut");
   // If-then follow-up note visibility — DERIVED fresh on every render from
   // persisted, non-volatile inputs so it can never reappear after navigating
   // away and back:
@@ -830,7 +836,7 @@ export function GoalCard({
     mode === "done" &&
     hasIfThenPlan &&
     ifThenCheckInId !== undefined &&
-    isSuccessOrSkip &&
+    (isSuccessOrSkip || isMissedLockIn) &&
     !executedIfThen &&
     ifThenNoteWithinWindow &&
     !isIfThenDismissed(ifThenCheckInId);

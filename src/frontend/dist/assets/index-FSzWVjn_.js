@@ -80084,8 +80084,9 @@ function GoalCard$1({
     onExitCompleteRef.current = onExitComplete;
   });
   const isSuccessOrSkip = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
+  const isMissedLockIn = isLockIn && ((checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut");
   const ifThenNoteWithinWindow = ifThenCheckInTimestamp !== void 0 && Date.now() - Number(ifThenCheckInTimestamp / 1000000n) <= IF_THEN_NOTE_WINDOW_MS;
-  const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && isSuccessOrSkip && !executedIfThen && ifThenNoteWithinWindow && !isIfThenDismissed(ifThenCheckInId);
+  const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && ifThenNoteWithinWindow && !isIfThenDismissed(ifThenCheckInId);
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -85828,7 +85829,9 @@ function DashboardPage$1() {
       });
     },
     onSuccess: (data, variables) => {
-      if ((data == null ? void 0 : data.id) && (variables.checkInType === CheckInType.success || variables.checkInType === CheckInType.skip)) {
+      var _a3;
+      const isMissedLockIn = (variables.checkInType === CheckInType.missedCheckIn || variables.checkInType === CheckInType.missedCheckOut) && ((_a3 = goals.find((g2) => goalKey(g2.id) === goalKey(variables.goalId))) == null ? void 0 : _a3.isLockIn);
+      if ((data == null ? void 0 : data.id) && (variables.checkInType === CheckInType.success || variables.checkInType === CheckInType.skip || isMissedLockIn)) {
         setIfThenCheckInIdMap((prev) => {
           const next = new Map(prev);
           next.set(goalKey(variables.goalId), data.id);

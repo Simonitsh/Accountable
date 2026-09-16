@@ -1135,16 +1135,24 @@ export function DashboardPage() {
       // Capture the returned CheckIn id (keyed by goalId) so the Done card's
       // if-then follow-up note can tag this exact check-in via
       // markCheckInIfThenUsed. The habit is already done at this point.
-      // Capture for both SUCCESS and SKIP check-ins: the follow-up note now
-      // appears after a skip too (both the direct Justifiable Skip path and
-      // the WoopCatch 'I still need to skip' path land here as a skip). The
-      // WoopCatch 'executed plan' rescue flow records a success with
-      // executedIfThen:true, so its note is suppressed downstream by the
-      // !executedIfThen gate — no need to special-case it here.
+      // Capture for SUCCESS, SKIP, and missed Lock-In check-ins: the follow-up
+      // note now appears after a skip too (both the direct Justifiable Skip
+      // path and the WoopCatch 'I still need to skip' path land here as a
+      // skip), and after a missed Lock-In check-in. The WoopCatch 'executed
+      // plan' rescue flow records a success with executedIfThen:true, so its
+      // note is suppressed downstream by the !executedIfThen gate — no need to
+      // special-case it here. Missed check-ins only qualify when the habit is a
+      // Lock-In habit — never for missed check-ins on regular habits.
+      const isMissedLockIn =
+        (variables.checkInType === CheckInType.missedCheckIn ||
+          variables.checkInType === CheckInType.missedCheckOut) &&
+        goals.find((g) => goalKey(g.id) === goalKey(variables.goalId))
+          ?.isLockIn;
       if (
         data?.id &&
         (variables.checkInType === CheckInType.success ||
-          variables.checkInType === CheckInType.skip)
+          variables.checkInType === CheckInType.skip ||
+          isMissedLockIn)
       ) {
         setIfThenCheckInIdMap((prev) => {
           const next = new Map(prev);
