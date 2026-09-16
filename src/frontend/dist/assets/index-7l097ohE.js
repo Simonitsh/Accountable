@@ -86564,7 +86564,7 @@ function DashboardPage$1() {
                         lockInStartTime: goal.startTime,
                         lockInEndTime: goal.endTime,
                         executedIfThen: (entryDone == null ? void 0 : entryDone.executedIfThen) ?? false,
-                        ifThenCheckInId: ifThenCheckInIdMap.get(key),
+                        ifThenCheckInId: ifThenCheckInIdMap.get(key) ?? (entryDone == null ? void 0 : entryDone.checkInId),
                         ifThenCheckInTimestamp: entryDone == null ? void 0 : entryDone.timestamp,
                         onMarkIfThenUsed: handleMarkIfThenUsed
                       },

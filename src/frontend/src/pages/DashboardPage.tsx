@@ -2119,7 +2119,10 @@ export function DashboardPage() {
                             lockInStartTime={goal.startTime}
                             lockInEndTime={goal.endTime}
                             executedIfThen={entryDone?.executedIfThen ?? false}
-                            ifThenCheckInId={ifThenCheckInIdMap.get(key)}
+                            ifThenCheckInId={
+                              ifThenCheckInIdMap.get(key) ??
+                              entryDone?.checkInId
+                            }
                             ifThenCheckInTimestamp={entryDone?.timestamp}
                             onMarkIfThenUsed={handleMarkIfThenUsed}
                           />
