@@ -176,7 +176,6 @@ actor {
           var state = #active : Common.GoalState;
           createdAt = 0 : Common.Timestamp;
           var updatedAt = 0 : Common.Timestamp;
-          var iconName = null : ?Text;
           var themeColor = null : ?Text;
           var isLockIn = false;
           var startTime = null : ?Text;
@@ -200,7 +199,6 @@ actor {
         .payload("state", func (g : GoalTypes.Goal) : Text = switch (g.state) { case (#active) "active"; case (#paused) "paused"; case (#completed) "completed" })
         .payload("createdAt", func (g : GoalTypes.Goal) : Int = g.createdAt)
         .payload("updatedAt", func (g : GoalTypes.Goal) : Int = g.updatedAt)
-        .payload("iconName", func (g : GoalTypes.Goal) : Text = switch (g.iconName) { case null ""; case (?n) n })
         .payload("themeColor", func (g : GoalTypes.Goal) : Text = switch (g.themeColor) { case null ""; case (?c) c })
         .payload("isLockIn", func (g : GoalTypes.Goal) : Bool = g.isLockIn)
         .payload("startTime", func (g : GoalTypes.Goal) : Text = switch (g.startTime) { case null ""; case (?t) t })

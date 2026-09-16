@@ -261,7 +261,7 @@ export function PartnerHabitDetail({ target, index }: PartnerHabitDetailProps) {
           No active habits yet
         </p>
         <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-          This partner hasn&apos;t set up any habits to share. Check back later.
+          This partner hasn't set up any habits to share. Check back later.
         </p>
       </div>
     );

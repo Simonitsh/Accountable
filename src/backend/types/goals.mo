@@ -75,7 +75,6 @@ module {
     var state : Common.GoalState;
     createdAt : Common.Timestamp;
     var updatedAt : Common.Timestamp;
-    var iconName : ?Text;
     // Habit color — meaningful only on habits (goalId set). Macro goals never
     // carry a custom color; this field is retained on the shared storage record
     // so habits can keep their own color picker.
@@ -105,7 +104,6 @@ module {
     state : Common.GoalState;
     createdAt : Common.Timestamp;
     updatedAt : Common.Timestamp;
-    iconName : ?Text;
     category : GoalCategory;
   };
 
@@ -160,7 +158,6 @@ module {
     wish : Text;
     wishDescription : Text;
     outcome : Text;
-    iconName : ?Text;
     category : GoalCategory;
   };
 
@@ -176,7 +173,6 @@ module {
     goalId : Common.GoalId;
     obstacleTemplateId : ?Common.ObstacleTemplateId;
     ifThenPlan : Text;
-    iconName : ?Text;
     themeColor : ?Text;
     isLockIn : Bool;
     startTime : ?Text;
@@ -196,7 +192,6 @@ module {
   /// schedule, ifThenPlan, and cosmetic fields are editable.
   public type UpdateHabitRequest = {
     ifThenPlan : ?Text;
-    iconName : ?Text;
     themeColor : ?Text;
     isLockIn : ?Bool;
     startTime : ?Text;
@@ -217,9 +212,7 @@ module {
   /// Update request for a macro goal. `wish`/`wishDescription`/`outcome`/
   /// `category` are immutable after creation. Only cosmetic fields and state
   /// are editable.
-  public type UpdateMacroGoalRequest = {
-    iconName : ?Text;
-  };
+  public type UpdateMacroGoalRequest = {};
 
   /// Typed error variants for goal operations.
   public type GoalError = {

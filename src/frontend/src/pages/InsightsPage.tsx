@@ -110,7 +110,7 @@ function HighlightCard({
   // data on both sides to make the comparison meaningful.
   let headline = "Your plans are taking shape";
   let subtitle =
-    "We&apos;re gathering how often your if-then plans help you follow through. Soon you&apos;ll see your momentum here.";
+    "We're gathering how often your if-then plans help you follow through. Soon you'll see your momentum here.";
   let followThroughValue = "—";
   let progressWidth = "0%";
   let caption = "Keep going — every small win builds the picture.";
@@ -130,7 +130,7 @@ function HighlightCard({
       if (notUsedRate >= 0.1 && multiplier >= 1.5 && multiplier <= 5) {
         const rounded = Math.round(multiplier);
         headline = `${rounded}x more likely to follow through`;
-        subtitle = `When you use your if-then plan, you follow through ${rounded}× more often than on days you don&apos;t.`;
+        subtitle = `When you use your if-then plan, you follow through ${rounded}× more often than on days you don't.`;
       } else {
         headline = "Your plan makes follow-through easier";
         subtitle = `You follow through ${usedPct}% of the time with your plan, versus ${notUsedPct}% without it.`;
@@ -143,10 +143,10 @@ function HighlightCard({
       // using the plan, matching the page's forward-looking tone.
       headline = "Keep using your plan";
       subtitle =
-        "Every time you use your if-then plan, you&apos;re building a habit that sticks. The momentum is still growing.";
+        "Every time you use your if-then plan, you're building a habit that sticks. The momentum is still growing.";
       followThroughValue = `${usedPct}%`;
       progressWidth = `${usedPct}%`;
-      caption = `You&apos;ve followed through ${used.total} times with your plan so far — keep it up.`;
+      caption = `You've followed through ${used.total} times with your plan so far — keep it up.`;
     }
   }
 
@@ -243,10 +243,10 @@ function BestWorstDaySection({ data }: { data?: AnalyticsSummary }) {
 
   const bestCaption = bestReady
     ? "Your strongest follow-through day so far."
-    : "We&apos;ll show your standout day here once there&apos;s enough data.";
+    : "We'll show your standout day here once there's enough data.";
   const worstCaption = worstReady
     ? "A gentle heads-up — this day could use a little extra support."
-    : "We&apos;ll show your standout day here once there&apos;s enough data.";
+    : "We'll show your standout day here once there's enough data.";
 
   return (
     <section className="px-4 pt-6" data-ocid="insights.day_section">
@@ -290,7 +290,7 @@ function CategoryBreakdownSection({ data }: { data?: AnalyticsSummary }) {
       <SectionHeading
         icon={<Lightbulb className="w-4 h-4 text-accent-success" />}
         title="Progress by category"
-        subtitle="How you&apos;re doing across Health, Learning, Social, Productivity, and Leisure"
+        subtitle="How you're doing across Health, Learning, Social, Productivity, and Leisure"
       />
       <div className="card-neumorphic mt-4 p-4 flex flex-col gap-4">
         {CATEGORY_ROWS.map((cat) => {
@@ -449,7 +449,7 @@ function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
         <p className="text-xs text-muted-foreground mt-4">
           {hasEnoughData
             ? "Spotting the patterns that get in the way helps you plan around them."
-            : "Understanding what really gets in the way helps you plan around it. We&apos;ll surface that here soon."}
+            : "Understanding what really gets in the way helps you plan around it. We'll surface that here soon."}
         </p>
       </div>
     </section>

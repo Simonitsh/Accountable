@@ -242,7 +242,6 @@ func makeGoal(
     var state = #active;
     createdAt = 0;
     var updatedAt = 0;
-    var iconName = null;
     var themeColor = null;
     var isLockIn;
     var startTime = null;

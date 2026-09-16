@@ -14,28 +14,22 @@ import { toast } from "sonner";
 import type { MacroGoalPublic, ReusableGoalPublic } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import { CATEGORY_DETAILS, type GoalCategory } from "../types/index";
-import { GOAL_ICONS } from "../utils/goalIcons";
 
 /**
- * GoalWizard — a dedicated goal-creation wizard with the Bloom & Flow
- * animation system. Visually distinct from the WOOP habit wizard:
- *   - Fraunces serif display font (--font-goal-wizard)
- *   - Emerald→gold gradient accents (--goal-wizard-gradient)
- *   - Blooming category tiles (goal-wizard-bloom keyframe)
- *   - Flowing SVG progress path that draws itself between steps
- *     (goal-wizard-path-draw + goal-wizard-path-pulse)
- *   - Animated text reveals as fields fill (goal-wizard-text-reveal +
- *     goal-wizard-underline-grow)
- *   - Step content settles in like a petal unfolding
- *     (goal-wizard-step-settle)
+ * GoalWizard — a dedicated goal-creation wizard. It shares the habit wizard's
+ * (WoopWizard) visual language — the same default display typography and the
+ * same `.button-primary-*` Back/Next button treatment — but is themed GOLD
+ * (the accent already used for goals on the dashboard header and goals list)
+ * so it reads as the same design system as the habit wizard, just gold.
  *
- * Captures: category, wish, outcome (wishDescription) — extensible for more
- * inputs later. On submit calls actor.createMacroGoal() with
- * CreateMacroGoalRequest (category, wish, wishDescription as outcome,
- * iconName). Goals use a fixed gold accent (same as the dashboard goal
- * header) and have no selectable color. The backend's CreateMacroGoalRequest
- * has an `outcome` field; this wizard maps the user's "outcome" input to that
- * field and leaves `wishDescription` as a short summary derived from the wish.
+ * A goal NEVER holds a custom icon: its icon always comes from its category
+ * (Health, Learning, Social, Productivity, Leisure), matching the dashboard
+ * header. There is no icon picker and no iconName is ever stored or sent.
+ *
+ * Captures: category, wish, outcome (wishDescription). On submit calls
+ * actor.createMacroGoal() with CreateMacroGoalRequest (category, wish,
+ * wishDescription as outcome). Goals use a fixed gold accent and have no
+ * selectable color.
  */
 
 const TOTAL_STEPS = 4;
@@ -60,7 +54,6 @@ interface FormState {
   category: GoalCategory | "";
   wish: string;
   outcome: string;
-  iconName: string;
 }
 
 type StepError = Partial<Record<"category" | "wish" | "outcome", string>>;
@@ -69,7 +62,6 @@ const EMPTY: FormState = {
   category: "",
   wish: "",
   outcome: "",
-  iconName: "target",
 };
 
 /**
@@ -225,7 +217,6 @@ export default function GoalWizard({
         // carries the user's desired outcome alongside the wish.
         wishDescription: form.outcome.trim(),
         outcome: form.outcome.trim(),
-        iconName: form.iconName || undefined,
       });
       if (created.__kind__ === "err") throw new Error(created.err);
       return created.ok;
@@ -265,8 +256,7 @@ export default function GoalWizard({
     return (
       form.category !== EMPTY.category ||
       form.wish !== EMPTY.wish ||
-      form.outcome !== EMPTY.outcome ||
-      form.iconName !== EMPTY.iconName
+      form.outcome !== EMPTY.outcome
     );
   }, [step, form]);
 
@@ -362,9 +352,9 @@ export default function GoalWizard({
 
   return (
     <>
-      {/* Full-screen takeover — slides up from the bottom. Distinct from
-          WoopWizard: warmer --goal-wizard-surface background, Fraunces font
-          via .goal-wizard-root, emerald→gold gradient accents. */}
+      {/* Full-screen takeover — slides up from the bottom. Shares the habit
+          wizard's visual language (default display typography, gold accent)
+          so it reads as the same design system, just gold. */}
       <dialog
         open
         aria-modal="true"
@@ -393,20 +383,11 @@ export default function GoalWizard({
                 style={{ color: "oklch(var(--goal-wizard-gold))" }}
                 aria-hidden="true"
               />
-              <h2
-                className="text-xl font-semibold tracking-tight"
-                style={{
-                  fontFamily: "var(--font-goal-wizard)",
-                  color: "oklch(var(--foreground))",
-                }}
-              >
+              <h2 className="text-xl font-display font-semibold tracking-tight text-foreground">
                 Bloom a New Goal
               </h2>
             </div>
-            <span
-              className="text-xs font-mono tracking-widest uppercase"
-              style={{ color: "oklch(var(--muted-foreground))" }}
-            >
+            <span className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
               {step} / {TOTAL_STEPS}
             </span>
           </div>
@@ -545,10 +526,8 @@ export default function GoalWizard({
                 }}
               >
                 <p
-                  className="text-lg leading-relaxed pl-4 italic"
+                  className="text-lg text-muted-foreground pl-4 italic leading-relaxed"
                   style={{
-                    fontFamily: "var(--font-goal-wizard)",
-                    color: "oklch(var(--muted-foreground))",
                     borderLeft:
                       "3px solid oklch(var(--goal-wizard-gold) / 0.5)",
                   }}
@@ -598,13 +577,13 @@ export default function GoalWizard({
                             className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-300"
                             style={{
                               background: isSelected
-                                ? "oklch(var(--goal-wizard-emerald) / 0.18)"
+                                ? "oklch(var(--goal-wizard-gold) / 0.18)"
                                 : "oklch(var(--background) / 0.5)",
                               border: isSelected
-                                ? "1.5px solid oklch(var(--goal-wizard-emerald) / 0.6)"
+                                ? "1.5px solid oklch(var(--goal-wizard-gold) / 0.6)"
                                 : "1px solid oklch(var(--border))",
                               color: isSelected
-                                ? "oklch(var(--goal-wizard-emerald))"
+                                ? "oklch(var(--goal-wizard-gold))"
                                 : "oklch(var(--muted-foreground))",
                             }}
                             aria-hidden="true"
@@ -613,11 +592,10 @@ export default function GoalWizard({
                           </span>
                           <div className="flex-1 min-w-0">
                             <h3
-                              className="text-xl font-semibold mb-1"
+                              className="text-xl font-display font-semibold mb-1"
                               style={{
-                                fontFamily: "var(--font-goal-wizard)",
                                 color: isSelected
-                                  ? "oklch(var(--goal-wizard-emerald))"
+                                  ? "oklch(var(--goal-wizard-gold))"
                                   : "oklch(var(--foreground))",
                               }}
                             >
@@ -637,9 +615,9 @@ export default function GoalWizard({
                               className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
                               style={{
                                 backgroundColor:
-                                  "oklch(var(--goal-wizard-emerald))",
+                                  "oklch(var(--goal-wizard-gold))",
                                 boxShadow:
-                                  "0 0 8px oklch(var(--goal-wizard-emerald) / 0.5)",
+                                  "0 0 8px oklch(var(--goal-wizard-gold) / 0.5)",
                               }}
                             >
                               <Check
@@ -676,10 +654,8 @@ export default function GoalWizard({
                 transition={{ duration: 0.48, ease: [0.4, 0, 0.2, 1] }}
               >
                 <p
-                  className="text-lg leading-relaxed pl-4 italic"
+                  className="text-lg text-muted-foreground pl-4 italic leading-relaxed"
                   style={{
-                    fontFamily: "var(--font-goal-wizard)",
-                    color: "oklch(var(--muted-foreground))",
                     borderLeft:
                       "3px solid oklch(var(--goal-wizard-gold) / 0.5)",
                   }}
@@ -690,10 +666,7 @@ export default function GoalWizard({
                 <div className="space-y-3">
                   <label
                     htmlFor="goal-wizard-wish"
-                    className="block text-xs font-mono tracking-widest uppercase"
-                    style={{
-                      color: "oklch(var(--muted-foreground))",
-                    }}
+                    className="block text-xs font-mono tracking-widest uppercase text-muted-foreground"
                   >
                     Your Wish
                   </label>
@@ -713,9 +686,6 @@ export default function GoalWizard({
                       placeholder="I want to run a 5K without stopping"
                       maxLength={80}
                       className="input-neumorphic-gold w-full text-lg"
-                      style={{
-                        fontFamily: "var(--font-goal-wizard)",
-                      }}
                       aria-label="Your wish"
                       aria-invalid={!!errors.wish}
                       autoComplete="off"
@@ -726,14 +696,12 @@ export default function GoalWizard({
                     />
                     {/* Animated underline — grows from the left as the field
                         fills. Uses goal-wizard-underline-grow (scaleX 0→1)
-                        with the emerald→gold gradient. Only animates when
-                        there is text so an empty field doesn't show a
-                        dangling bar. */}
+                        with the gold accent. Only animates when there is text
+                        so an empty field doesn't show a dangling bar. */}
                     <div
                       className="absolute left-0 right-0 bottom-0 h-[2px] origin-left rounded-full transition-opacity duration-200"
                       style={{
-                        background:
-                          "linear-gradient(90deg, oklch(var(--goal-wizard-emerald)) 0%, oklch(var(--goal-wizard-gold)) 100%)",
+                        background: "oklch(var(--goal-wizard-gold))",
                         transform: form.wish ? "scaleX(1)" : "scaleX(0)",
                         opacity: form.wish ? 1 : 0,
                         transition:
@@ -760,11 +728,10 @@ export default function GoalWizard({
                   <div
                     className="rounded-2xl p-5"
                     style={{
-                      background: "oklch(var(--goal-wizard-emerald) / 0.08)",
-                      border:
-                        "1px solid oklch(var(--goal-wizard-emerald) / 0.3)",
+                      background: "oklch(var(--goal-wizard-gold) / 0.08)",
+                      border: "1px solid oklch(var(--goal-wizard-gold) / 0.3)",
                       boxShadow:
-                        "0 0 14px oklch(var(--goal-wizard-emerald) / 0.12)",
+                        "0 0 14px oklch(var(--goal-wizard-gold) / 0.12)",
                     }}
                     data-ocid="goal_wizard.wish_preview"
                   >
@@ -772,8 +739,7 @@ export default function GoalWizard({
                       key={form.wish}
                       className="text-xl font-medium leading-relaxed animate-goal-wizard-text-reveal"
                       style={{
-                        fontFamily: "var(--font-goal-wizard)",
-                        color: "oklch(var(--goal-wizard-emerald))",
+                        color: "oklch(var(--goal-wizard-gold))",
                       }}
                     >
                       {form.wish}
@@ -816,10 +782,8 @@ export default function GoalWizard({
                 transition={{ duration: 0.48, ease: [0.4, 0, 0.2, 1] }}
               >
                 <p
-                  className="text-lg leading-relaxed pl-4 italic"
+                  className="text-lg text-muted-foreground pl-4 italic leading-relaxed"
                   style={{
-                    fontFamily: "var(--font-goal-wizard)",
-                    color: "oklch(var(--muted-foreground))",
                     borderLeft:
                       "3px solid oklch(var(--goal-wizard-gold) / 0.5)",
                   }}
@@ -831,10 +795,7 @@ export default function GoalWizard({
                 <div className="space-y-3">
                   <label
                     htmlFor="goal-wizard-outcome"
-                    className="block text-xs font-mono tracking-widest uppercase"
-                    style={{
-                      color: "oklch(var(--muted-foreground))",
-                    }}
+                    className="block text-xs font-mono tracking-widest uppercase text-muted-foreground"
                   >
                     The Outcome
                   </label>
@@ -854,9 +815,6 @@ export default function GoalWizard({
                       placeholder="feel energized, strong, and proud of my progress"
                       maxLength={120}
                       className="input-neumorphic-gold w-full text-lg"
-                      style={{
-                        fontFamily: "var(--font-goal-wizard)",
-                      }}
                       aria-label="The outcome you want"
                       aria-invalid={!!errors.outcome}
                       autoComplete="off"
@@ -868,8 +826,7 @@ export default function GoalWizard({
                     <div
                       className="absolute left-0 right-0 bottom-0 h-[2px] origin-left rounded-full"
                       style={{
-                        background:
-                          "linear-gradient(90deg, oklch(var(--goal-wizard-emerald)) 0%, oklch(var(--goal-wizard-gold)) 100%)",
+                        background: "oklch(var(--goal-wizard-gold))",
                         transform: form.outcome ? "scaleX(1)" : "scaleX(0)",
                         opacity: form.outcome ? 1 : 0,
                         transition:
@@ -903,7 +860,6 @@ export default function GoalWizard({
                       key={form.outcome}
                       className="text-xl font-medium leading-relaxed animate-goal-wizard-text-reveal"
                       style={{
-                        fontFamily: "var(--font-goal-wizard)",
                         color: "oklch(var(--goal-wizard-gold))",
                       }}
                     >
@@ -923,7 +879,7 @@ export default function GoalWizard({
               </motion.div>
             )}
 
-            {/* STEP 4 — Review + icon + color + confirm ──────────────────── */}
+            {/* STEP 4 — Review + confirm ─────────────────────────────────── */}
             {step === 4 && (
               <motion.div
                 className="space-y-8"
@@ -932,16 +888,13 @@ export default function GoalWizard({
                 transition={{ duration: 0.48, ease: [0.4, 0, 0.2, 1] }}
               >
                 <p
-                  className="text-lg leading-relaxed pl-4 italic"
+                  className="text-lg text-muted-foreground pl-4 italic leading-relaxed"
                   style={{
-                    fontFamily: "var(--font-goal-wizard)",
-                    color: "oklch(var(--muted-foreground))",
                     borderLeft:
                       "3px solid oklch(var(--goal-wizard-gold) / 0.5)",
                   }}
                 >
-                  Review your goal and personalize it. This is the seed you will
-                  tend.
+                  Review your goal. This is the seed you will tend.
                 </p>
 
                 {/* Summary card */}
@@ -960,42 +913,25 @@ export default function GoalWizard({
                       <span
                         className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{
-                          background:
-                            "oklch(var(--goal-wizard-emerald) / 0.15)",
+                          background: "oklch(var(--goal-wizard-gold) / 0.15)",
                           border:
-                            "1px solid oklch(var(--goal-wizard-emerald) / 0.4)",
-                          color: "oklch(var(--goal-wizard-emerald))",
+                            "1px solid oklch(var(--goal-wizard-gold) / 0.4)",
+                          color: "oklch(var(--goal-wizard-gold))",
                         }}
                         aria-hidden="true"
                       >
                         <selectedCategory.icon size={20} strokeWidth={1.5} />
                       </span>
-                      <span
-                        className="text-xs font-mono tracking-widest uppercase"
-                        style={{
-                          color: "oklch(var(--muted-foreground))",
-                        }}
-                      >
+                      <span className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
                         {selectedCategory.title}
                       </span>
                     </div>
                   )}
                   <div className="space-y-1.5">
-                    <p
-                      className="text-xs font-mono tracking-widest uppercase"
-                      style={{
-                        color: "oklch(var(--muted-foreground))",
-                      }}
-                    >
+                    <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
                       Wish
                     </p>
-                    <p
-                      className="text-lg font-medium leading-relaxed"
-                      style={{
-                        fontFamily: "var(--font-goal-wizard)",
-                        color: "oklch(var(--foreground))",
-                      }}
-                    >
+                    <p className="text-lg font-medium leading-relaxed text-foreground">
                       {form.wish}
                     </p>
                   </div>
@@ -1006,77 +942,17 @@ export default function GoalWizard({
                     }}
                   />
                   <div className="space-y-1.5">
-                    <p
-                      className="text-xs font-mono tracking-widest uppercase"
-                      style={{
-                        color: "oklch(var(--muted-foreground))",
-                      }}
-                    >
+                    <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
                       Outcome
                     </p>
                     <p
                       className="text-lg font-medium leading-relaxed"
                       style={{
-                        fontFamily: "var(--font-goal-wizard)",
                         color: "oklch(var(--goal-wizard-gold))",
                       }}
                     >
                       …so that I can {form.outcome}
                     </p>
-                  </div>
-                </div>
-
-                {/* Icon picker */}
-                <div className="space-y-3">
-                  <p
-                    className="text-xs font-mono tracking-widest uppercase"
-                    style={{
-                      color: "oklch(var(--muted-foreground))",
-                    }}
-                  >
-                    Choose an Icon
-                  </p>
-                  <div
-                    className="grid grid-cols-7 gap-3"
-                    data-ocid="goal_wizard.icon_selector"
-                  >
-                    {GOAL_ICONS.map((icon) => {
-                      const isIconSelected = form.iconName === icon.id;
-                      return (
-                        <button
-                          key={icon.id}
-                          type="button"
-                          onClick={() =>
-                            setForm((f) => ({ ...f, iconName: icon.id }))
-                          }
-                          aria-label={`Select ${icon.label} icon`}
-                          aria-pressed={isIconSelected}
-                          data-ocid={`goal_wizard.icon.${icon.id}`}
-                          className="relative w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 p-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          style={
-                            isIconSelected
-                              ? {
-                                  backgroundColor:
-                                    "oklch(var(--goal-wizard-emerald) / 0.15)",
-                                  border:
-                                    "2.5px solid oklch(var(--goal-wizard-emerald))",
-                                  color: "oklch(var(--goal-wizard-emerald))",
-                                  boxShadow:
-                                    "0 0 16px 3px oklch(var(--goal-wizard-emerald) / 0.35)",
-                                }
-                              : {
-                                  backgroundColor: "oklch(var(--card))",
-                                  border: "1.5px solid oklch(var(--border))",
-                                  color: "oklch(var(--muted-foreground))",
-                                  boxShadow:
-                                    "3px 3px 6px rgba(0,0,0,0.4), -2px -2px 5px rgba(255,255,255,0.03)",
-                                }
-                          }
-                        >
-                          <span className="w-6 h-6 block">{icon.svg}</span>
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
 
@@ -1090,10 +966,7 @@ export default function GoalWizard({
                 )}
                 {!actor && (
                   <p
-                    className="text-base"
-                    style={{
-                      color: "oklch(var(--muted-foreground))",
-                    }}
+                    className="text-base text-muted-foreground"
                     data-ocid="goal_wizard.actor_loading_state"
                   >
                     Connecting to backend…
@@ -1137,7 +1010,7 @@ export default function GoalWizard({
                 data-ocid="goal_wizard.back_button"
                 onClick={goBack}
                 disabled={step === 1}
-                className="gap-2 text-base min-w-[100px]"
+                className="gap-2 button-primary-gold text-base min-w-[100px]"
               >
                 <ChevronLeft size={16} />
                 Back
@@ -1145,12 +1018,7 @@ export default function GoalWizard({
             </div>
 
             <div className="flex-1 flex items-center justify-center">
-              <span
-                className="text-sm font-mono whitespace-nowrap"
-                style={{
-                  color: "oklch(var(--muted-foreground))",
-                }}
-              >
+              <span className="text-sm font-mono whitespace-nowrap text-muted-foreground">
                 {step} / {TOTAL_STEPS}
               </span>
             </div>
@@ -1179,12 +1047,7 @@ export default function GoalWizard({
                     createGoalMutation.isPending ||
                     (step === TOTAL_STEPS && !actor)
                   }
-                  className="gap-2 text-base min-w-[130px]"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, oklch(var(--goal-wizard-emerald)) 0%, oklch(var(--goal-wizard-gold)) 100%)",
-                    color: "#000",
-                  }}
+                  className="gap-2 button-primary-gold text-base min-w-[130px]"
                 >
                   {step === TOTAL_STEPS ? (
                     createGoalMutation.isPending ? (
@@ -1256,21 +1119,10 @@ export default function GoalWizard({
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2
-                      className="text-lg font-semibold"
-                      style={{
-                        fontFamily: "var(--font-goal-wizard)",
-                        color: "oklch(var(--foreground))",
-                      }}
-                    >
+                    <h2 className="text-lg font-display font-semibold text-foreground">
                       Discard this goal?
                     </h2>
-                    <p
-                      className="text-sm mt-1 leading-relaxed"
-                      style={{
-                        color: "oklch(var(--muted-foreground))",
-                      }}
-                    >
+                    <p className="text-sm mt-1 leading-relaxed text-muted-foreground">
                       Your seed hasn't bloomed yet. Closing now will lose your
                       progress.
                     </p>
@@ -1283,7 +1135,7 @@ export default function GoalWizard({
                     size="lg"
                     data-ocid="goal_wizard.exit_confirm.keep_editing_button"
                     onClick={() => setShowExitConfirm(false)}
-                    className="flex-1 gap-2 text-base"
+                    className="flex-1 gap-2 button-primary-gold text-base"
                   >
                     Keep editing
                   </Button>

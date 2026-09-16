@@ -33,7 +33,6 @@ module {
       state = goal.state;
       createdAt = goal.createdAt;
       updatedAt = goal.updatedAt;
-      iconName = goal.iconName;
       category = goal.category;
     };
   };
@@ -89,7 +88,6 @@ module {
       var state = #active;
       createdAt = now;
       var updatedAt = now;
-      var iconName = request.iconName;
       var themeColor = null;
       var isLockIn = false;
       var startTime = null;
@@ -169,7 +167,6 @@ module {
       var state = #active;
       createdAt = now;
       var updatedAt = now;
-      var iconName = null;
       var themeColor = request.themeColor;
       var isLockIn = isLockIn;
       var startTime = request.startTime;
@@ -459,7 +456,6 @@ module {
           var state = habit.state;
           createdAt = habit.createdAt;
           var updatedAt = habit.updatedAt;
-          var iconName = habit.iconName;
           var themeColor = habit.themeColor;
           var isLockIn = habit.isLockIn;
           var startTime = habit.startTime;
@@ -481,9 +477,9 @@ module {
     };
   };
 
-  /// Updates an editable macro goal. Only cosmetic fields (iconName) are
-  /// editable; wish/wishDescription/outcome/category are immutable after
-  /// creation. Macro goals never carry a custom color.
+  /// Updates an editable macro goal. Only the `updatedAt` timestamp is
+  /// refreshed; wish/wishDescription/outcome/category are immutable after
+  /// creation. Macro goals never carry a custom color or icon.
   public func updateMacroGoal(
     goals : List.List<GoalTypes.Goal>,
     goalId : Common.GoalId,
@@ -496,10 +492,7 @@ module {
       case null return #err(#goalNotFound);
       case (?g) g;
     };
-    switch (request.iconName) {
-      case null {};
-      case (?v) { goal.iconName := ?v };
-    };
+    ignore request;
     goal.updatedAt := Time.now();
     #ok(toMacroGoalPublic(goal));
   };

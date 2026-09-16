@@ -124,7 +124,7 @@ function PartnerFeedTab() {
           >
             <span className="text-3xl">⚠️</span>
             <p className="text-muted-foreground text-sm text-center">
-              Couldn&apos;t load the feed. Tap refresh to try again.
+              Couldn't load the feed. Tap refresh to try again.
             </p>
             <button
               type="button"
@@ -296,7 +296,7 @@ function MyPartnersTab() {
               ⚠️
             </span>
             <p className="text-muted-foreground text-sm text-center">
-              Couldn&apos;t load your partners. Tap refresh to try again.
+              Couldn't load your partners. Tap refresh to try again.
             </p>
             <button
               type="button"

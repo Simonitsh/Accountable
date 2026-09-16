@@ -469,7 +469,7 @@ function GoalEditForm({
                 Enable Lock-In Mode
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Strict time block with check-in &amp; check-out
+                Strict time block with check-in & check-out
               </p>
             </div>
             <button

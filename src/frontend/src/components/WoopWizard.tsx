@@ -1153,8 +1153,8 @@ export default function WoopWizard({
                           Enable Lock-In Mode
                         </p>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          Strict time block — check in &amp; out within a
-                          defined window
+                          Strict time block — check in & out within a defined
+                          window
                         </p>
                         {form.isLockIn && (
                           <p className="text-xs text-muted-foreground mt-1">

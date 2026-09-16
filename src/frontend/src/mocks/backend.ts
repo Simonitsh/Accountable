@@ -43,7 +43,6 @@ const sampleMacroGoal1 = {
   outcome: "Feel energized and clear-headed every day",
   state: GoalState.active,
   themeColor: "#10B981",
-  iconName: "running",
   category: GoalCategory.Health,
 };
 
@@ -59,7 +58,6 @@ const sampleMacroGoal2 = {
   outcome: "Reduced stress and improved focus",
   state: GoalState.paused,
   themeColor: "#6366F1",
-  iconName: "book-open",
   category: GoalCategory.Learning,
 };
 
@@ -76,7 +74,6 @@ const sampleMacroGoal3 = {
   outcome: "Twelve books finished this year",
   state: GoalState.completed,
   themeColor: "#F59E0B",
-  iconName: "book",
   category: GoalCategory.Learning,
 };
 
@@ -100,7 +97,6 @@ const sampleHabit1 = {
   state: GoalState.active,
   isLockIn: true,
   themeColor: "#10B981",
-  iconName: "running",
   lastEditedAt: undefined,
   startTime: "06:00",
   endTime: "07:00",
@@ -126,7 +122,6 @@ const sampleHabit2 = {
   state: GoalState.active,
   isLockIn: false,
   themeColor: "#10B981",
-  iconName: "activity",
   lastEditedAt: undefined,
   startTime: "21:00",
   endTime: "21:10",
@@ -152,7 +147,6 @@ const sampleHabit3 = {
   state: GoalState.paused,
   isLockIn: false,
   themeColor: "#6366F1",
-  iconName: "book-open",
   lastEditedAt: undefined,
   startTime: "07:00",
   endTime: "07:10",
@@ -297,7 +291,6 @@ export const mockBackend: backendInterface = {
       wishDescription: request.wishDescription,
       outcome: request.outcome,
       state: GoalState.active,
-      iconName: request.iconName,
       category: request.category,
     },
   }),
@@ -317,7 +310,6 @@ export const mockBackend: backendInterface = {
       ok: {
         ...found,
         id: goalId,
-        iconName: request.iconName ?? found.iconName,
         updatedAt: BigInt(Date.now()) * BigInt(1_000_000),
       },
     };
@@ -350,7 +342,6 @@ export const mockBackend: backendInterface = {
         state: GoalState.active,
         isLockIn: request.isLockIn,
         themeColor: request.themeColor ?? parent.themeColor,
-        iconName: request.iconName ?? parent.iconName,
         lastEditedAt: undefined,
         startTime: request.startTime,
         endTime: request.endTime,
@@ -393,7 +384,6 @@ export const mockBackend: backendInterface = {
         scheduledDays: request.scheduledDays ?? found.scheduledDays,
         ifThenPlan: request.ifThenPlan ?? found.ifThenPlan,
         themeColor: request.themeColor ?? found.themeColor,
-        iconName: request.iconName ?? found.iconName,
         lastEditedAt: BigInt(Date.now()) * BigInt(1_000_000),
         updatedAt: BigInt(Date.now()) * BigInt(1_000_000),
       },

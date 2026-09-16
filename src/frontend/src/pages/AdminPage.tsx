@@ -363,7 +363,7 @@ export function AdminPage() {
             <AlertTriangle className="w-8 h-8 text-muted-foreground/70" />
             <div>
               <p className="text-sm font-semibold text-foreground">
-                Couldn&apos;t load users
+                Couldn't load users
               </p>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-xs">
                 Something went wrong fetching the user list. Check your

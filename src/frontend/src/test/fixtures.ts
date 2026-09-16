@@ -41,7 +41,6 @@ export function makeMacroGoal(
     wishDescription: "Run every morning",
     outcome: "Feel energized",
     state: GoalState.active,
-    iconName: "running",
     category: GoalCategory.Health,
     updatedAt: FIXED_TS_NS,
     ...overrides,

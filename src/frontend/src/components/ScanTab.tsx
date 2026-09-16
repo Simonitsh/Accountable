@@ -434,7 +434,7 @@ export function ScanTab() {
             Scan Partner QR
           </h2>
           <p className="text-sm text-muted-foreground">
-            Scan a partner&apos;s Principal ID QR code
+            Scan a partner's Principal ID QR code
           </p>
         </div>
       </div>
@@ -569,7 +569,7 @@ export function ScanTab() {
           <h3 className="font-display text-base font-semibold">Manual Entry</h3>
         </div>
         <p className="mb-4 text-sm text-muted-foreground">
-          Can&apos;t scan? Paste a partner&apos;s Principal ID below.
+          Can't scan? Paste a partner's Principal ID below.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <input

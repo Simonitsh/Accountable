@@ -27,12 +27,11 @@ type UserProfilePublic =
    username: text;
  };
 type UserId = principal;
-type UpdateMacroGoalRequest = record {iconName: opt text;};
+type UpdateMacroGoalRequest = record {};
 type UpdateHabitRequest = 
  record {
    endTime: opt text;
    endTimeMinutes: opt nat;
-   iconName: opt text;
    ifThenPlan: opt text;
    isLockIn: opt bool;
    isTimeEdit: opt bool;
@@ -104,7 +103,6 @@ type MacroGoalPublic =
  record {
    category: GoalCategory;
    createdAt: Timestamp;
-   iconName: opt text;
    id: GoalId;
    outcome: text;
    owner: UserId;
@@ -209,7 +207,6 @@ type DayOfWeekStat =
 type CreateMacroGoalRequest = 
  record {
    category: GoalCategory;
-   iconName: opt text;
    outcome: text;
    wish: text;
    wishDescription: text;
@@ -219,7 +216,6 @@ type CreateHabitRequest =
    endTime: opt text;
    endTimeMinutes: opt nat;
    goalId: GoalId;
-   iconName: opt text;
    ifThenPlan: text;
    isLockIn: bool;
    lockInDurationMinutes: opt nat;

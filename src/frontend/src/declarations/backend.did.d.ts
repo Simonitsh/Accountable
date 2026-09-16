@@ -73,7 +73,6 @@ export interface CreateHabitRequest {
   'goalId' : GoalId,
   'themeColor' : [] | [string],
   'wishDescription' : [] | [string],
-  'iconName' : [] | [string],
   'ifThenPlan' : string,
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'isLockIn' : boolean,
@@ -82,7 +81,6 @@ export interface CreateHabitRequest {
 export interface CreateMacroGoalRequest {
   'wish' : string,
   'wishDescription' : string,
-  'iconName' : [] | [string],
   'category' : GoalCategory,
   'outcome' : string,
 }
@@ -171,7 +169,6 @@ export interface MacroGoalPublic {
   'createdAt' : Timestamp,
   'wish' : string,
   'wishDescription' : string,
-  'iconName' : [] | [string],
   'updatedAt' : Timestamp,
   'state' : GoalState,
   'category' : GoalCategory,
@@ -229,13 +226,12 @@ export interface UpdateHabitRequest {
   'startTimeMinutes' : [] | [bigint],
   'themeColor' : [] | [string],
   'isTimeEdit' : [] | [boolean],
-  'iconName' : [] | [string],
   'ifThenPlan' : [] | [string],
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'isLockIn' : [] | [boolean],
   'lockInDurationMinutes' : [] | [bigint],
 }
-export interface UpdateMacroGoalRequest { 'iconName' : [] | [string] }
+export type UpdateMacroGoalRequest = {};
 export type UserId = Principal;
 export interface UserProfilePublic {
   'id' : UserId,

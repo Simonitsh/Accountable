@@ -177,7 +177,7 @@ export function ConnectionsPage() {
           Connections
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Share your ID, scan a partner&apos;s QR, or manage requests.
+          Share your ID, scan a partner's QR, or manage requests.
         </p>
       </div>
 

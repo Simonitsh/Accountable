@@ -24,7 +24,6 @@ import {
   type MacroGoalPublic,
 } from "../types";
 import { formatDate, stateBadgeStyle, stateLabel } from "../utils/goalDisplay";
-import { GOAL_ICONS } from "../utils/goalIcons";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,12 +42,6 @@ function stateIcon(state: GoalStateType, size = 10) {
 
 function categoryDetail(category: GoalCategory) {
   return CATEGORY_DETAILS.find((c) => c.id === category) ?? CATEGORY_DETAILS[0];
-}
-
-function goalIconSvg(name: string | undefined) {
-  if (!name) return null;
-  const found = GOAL_ICONS.find((i) => i.id === name);
-  return found ? found.svg : null;
 }
 
 type FilterTab = "all" | GoalStateType;
@@ -328,7 +321,6 @@ function GoalCard({
 }: GoalCardProps) {
   const cat = categoryDetail(goal.category);
   const CatIcon = cat.icon;
-  const iconSvg = goalIconSvg(goal.iconName);
   // Goals always use the fixed gold accent (same as the dashboard goal
   // header). Goals have no selectable color — the accent can never vary.
   const accent = "oklch(var(--goal-wizard-gold))";
@@ -364,17 +356,16 @@ function GoalCard({
         </span>
       </div>
 
-      {/* Title — the wish */}
+      {/* Title — the wish. The icon always comes from the goal's category
+          (matching the dashboard header), never a custom pick. */}
       <h3 className="font-display font-semibold text-foreground leading-tight line-clamp-2 flex items-start gap-2">
-        {iconSvg ? (
-          <span
-            className="shrink-0 mt-0.5 w-4 h-4"
-            style={{ color: accent }}
-            aria-hidden="true"
-          >
-            {iconSvg}
-          </span>
-        ) : null}
+        <span
+          className="shrink-0 mt-0.5 w-4 h-4"
+          style={{ color: accent }}
+          aria-hidden="true"
+        >
+          <CatIcon size={16} strokeWidth={1.5} />
+        </span>
         <span className="min-w-0">{goal.wish}</span>
       </h3>
 

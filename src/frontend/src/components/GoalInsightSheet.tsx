@@ -682,7 +682,7 @@ export function GoalInsightSheet({
                                       "oklch(var(--muted-foreground) / 0.7)",
                                   }}
                                 >
-                                  Waiting for today&apos;s action
+                                  Waiting for today's action
                                 </p>
                               </div>
                             </div>

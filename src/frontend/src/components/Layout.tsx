@@ -36,7 +36,7 @@ export function Layout() {
 
       <footer className="fixed bottom-0 left-0 right-0 z-10 flex items-end justify-center pb-1 pointer-events-none">
         <p className="text-[10px] text-muted-foreground/40 font-mono pointer-events-auto">
-          &copy; {new Date().getFullYear()}. Built with love using{" "}
+          © {new Date().getFullYear()}. Built with love using{" "}
           <a
             href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
             target="_blank"

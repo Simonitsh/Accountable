@@ -940,9 +940,22 @@ export function DashboardPage() {
     ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const
   )[new Date().getDay()];
 
+  // ── Bug 10: periodic check for in-progress Lock-In goals that should be 'missed' ──
+  // Runs every 30s. If past endTime + 5min AND goal has inProgress check-in, the
+  // getLockInState function will return 'missed' automatically on next render.
+  // No new backend write needed — just force a re-render every 30s.
+  const [_lockInStateTick, setLockInStateTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLockInStateTick((n) => n + 1);
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // ── Backend-derived done map: source of truth for Done tab across all devices ──
   // Each entry = today's check-in (filtered by user's timezone), keyed by goalId.
   const todayDoneMap = useMemo<DoneMap>(() => {
+    void _lockInStateTick; // ensures memo re-runs on 30s tick
     const map: DoneMap = new Map();
     for (const c of checkIns) {
       if (isCheckInToday(c.timestamp, userTimezone)) {
@@ -977,7 +990,7 @@ export function DashboardPage() {
       }
     }
     return map;
-  }, [checkIns, userTimezone, goals]);
+  }, [checkIns, userTimezone, goals, _lockInStateTick]);
 
   // ── Promote optimisticDoneMap entries once todayDoneMap has real backend data ────
   // When the backend query returns, clear any optimistic entries that are now
@@ -1373,18 +1386,6 @@ export function DashboardPage() {
     markIfThenUsedMutation.mutate(checkInId);
   }
 
-  // ── Bug 10: periodic check for in-progress Lock-In goals that should be 'missed' ──
-  // Runs every 30s. If past endTime + 5min AND goal has inProgress check-in, the
-  // getLockInState function will return 'missed' automatically on next render.
-  // No new backend write needed — just force a re-render every 30s.
-  const [_lockInStateTick, setLockInStateTick] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLockInStateTick((n) => n + 1);
-    }, 30_000);
-    return () => clearInterval(interval);
-  }, []);
-
   // ── Bug 5: on data load, clean up any non-Lock-In goals with inProgress check-ins ──
   // These are stuck states from previous bugs. Auto-delete the check-in so the
   // card returns to Active and can be swiped normally.
@@ -1463,6 +1464,17 @@ export function DashboardPage() {
         return next;
       });
       setOptimisticDoneMap((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      // Clear the if-then follow-up note tracking for this habit so a fresh
+      // check-in right after the undo starts clean: the old (now-deleted)
+      // check-in id is removed, so the note's dismissal key (derived from the
+      // check-in id) no longer references the deleted check-in and the note
+      // shows again for the new check-in.
+      setIfThenCheckInIdMap((prev) => {
+        if (!prev.has(key)) return prev;
         const next = new Map(prev);
         next.delete(key);
         return next;
