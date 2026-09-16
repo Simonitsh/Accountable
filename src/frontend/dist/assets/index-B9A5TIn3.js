@@ -79589,6 +79589,21 @@ function isIfThenDismissed(checkInId) {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1";
 }
+const MISSED_SHEET_KEY_PREFIX = "cumulative-missed-sheet-";
+function missedSheetKey(goalId, failureType) {
+  const today = (/* @__PURE__ */ new Date()).toDateString();
+  return `${MISSED_SHEET_KEY_PREFIX}${goalId}-${today}-${failureType}`;
+}
+function isMissedSheetShown(goalId, failureType) {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(missedSheetKey(goalId, failureType)) === "1";
+}
+function markMissedSheetShown(goalId, failureType) {
+  try {
+    localStorage.setItem(missedSheetKey(goalId, failureType), "1");
+  } catch {
+  }
+}
 function parseTimeToday(timeStr) {
   const [h2, m2] = timeStr.split(":").map(Number);
   const d2 = /* @__PURE__ */ new Date();
@@ -79734,7 +79749,6 @@ function GoalCard$1({
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
   const [, setIfThenDismissTick] = reactExports.useState(0);
   const [isTapped, _setIsTapped] = reactExports.useState(false);
-  const autoMissedTriggeredRef = reactExports.useRef(false);
   const exitCommittedRef = reactExports.useRef(false);
   const prefersReducedMotion2 = useReducedMotion();
   const isSuccessExit = isExiting && exitDirection === "right" && !prefersReducedMotion2;
@@ -79755,17 +79769,16 @@ function GoalCard$1({
   reactExports.useEffect(() => {
     if (exitCommittedRef.current) return;
     if (lockInState === "missed-start" || lockInState === "missed-checkout") {
-      if (!autoMissedTriggeredRef.current) {
-        autoMissedTriggeredRef.current = true;
+      const failureType = lockInState === "missed-checkout" ? "checkout" : "start";
+      if (!isMissedSheetShown(goal.id, failureType)) {
+        markMissedSheetShown(goal.id, failureType);
         const t = setTimeout(() => {
           if (!exitCommittedRef.current) setShowMissedSheet(true);
         }, 550);
         return () => clearTimeout(t);
       }
-    } else {
-      autoMissedTriggeredRef.current = false;
     }
-  }, [lockInState]);
+  }, [lockInState, goal.id]);
   const [dragX, setDragX] = reactExports.useState(0);
   const [isDragging2, setIsDragging] = reactExports.useState(false);
   const dragDirection = dragX > 0 ? "right" : dragX < 0 ? "left" : null;
@@ -79987,7 +80000,11 @@ function GoalCard$1({
       if (lockInState !== null) return;
       if (navigator.vibrate) navigator.vibrate([15]);
       modalOpenedDuringGestureRef.current = true;
-      setShowWoopCatch(true);
+      if (hasIfThenPlan) {
+        setShowWoopCatch(true);
+      } else {
+        setShowSkipModal(true);
+      }
     }
   }
   function onPointerCancel() {
@@ -80037,7 +80054,7 @@ function GoalCard$1({
     setShowSkipModal(true);
   }
   function handleIfThenUsed() {
-    if (ifThenCheckInId !== void 0) {
+    if (ifThenCheckInId !== void 0 && ifThenCheckInId !== 0n) {
       onMarkIfThenUsed == null ? void 0 : onMarkIfThenUsed(goal.id, ifThenCheckInId);
     }
   }
@@ -80641,7 +80658,12 @@ function GoalCard$1({
         open: showMissedSheet,
         onClose: () => {
           setShowMissedSheet(false);
-          autoMissedTriggeredRef.current = false;
+          if (lockInState === "missed-start" || lockInState === "missed-checkout") {
+            markMissedSheetShown(
+              goal.id,
+              lockInState === "missed-checkout" ? "checkout" : "start"
+            );
+          }
         },
         onConfirm: (obstacleTemplateId, note) => handleMissedConfirm(obstacleTemplateId, note),
         isLoading: isCheckingIn,
@@ -85933,7 +85955,11 @@ function DashboardPage$1() {
           checkInType: optimisticCheckInType,
           executedIfThen: executedIfThen ?? false,
           isLockIn: (goal == null ? void 0 : goal.isLockIn) ?? false,
-          obstacleTemplateId: obstacleId
+          obstacleTemplateId: obstacleId,
+          // Real timestamp captured at the moment of the check-in so the
+          // if-then follow-up note can derive its display window immediately
+          // (before the backend refetch lands) instead of popping in late.
+          timestamp: BigInt(Date.now()) * 1000000n
         });
         return next;
       });

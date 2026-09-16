@@ -1330,6 +1330,10 @@ export function DashboardPage() {
           executedIfThen: executedIfThen ?? false,
           isLockIn: goal?.isLockIn ?? false,
           obstacleTemplateId: obstacleId,
+          // Real timestamp captured at the moment of the check-in so the
+          // if-then follow-up note can derive its display window immediately
+          // (before the backend refetch lands) instead of popping in late.
+          timestamp: BigInt(Date.now()) * 1_000_000n,
         });
         return next;
       });

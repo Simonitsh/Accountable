@@ -44,6 +44,33 @@ function isIfThenDismissed(checkInId: bigint | undefined): boolean {
   );
 }
 
+// localStorage key prefix for the missed-window sheet's auto-show marker.
+// The full key is `${MISSED_SHEET_KEY_PREFIX}${goalId}-${date}-${failureType}`.
+// Persisting by goal id + calendar day + failure type means the "already
+// shown/dismissed" decision survives GoalCard unmounting when the user
+// navigates away and back — the same persistent-input pattern the if-then
+// follow-up note uses — so the sheet never re-pops for an unresolved missed
+// state the user has already seen.
+const MISSED_SHEET_KEY_PREFIX = "cumulative-missed-sheet-";
+
+function missedSheetKey(goalId: bigint, failureType: string): string {
+  const today = new Date().toDateString();
+  return `${MISSED_SHEET_KEY_PREFIX}${goalId}-${today}-${failureType}`;
+}
+
+function isMissedSheetShown(goalId: bigint, failureType: string): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(missedSheetKey(goalId, failureType)) === "1";
+}
+
+function markMissedSheetShown(goalId: bigint, failureType: string): void {
+  try {
+    localStorage.setItem(missedSheetKey(goalId, failureType), "1");
+  } catch {
+    // best-effort — persistence is a nicety, not a requirement
+  }
+}
+
 export type DayStatus = "success" | "skip" | "none";
 
 // ─── Lock-In types & helpers ──────────────────────────────────────────────────
@@ -306,8 +333,6 @@ export function GoalCard({
   const [, setIfThenDismissTick] = useState(0);
   // Press feedback: brief scale-down + inward shadow on clean tap
   const [isTapped, _setIsTapped] = useState(false);
-  // Auto-trigger missed sheet once per transition to a missed state
-  const autoMissedTriggeredRef = useRef(false);
   // exitCommittedRef: once set to true, no re-render can revert this card
   // to a missed/active state or re-trigger the justification sheet.
   const exitCommittedRef = useRef(false);
@@ -357,21 +382,24 @@ export function GoalCard({
   // ── Auto-trigger missed sheet once when lockInState becomes a missed state ─────
   // exitCommittedRef guards against re-fire after the user submitted the sheet
   // and the card is animating out (before lockInCheckInMap updates from backend).
+  // The "already shown/dismissed" decision is persisted in localStorage keyed by
+  // goal id + calendar day + failure type (see markMissedSheetShown), so it
+  // survives GoalCard unmounting when the user navigates away and back — the
+  // sheet never re-pops for an unresolved missed state the user has already seen.
   useEffect(() => {
     if (exitCommittedRef.current) return; // card already committed to exit — never re-trigger
     if (lockInState === "missed-start" || lockInState === "missed-checkout") {
-      if (!autoMissedTriggeredRef.current) {
-        autoMissedTriggeredRef.current = true;
+      const failureType =
+        lockInState === "missed-checkout" ? "checkout" : "start";
+      if (!isMissedSheetShown(goal.id, failureType)) {
+        markMissedSheetShown(goal.id, failureType);
         const t = setTimeout(() => {
           if (!exitCommittedRef.current) setShowMissedSheet(true);
         }, 550);
         return () => clearTimeout(t);
       }
-    } else {
-      // Reset the ref when leaving missed state so a future transition can re-trigger
-      autoMissedTriggeredRef.current = false;
     }
-  }, [lockInState]);
+  }, [lockInState, goal.id]);
 
   // ── Drag state ───────────────────────────────────────────────────────────────
   const [dragX, setDragX] = useState(0);
@@ -664,8 +692,14 @@ export function GoalCard({
       if (lockInState !== null) return; // Lock-In: no left swipe
       if (navigator.vibrate) navigator.vibrate([15]);
       modalOpenedDuringGestureRef.current = true;
-      // WOOP Catch: snap card back to center, open sheet over dashboard
-      setShowWoopCatch(true);
+      // WOOP Catch: snap card back to center, open sheet over dashboard.
+      // Skip the if-then plan-check sheet entirely for habits with no plan set
+      // and go straight to the normal skip screen.
+      if (hasIfThenPlan) {
+        setShowWoopCatch(true);
+      } else {
+        setShowSkipModal(true);
+      }
     }
     // Active card body tap intentionally does nothing — use the habit name button to open timeline.
   }
@@ -735,8 +769,10 @@ export function GoalCard({
   function handleIfThenUsed() {
     // Tagging the check-in as used flips executedIfThen to true (via
     // markCheckInIfThenUsed → backend refetch), which the derived visibility
-    // reads to hide the note. No in-moment state to clear.
-    if (ifThenCheckInId !== undefined) {
+    // reads to hide the note. No in-moment state to clear. Guard against the
+    // optimistic 0n placeholder id — the real id lands via onSuccess and the
+    // note re-evaluates once ifThenCheckInIdMap is populated.
+    if (ifThenCheckInId !== undefined && ifThenCheckInId !== 0n) {
       onMarkIfThenUsed?.(goal.id, ifThenCheckInId);
     }
   }
@@ -1493,7 +1529,17 @@ export function GoalCard({
           open={showMissedSheet}
           onClose={() => {
             setShowMissedSheet(false);
-            autoMissedTriggeredRef.current = false; // allow re-trigger if user dismisses without submitting
+            // Dismissing without submitting also persists the "already shown"
+            // marker so the sheet does not re-pop on a later remount.
+            if (
+              lockInState === "missed-start" ||
+              lockInState === "missed-checkout"
+            ) {
+              markMissedSheetShown(
+                goal.id,
+                lockInState === "missed-checkout" ? "checkout" : "start",
+              );
+            }
           }}
           onConfirm={(obstacleTemplateId, note) =>
             handleMissedConfirm(obstacleTemplateId, note)
