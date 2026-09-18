@@ -62,6 +62,7 @@ export type AvatarColorModeVariant =
 export type CheckInType =
   | "success"
   | "skip"
+  | "missed"
   | "inProgress"
   | "missedCheckIn"
   | "missedCheckOut";

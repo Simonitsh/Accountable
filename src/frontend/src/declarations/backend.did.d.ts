@@ -49,6 +49,7 @@ export interface CheckIn {
 }
 export type CheckInId = bigint;
 export type CheckInType = { 'skip' : null } |
+  { 'missed' : null } |
   { 'missedCheckIn' : null } |
   { 'missedCheckOut' : null } |
   { 'success' : null } |

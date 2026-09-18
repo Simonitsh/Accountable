@@ -250,6 +250,7 @@ export enum AvatarColorMode {
 }
 export enum CheckInType {
     skip = "skip",
+    missed = "missed",
     missedCheckIn = "missedCheckIn",
     missedCheckOut = "missedCheckOut",
     success = "success",

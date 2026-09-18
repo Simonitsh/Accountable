@@ -296,15 +296,17 @@ suite(
         let count = CheckIns.autoFailMissedGoals(checkIns, goals, nextId, profiles, MON_2024_01_01);
         expect.nat(count).equal(1);
         expect.nat(nextId[0]).equal(1);
-        // The auto-failed check-in was recorded as a #skip
+        // The auto-failed check-in was recorded as a #missed (a forgotten day,
+        // distinct from a deliberate #skip) and carries no obstacle.
         let recorded = checkIns.toArray();
         expect.nat(recorded.size()).equal(1);
         expect.nat(recorded[0].goalId).equal(1);
         expect.principal(recorded[0].owner).equal(owner);
         switch (recorded[0].checkInType) {
-          case (#skip) {};
+          case (#missed) {};
           case (_) { assert false };
         };
+        expect.option(recorded[0].obstacleTemplateId, func(n : Nat) : Text { n.toText() }, func(a, b) { a == b }).isNull();
         // timestamp is one ns before yesterday's local midnight (Sunday 23:59:59.999999999 UTC)
         expect.int(recorded[0].timestamp).equal(MON_2024_01_01 - 1);
       },
@@ -326,6 +328,26 @@ suite(
         expect.nat(count).equal(0);
         expect.nat(nextId[0]).equal(0);
         expect.nat(checkIns.toArray().size()).equal(1); // unchanged
+      },
+    );
+
+    test(
+      "does not re-record a day already closed out as #missed",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        // The overnight process already closed out Sunday as #missed.
+        checkIns.add(makeCheckIn(0, 1, owner, #missed, MON_2024_01_01 - 1));
+        let goals = List.empty<GoalTypes.Goal>();
+        goals.add(makeGoal(1, owner, ALL_DAYS, false));
+        let nextId : [var Nat] = [var 1];
+        let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
+        profiles.add(owner, makeProfile(owner, UTC_0));
+        // Running again for the same night must not add a second record.
+        let count = CheckIns.autoFailMissedGoals(checkIns, goals, nextId, profiles, MON_2024_01_01);
+        expect.nat(count).equal(0);
+        expect.nat(nextId[0]).equal(1);
+        expect.nat(checkIns.toArray().size()).equal(1);
       },
     );
 

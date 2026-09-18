@@ -1,18 +1,19 @@
 {
-  "overview": "A habit and goal tracking app where users check in on daily habits and macro goals, with if-then planning and category-based goal organization.",
+  "overview": "A habit-tracking app that distinguishes deliberate skips from forgotten days in both stored history and the interface.",
   "features": [
-    "Check in on daily habits and goals",
-    "If-then plan follow-up notes after check-ins",
-    "Organize goals by category (Health, Learning, Social, Productivity, Leisure)",
-    "Undo a check-in",
-    "Guided goal and habit creation wizards"
+    "Track habits with daily check-ins",
+    "Deliberate skips recorded with a reason",
+    "Forgotten days shown as missed, not skipped",
+    "Behavioral timeline of recent days",
+    "7-day tracker on each habit card",
+    "Insights into follow-through and obstacles"
   ],
   "category": "productivity",
   "tags": [
     "habits",
-    "goals",
+    "tracking",
     "productivity",
-    "tracking"
+    "self-improvement"
   ],
-  "last_updated": "2026-09-16T22:05:43.544Z"
+  "last_updated": "2026-09-18T22:18:59.247Z"
 }

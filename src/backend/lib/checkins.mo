@@ -7,7 +7,6 @@ import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
 import AuthTypes "../types/auth";
 import Int "mo:core/Int";
-import Debug "mo:core/Debug";
 import DateUtils "./date-utils";
 
 module {
@@ -67,7 +66,7 @@ module {
           // Block if any terminal record already exists today
           let alreadyTerminal = checkIns.find(func(c) {
             c.goalId == request.goalId and c.owner == caller and
-DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
+            DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
             (c.checkInType == #success or c.checkInType == #missedCheckIn or c.checkInType == #missedCheckOut)
           }) != null;
           if (alreadyTerminal) Runtime.trap("Lock-In already finalized today");
@@ -86,19 +85,29 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
             Runtime.trap("Already checked in for this goal today");
           };
         };
+        case (#missed) {
+          // #missed is written only by the overnight auto-fail process; a user
+          // cannot record a forgotten day by hand.
+          Runtime.trap("Missed status is recorded automatically, not by the user");
+        };
       };
     } else {
       // Regular goal: strict one-per-day
       if (hasSameDayCheckIn(checkIns, request.goalId, caller, now, request.timezoneOffsetMinutes)) {
         Runtime.trap("Already checked in for this goal today");
       };
-      // Skip requires obstacle linkage
       switch (request.checkInType) {
         case (#skip) {
+          // A deliberate skip always carries an obstacle.
           switch (request.obstacleTemplateId) {
             case null Runtime.trap("Skip check-in requires an obstacle template");
             case (?_) {};
           };
+        };
+        case (#missed) {
+          // #missed is written only by the overnight auto-fail process; a user
+          // cannot record a forgotten day by hand.
+          Runtime.trap("Missed status is recorded automatically, not by the user");
         };
         case (#success or #inProgress or #missedCheckIn or #missedCheckOut) {};
       };
@@ -119,11 +128,15 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
     checkIn;
   };
 
-  /// Midnight auto-fail: generate a #Missed check-in for every active goal that
+  /// Midnight auto-fail: generate a #missed check-in for every active goal that
   /// had no terminal check-in yesterday — but only if yesterday was a scheduled day.
   /// If yesterday was NOT in goal.scheduledDays (rest day), skip silently.
   /// Each goal's "yesterday" boundary is computed in its OWNER's timezone, looked
   /// up from the profiles map (falling back to UTC offset 0 when no profile exists).
+  ///
+  /// A #missed record is a forgotten day — distinct from a deliberate #skip,
+  /// which always carries an obstacle. #missed is terminal, so a day already
+  /// closed out is never re-recorded on a later night.
   public func autoFailMissedGoals(
     checkIns : List.List<CheckInTypes.CheckIn>,
     goals : List.List<GoalTypes.Goal>,
@@ -154,13 +167,14 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
       let yesterdayAbbr : Text = DateUtils.dayOfWeekAbbr(localYesterdayNs, 0);
       // Skip if yesterday was not a scheduled day (rest day)
       if (not DateUtils.isScheduledDay(yesterdayAbbr, goal.scheduledDays)) continue goalLoop;
-      // Check if there is any terminal check-in for this goal yesterday (UTC window)
+      // Check if there is any terminal check-in for this goal yesterday (UTC window).
+      // #missed is terminal too, so an already-closed-out day is never re-recorded.
       let hadTerminal = checkIns.find(func(c) {
         c.goalId == goal.id and
         c.owner == goal.owner and
         c.timestamp >= yesterdayStartUtc and
         c.timestamp < yesterdayEndUtc and
-        (c.checkInType == #success or c.checkInType == #skip or
+        (c.checkInType == #success or c.checkInType == #skip or c.checkInType == #missed or
          c.checkInType == #missedCheckIn or c.checkInType == #missedCheckOut)
       }) != null;
       if (not hadTerminal) {
@@ -168,8 +182,8 @@ DateUtils.sameDay(c.timestamp, now, request.timezoneOffsetMinutes) and
           id = nextCheckInId[0];
           goalId = goal.id;
           owner = goal.owner;
-          checkInType = #skip; // auto-missed recorded as skip for analytics consistency
-          obstacleTemplateId = null;
+          checkInType = #missed; // a scheduled day that passed with no interaction
+          obstacleTemplateId = null; // a missed day never carries an obstacle
           timestamp = yesterdayEndUtc - 1; // one ns before midnight
           lockInStartedAt = null;
           lockInEndedAt = null;

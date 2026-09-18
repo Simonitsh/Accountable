@@ -149,6 +149,7 @@ interface DoneEntry {
   checkInType:
     | "success"
     | "skip"
+    | "missed"
     | "inProgress"
     | "missedCheckIn"
     | "missedCheckOut";
@@ -962,6 +963,7 @@ export function DashboardPage() {
         const checkInType:
           | "success"
           | "skip"
+          | "missed"
           | "inProgress"
           | "missedCheckIn"
           | "missedCheckOut" =
@@ -969,13 +971,15 @@ export function DashboardPage() {
             ? "success"
             : c.checkInType === CheckInType.skip
               ? "skip"
-              : c.checkInType === CheckInType.inProgress
-                ? "inProgress"
-                : c.checkInType === CheckInType.missedCheckIn
-                  ? "missedCheckIn"
-                  : c.checkInType === CheckInType.missedCheckOut
-                    ? "missedCheckOut"
-                    : "skip";
+              : c.checkInType === CheckInType.missed
+                ? "missed"
+                : c.checkInType === CheckInType.inProgress
+                  ? "inProgress"
+                  : c.checkInType === CheckInType.missedCheckIn
+                    ? "missedCheckIn"
+                    : c.checkInType === CheckInType.missedCheckOut
+                      ? "missedCheckOut"
+                      : "skip";
         // Read executedIfThen from the check-in record
         const executedIfThen = c.executedIfThen ?? false;
         const doneGoal = goals.find((g) => goalKey(g.id) === goalKey(c.goalId));
@@ -1036,10 +1040,22 @@ export function DashboardPage() {
               const ms = Number(c.timestamp / 1_000_000n);
               const dayIndex = Math.floor((ms - fromMs) / 86_400_000);
               if (dayIndex >= 0 && dayIndex < 7) {
-                // success takes priority over skip
+                // success takes priority over every other outcome
                 if (c.checkInType === CheckInType.success) {
                   statuses[dayIndex] = "success";
-                } else if (statuses[dayIndex] !== "success") {
+                } else if (statuses[dayIndex] === "success") {
+                  // already a success — keep it
+                } else if (
+                  c.checkInType === CheckInType.missed ||
+                  c.checkInType === CheckInType.missedCheckIn ||
+                  c.checkInType === CheckInType.missedCheckOut
+                ) {
+                  // A stored #missed day (auto-closed, no interaction) and a
+                  // missed Lock-In day both render the definite muted grey ball
+                  // — never the ocean blue skip ball.
+                  statuses[dayIndex] = "missed";
+                } else {
+                  // Deliberate skip (#skip) keeps its ocean blue ball.
                   statuses[dayIndex] = "skip";
                 }
               }
@@ -1323,11 +1339,7 @@ export function DashboardPage() {
       });
       // Optimistically add to Done map so the card appears immediately after
       // the exit animation, before the backend query refetches.
-      const optimisticCheckInType:
-        | "success"
-        | "skip"
-        | "missedCheckIn"
-        | "missedCheckOut" =
+      const optimisticCheckInType: DoneEntry["checkInType"] =
         backendType === CheckInType.success
           ? "success"
           : backendType === CheckInType.missedCheckIn
@@ -1725,6 +1737,7 @@ export function DashboardPage() {
                 if (t === "success") return t;
                 if (
                   t === "skip" ||
+                  t === "missed" ||
                   t === "missedCheckIn" ||
                   t === "missedCheckOut"
                 )

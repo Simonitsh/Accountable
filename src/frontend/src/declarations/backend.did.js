@@ -138,6 +138,7 @@ export const AnalyticsSummary = IDL.Record({
 });
 export const CheckInType = IDL.Variant({
   'skip' : IDL.Null,
+  'missed' : IDL.Null,
   'missedCheckIn' : IDL.Null,
   'missedCheckOut' : IDL.Null,
   'success' : IDL.Null,
@@ -541,6 +542,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const CheckInType = IDL.Variant({
     'skip' : IDL.Null,
+    'missed' : IDL.Null,
     'missedCheckIn' : IDL.Null,
     'missedCheckOut' : IDL.Null,
     'success' : IDL.Null,

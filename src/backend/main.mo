@@ -233,7 +233,7 @@ actor {
         .payload("goalId", func (c : CheckInTypes.CheckIn) : Nat = c.goalId)
         .edge("goalId", "goal")
         .payload("owner", func (c : CheckInTypes.CheckIn) : Principal = c.owner)
-        .payload("checkInType", func (c : CheckInTypes.CheckIn) : Text = switch (c.checkInType) { case (#success) "success"; case (#skip) "skip"; case (#inProgress) "inProgress"; case (#missedCheckIn) "missedCheckIn"; case (#missedCheckOut) "missedCheckOut" })
+        .payload("checkInType", func (c : CheckInTypes.CheckIn) : Text = switch (c.checkInType) { case (#success) "success"; case (#skip) "skip"; case (#missed) "missed"; case (#inProgress) "inProgress"; case (#missedCheckIn) "missedCheckIn"; case (#missedCheckOut) "missedCheckOut" })
         .payload("obstacleTemplateId", func (c : CheckInTypes.CheckIn) : Nat = switch (c.obstacleTemplateId) { case null 0; case (?n) n })
         .payload("timestamp", func (c : CheckInTypes.CheckIn) : Int = c.timestamp)
         .payload("lockInStartedAt", func (c : CheckInTypes.CheckIn) : Int = switch (c.lockInStartedAt) { case null 0; case (?t) t })

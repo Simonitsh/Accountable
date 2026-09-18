@@ -28,7 +28,7 @@ mixin () {
     "- **Identifiers** (`goalId`, `checkInId`, `connectionId`, `interactionId`, `obstacleTemplateId`) are `Nat`.\n" #
     "- **Principals** are `Principal` values; the caller's own principal is `caller`.\n" #
     "- **Optional values** use `?T` / `null`. For example `obstacleTemplateId` on a check-in is `null` when no template was recorded; `goalId` on a `Goal` is `null` for a macro goal and set for a habit.\n" #
-    "- **Variants** are Candid variants. `checkInType` is one of `#success`, `#skip`, `#inProgress`, `#missedCheckIn`, `#missedCheckOut`. `GoalCategory` is one of `#Health`, `#Learning`, `#Social`, `#Productivity`, `#Leisure`. `GoalState` is `#active`, `#paused`, `#completed`.\n" #
+    "- **Variants** are Candid variants. `checkInType` is one of `#success`, `#skip`, `#missed`, `#inProgress`, `#missedCheckIn`, `#missedCheckOut`. `#skip` is a deliberate skip and always carries an `obstacleTemplateId`; `#missed` is a scheduled day that passed with no interaction and never carries one. `GoalCategory` is one of `#Health`, `#Learning`, `#Social`, `#Productivity`, `#Leisure`. `GoalState` is `#active`, `#paused`, `#completed`.\n" #
     "- **Day of week** in the Insights summary is `0 = Sunday ... 6 = Saturday`.\n" #
     "\n" #
     "## Public Methods\n" #
@@ -93,7 +93,7 @@ mixin () {
     "\n" #
     "## Lifecycle & Polling\n" #
     "\n" #
-    "A recurring hourly timer auto-fails active non-Lock-In goals that had no terminal check-in on a scheduled day, recording a `#skip` check-in (so auto-filled forgotten days are represented as skips). Lock-In goals manage their own missed states through the check-in flow. There is no long-running job to poll; `getAnalytics` is a pure query that reflects the latest persisted check-ins immediately.\n" #
+    "A recurring hourly timer auto-fails active non-Lock-In goals that had no terminal check-in on a scheduled day, recording a `#missed` check-in (a forgotten day, distinct from a deliberate `#skip`). A `#missed` record is terminal, so the timer never re-records the same day on later nights. Lock-In goals manage their own missed states through the check-in flow. There is no long-running job to poll; `getAnalytics` is a pure query that reflects the latest persisted check-ins immediately.\n" #
     "\n" #
     "## Mutation Retry Safety\n" #
     "\n" #
@@ -105,7 +105,7 @@ mixin () {
     "\n" #
     "- Many endpoints **trap** (reject the message) on caller error rather than returning a `Result` — e.g. anonymous callers, unregistered callers, and one-per-day violations. A trap rolls back the whole message and reaches the frontend as an opaque reject.\n" #
     "- `getAnalytics` counts only the caller's own data; it never leaks other users' habits or check-ins.\n" #
-    "- Shown-up days exclude skips and auto-filled forgotten days (both recorded as `#skip`), so the count reflects genuine effort, not grading.\n" #
+    "- Shown-up days exclude deliberate skips (`#skip`) and missed days (`#missed`), so the count reflects genuine effort, not grading.\n" #
     "- The predicted obstacle on a habit is saved permanently at creation and is not editable; the Insights summary compares it against obstacles actually recorded on check-ins.\n" #
     "- `getUserProfile` and `listAllUsers` expose email only to the owner or an admin; partner-facing paths strip it.\n" #
     "- OQL `execute` is read-only and controller-scoped for connection/interaction entities; user-scoped entities expose only the caller's own rows.\n"

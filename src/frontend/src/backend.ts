@@ -296,6 +296,7 @@ export enum AvatarColorMode {
 }
 export enum CheckInType {
     skip = "skip",
+    missed = "missed",
     missedCheckIn = "missedCheckIn",
     missedCheckOut = "missedCheckOut",
     success = "success",
@@ -1203,7 +1204,7 @@ function from_candid_Cell_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     return from_candid_record_n25(_uploadFile, _downloadFile, value);
 }
 function from_candid_CheckInType_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CheckInType): CheckInType {
-    return "skip" in value ? CheckInType.skip : "missedCheckIn" in value ? CheckInType.missedCheckIn : "missedCheckOut" in value ? CheckInType.missedCheckOut : "success" in value ? CheckInType.success : "inProgress" in value ? CheckInType.inProgress : value;
+    return "skip" in value ? CheckInType.skip : "missed" in value ? CheckInType.missed : "missedCheckIn" in value ? CheckInType.missedCheckIn : "missedCheckOut" in value ? CheckInType.missedCheckOut : "success" in value ? CheckInType.success : "inProgress" in value ? CheckInType.inProgress : value;
 }
 function from_candid_CheckIn_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CheckIn): CheckIn {
     return from_candid_record_n43(_uploadFile, _downloadFile, value);
@@ -2046,6 +2047,8 @@ function to_candid_AvatarShape_n93(_uploadFile: (file: ExternalBlob) => Promise<
 function to_candid_CheckInType_n84(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CheckInType): _CheckInType {
     return value == CheckInType.skip ? {
         skip: null
+    } : value == CheckInType.missed ? {
+        missed: null
     } : value == CheckInType.missedCheckIn ? {
         missedCheckIn: null
     } : value == CheckInType.missedCheckOut ? {

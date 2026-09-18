@@ -19,8 +19,8 @@ import { WoopCatchSheet } from "./WoopCatchSheet";
 // ─── Accent constants ──────────────────────────────────────────────────────────
 const SUCCESS_COLOR = "#10B981"; // Emerald Green
 const SKIP_COLOR = "#0369A1"; // Ocean Blue
-const GREY_COLOR = "#4B5563"; // No check-in
-const MISSED_COLOR = "#6B7280"; // Missed / failed lock-in
+const GREY_COLOR = "#4B5563"; // No record at all — fainter grey ball
+const MISSED_COLOR = "#6B7280"; // Missed day — definite muted grey ball
 
 const SWIPE_THRESHOLD = 60;
 
@@ -71,7 +71,7 @@ function markMissedSheetShown(goalId: bigint, failureType: string): void {
   }
 }
 
-export type DayStatus = "success" | "skip" | "none";
+export type DayStatus = "success" | "skip" | "missed" | "none";
 
 // ─── Lock-In types & helpers ──────────────────────────────────────────────────
 export type LockInState =
@@ -239,6 +239,7 @@ interface GoalCardProps {
         checkInType:
           | "success"
           | "skip"
+          | "missed"
           | "inProgress"
           | "missedCheckIn"
           | "missedCheckOut";
@@ -423,6 +424,7 @@ export function GoalCard({
   // ── Derived ──────────────────────────────────────────────────────────────────
   const isSuccess = checkInToday?.checkInType === "success";
   const isSkipped = checkInToday?.checkInType === "skip";
+  const isMissed = checkInToday?.checkInType === "missed";
   const isMissedCheckIn = checkInToday?.checkInType === "missedCheckIn";
   const isMissedCheckOut = checkInToday?.checkInType === "missedCheckOut";
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
@@ -452,7 +454,7 @@ export function GoalCard({
     const litBorder = `1px solid rgba(255,255,255,${litBorderOpacity})`;
 
     // Done tab states
-    if (mode === "done" && isFailedLockIn) {
+    if (mode === "done" && (isFailedLockIn || isMissed)) {
       return {
         background: cardBgIdle,
         boxShadow: embossed,
@@ -814,7 +816,17 @@ export function GoalCard({
   function getBallColor(status: DayStatus): string {
     if (status === "success") return SUCCESS_COLOR;
     if (status === "skip") return SKIP_COLOR;
+    if (status === "missed") return MISSED_COLOR;
     return GREY_COLOR;
+  }
+
+  // A missed day renders the definite muted grey ball; a day with no record at
+  // all renders the fainter grey ball (lower opacity) so the two are visibly
+  // distinct. Success and skip balls keep their existing 0.9 opacity.
+  function getBallOpacity(status: DayStatus): number {
+    if (status === "none") return 0.35;
+    if (status === "missed") return 0.7;
+    return 0.9;
   }
 
   // ── Animation variants ───────────────────────────────────────────────────────
@@ -1126,7 +1138,9 @@ export function GoalCard({
                       ? "missed start window"
                       : isMissedCheckOut
                         ? "missed check-out"
-                        : "skipped"
+                        : isMissed
+                          ? "missed, no action taken"
+                          : "skipped"
                 }.`
               : lockInState === "completed"
                 ? `${keystoneText} — lock-in completed.`
@@ -1364,7 +1378,7 @@ export function GoalCard({
                         className="w-3.5 h-3.5 rounded-full"
                         style={{
                           backgroundColor: getBallColor(status),
-                          opacity: status === "none" ? 0.35 : 0.9,
+                          opacity: getBallOpacity(status),
                         }}
                         aria-hidden="true"
                       />

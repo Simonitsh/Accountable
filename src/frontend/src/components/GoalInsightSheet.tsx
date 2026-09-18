@@ -93,7 +93,10 @@ function TimelineNodeCircle({
     );
   }
 
-  // inProgress → hollow grey
+  // inProgress and #missed → muted grey hollow node. A stored #missed day
+  // (scheduled day that passed with no interaction) renders identically to a
+  // scheduled past day with no record at all. Deliberate skips (#skip) keep
+  // their ocean blue node above.
   return (
     <div
       className="flex-shrink-0 w-8 h-8 rounded-full"
@@ -135,6 +138,7 @@ function TimelineInProgressNode() {
 function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
+  const isMissed = checkIn.checkInType === CheckInType.missed;
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
   const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
   const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
@@ -175,12 +179,18 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   } else if (isInProgress) {
     primaryText = "In Progress";
     primaryColor = "#F59E0B";
+  } else if (isMissed) {
+    // Stored #missed day — same wording as a scheduled past day with no record.
+    primaryText = "Missed \u2022 No action taken";
+    primaryColor = MISSED_COLOR;
   } else {
     primaryText = "Missed \u2022 No action taken";
     primaryColor = MISSED_COLOR;
   }
 
   // For missed Lock-In check-ins with no note, keep the existing fallback.
+  // A stored #missed day never carries an obstacle or note, so it shows no
+  // reason line at all — matching a scheduled past day with no record.
   const showNoReasonFallback = isMissedLockIn && !note;
 
   return (
@@ -234,11 +244,11 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
 
 /**
  * A day's timeline shows at most one outcome node. Terminal results
- * (completed / skipped / logged missed start / logged missed check-out) take
- * precedence over a Lock-In "started" (#inProgress) entry, which is only a
- * window opening, not an outcome. A started-but-unresolved window therefore
- * surfaces alone only when it is the day's sole entry — which, for a still-open
- * window, is today.
+ * (completed / skipped / stored missed / logged missed start / logged missed
+ * check-out) take precedence over a Lock-In "started" (#inProgress) entry,
+ * which is only a window opening, not an outcome. A started-but-unresolved
+ * window therefore surfaces alone only when it is the day's sole entry — which,
+ * for a still-open window, is today.
  */
 function pickDayOutcome(items: CheckIn[]): CheckIn {
   const terminal = items.find(

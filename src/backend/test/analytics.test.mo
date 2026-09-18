@@ -2,6 +2,7 @@ import { test; expect } "mo:test";
 import Principal "mo:core/Principal";
 import Common "../types/common";
 import CheckInTypes "../types/checkins";
+import GoalTypes "../types/goals";
 import DateUtils "../lib/date-utils";
 import Analytics "../lib/analytics";
 
@@ -106,4 +107,46 @@ test("computeDayOfWeek: multiple check-ins across the wraparound land on distinc
   expect.nat(saturday[6].total).equal(1);
   expect.nat(saturday[6].successes).equal(0); // the #skip is not a success
   expect.nat(saturday[0].total).equal(0);
+});
+
+// ---------------------------------------------------------------------------
+// computeHabitAnalytics() — shown-up days count only genuine successes
+// ---------------------------------------------------------------------------
+
+func makeHabit() : GoalTypes.HabitPublic {
+  {
+    id = 1;
+    owner = Principal.fromText("aaaaa-aa");
+    goalId = 1;
+    wish = "wish";
+    wishDescription = "desc";
+    outcome = "outcome";
+    obstacleTemplateId = null;
+    ifThenPlan = "";
+    state = #active;
+    createdAt = 0;
+    updatedAt = 0;
+    themeColor = null;
+    isLockIn = false;
+    startTime = null;
+    endTime = null;
+    lastEditedAt = null;
+    lockInDurationMinutes = 0;
+    startTimeMinutes = 0;
+    endTimeMinutes = 0;
+    scheduledDays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+    category = #Health;
+  };
+};
+
+test("computeHabitAnalytics: shown-up days exclude #skip and #missed", func() {
+  // One genuine success, one deliberate skip, one forgotten (missed) day.
+  let checkIns = [
+    makeCheckIn(1, 0, #success),
+    makeCheckIn(2, DateUtils.DAY_NS, #skip),
+    makeCheckIn(3, 2 * DateUtils.DAY_NS, #missed),
+  ];
+  let analytics = Analytics.computeHabitAnalytics(makeHabit(), checkIns);
+  // Only the #success counts as a shown-up day.
+  expect.nat(analytics.shownUpDays).equal(1);
 });

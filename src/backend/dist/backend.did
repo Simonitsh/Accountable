@@ -244,6 +244,7 @@ type ConnectionId = nat;
 type CheckInType = 
  variant {
    inProgress;
+   missed;
    missedCheckIn;
    missedCheckOut;
    skip;

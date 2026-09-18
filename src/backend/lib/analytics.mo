@@ -170,8 +170,8 @@ module {
     habit : GoalTypes.HabitPublic,
     checkIns : [CheckInTypes.CheckIn],
   ) : AnalyticsTypes.HabitAnalytics {
-    // Shown-up days: count only genuine successes. Skips and auto-filled
-    // forgotten days (recorded as skips by the auto-fail timer) are excluded.
+    // Shown-up days: count only genuine successes. Skips and missed days are
+    // excluded.
     var shownUpDays : Nat = 0;
     for (c in checkIns.values()) {
       if (c.checkInType == #success) shownUpDays += 1;

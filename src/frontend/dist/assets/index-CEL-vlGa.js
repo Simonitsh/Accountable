@@ -33028,6 +33028,7 @@ const AnalyticsSummary = Record({
 });
 const CheckInType$1 = Variant({
   "skip": Null,
+  "missed": Null,
   "missedCheckIn": Null,
   "missedCheckOut": Null,
   "success": Null,
@@ -33427,6 +33428,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const CheckInType2 = IDL2.Variant({
     "skip": IDL2.Null,
+    "missed": IDL2.Null,
     "missedCheckIn": IDL2.Null,
     "missedCheckOut": IDL2.Null,
     "success": IDL2.Null,
@@ -33770,6 +33772,7 @@ var AvatarColorMode = /* @__PURE__ */ ((AvatarColorMode2) => {
 })(AvatarColorMode || {});
 var CheckInType = /* @__PURE__ */ ((CheckInType2) => {
   CheckInType2["skip"] = "skip";
+  CheckInType2["missed"] = "missed";
   CheckInType2["missedCheckIn"] = "missedCheckIn";
   CheckInType2["missedCheckOut"] = "missedCheckOut";
   CheckInType2["success"] = "success";
@@ -34424,7 +34427,7 @@ function from_candid_Cell_n24(_uploadFile, _downloadFile, value) {
   return from_candid_record_n25(_uploadFile, _downloadFile, value);
 }
 function from_candid_CheckInType_n44(_uploadFile, _downloadFile, value) {
-  return "skip" in value ? "skip" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
+  return "skip" in value ? "skip" : "missed" in value ? "missed" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
 function from_candid_CheckIn_n42(_uploadFile, _downloadFile, value) {
   return from_candid_record_n43(_uploadFile, _downloadFile, value);
@@ -34857,6 +34860,8 @@ function to_candid_AvatarShape_n93(_uploadFile, _downloadFile, value) {
 function to_candid_CheckInType_n84(_uploadFile, _downloadFile, value) {
   return value == "skip" ? {
     skip: null
+  } : value == "missed" ? {
+    missed: null
   } : value == "missedCheckIn" ? {
     missedCheckIn: null
   } : value == "missedCheckOut" ? {
@@ -79732,6 +79737,7 @@ function GoalCard$1({
   const isVerticalScrollRef = reactExports.useRef(false);
   const isSuccess = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success";
   const isSkipped = (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
+  const isMissed = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missed";
   const isMissedCheckIn = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn";
   const isMissedCheckOut = (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut";
   const isFailedLockIn = isMissedCheckIn || isMissedCheckOut;
@@ -79743,7 +79749,7 @@ function GoalCard$1({
     const embossed = isDarkMode ? "-5px -5px 14px rgba(70,70,80,0.55), 8px 8px 20px rgba(0,0,0,0.9)" : "-5px -5px 14px rgba(90,90,100,0.6), 8px 8px 20px rgba(0,0,0,0.75)";
     const litBorderOpacity = isDarkMode ? 0.12 : 0.18;
     const litBorder = `1px solid rgba(255,255,255,${litBorderOpacity})`;
-    if (mode2 === "done" && isFailedLockIn) {
+    if (mode2 === "done" && (isFailedLockIn || isMissed)) {
       return {
         background: cardBgIdle,
         boxShadow: embossed,
@@ -80023,7 +80029,13 @@ function GoalCard$1({
   function getBallColor(status) {
     if (status === "success") return SUCCESS_COLOR$3;
     if (status === "skip") return SKIP_COLOR$3;
+    if (status === "missed") return MISSED_COLOR$1;
     return GREY_COLOR;
+  }
+  function getBallOpacity(status) {
+    if (status === "none") return 0.35;
+    if (status === "missed") return 0.7;
+    return 0.9;
   }
   const EXIT_DURATION_MS = 500;
   const EXIT_DURATION = 0.45;
@@ -80274,7 +80286,7 @@ function GoalCard$1({
               ref: cardRef,
               type: "button",
               tabIndex: 0,
-              "aria-label": mode2 === "done" ? `${keystoneText2} — ${isSuccess ? "completed" : isMissedCheckIn ? "missed start window" : isMissedCheckOut ? "missed check-out" : "skipped"}.` : lockInState === "completed" ? `${keystoneText2} — lock-in completed.` : lockInState === "missed-start" ? `${keystoneText2} — start window missed. Tap to log obstacle.` : lockInState === "missed-checkout" ? `${keystoneText2} — check-out missed. Tap to log obstacle.` : lockInState === "failed-finalized" ? `${keystoneText2} — obstacle logged.` : lockInState === "waiting" ? `${keystoneText2} — waiting for time window` : lockInState === "in-progress" ? `${keystoneText2} — in progress` : `${keystoneText2} — swipe right to complete, left to skip`,
+              "aria-label": mode2 === "done" ? `${keystoneText2} — ${isSuccess ? "completed" : isMissedCheckIn ? "missed start window" : isMissedCheckOut ? "missed check-out" : isMissed ? "missed, no action taken" : "skipped"}.` : lockInState === "completed" ? `${keystoneText2} — lock-in completed.` : lockInState === "missed-start" ? `${keystoneText2} — start window missed. Tap to log obstacle.` : lockInState === "missed-checkout" ? `${keystoneText2} — check-out missed. Tap to log obstacle.` : lockInState === "failed-finalized" ? `${keystoneText2} — obstacle logged.` : lockInState === "waiting" ? `${keystoneText2} — waiting for time window` : lockInState === "in-progress" ? `${keystoneText2} — in progress` : `${keystoneText2} — swipe right to complete, left to skip`,
               onPointerDown,
               onPointerMove,
               onPointerUp,
@@ -80443,7 +80455,7 @@ function GoalCard$1({
                       className: "w-3.5 h-3.5 rounded-full",
                       style: {
                         backgroundColor: getBallColor(status),
-                        opacity: status === "none" ? 0.35 : 0.9
+                        opacity: getBallOpacity(status)
                       },
                       "aria-hidden": "true"
                     },
@@ -80737,6 +80749,7 @@ function TimelineItem({ checkIn }) {
   var _a3;
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
+  const isMissed = checkIn.checkInType === CheckInType.missed;
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
   const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
   const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
@@ -80763,6 +80776,9 @@ function TimelineItem({ checkIn }) {
   } else if (isInProgress) {
     primaryText = "In Progress";
     primaryColor = "#F59E0B";
+  } else if (isMissed) {
+    primaryText = "Missed • No action taken";
+    primaryColor = MISSED_COLOR;
   } else {
     primaryText = "Missed • No action taken";
     primaryColor = MISSED_COLOR;
@@ -85240,7 +85256,7 @@ function DashboardPage$1() {
     const map = /* @__PURE__ */ new Map();
     for (const c2 of checkIns) {
       if (isCheckInToday(c2.timestamp, userTimezone)) {
-        const checkInType = c2.checkInType === CheckInType.success ? "success" : c2.checkInType === CheckInType.skip ? "skip" : c2.checkInType === CheckInType.inProgress ? "inProgress" : c2.checkInType === CheckInType.missedCheckIn ? "missedCheckIn" : c2.checkInType === CheckInType.missedCheckOut ? "missedCheckOut" : "skip";
+        const checkInType = c2.checkInType === CheckInType.success ? "success" : c2.checkInType === CheckInType.skip ? "skip" : c2.checkInType === CheckInType.missed ? "missed" : c2.checkInType === CheckInType.inProgress ? "inProgress" : c2.checkInType === CheckInType.missedCheckIn ? "missedCheckIn" : c2.checkInType === CheckInType.missedCheckOut ? "missedCheckOut" : "skip";
         const executedIfThen = c2.executedIfThen ?? false;
         const doneGoal = goals.find((g2) => goalKey(g2.id) === goalKey(c2.goalId));
         map.set(goalKey(c2.goalId), {
@@ -85293,7 +85309,10 @@ function DashboardPage$1() {
               if (dayIndex >= 0 && dayIndex < 7) {
                 if (c2.checkInType === CheckInType.success) {
                   statuses[dayIndex] = "success";
-                } else if (statuses[dayIndex] !== "success") {
+                } else if (statuses[dayIndex] === "success") {
+                } else if (c2.checkInType === CheckInType.missed || c2.checkInType === CheckInType.missedCheckIn || c2.checkInType === CheckInType.missedCheckOut) {
+                  statuses[dayIndex] = "missed";
+                } else {
                   statuses[dayIndex] = "skip";
                 }
               }
@@ -85747,7 +85766,7 @@ function DashboardPage$1() {
           var _a3;
           const t = ((_a3 = todayDoneMap.get(goalKey(undoTarget.goalId)) ?? mergedDoneMap.get(goalKey(undoTarget.goalId))) == null ? void 0 : _a3.checkInType) ?? null;
           if (t === "success") return t;
-          if (t === "skip" || t === "missedCheckIn" || t === "missedCheckOut")
+          if (t === "skip" || t === "missed" || t === "missedCheckIn" || t === "missedCheckOut")
             return "skip";
           return null;
         })() : null,
