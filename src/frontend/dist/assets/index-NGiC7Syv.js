@@ -80805,6 +80805,12 @@ function TimelineItem({ checkIn }) {
     ] })
   ] });
 }
+function pickDayOutcome(items) {
+  const terminal = items.find(
+    (ci) => ci.checkInType !== CheckInType.inProgress
+  );
+  return terminal ?? items[0];
+}
 function groupByDay(checkIns) {
   const map = /* @__PURE__ */ new Map();
   for (const ci of checkIns) {
@@ -80819,10 +80825,13 @@ function groupByDay(checkIns) {
     const dateB = new Date(keyB).getTime();
     return dateB - dateA;
   });
-  return sortedEntries.map(([, items]) => ({
-    label: formatDateLabel(items[0].timestamp),
-    items
-  }));
+  return sortedEntries.map(([, items]) => {
+    const outcome = pickDayOutcome(items);
+    return {
+      label: formatDateLabel(outcome.timestamp),
+      items: [outcome]
+    };
+  });
 }
 function TimelineSkeleton() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-5", "data-ocid": "goal_insight.loading_state", children: [...Array(5)].map((_2, i) => (

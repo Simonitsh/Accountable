@@ -232,7 +232,22 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   );
 }
 
-/** Group check-ins by calendar day (newest day first). */
+/**
+ * A day's timeline shows at most one outcome node. Terminal results
+ * (completed / skipped / logged missed start / logged missed check-out) take
+ * precedence over a Lock-In "started" (#inProgress) entry, which is only a
+ * window opening, not an outcome. A started-but-unresolved window therefore
+ * surfaces alone only when it is the day's sole entry — which, for a still-open
+ * window, is today.
+ */
+function pickDayOutcome(items: CheckIn[]): CheckIn {
+  const terminal = items.find(
+    (ci) => ci.checkInType !== CheckInType.inProgress,
+  );
+  return terminal ?? items[0];
+}
+
+/** Group check-ins by calendar day (newest day first), one outcome per day. */
 function groupByDay(
   checkIns: CheckIn[],
 ): Array<{ label: string; items: CheckIn[] }> {
@@ -250,10 +265,13 @@ function groupByDay(
     const dateB = new Date(keyB).getTime();
     return dateB - dateA;
   });
-  return sortedEntries.map(([, items]) => ({
-    label: formatDateLabel(items[0].timestamp),
-    items,
-  }));
+  return sortedEntries.map(([, items]) => {
+    const outcome = pickDayOutcome(items);
+    return {
+      label: formatDateLabel(outcome.timestamp),
+      items: [outcome],
+    };
+  });
 }
 
 // ─── Skeleton loader ──────────────────────────────────────────────────────────
