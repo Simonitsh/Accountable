@@ -80634,6 +80634,90 @@ function GoalCard$1({
     )
   ] });
 }
+function stateLabel(state) {
+  switch (state) {
+    case GoalState.active:
+      return "Active";
+    case GoalState.completed:
+      return "Completed";
+    case GoalState.paused:
+      return "Paused";
+    default:
+      return "Unknown";
+  }
+}
+function stateBadgeStyle(state) {
+  switch (state) {
+    case GoalState.active:
+      return {
+        backgroundColor: "oklch(var(--color-accent-success) / 0.12)",
+        color: "oklch(var(--color-accent-success))",
+        border: "1px solid oklch(var(--color-accent-success) / 0.25)"
+      };
+    case GoalState.completed:
+      return {
+        backgroundColor: "oklch(var(--color-accent-skip) / 0.12)",
+        color: "oklch(var(--color-accent-skip))",
+        border: "1px solid oklch(var(--color-accent-skip) / 0.25)"
+      };
+    case GoalState.paused:
+      return {
+        backgroundColor: "oklch(var(--color-accent-missed) / 0.12)",
+        color: "oklch(var(--color-accent-missed))",
+        border: "1px solid oklch(var(--color-accent-missed) / 0.25)"
+      };
+    default:
+      return {};
+  }
+}
+function formatDate(ts) {
+  const ms = Number(ts / 1000000n);
+  return new Date(ms).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+function isLockInActiveWindow$1(startTime, endTime) {
+  const now2 = Date.now();
+  const today = /* @__PURE__ */ new Date();
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const windowStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    sh,
+    sm
+  ).getTime() - 5 * 60 * 1e3;
+  const windowEnd = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    eh,
+    em
+  ).getTime() + 5 * 60 * 1e3;
+  return now2 >= windowStart && now2 <= windowEnd;
+}
+function findOverlapGoal$1(goals, newStartTime, newEndTime, editingGoalId) {
+  if (!newStartTime) return null;
+  for (const g2 of goals) {
+    if (editingGoalId !== void 0 && editingGoalId !== null && g2.id === editingGoalId)
+      continue;
+    if (!g2.startTime || !g2.endTime) continue;
+    const isPointInTime = newStartTime === newEndTime;
+    if (isPointInTime) {
+      if (g2.startTime < newStartTime && newStartTime < g2.endTime) {
+        return g2.wishDescription || "an existing Lock-In";
+      }
+    } else {
+      if (newStartTime < g2.endTime && newEndTime > g2.startTime) {
+        return g2.wishDescription || "an existing Lock-In";
+      }
+    }
+  }
+  return null;
+}
 const SUCCESS_COLOR$2 = "#10B981";
 const SKIP_COLOR$2 = "#0369A1";
 const MISSED_COLOR = "#6B7280";
@@ -80661,13 +80745,14 @@ function formatDateLabel(nanoTs) {
   });
 }
 function TimelineNodeCircle({
-  type
+  type,
+  hasSpark = false
 }) {
   const isSuccess = type === CheckInType.success;
   const isSkip = type === CheckInType.skip;
   const isMissedLockIn = type === CheckInType.missedCheckIn || type === CheckInType.missedCheckOut;
   if (isSuccess) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
       {
         className: "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
@@ -80677,13 +80762,33 @@ function TimelineNodeCircle({
           boxShadow: "0 0 0 3px rgba(16,185,129,0.08)"
         },
         "aria-hidden": "true",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            className: "w-3 h-3 rounded-full",
-            style: { background: SUCCESS_COLOR$2 }
-          }
-        )
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "w-3 h-3 rounded-full",
+              style: { background: SUCCESS_COLOR$2 }
+            }
+          ),
+          hasSpark && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "span",
+            {
+              className: "absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full",
+              style: {
+                background: "oklch(var(--card))",
+                border: `1px solid ${SUCCESS_COLOR$2}`
+              },
+              "data-ocid": "goal_insight.ifthen_spark",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Sparkles,
+                {
+                  className: "w-2.5 h-2.5",
+                  style: { color: SUCCESS_COLOR$2 }
+                }
+              )
+            }
+          )
+        ]
       }
     );
   }
@@ -80708,6 +80813,20 @@ function TimelineNodeCircle({
       }
     );
   }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "flex-shrink-0 w-8 h-8 rounded-full",
+      style: {
+        border: `2px solid ${MISSED_COLOR}`,
+        background: "transparent",
+        boxShadow: "0 0 0 3px rgba(107,114,128,0.08)"
+      },
+      "aria-hidden": "true"
+    }
+  );
+}
+function TimelinePendingNode() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "div",
     {
@@ -80785,7 +80904,7 @@ function TimelineItem({ checkIn }) {
   }
   const showNoReasonFallback = isMissedLockIn && !note;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", "data-ocid": "goal_insight.timeline_item", children: [
-    isInProgress ? /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineInProgressNode, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType }),
+    isInProgress ? /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineInProgressNode, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType, hasSpark: isRevival }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "p",
@@ -81202,58 +81321,12 @@ function GoalInsightSheet({
                       return null;
                     }
                     const isToday = date.toDateString() === (/* @__PURE__ */ new Date()).toDateString();
-                    if (isToday) {
-                      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                        "div",
-                        {
-                          className: "mb-4",
-                          "data-ocid": `goal_insight.day_group.${di + 1}`,
-                          children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-3 ml-11", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "span",
-                              {
-                                className: "text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full",
-                                style: {
-                                  color: "oklch(var(--muted-foreground))",
-                                  background: "rgba(255,255,255,0.04)",
-                                  border: "1px solid rgba(255,255,255,0.07)"
-                                },
-                                children: "Today"
-                              }
-                            ) }),
-                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ml-3 flex gap-3", children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineInProgressNode, {}),
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "p",
-                                  {
-                                    className: "text-sm font-display font-medium leading-snug",
-                                    style: { color: "#F59E0B" },
-                                    children: "In Progress"
-                                  }
-                                ),
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "p",
-                                  {
-                                    className: "text-xs mt-0.5",
-                                    style: {
-                                      color: "oklch(var(--muted-foreground) / 0.7)"
-                                    },
-                                    children: "Waiting for today's action"
-                                  }
-                                )
-                              ] })
-                            ] })
-                          ]
-                        },
-                        key
-                      );
-                    }
-                    const dateLabel = date.toLocaleDateString(void 0, {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short"
-                    });
+                    const isRunningLockIn = isToday && goal.isLockIn && !!goal.startTime && !!goal.endTime && isLockInActiveWindow$1(goal.startTime, goal.endTime);
+                    const dayLabel = formatDateLabel(
+                      BigInt(date.getTime()) * 1000000n
+                    );
+                    const primaryText = isRunningLockIn ? "In Progress" : isToday ? "Pending • still to come today" : "Missed • No action taken";
+                    const primaryColor = isRunningLockIn ? "#F59E0B" : MISSED_COLOR;
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                       "div",
                       {
@@ -81269,30 +81342,31 @@ function GoalInsightSheet({
                                 background: "rgba(255,255,255,0.04)",
                                 border: "1px solid rgba(255,255,255,0.07)"
                               },
-                              children: dateLabel
+                              children: dayLabel
                             }
                           ) }),
                           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ml-3 flex gap-3", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "div",
-                              {
-                                className: "flex-shrink-0 w-8 h-8 rounded-full",
-                                style: {
-                                  border: `2px solid ${MISSED_COLOR}`,
-                                  background: "transparent",
-                                  boxShadow: "0 0 0 3px rgba(107,114,128,0.08)"
-                                },
-                                "aria-hidden": "true"
-                              }
-                            ),
-                            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 pb-5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                              "p",
-                              {
-                                className: "text-sm font-display font-medium leading-snug",
-                                style: { color: MISSED_COLOR },
-                                children: "Missed • No action taken"
-                              }
-                            ) })
+                            isRunningLockIn ? /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineInProgressNode, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(TimelinePendingNode, {}),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "p",
+                                {
+                                  className: "text-sm font-display font-medium leading-snug",
+                                  style: { color: primaryColor },
+                                  children: primaryText
+                                }
+                              ),
+                              isRunningLockIn && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "p",
+                                {
+                                  className: "text-xs mt-0.5",
+                                  style: {
+                                    color: "oklch(var(--muted-foreground) / 0.7)"
+                                  },
+                                  children: "Waiting for today's action"
+                                }
+                              )
+                            ] })
                           ] })
                         ]
                       },
@@ -82524,90 +82598,6 @@ const FALLBACK_PLACEHOLDERS = {
   wish: "I want to … so that I can …",
   wishDescription: "Every day, I will …"
 };
-function stateLabel(state) {
-  switch (state) {
-    case GoalState.active:
-      return "Active";
-    case GoalState.completed:
-      return "Completed";
-    case GoalState.paused:
-      return "Paused";
-    default:
-      return "Unknown";
-  }
-}
-function stateBadgeStyle(state) {
-  switch (state) {
-    case GoalState.active:
-      return {
-        backgroundColor: "oklch(var(--color-accent-success) / 0.12)",
-        color: "oklch(var(--color-accent-success))",
-        border: "1px solid oklch(var(--color-accent-success) / 0.25)"
-      };
-    case GoalState.completed:
-      return {
-        backgroundColor: "oklch(var(--color-accent-skip) / 0.12)",
-        color: "oklch(var(--color-accent-skip))",
-        border: "1px solid oklch(var(--color-accent-skip) / 0.25)"
-      };
-    case GoalState.paused:
-      return {
-        backgroundColor: "oklch(var(--color-accent-missed) / 0.12)",
-        color: "oklch(var(--color-accent-missed))",
-        border: "1px solid oklch(var(--color-accent-missed) / 0.25)"
-      };
-    default:
-      return {};
-  }
-}
-function formatDate(ts) {
-  const ms = Number(ts / 1000000n);
-  return new Date(ms).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  });
-}
-function isLockInActiveWindow$1(startTime, endTime) {
-  const now2 = Date.now();
-  const today = /* @__PURE__ */ new Date();
-  const [sh, sm] = startTime.split(":").map(Number);
-  const [eh, em] = endTime.split(":").map(Number);
-  const windowStart = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    sh,
-    sm
-  ).getTime() - 5 * 60 * 1e3;
-  const windowEnd = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    eh,
-    em
-  ).getTime() + 5 * 60 * 1e3;
-  return now2 >= windowStart && now2 <= windowEnd;
-}
-function findOverlapGoal$1(goals, newStartTime, newEndTime, editingGoalId) {
-  if (!newStartTime) return null;
-  for (const g2 of goals) {
-    if (editingGoalId !== void 0 && editingGoalId !== null && g2.id === editingGoalId)
-      continue;
-    if (!g2.startTime || !g2.endTime) continue;
-    const isPointInTime = newStartTime === newEndTime;
-    if (isPointInTime) {
-      if (g2.startTime < newStartTime && newStartTime < g2.endTime) {
-        return g2.wishDescription || "an existing Lock-In";
-      }
-    } else {
-      if (newStartTime < g2.endTime && newEndTime > g2.startTime) {
-        return g2.wishDescription || "an existing Lock-In";
-      }
-    }
-  }
-  return null;
-}
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_ABBRS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 function DayPickerRow({ selectedDays, onChange }) {
@@ -85312,6 +85302,8 @@ function DashboardPage$1() {
                 } else if (statuses[dayIndex] === "success") {
                 } else if (c2.checkInType === CheckInType.missed || c2.checkInType === CheckInType.missedCheckIn || c2.checkInType === CheckInType.missedCheckOut) {
                   statuses[dayIndex] = "missed";
+                } else if (c2.checkInType === CheckInType.inProgress) {
+                  statuses[dayIndex] = "none";
                 } else {
                   statuses[dayIndex] = "skip";
                 }

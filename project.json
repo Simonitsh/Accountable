@@ -1,19 +1,18 @@
 {
-  "overview": "A habit-tracking app that distinguishes deliberate skips from forgotten days in both stored history and the interface.",
+  "overview": "A habit tracker that helps users build routines with Lock-In windows, If-Then recovery plans, and progress history.",
   "features": [
-    "Track habits with daily check-ins",
-    "Deliberate skips recorded with a reason",
-    "Forgotten days shown as missed, not skipped",
-    "Behavioral timeline of recent days",
-    "7-day tracker on each habit card",
-    "Insights into follow-through and obstacles"
+    "Track daily habits with Lock-In windows",
+    "Behavioral Timeline showing habit history day by day",
+    "If-Then recovery plans for missed habits",
+    "7-day progress tracker on each habit card",
+    "Deliberate skip tracking with obstacles"
   ],
   "category": "productivity",
   "tags": [
     "habits",
-    "tracking",
     "productivity",
-    "self-improvement"
+    "tracking",
+    "wellness"
   ],
-  "last_updated": "2026-09-18T22:18:59.247Z"
+  "last_updated": "2026-09-18T22:56:30.683Z"
 }

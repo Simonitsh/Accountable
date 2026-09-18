@@ -849,8 +849,14 @@ video {
 .-left-12 {
   left: -3rem;
 }
+.-right-1 {
+  right: -0.25rem;
+}
 .-right-12 {
   right: -3rem;
+}
+.-top-1 {
+  top: -0.25rem;
 }
 .-top-12 {
   top: -3rem;

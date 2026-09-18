@@ -1,10 +1,11 @@
-import { X, Zap } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { CheckInType } from "../backend";
 import type { CheckIn } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import type { HabitPublic } from "../types";
+import { isLockInActiveWindow } from "../utils/goalDisplay";
 
 // ─── Accent colours (matching index.css semantic tokens) ─────────────────────
 const SUCCESS_COLOR = "#10B981"; // Emerald Green
@@ -47,8 +48,11 @@ function formatDateLabel(nanoTs: bigint): string {
 
 function TimelineNodeCircle({
   type,
+  hasSpark = false,
 }: {
   type: CheckInType;
+  /** A completion that fell back on the If-Then plan gains a small spark. */
+  hasSpark?: boolean;
 }) {
   const isSuccess = type === CheckInType.success;
   const isSkip = type === CheckInType.skip;
@@ -70,6 +74,21 @@ function TimelineNodeCircle({
           className="w-3 h-3 rounded-full"
           style={{ background: SUCCESS_COLOR }}
         />
+        {hasSpark && (
+          <span
+            className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full"
+            style={{
+              background: "oklch(var(--card))",
+              border: `1px solid ${SUCCESS_COLOR}`,
+            }}
+            data-ocid="goal_insight.ifthen_spark"
+          >
+            <Sparkles
+              className="w-2.5 h-2.5"
+              style={{ color: SUCCESS_COLOR }}
+            />
+          </span>
+        )}
       </div>
     );
   }
@@ -97,6 +116,25 @@ function TimelineNodeCircle({
   // (scheduled day that passed with no interaction) renders identically to a
   // scheduled past day with no record at all. Deliberate skips (#skip) keep
   // their ocean blue node above.
+  return (
+    <div
+      className="flex-shrink-0 w-8 h-8 rounded-full"
+      style={{
+        border: `2px solid ${MISSED_COLOR}`,
+        background: "transparent",
+        boxShadow: "0 0 0 3px rgba(107,114,128,0.08)",
+      }}
+      aria-hidden="true"
+    />
+  );
+}
+
+/**
+ * The calm neutral node shown for a scheduled day that has no check-in yet and
+ * is not a genuinely running Lock-In window. Grey, hollow, and deliberately
+ * still — no pulse — so it reads as "still to come" rather than as an alert.
+ */
+function TimelinePendingNode() {
   return (
     <div
       className="flex-shrink-0 w-8 h-8 rounded-full"
@@ -199,7 +237,7 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
       {isInProgress ? (
         <TimelineInProgressNode />
       ) : (
-        <TimelineNodeCircle type={checkIn.checkInType} />
+        <TimelineNodeCircle type={checkIn.checkInType} hasSpark={isRevival} />
       )}
 
       {/* Content */}
@@ -705,58 +743,34 @@ export function GoalInsightSheet({
                       const isToday =
                         date.toDateString() === new Date().toDateString();
 
-                      // Today with no check-in yet → "In Progress" node
-                      if (isToday) {
-                        return (
-                          <div
-                            key={key}
-                            className="mb-4"
-                            data-ocid={`goal_insight.day_group.${di + 1}`}
-                          >
-                            {/* Day label */}
-                            <div className="mb-3 ml-11">
-                              <span
-                                className="text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full"
-                                style={{
-                                  color: "oklch(var(--muted-foreground))",
-                                  background: "rgba(255,255,255,0.04)",
-                                  border: "1px solid rgba(255,255,255,0.07)",
-                                }}
-                              >
-                                Today
-                              </span>
-                            </div>
-                            {/* In Progress node */}
-                            <div className="ml-3 flex gap-3">
-                              <TimelineInProgressNode />
-                              <div className="flex-1 min-w-0 pb-5">
-                                <p
-                                  className="text-sm font-display font-medium leading-snug"
-                                  style={{ color: "#F59E0B" }}
-                                >
-                                  In Progress
-                                </p>
-                                <p
-                                  className="text-xs mt-0.5"
-                                  style={{
-                                    color:
-                                      "oklch(var(--muted-foreground) / 0.7)",
-                                  }}
-                                >
-                                  Waiting for today's action
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
+                      // A Lock-In habit is only genuinely "In Progress" while
+                      // its window is actually running today. A Lock-In habit
+                      // outside its window — and any regular habit — reads as a
+                      // calm pending day instead.
+                      const isRunningLockIn =
+                        isToday &&
+                        goal.isLockIn &&
+                        !!goal.startTime &&
+                        !!goal.endTime &&
+                        isLockInActiveWindow(goal.startTime, goal.endTime);
 
-                      // Past scheduled day with no check-in → Missed
-                      const dateLabel = date.toLocaleDateString(undefined, {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      });
+                      // Every day row uses the same friendly labelling:
+                      // "Today", "Yesterday", then a plain date.
+                      const dayLabel = formatDateLabel(
+                        BigInt(date.getTime()) * 1_000_000n,
+                      );
+
+                      // Today is still ahead of us, so it is pending. A past
+                      // scheduled day with no record is missed.
+                      const primaryText = isRunningLockIn
+                        ? "In Progress"
+                        : isToday
+                          ? "Pending \u2022 still to come today"
+                          : "Missed \u2022 No action taken";
+                      const primaryColor = isRunningLockIn
+                        ? "#F59E0B"
+                        : MISSED_COLOR;
+
                       return (
                         <div
                           key={key}
@@ -773,27 +787,34 @@ export function GoalInsightSheet({
                                 border: "1px solid rgba(255,255,255,0.07)",
                               }}
                             >
-                              {dateLabel}
+                              {dayLabel}
                             </span>
                           </div>
-                          {/* Missed node */}
+                          {/* Outcome node */}
                           <div className="ml-3 flex gap-3">
-                            <div
-                              className="flex-shrink-0 w-8 h-8 rounded-full"
-                              style={{
-                                border: `2px solid ${MISSED_COLOR}`,
-                                background: "transparent",
-                                boxShadow: "0 0 0 3px rgba(107,114,128,0.08)",
-                              }}
-                              aria-hidden="true"
-                            />
+                            {isRunningLockIn ? (
+                              <TimelineInProgressNode />
+                            ) : (
+                              <TimelinePendingNode />
+                            )}
                             <div className="flex-1 min-w-0 pb-5">
                               <p
                                 className="text-sm font-display font-medium leading-snug"
-                                style={{ color: MISSED_COLOR }}
+                                style={{ color: primaryColor }}
                               >
-                                Missed • No action taken
+                                {primaryText}
                               </p>
+                              {isRunningLockIn && (
+                                <p
+                                  className="text-xs mt-0.5"
+                                  style={{
+                                    color:
+                                      "oklch(var(--muted-foreground) / 0.7)",
+                                  }}
+                                >
+                                  Waiting for today's action
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>

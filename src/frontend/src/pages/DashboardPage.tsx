@@ -1054,6 +1054,12 @@ export function DashboardPage() {
                   // missed Lock-In day both render the definite muted grey ball
                   // — never the ocean blue skip ball.
                   statuses[dayIndex] = "missed";
+                } else if (c.checkInType === CheckInType.inProgress) {
+                  // A Lock-In session that is still mid-window has no outcome
+                  // yet. Leave the slot in the neutral no-record state so
+                  // today's ball stays grey until the session actually resolves
+                  // (success, skip, or missed) — never ocean blue.
+                  statuses[dayIndex] = "none";
                 } else {
                   // Deliberate skip (#skip) keeps its ocean blue ball.
                   statuses[dayIndex] = "skip";
