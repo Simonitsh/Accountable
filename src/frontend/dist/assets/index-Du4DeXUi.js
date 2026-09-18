@@ -80740,7 +80740,9 @@ function TimelineItem({ checkIn }) {
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
   const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
   const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
-  const isInProgress = checkIn.checkInType === CheckInType.inProgress;
+  const checkInDate = new Date(Number(checkIn.timestamp / 1000000n));
+  const isToday = checkInDate.toDateString() === (/* @__PURE__ */ new Date()).toDateString();
+  const isInProgress = checkIn.checkInType === CheckInType.inProgress && isToday;
   const time2 = formatTime$1(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
   const note = (_a3 = checkIn.note) == null ? void 0 : _a3.trim();

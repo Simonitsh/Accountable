@@ -138,7 +138,14 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
   const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
   const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
-  const isInProgress = checkIn.checkInType === CheckInType.inProgress;
+
+  // A Lock-In window can only be genuinely in progress on the day it is
+  // happening. A stale `inProgress` record from an earlier day is an
+  // unfinished window, not an active one, so it must read as missed.
+  const checkInDate = new Date(Number(checkIn.timestamp / 1_000_000n));
+  const isToday = checkInDate.toDateString() === new Date().toDateString();
+  const isInProgress =
+    checkIn.checkInType === CheckInType.inProgress && isToday;
 
   const time = formatTime(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
