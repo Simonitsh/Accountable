@@ -33847,57 +33847,57 @@ class Backend {
   async createMacroGoal(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.createMacroGoal(to_candid_CreateMacroGoalRequest_n13(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.createMacroGoal(to_candid_CreateMacroGoalRequest_n11(this._uploadFile, this._downloadFile, arg0));
+        return from_candid_variant_n14(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.createMacroGoal(to_candid_CreateMacroGoalRequest_n13(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.createMacroGoal(to_candid_CreateMacroGoalRequest_n11(this._uploadFile, this._downloadFile, arg0));
+      return from_candid_variant_n14(this._uploadFile, this._downloadFile, result);
     }
   }
   async deleteCheckIn(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.deleteCheckIn(arg0);
-        return from_candid_variant_n20(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.deleteCheckIn(arg0);
-      return from_candid_variant_n20(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
     }
   }
   async deleteGoal(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.deleteGoal(arg0);
-        return from_candid_variant_n22(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n19(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.deleteGoal(arg0);
-      return from_candid_variant_n22(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n19(this._uploadFile, this._downloadFile, result);
     }
   }
   async deleteHabit(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.deleteHabit(arg0);
-        return from_candid_variant_n22(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n19(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.deleteHabit(arg0);
-      return from_candid_variant_n22(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n19(this._uploadFile, this._downloadFile, result);
     }
   }
   async devReset() {
@@ -33918,28 +33918,28 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.execute(arg0);
-        return from_candid_Result_n23(this._uploadFile, this._downloadFile, result);
+        return from_candid_Result_n20(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.execute(arg0);
-      return from_candid_Result_n23(this._uploadFile, this._downloadFile, result);
+      return from_candid_Result_n20(this._uploadFile, this._downloadFile, result);
     }
   }
   async getAnalytics(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getAnalytics(arg0);
-        return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
+        return from_candid_AnalyticsSummary_n28(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getAnalytics(arg0);
-      return from_candid_AnalyticsSummary_n31(this._uploadFile, this._downloadFile, result);
+      return from_candid_AnalyticsSummary_n28(this._uploadFile, this._downloadFile, result);
     }
   }
   async getApiDoc() {
@@ -33960,56 +33960,56 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoal(arg0);
-        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoal(arg0);
-      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForGoalTimeline(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForGoalTimeline(arg0, arg1);
-      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCheckInsForPeriod(arg0, arg1, arg2) {
     if (this.processError) {
       try {
         const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCheckInsForPeriod(arg0, arg1, arg2);
-      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
     }
   }
   async getHabit(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getHabit(arg0);
-        return from_candid_opt_n50(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getHabit(arg0);
-      return from_candid_opt_n50(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
     }
   }
   async getInteractionCount(arg0) {
@@ -34030,70 +34030,70 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getMacroGoal(arg0);
-        return from_candid_opt_n51(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n47(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMacroGoal(arg0);
-      return from_candid_opt_n51(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n47(this._uploadFile, this._downloadFile, result);
     }
   }
   async getMyProfile() {
     if (this.processError) {
       try {
         const result = await this.actor.getMyProfile();
-        return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n48(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyProfile();
-      return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n48(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerFeed() {
     if (this.processError) {
       try {
         const result = await this.actor.getPartnerFeed();
-        return from_candid_vec_n62(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n56(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getPartnerFeed();
-      return from_candid_vec_n62(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n56(this._uploadFile, this._downloadFile, result);
     }
   }
   async getPartnerHabits(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getPartnerHabits(arg0);
-        return from_candid_variant_n65(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n59(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getPartnerHabits(arg0);
-      return from_candid_variant_n65(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n59(this._uploadFile, this._downloadFile, result);
     }
   }
   async getUserProfile(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getUserProfile(arg0);
-        return from_candid_opt_n71(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n64(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getUserProfile(arg0);
-      return from_candid_opt_n71(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n64(this._uploadFile, this._downloadFile, result);
     }
   }
   async isUsernameAvailable(arg0) {
@@ -34114,168 +34114,168 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.listAllUsers();
-        return from_candid_vec_n72(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n65(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listAllUsers();
-      return from_candid_vec_n72(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n65(this._uploadFile, this._downloadFile, result);
     }
   }
   async listConnections() {
     if (this.processError) {
       try {
         const result = await this.actor.listConnections();
-        return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n66(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listConnections();
-      return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n66(this._uploadFile, this._downloadFile, result);
     }
   }
   async listHabitsByParent(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.listHabitsByParent(arg0);
-        return from_candid_variant_n78(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n70(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listHabitsByParent(arg0);
-      return from_candid_variant_n78(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n70(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyCheckIns() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyCheckIns();
-        return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyCheckIns();
-      return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n41(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyGoals() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyGoals();
-        return from_candid_vec_n79(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n71(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyGoals();
-      return from_candid_vec_n79(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n71(this._uploadFile, this._downloadFile, result);
     }
   }
   async listMyReusableGoals() {
     if (this.processError) {
       try {
         const result = await this.actor.listMyReusableGoals();
-        return from_candid_vec_n82(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n74(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listMyReusableGoals();
-      return from_candid_vec_n82(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n74(this._uploadFile, this._downloadFile, result);
     }
   }
   async listPartnerOverviews() {
     if (this.processError) {
       try {
         const result = await this.actor.listPartnerOverviews();
-        return from_candid_vec_n85(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n77(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listPartnerOverviews();
-      return from_candid_vec_n85(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n77(this._uploadFile, this._downloadFile, result);
     }
   }
   async listPendingRequests() {
     if (this.processError) {
       try {
         const result = await this.actor.listPendingRequests();
-        return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
+        return from_candid_vec_n66(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.listPendingRequests();
-      return from_candid_vec_n73(this._uploadFile, this._downloadFile, result);
+      return from_candid_vec_n66(this._uploadFile, this._downloadFile, result);
     }
   }
   async markCheckInIfThenUsed(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.markCheckInIfThenUsed(arg0);
-        return from_candid_variant_n88(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n80(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.markCheckInIfThenUsed(arg0);
-      return from_candid_variant_n88(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n80(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordCheckIn(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n90(this._uploadFile, this._downloadFile, arg0));
-        return from_candid_CheckIn_n45(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n82(this._uploadFile, this._downloadFile, arg0));
+        return from_candid_CheckIn_n42(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n90(this._uploadFile, this._downloadFile, arg0));
-      return from_candid_CheckIn_n45(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordCheckIn(to_candid_RecordCheckInRequest_n82(this._uploadFile, this._downloadFile, arg0));
+      return from_candid_CheckIn_n42(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordInteraction(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n94(this._uploadFile, this._downloadFile, arg1));
-        return from_candid_Interaction_n96(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n85(this._uploadFile, this._downloadFile, arg1));
+        return from_candid_Interaction_n86(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n94(this._uploadFile, this._downloadFile, arg1));
-      return from_candid_Interaction_n96(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.recordInteraction(arg0, to_candid_InteractionType_n85(this._uploadFile, this._downloadFile, arg1));
+      return from_candid_Interaction_n86(this._uploadFile, this._downloadFile, result);
     }
   }
   async register(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.register(arg0);
-        return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserProfilePublic_n48(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.register(arg0);
-      return from_candid_UserProfilePublic_n52(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserProfilePublic_n48(this._uploadFile, this._downloadFile, result);
     }
   }
   async resolveObstacleLabel(arg0) {
@@ -34324,14 +34324,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.sendConnectionRequest(arg0);
-        return from_candid_ConnectionPublic_n74(this._uploadFile, this._downloadFile, result);
+        return from_candid_ConnectionPublic_n67(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.sendConnectionRequest(arg0);
-      return from_candid_ConnectionPublic_n74(this._uploadFile, this._downloadFile, result);
+      return from_candid_ConnectionPublic_n67(this._uploadFile, this._downloadFile, result);
     }
   }
   async setTimezone(arg0) {
@@ -34351,28 +34351,28 @@ class Backend {
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n100(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n89(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n100(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateGoalState(arg0, to_candid_GoalState_n89(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
   async updateHabit(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n102(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n90(this._uploadFile, this._downloadFile, arg1));
         return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n102(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.updateHabit(arg0, to_candid_UpdateHabitRequest_n90(this._uploadFile, this._downloadFile, arg1));
       return from_candid_variant_n3(this._uploadFile, this._downloadFile, result);
     }
   }
@@ -34380,146 +34380,146 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.updateMacroGoal(arg0, arg1);
-        return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
+        return from_candid_variant_n14(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.updateMacroGoal(arg0, arg1);
-      return from_candid_variant_n17(this._uploadFile, this._downloadFile, result);
+      return from_candid_variant_n14(this._uploadFile, this._downloadFile, result);
     }
   }
   async updateMyProfile(arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
     if (this.processError) {
       try {
-        const result = await this.actor.updateMyProfile(to_candid_opt_n104(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n105(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n108(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n109(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n104(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n104(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n112(this._uploadFile, this._downloadFile, arg6));
-        return from_candid_variant_n113(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.updateMyProfile(to_candid_opt_n92(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n93(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n96(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n97(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n92(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n92(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n99(this._uploadFile, this._downloadFile, arg6));
+        return from_candid_variant_n100(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.updateMyProfile(to_candid_opt_n104(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n105(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n108(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n109(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n104(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n104(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n112(this._uploadFile, this._downloadFile, arg6));
-      return from_candid_variant_n113(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.updateMyProfile(to_candid_opt_n92(this._uploadFile, this._downloadFile, arg0), to_candid_AvatarShape_n93(this._uploadFile, this._downloadFile, arg1), to_candid_AvatarColor_n96(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n97(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n92(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n92(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n99(this._uploadFile, this._downloadFile, arg6));
+      return from_candid_variant_n100(this._uploadFile, this._downloadFile, result);
     }
   }
 }
-function from_candid_AnalyticsSummary_n31(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n32(_uploadFile, _downloadFile, value);
+function from_candid_AnalyticsSummary_n28(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n29(_uploadFile, _downloadFile, value);
 }
-function from_candid_AvatarColorMode_n57(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n58(_uploadFile, _downloadFile, value);
+function from_candid_AvatarColorMode_n52(_uploadFile, _downloadFile, value) {
+  return "Fill" in value ? "Fill" : "BorderOnly" in value ? "BorderOnly" : value;
 }
-function from_candid_AvatarColor_n56(_uploadFile, _downloadFile, value) {
+function from_candid_AvatarColor_n51(_uploadFile, _downloadFile, value) {
   return from_candid_opt_n6(_uploadFile, _downloadFile, value);
 }
-function from_candid_AvatarShape_n59(_uploadFile, _downloadFile, value) {
-  return from_candid_opt_n60(_uploadFile, _downloadFile, value);
+function from_candid_AvatarShape_n53(_uploadFile, _downloadFile, value) {
+  return from_candid_opt_n54(_uploadFile, _downloadFile, value);
 }
-function from_candid_CategoryStat_n34(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n35(_uploadFile, _downloadFile, value);
+function from_candid_CategoryStat_n31(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n32(_uploadFile, _downloadFile, value);
 }
-function from_candid_Cell_n27(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n28(_uploadFile, _downloadFile, value);
+function from_candid_Cell_n24(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n25(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckInType_n47(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n48(_uploadFile, _downloadFile, value);
+function from_candid_CheckInType_n44(_uploadFile, _downloadFile, value) {
+  return "skip" in value ? "skip" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
-function from_candid_CheckIn_n45(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n46(_uploadFile, _downloadFile, value);
+function from_candid_CheckIn_n42(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n43(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionPublic_n74(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n75(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionPublic_n67(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n68(_uploadFile, _downloadFile, value);
 }
-function from_candid_ConnectionStatus_n76(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n77(_uploadFile, _downloadFile, value);
+function from_candid_ConnectionStatus_n69(_uploadFile, _downloadFile, value) {
+  return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
 }
-function from_candid_FeedItem_n63(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n64(_uploadFile, _downloadFile, value);
+function from_candid_FeedItem_n57(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n58(_uploadFile, _downloadFile, value);
 }
-function from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n12(_uploadFile, _downloadFile, value);
+function from_candid_GoalCategory_n10(_uploadFile, _downloadFile, value) {
+  return "Productivity" in value ? "Productivity" : "Learning" in value ? "Learning" : "Health" in value ? "Health" : "Social" in value ? "Social" : "Leisure" in value ? "Leisure" : value;
 }
 function from_candid_GoalState_n8(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n9(_uploadFile, _downloadFile, value);
+  return "active" in value ? "active" : "completed" in value ? "completed" : "paused" in value ? "paused" : value;
 }
-function from_candid_GoalWithHabitsPublic_n80(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n81(_uploadFile, _downloadFile, value);
+function from_candid_GoalWithHabitsPublic_n72(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n73(_uploadFile, _downloadFile, value);
 }
-function from_candid_HabitAnalytics_n38(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n39(_uploadFile, _downloadFile, value);
+function from_candid_HabitAnalytics_n35(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n36(_uploadFile, _downloadFile, value);
 }
 function from_candid_HabitPublic_n4(_uploadFile, _downloadFile, value) {
   return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_InteractionType_n98(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n99(_uploadFile, _downloadFile, value);
+function from_candid_InteractionType_n88(_uploadFile, _downloadFile, value) {
+  return "highFive" in value ? "highFive" : value;
 }
-function from_candid_Interaction_n96(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n97(_uploadFile, _downloadFile, value);
-}
-function from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n19(_uploadFile, _downloadFile, value);
-}
-function from_candid_ObstacleStat_n41(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n42(_uploadFile, _downloadFile, value);
-}
-function from_candid_PartnerHabitDetail_n66(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n67(_uploadFile, _downloadFile, value);
-}
-function from_candid_PartnerHabitError_n69(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n70(_uploadFile, _downloadFile, value);
-}
-function from_candid_PartnerOverview_n86(_uploadFile, _downloadFile, value) {
+function from_candid_Interaction_n86(_uploadFile, _downloadFile, value) {
   return from_candid_record_n87(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result_n23(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n24(_uploadFile, _downloadFile, value);
+function from_candid_MacroGoalPublic_n15(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n16(_uploadFile, _downloadFile, value);
 }
-function from_candid_ReusableGoalPublic_n83(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n84(_uploadFile, _downloadFile, value);
+function from_candid_ObstacleStat_n38(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n39(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n53(_uploadFile, _downloadFile, value);
+function from_candid_PartnerHabitDetail_n60(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n61(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n54(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n55(_uploadFile, _downloadFile, value);
+function from_candid_PartnerHabitError_n63(_uploadFile, _downloadFile, value) {
+  return "notPartner" in value ? "notPartner" : "profileNotFound" in value ? "profileNotFound" : value;
 }
-function from_candid_Value_n29(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n30(_uploadFile, _downloadFile, value);
+function from_candid_PartnerOverview_n78(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n79(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n10(_uploadFile, _downloadFile, value) {
+function from_candid_Result_n20(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n21(_uploadFile, _downloadFile, value);
+}
+function from_candid_ReusableGoalPublic_n75(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n76(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserProfilePublic_n48(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n49(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n50(_uploadFile, _downloadFile, value) {
+  return "admin" in value ? "admin" : "user" in value ? "user" : value;
+}
+function from_candid_Value_n26(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n27(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n33(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n36(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n37(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_ObstacleStat_n38(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n45(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n40(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_ObstacleStat_n41(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n49(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : value[0];
-}
-function from_candid_opt_n50(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n46(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : from_candid_HabitPublic_n4(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n51(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n47(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_MacroGoalPublic_n15(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n54(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_variant_n55(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n6(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n60(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_variant_n61(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n64(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_UserProfilePublic_n48(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n7(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n71(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n9(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n19(_uploadFile, _downloadFile, value) {
+function from_candid_record_n16(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
@@ -34528,70 +34528,85 @@ function from_candid_record_n19(_uploadFile, _downloadFile, value) {
     wishDescription: value.wishDescription,
     updatedAt: value.updatedAt,
     state: from_candid_GoalState_n8(_uploadFile, _downloadFile, value.state),
-    category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category),
+    category: from_candid_GoalCategory_n10(_uploadFile, _downloadFile, value.category),
     outcome: value.outcome
   };
 }
-function from_candid_record_n24(_uploadFile, _downloadFile, value) {
+function from_candid_record_n21(_uploadFile, _downloadFile, value) {
   return {
     hasMore: value.hasMore,
-    rows: from_candid_vec_n25(_uploadFile, _downloadFile, value.rows)
+    rows: from_candid_vec_n22(_uploadFile, _downloadFile, value.rows)
   };
 }
-function from_candid_record_n28(_uploadFile, _downloadFile, value) {
+function from_candid_record_n25(_uploadFile, _downloadFile, value) {
   return {
-    value: from_candid_Value_n29(_uploadFile, _downloadFile, value.value),
+    value: from_candid_Value_n26(_uploadFile, _downloadFile, value.value),
     name: value.name
+  };
+}
+function from_candid_record_n29(_uploadFile, _downloadFile, value) {
+  return {
+    categoryBreakdown: from_candid_vec_n30(_uploadFile, _downloadFile, value.categoryBreakdown),
+    dayOfWeek: value.dayOfWeek,
+    bestDayOfWeek: record_opt_to_undefined(from_candid_opt_n33(_uploadFile, _downloadFile, value.bestDayOfWeek)),
+    overallIfThenEffectiveness: value.overallIfThenEffectiveness,
+    habits: from_candid_vec_n34(_uploadFile, _downloadFile, value.habits),
+    worstDayOfWeek: record_opt_to_undefined(from_candid_opt_n33(_uploadFile, _downloadFile, value.worstDayOfWeek))
   };
 }
 function from_candid_record_n32(_uploadFile, _downloadFile, value) {
   return {
-    categoryBreakdown: from_candid_vec_n33(_uploadFile, _downloadFile, value.categoryBreakdown),
-    dayOfWeek: value.dayOfWeek,
-    bestDayOfWeek: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.bestDayOfWeek)),
-    overallIfThenEffectiveness: value.overallIfThenEffectiveness,
-    habits: from_candid_vec_n37(_uploadFile, _downloadFile, value.habits),
-    worstDayOfWeek: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.worstDayOfWeek))
-  };
-}
-function from_candid_record_n35(_uploadFile, _downloadFile, value) {
-  return {
     successes: value.successes,
     total: value.total,
     rate: value.rate,
-    category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category)
+    category: from_candid_GoalCategory_n10(_uploadFile, _downloadFile, value.category)
+  };
+}
+function from_candid_record_n36(_uploadFile, _downloadFile, value) {
+  return {
+    ifThenEffectiveness: value.ifThenEffectiveness,
+    predictedObstacle: record_opt_to_undefined(from_candid_opt_n37(_uploadFile, _downloadFile, value.predictedObstacle)),
+    habitName: value.habitName,
+    habitId: value.habitId,
+    actualObstacles: from_candid_vec_n40(_uploadFile, _downloadFile, value.actualObstacles),
+    shownUpDays: value.shownUpDays,
+    category: from_candid_GoalCategory_n10(_uploadFile, _downloadFile, value.category)
   };
 }
 function from_candid_record_n39(_uploadFile, _downloadFile, value) {
   return {
-    ifThenEffectiveness: value.ifThenEffectiveness,
-    predictedObstacle: record_opt_to_undefined(from_candid_opt_n40(_uploadFile, _downloadFile, value.predictedObstacle)),
-    habitName: value.habitName,
-    habitId: value.habitId,
-    actualObstacles: from_candid_vec_n43(_uploadFile, _downloadFile, value.actualObstacles),
-    shownUpDays: value.shownUpDays,
-    category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category)
-  };
-}
-function from_candid_record_n42(_uploadFile, _downloadFile, value) {
-  return {
     obstacleName: value.obstacleName,
     count: value.count,
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId))
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.obstacleTemplateId))
   };
 }
-function from_candid_record_n46(_uploadFile, _downloadFile, value) {
+function from_candid_record_n43(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     owner: value.owner,
     note: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.note)),
     goalId: value.goalId,
-    checkInType: from_candid_CheckInType_n47(_uploadFile, _downloadFile, value.checkInType),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    checkInType: from_candid_CheckInType_n44(_uploadFile, _downloadFile, value.checkInType),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     timestamp: value.timestamp,
     executedIfThen: value.executedIfThen,
-    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInStartedAt)),
-    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.lockInEndedAt))
+    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n45(_uploadFile, _downloadFile, value.lockInStartedAt)),
+    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n45(_uploadFile, _downloadFile, value.lockInEndedAt))
+  };
+}
+function from_candid_record_n49(_uploadFile, _downloadFile, value) {
+  return {
+    id: value.id,
+    bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
+    timezone: value.timezone,
+    username: value.username,
+    displayName: value.displayName,
+    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
+    role: from_candid_UserRole_n50(_uploadFile, _downloadFile, value.role),
+    email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
+    avatarColor: from_candid_AvatarColor_n51(_uploadFile, _downloadFile, value.avatarColor),
+    avatarColorMode: from_candid_AvatarColorMode_n52(_uploadFile, _downloadFile, value.avatarColorMode),
+    avatarShape: from_candid_AvatarShape_n53(_uploadFile, _downloadFile, value.avatarShape)
   };
 }
 function from_candid_record_n5(_uploadFile, _downloadFile, value) {
@@ -34612,116 +34627,98 @@ function from_candid_record_n5(_uploadFile, _downloadFile, value) {
     ifThenPlan: value.ifThenPlan,
     updatedAt: value.updatedAt,
     state: from_candid_GoalState_n8(_uploadFile, _downloadFile, value.state),
-    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.obstacleTemplateId)),
-    category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category),
+    obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.obstacleTemplateId)),
+    category: from_candid_GoalCategory_n10(_uploadFile, _downloadFile, value.category),
     isLockIn: value.isLockIn,
     outcome: value.outcome,
     lockInDurationMinutes: value.lockInDurationMinutes
   };
 }
-function from_candid_record_n53(_uploadFile, _downloadFile, value) {
+function from_candid_record_n58(_uploadFile, _downloadFile, value) {
   return {
-    id: value.id,
-    bio: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.bio)),
-    timezone: value.timezone,
-    username: value.username,
-    displayName: value.displayName,
-    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
-    role: from_candid_UserRole_n54(_uploadFile, _downloadFile, value.role),
-    email: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.email)),
-    avatarColor: from_candid_AvatarColor_n56(_uploadFile, _downloadFile, value.avatarColor),
-    avatarColorMode: from_candid_AvatarColorMode_n57(_uploadFile, _downloadFile, value.avatarColorMode),
-    avatarShape: from_candid_AvatarShape_n59(_uploadFile, _downloadFile, value.avatarShape)
-  };
-}
-function from_candid_record_n64(_uploadFile, _downloadFile, value) {
-  return {
-    checkIn: from_candid_CheckIn_n45(_uploadFile, _downloadFile, value.checkIn),
+    checkIn: from_candid_CheckIn_n42(_uploadFile, _downloadFile, value.checkIn),
     goalName: value.goalName,
     partnerDisplayName: value.partnerDisplayName,
-    partnerAvatarColor: from_candid_AvatarColor_n56(_uploadFile, _downloadFile, value.partnerAvatarColor),
+    partnerAvatarColor: from_candid_AvatarColor_n51(_uploadFile, _downloadFile, value.partnerAvatarColor),
     highFiveCount: value.highFiveCount,
-    partnerAvatarColorMode: from_candid_AvatarColorMode_n57(_uploadFile, _downloadFile, value.partnerAvatarColorMode),
-    partnerAvatarShape: from_candid_AvatarShape_n59(_uploadFile, _downloadFile, value.partnerAvatarShape)
+    partnerAvatarColorMode: from_candid_AvatarColorMode_n52(_uploadFile, _downloadFile, value.partnerAvatarColorMode),
+    partnerAvatarShape: from_candid_AvatarShape_n53(_uploadFile, _downloadFile, value.partnerAvatarShape)
   };
 }
-function from_candid_record_n67(_uploadFile, _downloadFile, value) {
+function from_candid_record_n61(_uploadFile, _downloadFile, value) {
   return {
-    habits: from_candid_vec_n68(_uploadFile, _downloadFile, value.habits),
-    profile: from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value.profile)
+    habits: from_candid_vec_n62(_uploadFile, _downloadFile, value.habits),
+    profile: from_candid_UserProfilePublic_n48(_uploadFile, _downloadFile, value.profile)
   };
 }
-function from_candid_record_n75(_uploadFile, _downloadFile, value) {
+function from_candid_record_n68(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_ConnectionStatus_n76(_uploadFile, _downloadFile, value.status),
+    status: from_candid_ConnectionStatus_n69(_uploadFile, _downloadFile, value.status),
     createdAt: value.createdAt,
     toPrincipal: value.toPrincipal,
     fromPrincipal: value.fromPrincipal
   };
 }
-function from_candid_record_n81(_uploadFile, _downloadFile, value) {
+function from_candid_record_n73(_uploadFile, _downloadFile, value) {
   return {
-    goal: from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value.goal),
-    habits: from_candid_vec_n68(_uploadFile, _downloadFile, value.habits)
+    goal: from_candid_MacroGoalPublic_n15(_uploadFile, _downloadFile, value.goal),
+    habits: from_candid_vec_n62(_uploadFile, _downloadFile, value.habits)
   };
 }
-function from_candid_record_n84(_uploadFile, _downloadFile, value) {
+function from_candid_record_n76(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     wish: value.wish,
     wishDescription: value.wishDescription,
     state: from_candid_GoalState_n8(_uploadFile, _downloadFile, value.state),
-    category: from_candid_GoalCategory_n11(_uploadFile, _downloadFile, value.category)
+    category: from_candid_GoalCategory_n10(_uploadFile, _downloadFile, value.category)
+  };
+}
+function from_candid_record_n79(_uploadFile, _downloadFile, value) {
+  return {
+    activeHabitCount: value.activeHabitCount,
+    profile: from_candid_UserProfilePublic_n48(_uploadFile, _downloadFile, value.profile),
+    currentStreak: value.currentStreak
   };
 }
 function from_candid_record_n87(_uploadFile, _downloadFile, value) {
   return {
-    activeHabitCount: value.activeHabitCount,
-    profile: from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value.profile),
-    currentStreak: value.currentStreak
-  };
-}
-function from_candid_record_n97(_uploadFile, _downloadFile, value) {
-  return {
     id: value.id,
-    interactionType: from_candid_InteractionType_n98(_uploadFile, _downloadFile, value.interactionType),
+    interactionType: from_candid_InteractionType_n88(_uploadFile, _downloadFile, value.interactionType),
     fromPrincipal: value.fromPrincipal,
     checkInId: value.checkInId,
     timestamp: value.timestamp
   };
 }
-function from_candid_variant_n113(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n100(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
-    ok: from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, value.ok)
+    ok: from_candid_UserProfilePublic_n48(_uploadFile, _downloadFile, value.ok)
   } : "err" in value ? {
     __kind__: "err",
     err: value.err
   } : value;
 }
-function from_candid_variant_n12(_uploadFile, _downloadFile, value) {
-  return "Productivity" in value ? "Productivity" : "Learning" in value ? "Learning" : "Health" in value ? "Health" : "Social" in value ? "Social" : "Leisure" in value ? "Leisure" : value;
+function from_candid_variant_n14(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: from_candid_MacroGoalPublic_n15(_uploadFile, _downloadFile, value.ok)
+  } : "err" in value ? {
+    __kind__: "err",
+    err: value.err
+  } : value;
 }
 function from_candid_variant_n17(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: from_candid_MacroGoalPublic_n18(_uploadFile, _downloadFile, value.ok)
-  } : "err" in value ? {
-    __kind__: "err",
-    err: value.err
-  } : value;
-}
-function from_candid_variant_n20(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: value.ok
   } : "err" in value ? {
     __kind__: "err",
-    err: from_candid_variant_n21(_uploadFile, _downloadFile, value.err)
+    err: from_candid_variant_n18(_uploadFile, _downloadFile, value.err)
   } : value;
 }
-function from_candid_variant_n21(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n18(_uploadFile, _downloadFile, value) {
   return "sealed" in value ? {
     __kind__: "sealed",
     sealed: value.sealed
@@ -34733,7 +34730,7 @@ function from_candid_variant_n21(_uploadFile, _downloadFile, value) {
     unauthorized: value.unauthorized
   } : value;
 }
-function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n19(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: value.ok
@@ -34742,16 +34739,7 @@ function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
     err: value.err
   } : value;
 }
-function from_candid_variant_n3(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: from_candid_HabitPublic_n4(_uploadFile, _downloadFile, value.ok)
-  } : "err" in value ? {
-    __kind__: "err",
-    err: value.err
-  } : value;
-}
-function from_candid_variant_n30(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n27(_uploadFile, _downloadFile, value) {
   return "int" in value ? {
     __kind__: "int",
     int: value.int
@@ -34772,165 +34760,169 @@ function from_candid_variant_n30(_uploadFile, _downloadFile, value) {
     text: value.text
   } : value;
 }
-function from_candid_variant_n48(_uploadFile, _downloadFile, value) {
-  return "skip" in value ? "skip" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
-}
-function from_candid_variant_n55(_uploadFile, _downloadFile, value) {
-  return "admin" in value ? "admin" : "user" in value ? "user" : value;
-}
-function from_candid_variant_n58(_uploadFile, _downloadFile, value) {
-  return "Fill" in value ? "Fill" : "BorderOnly" in value ? "BorderOnly" : value;
-}
-function from_candid_variant_n61(_uploadFile, _downloadFile, value) {
-  return "Star" in value ? "Star" : "Pentagon" in value ? "Pentagon" : "Triangle" in value ? "Triangle" : "Hexagon" in value ? "Hexagon" : "Square" in value ? "Square" : value;
-}
-function from_candid_variant_n65(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n3(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
-    ok: from_candid_PartnerHabitDetail_n66(_uploadFile, _downloadFile, value.ok)
-  } : "err" in value ? {
-    __kind__: "err",
-    err: from_candid_PartnerHabitError_n69(_uploadFile, _downloadFile, value.err)
-  } : value;
-}
-function from_candid_variant_n70(_uploadFile, _downloadFile, value) {
-  return "notPartner" in value ? "notPartner" : "profileNotFound" in value ? "profileNotFound" : value;
-}
-function from_candid_variant_n77(_uploadFile, _downloadFile, value) {
-  return "pending" in value ? "pending" : "rejected" in value ? "rejected" : "accepted" in value ? "accepted" : value;
-}
-function from_candid_variant_n78(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: from_candid_vec_n68(_uploadFile, _downloadFile, value.ok)
+    ok: from_candid_HabitPublic_n4(_uploadFile, _downloadFile, value.ok)
   } : "err" in value ? {
     __kind__: "err",
     err: value.err
   } : value;
 }
-function from_candid_variant_n88(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n55(_uploadFile, _downloadFile, value) {
+  return "Star" in value ? "Star" : "Pentagon" in value ? "Pentagon" : "Triangle" in value ? "Triangle" : "Hexagon" in value ? "Hexagon" : "Square" in value ? "Square" : value;
+}
+function from_candid_variant_n59(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: from_candid_PartnerHabitDetail_n60(_uploadFile, _downloadFile, value.ok)
+  } : "err" in value ? {
+    __kind__: "err",
+    err: from_candid_PartnerHabitError_n63(_uploadFile, _downloadFile, value.err)
+  } : value;
+}
+function from_candid_variant_n70(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: from_candid_vec_n62(_uploadFile, _downloadFile, value.ok)
+  } : "err" in value ? {
+    __kind__: "err",
+    err: value.err
+  } : value;
+}
+function from_candid_variant_n80(_uploadFile, _downloadFile, value) {
   return "ok" in value ? {
     __kind__: "ok",
     ok: value.ok
   } : "err" in value ? {
     __kind__: "err",
-    err: from_candid_variant_n89(_uploadFile, _downloadFile, value.err)
+    err: from_candid_variant_n81(_uploadFile, _downloadFile, value.err)
   } : value;
 }
-function from_candid_variant_n89(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n81(_uploadFile, _downloadFile, value) {
   return "notFound" in value ? "notFound" : "unauthorized" in value ? "unauthorized" : value;
 }
-function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
-  return "active" in value ? "active" : "completed" in value ? "completed" : "paused" in value ? "paused" : value;
+function from_candid_vec_n22(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_vec_n23(_uploadFile, _downloadFile, x2));
 }
-function from_candid_variant_n99(_uploadFile, _downloadFile, value) {
-  return "highFive" in value ? "highFive" : value;
+function from_candid_vec_n23(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_Cell_n24(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n25(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_vec_n26(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n30(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_CategoryStat_n31(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n26(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_Cell_n27(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n34(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_HabitAnalytics_n35(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n33(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_CategoryStat_n34(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n40(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_ObstacleStat_n38(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n37(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_HabitAnalytics_n38(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n41(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_CheckIn_n42(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n43(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_ObstacleStat_n41(_uploadFile, _downloadFile, x2));
-}
-function from_candid_vec_n44(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_CheckIn_n45(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n56(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_FeedItem_n57(_uploadFile, _downloadFile, x2));
 }
 function from_candid_vec_n62(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_FeedItem_n63(_uploadFile, _downloadFile, x2));
-}
-function from_candid_vec_n68(_uploadFile, _downloadFile, value) {
   return value.map((x2) => from_candid_HabitPublic_n4(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n72(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_UserProfilePublic_n52(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n65(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_UserProfilePublic_n48(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n73(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_ConnectionPublic_n74(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n66(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_ConnectionPublic_n67(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n79(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_GoalWithHabitsPublic_n80(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n71(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_GoalWithHabitsPublic_n72(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n82(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_ReusableGoalPublic_n83(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n74(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_ReusableGoalPublic_n75(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n85(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_PartnerOverview_n86(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n77(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_PartnerOverview_n78(_uploadFile, _downloadFile, x2));
 }
-function to_candid_AvatarColorMode_n110(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n111(_uploadFile, _downloadFile, value);
+function to_candid_AvatarColorMode_n98(_uploadFile, _downloadFile, value) {
+  return value == "Fill" ? {
+    Fill: null
+  } : value == "BorderOnly" ? {
+    BorderOnly: null
+  } : value;
 }
-function to_candid_AvatarColor_n108(_uploadFile, _downloadFile, value) {
-  return to_candid_opt_n104(_uploadFile, _downloadFile, value);
+function to_candid_AvatarColor_n96(_uploadFile, _downloadFile, value) {
+  return to_candid_opt_n92(_uploadFile, _downloadFile, value);
 }
-function to_candid_AvatarShape_n105(_uploadFile, _downloadFile, value) {
-  return to_candid_opt_n106(_uploadFile, _downloadFile, value);
+function to_candid_AvatarShape_n93(_uploadFile, _downloadFile, value) {
+  return to_candid_opt_n94(_uploadFile, _downloadFile, value);
 }
-function to_candid_CheckInType_n92(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n93(_uploadFile, _downloadFile, value);
+function to_candid_CheckInType_n84(_uploadFile, _downloadFile, value) {
+  return value == "skip" ? {
+    skip: null
+  } : value == "missedCheckIn" ? {
+    missedCheckIn: null
+  } : value == "missedCheckOut" ? {
+    missedCheckOut: null
+  } : value == "success" ? {
+    success: null
+  } : value == "inProgress" ? {
+    inProgress: null
+  } : value;
 }
 function to_candid_CreateHabitRequest_n1(_uploadFile, _downloadFile, value) {
   return to_candid_record_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_CreateMacroGoalRequest_n13(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n14(_uploadFile, _downloadFile, value);
+function to_candid_CreateMacroGoalRequest_n11(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n12(_uploadFile, _downloadFile, value);
 }
-function to_candid_GoalCategory_n15(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n16(_uploadFile, _downloadFile, value);
+function to_candid_GoalCategory_n13(_uploadFile, _downloadFile, value) {
+  return value == "Productivity" ? {
+    Productivity: null
+  } : value == "Learning" ? {
+    Learning: null
+  } : value == "Health" ? {
+    Health: null
+  } : value == "Social" ? {
+    Social: null
+  } : value == "Leisure" ? {
+    Leisure: null
+  } : value;
 }
-function to_candid_GoalState_n100(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n101(_uploadFile, _downloadFile, value);
+function to_candid_GoalState_n89(_uploadFile, _downloadFile, value) {
+  return value == "active" ? {
+    active: null
+  } : value == "completed" ? {
+    completed: null
+  } : value == "paused" ? {
+    paused: null
+  } : value;
 }
-function to_candid_InteractionType_n94(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n95(_uploadFile, _downloadFile, value);
+function to_candid_InteractionType_n85(_uploadFile, _downloadFile, value) {
+  return value == "highFive" ? {
+    highFive: null
+  } : value;
 }
-function to_candid_RecordCheckInRequest_n90(_uploadFile, _downloadFile, value) {
+function to_candid_RecordCheckInRequest_n82(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n83(_uploadFile, _downloadFile, value);
+}
+function to_candid_UpdateHabitRequest_n90(_uploadFile, _downloadFile, value) {
   return to_candid_record_n91(_uploadFile, _downloadFile, value);
 }
-function to_candid_UpdateHabitRequest_n102(_uploadFile, _downloadFile, value) {
-  return to_candid_record_n103(_uploadFile, _downloadFile, value);
-}
-function to_candid_opt_n104(_uploadFile, _downloadFile, value) {
+function to_candid_opt_n92(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_opt_n106(_uploadFile, _downloadFile, value) {
-  return value === null ? candid_none() : candid_some(to_candid_variant_n107(_uploadFile, _downloadFile, value));
+function to_candid_opt_n94(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid_variant_n95(_uploadFile, _downloadFile, value));
 }
-function to_candid_opt_n109(_uploadFile, _downloadFile, value) {
-  return value === null ? candid_none() : candid_some(to_candid_AvatarColorMode_n110(_uploadFile, _downloadFile, value));
+function to_candid_opt_n97(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid_AvatarColorMode_n98(_uploadFile, _downloadFile, value));
 }
-function to_candid_opt_n112(_uploadFile, _downloadFile, value) {
+function to_candid_opt_n99(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_record_n103(_uploadFile, _downloadFile, value) {
-  return {
-    startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
-    endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
-    endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
-    scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
-    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
-    startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
-    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
-    isTimeEdit: value.isTimeEdit ? candid_some(value.isTimeEdit) : candid_none(),
-    ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
-    obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
-    isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
-    lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
-  };
-}
-function to_candid_record_n14(_uploadFile, _downloadFile, value) {
+function to_candid_record_n12(_uploadFile, _downloadFile, value) {
   return {
     wish: value.wish,
     wishDescription: value.wishDescription,
-    category: to_candid_GoalCategory_n15(_uploadFile, _downloadFile, value.category),
+    category: to_candid_GoalCategory_n13(_uploadFile, _downloadFile, value.category),
     outcome: value.outcome
   };
 }
@@ -34950,28 +34942,35 @@ function to_candid_record_n2(_uploadFile, _downloadFile, value) {
     lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
   };
 }
-function to_candid_record_n91(_uploadFile, _downloadFile, value) {
+function to_candid_record_n83(_uploadFile, _downloadFile, value) {
   return {
     timezoneOffsetMinutes: value.timezoneOffsetMinutes,
     note: value.note ? candid_some(value.note) : candid_none(),
     goalId: value.goalId,
-    checkInType: to_candid_CheckInType_n92(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: to_candid_CheckInType_n84(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
     executedIfThen: value.executedIfThen,
     lockInStartedAt: value.lockInStartedAt ? candid_some(value.lockInStartedAt) : candid_none(),
     lockInEndedAt: value.lockInEndedAt ? candid_some(value.lockInEndedAt) : candid_none()
   };
 }
-function to_candid_variant_n101(_uploadFile, _downloadFile, value) {
-  return value == "active" ? {
-    active: null
-  } : value == "completed" ? {
-    completed: null
-  } : value == "paused" ? {
-    paused: null
-  } : value;
+function to_candid_record_n91(_uploadFile, _downloadFile, value) {
+  return {
+    startTime: value.startTime ? candid_some(value.startTime) : candid_none(),
+    endTimeMinutes: value.endTimeMinutes ? candid_some(value.endTimeMinutes) : candid_none(),
+    endTime: value.endTime ? candid_some(value.endTime) : candid_none(),
+    scheduledDays: value.scheduledDays ? candid_some(value.scheduledDays) : candid_none(),
+    timezoneOffsetMinutes: value.timezoneOffsetMinutes,
+    startTimeMinutes: value.startTimeMinutes ? candid_some(value.startTimeMinutes) : candid_none(),
+    themeColor: value.themeColor ? candid_some(value.themeColor) : candid_none(),
+    isTimeEdit: value.isTimeEdit ? candid_some(value.isTimeEdit) : candid_none(),
+    ifThenPlan: value.ifThenPlan ? candid_some(value.ifThenPlan) : candid_none(),
+    obstacleTemplateId: value.obstacleTemplateId ? candid_some(value.obstacleTemplateId) : candid_none(),
+    isLockIn: value.isLockIn ? candid_some(value.isLockIn) : candid_none(),
+    lockInDurationMinutes: value.lockInDurationMinutes ? candid_some(value.lockInDurationMinutes) : candid_none()
+  };
 }
-function to_candid_variant_n107(_uploadFile, _downloadFile, value) {
+function to_candid_variant_n95(_uploadFile, _downloadFile, value) {
   return value == "Star" ? {
     Star: null
   } : value == "Pentagon" ? {
@@ -34982,44 +34981,6 @@ function to_candid_variant_n107(_uploadFile, _downloadFile, value) {
     Hexagon: null
   } : value == "Square" ? {
     Square: null
-  } : value;
-}
-function to_candid_variant_n111(_uploadFile, _downloadFile, value) {
-  return value == "Fill" ? {
-    Fill: null
-  } : value == "BorderOnly" ? {
-    BorderOnly: null
-  } : value;
-}
-function to_candid_variant_n16(_uploadFile, _downloadFile, value) {
-  return value == "Productivity" ? {
-    Productivity: null
-  } : value == "Learning" ? {
-    Learning: null
-  } : value == "Health" ? {
-    Health: null
-  } : value == "Social" ? {
-    Social: null
-  } : value == "Leisure" ? {
-    Leisure: null
-  } : value;
-}
-function to_candid_variant_n93(_uploadFile, _downloadFile, value) {
-  return value == "skip" ? {
-    skip: null
-  } : value == "missedCheckIn" ? {
-    missedCheckIn: null
-  } : value == "missedCheckOut" ? {
-    missedCheckOut: null
-  } : value == "success" ? {
-    success: null
-  } : value == "inProgress" ? {
-    inProgress: null
-  } : value;
-}
-function to_candid_variant_n95(_uploadFile, _downloadFile, value) {
-  return value == "highFive" ? {
-    highFive: null
   } : value;
 }
 function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
@@ -80748,6 +80709,30 @@ function TimelineNodeCircle({
     }
   );
 }
+function TimelineInProgressNode() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+      style: {
+        border: "2px solid #F59E0B",
+        background: "transparent",
+        boxShadow: "0 0 0 3px rgba(245,158,11,0.12)"
+      },
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: "absolute inset-0 rounded-full animate-ping opacity-40",
+            style: { background: "rgba(245,158,11,0.25)" }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-2 h-2 rounded-full", style: { background: "#F59E0B" } })
+      ]
+    }
+  );
+}
 function TimelineItem({ checkIn }) {
   var _a3;
   const isSuccess = checkIn.checkInType === CheckInType.success;
@@ -80755,7 +80740,7 @@ function TimelineItem({ checkIn }) {
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
   const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
   const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
-  checkIn.checkInType === CheckInType.inProgress;
+  const isInProgress = checkIn.checkInType === CheckInType.inProgress;
   const time2 = formatTime$1(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
   const note = (_a3 = checkIn.note) == null ? void 0 : _a3.trim();
@@ -80773,13 +80758,16 @@ function TimelineItem({ checkIn }) {
   } else if (isMissedCheckOut) {
     primaryText = `Missed check-out at ${time2}`;
     primaryColor = SKIP_COLOR$2;
+  } else if (isInProgress) {
+    primaryText = "In Progress";
+    primaryColor = "#F59E0B";
   } else {
     primaryText = "Missed • No action taken";
     primaryColor = MISSED_COLOR;
   }
   const showNoReasonFallback = isMissedLockIn && !note;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", "data-ocid": "goal_insight.timeline_item", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType }),
+    isInProgress ? /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineInProgressNode, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "p",
@@ -80795,6 +80783,14 @@ function TimelineItem({ checkIn }) {
           ]
         }
       ) }),
+      isInProgress && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "p",
+        {
+          className: "text-xs mt-0.5",
+          style: { color: "oklch(var(--muted-foreground) / 0.7)" },
+          children: "Waiting for today's action"
+        }
+      ),
       note && (isSkip || isMissedLockIn) && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "p",
         {
@@ -80937,9 +80933,9 @@ function GoalInsightSheet({
     groupByDateStr.set(key, g2);
   }
   const hasAnyDayData = last14Days.some((d2) => {
-    const key = d2.toDateString();
-    if (groupByDateStr.has(key)) return true;
-    return true;
+    if (groupByDateStr.has(d2.toDateString())) return true;
+    const dayAbbr = weekdays[d2.getDay()];
+    return !goal.scheduledDays || goal.scheduledDays.length === 0 || goal.scheduledDays.includes(dayAbbr);
   });
   const isEmpty = !isLoading && !error && checkIns.length === 0 && !hasAnyDayData;
   const habitName = goal.wishDescription || goal.wish || "Habit";
@@ -81128,7 +81124,7 @@ function GoalInsightSheet({
                     ]
                   }
                 ),
-                !isLoading && !error && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                !isLoading && !error && !isEmpty && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "div",
                     {
@@ -81199,36 +81195,7 @@ function GoalInsightSheet({
                               }
                             ) }),
                             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ml-3 flex gap-3", children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                                "div",
-                                {
-                                  className: "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-                                  style: {
-                                    border: "2px solid #F59E0B",
-                                    background: "transparent",
-                                    boxShadow: "0 0 0 3px rgba(245,158,11,0.12)"
-                                  },
-                                  "aria-hidden": "true",
-                                  children: [
-                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                      "span",
-                                      {
-                                        className: "absolute inset-0 rounded-full animate-ping opacity-40",
-                                        style: {
-                                          background: "rgba(245,158,11,0.25)"
-                                        }
-                                      }
-                                    ),
-                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                      "div",
-                                      {
-                                        className: "w-2 h-2 rounded-full",
-                                        style: { background: "#F59E0B" }
-                                      }
-                                    )
-                                  ]
-                                }
-                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineInProgressNode, {}),
                               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
                                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                                   "p",

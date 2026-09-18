@@ -107,13 +107,38 @@ function TimelineNodeCircle({
   );
 }
 
+/**
+ * The amber "In Progress" node shown for an ongoing Lock-In window. Shared by
+ * the today-with-no-check-in branch and by any `inProgress` check-in returned
+ * by the backend (a Lock-In habit that is currently mid-window).
+ */
+function TimelineInProgressNode() {
+  return (
+    <div
+      className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+      style={{
+        border: "2px solid #F59E0B",
+        background: "transparent",
+        boxShadow: "0 0 0 3px rgba(245,158,11,0.12)",
+      }}
+      aria-hidden="true"
+    >
+      <span
+        className="absolute inset-0 rounded-full animate-ping opacity-40"
+        style={{ background: "rgba(245,158,11,0.25)" }}
+      />
+      <div className="w-2 h-2 rounded-full" style={{ background: "#F59E0B" }} />
+    </div>
+  );
+}
+
 function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   const isSuccess = checkIn.checkInType === CheckInType.success;
   const isSkip = checkIn.checkInType === CheckInType.skip;
   const isMissedCheckIn = checkIn.checkInType === CheckInType.missedCheckIn;
   const isMissedCheckOut = checkIn.checkInType === CheckInType.missedCheckOut;
   const isMissedLockIn = isMissedCheckIn || isMissedCheckOut;
-  const _isMissed = checkIn.checkInType === CheckInType.inProgress;
+  const isInProgress = checkIn.checkInType === CheckInType.inProgress;
 
   const time = formatTime(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
@@ -140,6 +165,9 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   } else if (isMissedCheckOut) {
     primaryText = `Missed check-out at ${time}`;
     primaryColor = SKIP_COLOR;
+  } else if (isInProgress) {
+    primaryText = "In Progress";
+    primaryColor = "#F59E0B";
   } else {
     primaryText = "Missed \u2022 No action taken";
     primaryColor = MISSED_COLOR;
@@ -151,7 +179,11 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   return (
     <div className="flex gap-3" data-ocid="goal_insight.timeline_item">
       {/* Node */}
-      <TimelineNodeCircle type={checkIn.checkInType} />
+      {isInProgress ? (
+        <TimelineInProgressNode />
+      ) : (
+        <TimelineNodeCircle type={checkIn.checkInType} />
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0 pb-5">
@@ -171,6 +203,14 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
             )}
           </p>
         </div>
+        {isInProgress && (
+          <p
+            className="text-xs mt-0.5"
+            style={{ color: "oklch(var(--muted-foreground) / 0.7)" }}
+          >
+            Waiting for today's action
+          </p>
+        )}
         {note && (isSkip || isMissedLockIn) && (
           <p
             className="text-xs mt-1 leading-snug"
@@ -365,13 +405,18 @@ export function GoalInsightSheet({
     groupByDateStr.set(key, g);
   }
 
-  // True empty only when there are no check-ins AND habit was created too recently
-  // for any of the 14 days to have anything to show (e.g. created today)
+  // True empty only when no day in the 14-day window would render anything:
+  // no check-in group, and no scheduled day (today → In Progress, past →
+  // Missed). A brand-new habit created on a rest day therefore shows the
+  // empty state instead of a blank scroll area.
   const hasAnyDayData = last14Days.some((d) => {
-    const key = d.toDateString();
-    if (groupByDateStr.has(key)) return true;
-    // Either a missed or rest node would be shown for this day
-    return true;
+    if (groupByDateStr.has(d.toDateString())) return true;
+    const dayAbbr = weekdays[d.getDay()];
+    return (
+      !goal.scheduledDays ||
+      goal.scheduledDays.length === 0 ||
+      goal.scheduledDays.includes(dayAbbr)
+    );
   });
   const isEmpty =
     !isLoading && !error && checkIns.length === 0 && !hasAnyDayData;
@@ -559,7 +604,7 @@ export function GoalInsightSheet({
               )}
 
               {/* Timeline — all 14 days, newest first */}
-              {!isLoading && !error && (
+              {!isLoading && !error && !isEmpty && (
                 <div className="relative">
                   {/* Vertical connecting line */}
                   <div
@@ -648,26 +693,7 @@ export function GoalInsightSheet({
                             </div>
                             {/* In Progress node */}
                             <div className="ml-3 flex gap-3">
-                              <div
-                                className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-                                style={{
-                                  border: "2px solid #F59E0B",
-                                  background: "transparent",
-                                  boxShadow: "0 0 0 3px rgba(245,158,11,0.12)",
-                                }}
-                                aria-hidden="true"
-                              >
-                                <span
-                                  className="absolute inset-0 rounded-full animate-ping opacity-40"
-                                  style={{
-                                    background: "rgba(245,158,11,0.25)",
-                                  }}
-                                />
-                                <div
-                                  className="w-2 h-2 rounded-full"
-                                  style={{ background: "#F59E0B" }}
-                                />
-                              </div>
+                              <TimelineInProgressNode />
                               <div className="flex-1 min-w-0 pb-5">
                                 <p
                                   className="text-sm font-display font-medium leading-snug"
