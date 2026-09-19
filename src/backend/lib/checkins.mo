@@ -122,6 +122,7 @@ module {
       lockInStartedAt = request.lockInStartedAt;
       lockInEndedAt = request.lockInEndedAt;
       executedIfThen = request.executedIfThen;
+      followUpDeclined = false;
       note = request.note;
     };
     checkIns.add(checkIn);
@@ -188,6 +189,7 @@ module {
           lockInStartedAt = null;
           lockInEndedAt = null;
           executedIfThen = false;
+          followUpDeclined = false;
           note = null;
         };
         checkIns.add(missedCheckIn);
@@ -254,7 +256,38 @@ module {
         // Idempotent: already tagged is a normal no-op success.
         if (not c.executedIfThen) {
           checkIns.mapInPlace(func(c) {
-            if (c.id == checkInId) { { c with executedIfThen = true } } else { c };
+            if (c.id == checkInId) {
+              // Answering "used my plan" supersedes a prior decline — the two
+              // facts are mutually exclusive.
+              { c with executedIfThen = true; followUpDeclined = false };
+            } else { c };
+          });
+        };
+        #ok;
+      };
+    };
+  };
+
+  /// Records that the follow-up question was asked and the user declined to
+  /// answer. Idempotent and ownership-checked, mirroring markCheckInIfThenUsed.
+  /// Declining never sets executedIfThen, so a declined check-in stays on the
+  /// did-not-use side of the effectiveness split.
+  public func markCheckInFollowUpDeclined(
+    checkIns : List.List<CheckInTypes.CheckIn>,
+    checkInId : Common.CheckInId,
+    caller : Common.UserId,
+  ) : { #ok; #err : { #notFound; #unauthorized } } {
+    switch (checkIns.find(func(c) { c.id == checkInId })) {
+      case null #err(#notFound);
+      case (?c) {
+        if (c.owner != caller) return #err(#unauthorized);
+        // Idempotent: already declined is a normal no-op success.
+        if (not c.followUpDeclined) {
+          checkIns.mapInPlace(func(c) {
+            if (c.id == checkInId) {
+              // Declining supersedes a prior "used my plan" answer.
+              { c with followUpDeclined = true; executedIfThen = false };
+            } else { c };
           });
         };
         #ok;

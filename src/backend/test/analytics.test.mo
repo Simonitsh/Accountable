@@ -19,6 +19,7 @@ func makeCheckIn(id : Nat, ts : Int, checkInType : Common.CheckInType) : CheckIn
     lockInStartedAt = null;
     lockInEndedAt = null;
     executedIfThen = false;
+    followUpDeclined = false;
     note = null;
   };
 };

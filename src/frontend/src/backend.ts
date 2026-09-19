@@ -83,6 +83,7 @@ export interface CheckIn {
     obstacleTemplateId?: ObstacleTemplateId;
     timestamp: Timestamp;
     executedIfThen: boolean;
+    followUpDeclined: boolean;
     lockInStartedAt?: bigint;
     lockInEndedAt?: bigint;
 }
@@ -477,6 +478,13 @@ export interface backendInterface {
      */
     listPartnerOverviews(): Promise<Array<PartnerOverview>>;
     listPendingRequests(): Promise<Array<ConnectionPublic>>;
+    markCheckInFollowUpDeclined(checkInId: CheckInId): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: Variant_notFound_unauthorized;
+    }>;
     markCheckInIfThenUsed(checkInId: CheckInId): Promise<{
         __kind__: "ok";
         ok: null;
@@ -979,6 +987,26 @@ export class Backend implements backendInterface {
             return from_candid_vec_n65(this._uploadFile, this._downloadFile, result);
         }
     }
+    async markCheckInFollowUpDeclined(arg0: CheckInId): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: Variant_notFound_unauthorized;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.markCheckInFollowUpDeclined(arg0);
+                return from_candid_variant_n79(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.markCheckInFollowUpDeclined(arg0);
+            return from_candid_variant_n79(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async markCheckInIfThenUsed(arg0: CheckInId): Promise<{
         __kind__: "ok";
         ok: null;
@@ -1460,6 +1488,7 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
     obstacleTemplateId: [] | [_ObstacleTemplateId];
     timestamp: _Timestamp;
     executedIfThen: boolean;
+    followUpDeclined: boolean;
     lockInStartedAt: [] | [bigint];
     lockInEndedAt: [] | [bigint];
 }): {
@@ -1471,6 +1500,7 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
     obstacleTemplateId?: ObstacleTemplateId;
     timestamp: Timestamp;
     executedIfThen: boolean;
+    followUpDeclined: boolean;
     lockInStartedAt?: bigint;
     lockInEndedAt?: bigint;
 } {
@@ -1483,6 +1513,7 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
         obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n39(_uploadFile, _downloadFile, value.obstacleTemplateId)),
         timestamp: value.timestamp,
         executedIfThen: value.executedIfThen,
+        followUpDeclined: value.followUpDeclined,
         lockInStartedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInStartedAt)),
         lockInEndedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInEndedAt))
     };

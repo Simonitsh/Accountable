@@ -1,6 +1,14 @@
 import "@testing-library/jest-dom/vitest";
-import { configure } from "@testing-library/react";
-import { vi } from "vitest";
+import { cleanup, configure } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
+
+// Testing Library's automatic cleanup only registers itself when it finds a
+// global `afterEach` at import time. Vitest's `globals: true` does not expose
+// one to module scope here, so rendered trees leaked between tests and
+// `getByTestId` started matching duplicates. Register cleanup explicitly.
+afterEach(() => {
+  cleanup();
+});
 
 // The generated components use `data-ocid` as their test hook attribute
 // rather than the default `data-testid`. Configure Testing Library to query

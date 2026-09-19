@@ -24,36 +24,6 @@ const MISSED_COLOR = "#6B7280"; // Missed day — definite muted grey ball
 
 const SWIPE_THRESHOLD = 60;
 
-// localStorage key prefix for permanently dismissing the if-then follow-up note
-// per check-in. The full key is `${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`.
-// Persisting by check-in id means the dismissal survives GoalCard unmounting
-// when the user switches tabs or navigates away and back — exactly like the
-// backend-driven executedIfThen flag does for 'Used it'.
-const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
-
-// The optimistic check-in placeholder id. A dismissal recorded while the card
-// still shows this id cannot be persisted yet (the real id has not arrived), so
-// it is held in memory and applied to the real check-in once it lands.
-const PLACEHOLDER_CHECK_IN_ID = 0n;
-
-function isIfThenDismissed(checkInId: bigint | undefined): boolean {
-  if (checkInId === undefined) return false;
-  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return false;
-  if (typeof window === "undefined") return false;
-  return (
-    localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1"
-  );
-}
-
-function persistIfThenDismissal(checkInId: bigint): void {
-  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return;
-  try {
-    localStorage.setItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`, "1");
-  } catch {
-    // best-effort — persistence is a nicety, not a requirement
-  }
-}
-
 // localStorage key prefix for the missed-window sheet's auto-show marker.
 // The full key is `${MISSED_SHEET_KEY_PREFIX}${goalId}-${date}-${failureType}`.
 // Persisting by goal id + calendar day + failure type means the "already
@@ -82,25 +52,24 @@ function markMissedSheetShown(goalId: bigint, failureType: string): void {
 }
 
 /**
- * Removes every localStorage marker this app holds about a single check-in, so
- * an undone check-in leaves no trace behind:
- *   - the if-then follow-up dismissal marker for that check-in id, and
- *   - the missed-window sheet markers for that habit and today's date (both
- *     failure types), since the sheet marker is keyed by habit + day rather
- *     than by check-in id.
+ * Removes the missed-window sheet markers this app holds about a single
+ * check-in, so an undone check-in leaves no trace behind: the markers for that
+ * habit and today's date (both failure types), since the sheet marker is keyed
+ * by habit + day rather than by check-in id.
  * Called by the Undo flow. Without this, a re-check-in on the same habit would
- * inherit the deleted check-in's dismissal and never show the follow-up
- * question or the missed-window sheet again.
+ * inherit the deleted check-in's marker and never show the missed-window sheet
+ * again today.
+ *
+ * The if-then follow-up question needs no cleanup here: both of its answers
+ * live on the check-in record itself, so deleting the check-in removes them
+ * with it and a fresh check-in asks the question again.
  */
 export function clearCheckInMarkers(
   goalId: bigint,
-  checkInId: bigint | undefined,
+  _checkInId: bigint | undefined,
 ): void {
   if (typeof window === "undefined") return;
   try {
-    if (checkInId !== undefined && checkInId !== PLACEHOLDER_CHECK_IN_ID) {
-      localStorage.removeItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`);
-    }
     localStorage.removeItem(missedSheetKey(goalId, "start"));
     localStorage.removeItem(missedSheetKey(goalId, "checkout"));
   } catch {
@@ -317,11 +286,19 @@ interface GoalCardProps {
   inProgressPulse?: boolean;
   /** Whether this check-in was an If-Then revival (executedIfThen: true) */
   executedIfThen?: boolean;
+  /** Whether the user declined the if-then follow-up question for this
+   *  check-in (followUpDeclined: true). Recorded on the check-in itself. */
+  followUpDeclined?: boolean;
   /** Check-in id for the if-then follow-up note (Done card). Set only for
    *  habits with an if-then plan that were just completed. */
   ifThenCheckInId?: bigint;
   /** Called when the user taps 'Used it' on the if-then follow-up note. */
   onMarkIfThenUsed?: (goalId: bigint, checkInId: bigint) => void;
+  /** Called when the user declines the if-then follow-up question. The answer
+   *  is recorded on the check-in itself; when the real check-in id has not
+   *  arrived yet the parent holds it in app-level state and sends it once the
+   *  id lands. */
+  onDeclineIfThen?: (goalId: bigint, checkInId: bigint) => void;
 }
 
 export function GoalCard({
@@ -350,24 +327,15 @@ export function GoalCard({
   onMissedWindowTap,
   inProgressPulse = false,
   executedIfThen = false,
+  followUpDeclined = false,
   ifThenCheckInId,
   onMarkIfThenUsed,
+  onDeclineIfThen,
 }: GoalCardProps) {
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showMissedSheet, setShowMissedSheet] = useState(false);
   // WOOP Catch sheet — shown on left swipe for normal (non-LockIn) habits
   const [showWoopCatch, setShowWoopCatch] = useState(false);
-  // Re-render trigger for the if-then note. The note's visibility is DERIVED
-  // fresh on every render from persisted inputs (executedIfThen, localStorage
-  // dismissal) — this state only forces a re-render so a dismissal write takes
-  // effect immediately. It never holds the note's visibility, so it cannot
-  // cause the note to reappear on remount.
-  const [, setIfThenDismissTick] = useState(0);
-  // Dismissal recorded while the card still shows the optimistic placeholder
-  // check-in (id 0n). Held in memory until the real check-in id arrives, then
-  // applied to it — so a dismissal made right after a swipe is never lost and
-  // never leaks onto a later check-in.
-  const [pendingIfThenDismiss, setPendingIfThenDismiss] = useState(false);
   // 'Used it' confirmation: while true the note plays its celebratory settle
   // (a brief emerald pulse) before it animates away.
   const [ifThenUsedConfirming, setIfThenUsedConfirming] = useState(false);
@@ -805,15 +773,17 @@ export function GoalCard({
   }
 
   // If-then follow-up note handlers — the habit is already done. 'Used it'
-  // tags the already-created check-in via markCheckInIfThenUsed; dismissing or
-  // ignoring just hides the note (the habit stays done without the tag).
+  // tags the already-created check-in via markCheckInIfThenUsed; declining
+  // records the answer on the check-in itself via markCheckInFollowUpDeclined.
   function handleIfThenUsed() {
     // Tagging the check-in as used flips executedIfThen to true (via
     // markCheckInIfThenUsed → backend refetch), which the derived visibility
-    // reads to hide the note. Guard against the optimistic 0n placeholder id —
-    // the real id lands via onSuccess and the note re-evaluates once
-    // ifThenCheckInIdMap is populated.
-    if (ifThenCheckInId !== undefined && ifThenCheckInId !== 0n) {
+    // reads to hide the note. While the card still shows the optimistic
+    // placeholder id (0n) the real id has not arrived yet, so the parent holds
+    // the answer in app-level state and sends it the moment the server
+    // confirms the check-in — it is never written against the placeholder, so
+    // it can never suppress a later check-in.
+    if (ifThenCheckInId !== undefined) {
       onMarkIfThenUsed?.(goal.id, ifThenCheckInId);
     }
     // Play the celebratory confirmation, then let the note settle away. The
@@ -823,21 +793,14 @@ export function GoalCard({
     setTimeout(() => setIfThenUsedConfirming(false), 620);
   }
 
-  function handleIfThenDismiss() {
-    // Record the dismissal against the real check-in it belongs to. While the
-    // card still shows the optimistic placeholder (id 0n) the real id has not
-    // arrived, so the dismissal is held in memory and applied by the effect
-    // above once the server confirms — it is never written against the
+  function handleIfThenDecline() {
+    // Record the declined answer against the real check-in it belongs to. While
+    // the card still shows the optimistic placeholder (id 0n) the real id has
+    // not arrived, so the parent holds the answer in app-level state and sends
+    // it once the server confirms — it is never written against the
     // placeholder, so it can never suppress a later check-in.
     if (ifThenCheckInId === undefined) return;
-    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) {
-      setPendingIfThenDismiss(true);
-    } else {
-      persistIfThenDismissal(ifThenCheckInId);
-    }
-    // Force a re-render so the derived visibility re-evaluates and the note
-    // animates away immediately.
-    setIfThenDismissTick((n) => n + 1);
+    onDeclineIfThen?.(goal.id, ifThenCheckInId);
   }
 
   function handleSkipModalClose() {
@@ -911,34 +874,34 @@ export function GoalCard({
     isLockIn &&
     (checkInToday?.checkInType === "missedCheckIn" ||
       checkInToday?.checkInType === "missedCheckOut");
-  // If-then follow-up note visibility — DERIVED fresh on every render from
-  // persisted, non-volatile inputs so it can never reappear after navigating
-  // away and back:
+  // If-then follow-up note visibility — DERIVED fresh on every render from the
+  // check-in record itself, so it can never reappear after navigating away and
+  // back and never leaks across check-ins:
   //   (a) the check-in has not already been tagged as used (executedIfThen),
-  //   (b) the note was not explicitly dismissed (localStorage, keyed by
-  //       check-in id — survives remounts; a dismissal recorded against the
-  //       placeholder is held in memory until the real id arrives).
-  // The note stays until the user answers it — there is no time window. It is
-  // scoped to today's check-in only: when the day rolls over the card resets
-  // and the note is gone with it.
+  //   (b) the user has not already declined the question (followUpDeclined).
+  // Both answers live on the check-in, so undoing the check-in removes them
+  // with it and a fresh check-in asks the question again. The note stays until
+  // the user answers it — there is no time window. It is scoped to today's
+  // check-in only: when the day rolls over the card resets and the note is
+  // gone with it.
   const showIfThenNote =
     mode === "done" &&
     hasIfThenPlan &&
     ifThenCheckInId !== undefined &&
     (isSuccessOrSkip || isMissedLockIn) &&
     !executedIfThen &&
-    !pendingIfThenDismiss &&
-    !isIfThenDismissed(ifThenCheckInId);
+    !followUpDeclined;
 
-  // Bind a dismissal recorded against the placeholder to the real check-in as
-  // soon as the server-confirmed id arrives.
-  useEffect(() => {
-    if (!pendingIfThenDismiss) return;
-    if (ifThenCheckInId === undefined) return;
-    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) return;
-    persistIfThenDismissal(ifThenCheckInId);
-    setPendingIfThenDismiss(false);
-  }, [pendingIfThenDismiss, ifThenCheckInId]);
+  // Quiet not-answered state: the user declined the follow-up question for this
+  // check-in. It reads as a settled, low-key line on the card — no action, no
+  // chrome — and disappears with the check-in on undo.
+  const showIfThenDeclined =
+    mode === "done" &&
+    hasIfThenPlan &&
+    ifThenCheckInId !== undefined &&
+    (isSuccessOrSkip || isMissedLockIn) &&
+    !executedIfThen &&
+    followUpDeclined;
 
   // We intentionally only depend on isExiting and goal.id here.
   useEffect(() => {
@@ -1523,7 +1486,7 @@ export function GoalCard({
                       className="ifthen-note-dismiss shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleIfThenDismiss();
+                        handleIfThenDecline();
                       }}
                       onPointerDown={(e) => {
                         e.stopPropagation();
@@ -1531,15 +1494,28 @@ export function GoalCard({
                       }}
                       onPointerUp={(e) => e.stopPropagation()}
                       onPointerMove={(e) => e.stopPropagation()}
-                      aria-label="Dismiss this if-then follow-up note"
-                      data-ocid={`goal.ifthen_note.dismiss.${index + 1}`}
+                      aria-label="Decline this if-then follow-up question"
+                      data-ocid={`goal.ifthen_note.decline.${index + 1}`}
                     >
-                      <span>Dismiss</span>
+                      <span>Decline</span>
                     </button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Quiet not-answered state — the user declined the follow-up
+                question for this check-in. Low-key, no action, no chrome. */}
+            {showIfThenDeclined && (
+              <div
+                className="ifthen-declined w-full"
+                data-ocid={`goal.ifthen_declined.${index + 1}`}
+              >
+                <span className="ifthen-declined-label text-[11px]">
+                  Not answered
+                </span>
+              </div>
+            )}
 
             {/* Log What Happened button — amber CTA for missed Lock-In windows */}
             {isLockIn &&

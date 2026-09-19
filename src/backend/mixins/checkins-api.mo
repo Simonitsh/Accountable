@@ -35,6 +35,14 @@ mixin (
     CheckInLib.markCheckInIfThenUsed(checkIns, checkInId, caller);
   };
 
+  // Records that the follow-up question was asked and the user declined to
+  // answer. Persisted on the check-in itself, so undoing the check-in removes
+  // the answer with it.
+  public shared ({ caller }) func markCheckInFollowUpDeclined(checkInId : Common.CheckInId) : async { #ok; #err : { #notFound; #unauthorized } } {
+    if (caller.isAnonymous()) Runtime.trap("Anonymous callers cannot tag check-ins");
+    CheckInLib.markCheckInFollowUpDeclined(checkIns, checkInId, caller);
+  };
+
   public shared query ({ caller }) func getCheckInsForPeriod(goalId : Common.GoalId, fromTimestamp : Int, toTimestamp : Int) : async [CheckInTypes.CheckIn] {
     CheckInLib.getCheckInsForPeriod(checkIns, goalId, caller, fromTimestamp, toTimestamp);
   };

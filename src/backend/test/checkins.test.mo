@@ -5,6 +5,7 @@ import Principal "mo:core/Principal";
 import Int "mo:core/Int";
 import DateUtils "../lib/date-utils";
 import CheckIns "../lib/checkins";
+import Analytics "../lib/analytics";
 import Common "../types/common";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
@@ -272,6 +273,7 @@ func makeCheckIn(
     lockInStartedAt = null;
     lockInEndedAt = null;
     executedIfThen = false;
+    followUpDeclined = false;
     note = null;
   };
 };
@@ -443,6 +445,201 @@ suite(
         let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>(); // empty
         let count = CheckIns.autoFailMissedGoals(checkIns, goals, nextId, profiles, MON_2024_01_01);
         expect.nat(count).equal(1);
+      },
+    );
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Follow-up question answers — used / declined / unanswered
+// ─────────────────────────────────────────────────────────────────────────────
+// A check-in is in exactly one of three states:
+//   • used the plan      → executedIfThen = true,  followUpDeclined = false
+//   • asked-and-declined → executedIfThen = false, followUpDeclined = true
+//   • unanswered         → executedIfThen = false, followUpDeclined = false
+// Both answers live on the check-in, so deleting it removes both.
+suite(
+  "follow-up question answers",
+  func() {
+    test(
+      "a fresh check-in is unanswered",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        let c = checkIns.at(0);
+        expect.bool(c.executedIfThen).isFalse();
+        expect.bool(c.followUpDeclined).isFalse();
+      },
+    );
+
+    test(
+      "markCheckInIfThenUsed records the used-the-plan answer",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        let result = CheckIns.markCheckInIfThenUsed(checkIns, 0, owner);
+        switch (result) {
+          case (#ok) {};
+          case (#err(_)) { assert false };
+        };
+        let c = checkIns.at(0);
+        expect.bool(c.executedIfThen).isTrue();
+        expect.bool(c.followUpDeclined).isFalse();
+      },
+    );
+
+    test(
+      "markCheckInFollowUpDeclined records the declined answer without using the plan",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        let result = CheckIns.markCheckInFollowUpDeclined(checkIns, 0, owner);
+        switch (result) {
+          case (#ok) {};
+          case (#err(_)) { assert false };
+        };
+        let c = checkIns.at(0);
+        expect.bool(c.followUpDeclined).isTrue();
+        // Declining must never count as having used the plan.
+        expect.bool(c.executedIfThen).isFalse();
+      },
+    );
+
+    test(
+      "the two answers are mutually exclusive: answering used clears a prior decline",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        ignore CheckIns.markCheckInFollowUpDeclined(checkIns, 0, owner);
+        ignore CheckIns.markCheckInIfThenUsed(checkIns, 0, owner);
+        let c = checkIns.at(0);
+        expect.bool(c.executedIfThen).isTrue();
+        expect.bool(c.followUpDeclined).isFalse();
+      },
+    );
+
+    test(
+      "the two answers are mutually exclusive: declining clears a prior used answer",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        ignore CheckIns.markCheckInIfThenUsed(checkIns, 0, owner);
+        ignore CheckIns.markCheckInFollowUpDeclined(checkIns, 0, owner);
+        let c = checkIns.at(0);
+        expect.bool(c.followUpDeclined).isTrue();
+        expect.bool(c.executedIfThen).isFalse();
+      },
+    );
+
+    test(
+      "both markers are idempotent",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        ignore CheckIns.markCheckInFollowUpDeclined(checkIns, 0, owner);
+        ignore CheckIns.markCheckInFollowUpDeclined(checkIns, 0, owner);
+        let c = checkIns.at(0);
+        expect.bool(c.followUpDeclined).isTrue();
+        expect.bool(c.executedIfThen).isFalse();
+      },
+    );
+
+    test(
+      "markers reject a non-owner and an unknown check-in",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let other = Principal.fromText("2vxsx-fae");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        switch (CheckIns.markCheckInFollowUpDeclined(checkIns, 0, other)) {
+          case (#err(#unauthorized)) {};
+          case (_) { assert false };
+        };
+        switch (CheckIns.markCheckInFollowUpDeclined(checkIns, 99, owner)) {
+          case (#err(#notFound)) {};
+          case (_) { assert false };
+        };
+        // Neither rejected call changed the record.
+        let c = checkIns.at(0);
+        expect.bool(c.followUpDeclined).isFalse();
+        expect.bool(c.executedIfThen).isFalse();
+      },
+    );
+
+    test(
+      "deleting a check-in removes both answers with it",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        let goals = List.empty<GoalTypes.Goal>();
+        goals.add(makeGoal(1, owner, ALL_DAYS, false));
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        ignore CheckIns.markCheckInFollowUpDeclined(checkIns, 0, owner);
+        // The declined answer is on the record before the delete.
+        expect.bool(checkIns.at(0).followUpDeclined).isTrue();
+        let result = CheckIns.deleteCheckIn(checkIns, goals, 0, owner);
+        switch (result) {
+          case (#ok) {};
+          case (#err(_)) { assert false };
+        };
+        // The record — and both answers — are gone; no manual cleanup needed.
+        expect.nat(checkIns.toArray().size()).equal(0);
+      },
+    );
+
+    test(
+      "a declined check-in counts on the did-not-use side of the effectiveness split",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        // One used-the-plan success, one declined success.
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        checkIns.add(makeCheckIn(1, 1, owner, #success, MON_2024_01_01 + DAY_NS));
+        ignore CheckIns.markCheckInIfThenUsed(checkIns, 0, owner);
+        ignore CheckIns.markCheckInFollowUpDeclined(checkIns, 1, owner);
+        let stats = Analytics.computeIfThenEffectiveness(checkIns.toArray());
+        // Used side: only the used-the-plan check-in.
+        expect.nat(stats.usedPlan.total).equal(1);
+        expect.nat(stats.usedPlan.successes).equal(1);
+        // Declined side: the declined check-in counts as not-used.
+        expect.nat(stats.notUsedPlan.total).equal(1);
+        expect.nat(stats.notUsedPlan.successes).equal(1);
+      },
+    );
+
+    test(
+      "an unanswered check-in also counts on the did-not-use side",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        let stats = Analytics.computeIfThenEffectiveness(checkIns.toArray());
+        expect.nat(stats.usedPlan.total).equal(0);
+        expect.nat(stats.notUsedPlan.total).equal(1);
+      },
+    );
+
+    test(
+      "existing check-ins convert to unanswered rather than a guessed answer",
+      func() {
+        // Mirrors the migration's carry-forward rule: a pre-existing check-in
+        // keeps executedIfThen and gains followUpDeclined = false.
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        checkIns.add(makeCheckIn(0, 1, owner, #success, MON_2024_01_01));
+        let c = checkIns.at(0);
+        expect.bool(c.followUpDeclined).isFalse();
+        expect.bool(c.executedIfThen).isFalse();
+        // And it is not counted as used.
+        let stats = Analytics.computeIfThenEffectiveness(checkIns.toArray());
+        expect.nat(stats.usedPlan.total).equal(0);
+        expect.nat(stats.notUsedPlan.total).equal(1);
       },
     );
   },

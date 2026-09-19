@@ -171,6 +171,7 @@ const sampleCheckIn = {
   obstacleTemplateId: undefined,
   timestamp: now,
   executedIfThen: false,
+  followUpDeclined: false,
   lockInStartedAt: undefined,
   lockInEndedAt: undefined,
 };
@@ -194,6 +195,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     obstacleTemplateId: undefined,
     timestamp: now - BigInt(2 * 60 * 60 * 1_000) * BigInt(1_000_000), // 2h ago
     executedIfThen: true,
+    followUpDeclined: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
     note: undefined,
@@ -207,6 +209,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     obstacleTemplateId: undefined,
     timestamp: now - dayNs - BigInt(3 * 60 * 60 * 1_000) * BigInt(1_000_000),
     executedIfThen: false,
+    followUpDeclined: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
     note: undefined,
@@ -220,6 +223,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     obstacleTemplateId: BigInt(0), // "Low Energy" preset
     timestamp: now - BigInt(2) * dayNs - BigInt(1 * 60 * 60 * 1_000) * BigInt(1_000_000),
     executedIfThen: false,
+    followUpDeclined: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
     note: "Had a particularly draining work meeting that ran late into the evening.",
@@ -233,6 +237,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     obstacleTemplateId: BigInt(2),
     timestamp: now - BigInt(3) * dayNs,
     executedIfThen: false,
+    followUpDeclined: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
     note: undefined,
@@ -246,6 +251,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     obstacleTemplateId: undefined,
     timestamp: now - BigInt(4) * dayNs - BigInt(4 * 60 * 60 * 1_000) * BigInt(1_000_000),
     executedIfThen: false,
+    followUpDeclined: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
     note: undefined,
@@ -259,6 +265,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     obstacleTemplateId: BigInt(1),
     timestamp: now - BigInt(5) * dayNs,
     executedIfThen: false,
+    followUpDeclined: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
     note: undefined,
@@ -272,6 +279,7 @@ const buildTimelineCheckIns = (goalId: bigint) => [
     obstacleTemplateId: undefined,
     timestamp: now - BigInt(6) * dayNs - BigInt(2 * 60 * 60 * 1_000) * BigInt(1_000_000),
     executedIfThen: true,
+    followUpDeclined: false,
     lockInStartedAt: undefined,
     lockInEndedAt: undefined,
     note: undefined,
@@ -496,9 +504,12 @@ export const mockBackend: backendInterface = {
     lockInStartedAt: request.lockInStartedAt,
     lockInEndedAt: request.lockInEndedAt,
     executedIfThen: request.executedIfThen,
+    followUpDeclined: false,
   }),
 
   markCheckInIfThenUsed: async () => ({ __kind__: "ok" as const, ok: null }),
+
+  markCheckInFollowUpDeclined: async () => ({ __kind__: "ok" as const, ok: null }),
 
   recordInteraction: async (checkInId, interactionType) => ({
     id: BigInt(99),
@@ -522,6 +533,7 @@ export const mockBackend: backendInterface = {
       obstacleTemplateId: undefined,
       timestamp: BigInt(Date.now()) * BigInt(1_000_000),
       executedIfThen: false,
+      followUpDeclined: false,
       lockInStartedAt: undefined,
       lockInEndedAt: undefined,
     },

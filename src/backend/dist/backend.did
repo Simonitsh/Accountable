@@ -255,6 +255,7 @@ type CheckIn =
  record {
    checkInType: CheckInType;
    executedIfThen: bool;
+   followUpDeclined: bool;
    goalId: GoalId;
    id: CheckInId;
    lockInEndedAt: opt int;
@@ -394,6 +395,14 @@ service : {
   /// current streak. Pending requests and non-partners are never included.
   listPartnerOverviews: () -> (vec PartnerOverview) query;
   listPendingRequests: () -> (vec ConnectionPublic) query;
+  markCheckInFollowUpDeclined: (checkInId: CheckInId) ->
+   (variant {
+      err: variant {
+             notFound;
+             unauthorized;
+           };
+      ok;
+    });
   markCheckInIfThenUsed: (checkInId: CheckInId) ->
    (variant {
       err: variant {

@@ -154,6 +154,7 @@ export const CheckIn = IDL.Record({
   'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'timestamp' : Timestamp,
   'executedIfThen' : IDL.Bool,
+  'followUpDeclined' : IDL.Bool,
   'lockInStartedAt' : IDL.Opt(IDL.Int),
   'lockInEndedAt' : IDL.Opt(IDL.Int),
 });
@@ -355,6 +356,19 @@ export const idlService = IDL.Service({
     ),
   'listPartnerOverviews' : IDL.Func([], [IDL.Vec(PartnerOverview)], ['query']),
   'listPendingRequests' : IDL.Func([], [IDL.Vec(ConnectionPublic)], ['query']),
+  'markCheckInFollowUpDeclined' : IDL.Func(
+      [CheckInId],
+      [
+        IDL.Variant({
+          'ok' : IDL.Null,
+          'err' : IDL.Variant({
+            'notFound' : IDL.Null,
+            'unauthorized' : IDL.Null,
+          }),
+        }),
+      ],
+      [],
+    ),
   'markCheckInIfThenUsed' : IDL.Func(
       [CheckInId],
       [
@@ -559,6 +573,7 @@ export const idlFactory = ({ IDL }) => {
     'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'timestamp' : Timestamp,
     'executedIfThen' : IDL.Bool,
+    'followUpDeclined' : IDL.Bool,
     'lockInStartedAt' : IDL.Opt(IDL.Int),
     'lockInEndedAt' : IDL.Opt(IDL.Int),
   });
@@ -767,6 +782,19 @@ export const idlFactory = ({ IDL }) => {
         [],
         [IDL.Vec(ConnectionPublic)],
         ['query'],
+      ),
+    'markCheckInFollowUpDeclined' : IDL.Func(
+        [CheckInId],
+        [
+          IDL.Variant({
+            'ok' : IDL.Null,
+            'err' : IDL.Variant({
+              'notFound' : IDL.Null,
+              'unauthorized' : IDL.Null,
+            }),
+          }),
+        ],
+        [],
       ),
     'markCheckInIfThenUsed' : IDL.Func(
         [CheckInId],

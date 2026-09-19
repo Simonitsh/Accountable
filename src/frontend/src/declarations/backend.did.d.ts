@@ -45,6 +45,7 @@ export interface CheckIn {
   'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'timestamp' : Timestamp,
   'executedIfThen' : boolean,
+  'followUpDeclined' : boolean,
   'lockInStartedAt' : [] | [bigint],
   'lockInEndedAt' : [] | [bigint],
 }
@@ -367,6 +368,11 @@ export interface _SERVICE {
    */
   'listPartnerOverviews' : ActorMethod<[], Array<PartnerOverview>>,
   'listPendingRequests' : ActorMethod<[], Array<ConnectionPublic>>,
+  'markCheckInFollowUpDeclined' : ActorMethod<
+    [CheckInId],
+    { 'ok' : null } |
+      { 'err' : { 'notFound' : null } | { 'unauthorized' : null } }
+  >,
   'markCheckInIfThenUsed' : ActorMethod<
     [CheckInId],
     { 'ok' : null } |

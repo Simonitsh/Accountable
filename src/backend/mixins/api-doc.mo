@@ -28,6 +28,7 @@ mixin () {
     "- **Identifiers** (`goalId`, `checkInId`, `connectionId`, `interactionId`, `obstacleTemplateId`) are `Nat`.\n" #
     "- **Principals** are `Principal` values; the caller's own principal is `caller`.\n" #
     "- **Optional values** use `?T` / `null`. For example `obstacleTemplateId` on a check-in is `null` when no template was recorded; `goalId` on a `Goal` is `null` for a macro goal and set for a habit.\n" #
+    "- **Follow-up answers** on a check-in are two independent `Bool` facts: `executedIfThen` (the user used their if-then plan) and `followUpDeclined` (the question was asked and the user dismissed it without answering). They are mutually exclusive, so a check-in is in exactly one of three states: used the plan (`executedIfThen = true`), asked-and-declined (`followUpDeclined = true`), or unanswered (both `false`). Both answers live on the check-in itself, so deleting the check-in removes both; nothing about the question is stored in the browser. Existing check-ins carry forward as unanswered.\n" #
     "- **Predicted obstacles** on a habit are a non-empty list of built-in obstacle ids (`obstacleTemplateIds : [Nat]`). The list is restricted to the seven built-ins and must contain at least one entry. The **actual** obstacle on a check-in is a single optional id (`obstacleTemplateId : ?Nat`) — it records the one obstacle that genuinely got in the way that day.\n" #
     "- **Variants** are Candid variants. `checkInType` is one of `#success`, `#skip`, `#missed`, `#inProgress`, `#missedCheckIn`, `#missedCheckOut`. `#skip` is a deliberate skip and always carries an `obstacleTemplateId`; `#missed` is a scheduled day that passed with no interaction and never carries one. `GoalCategory` is one of `#Health`, `#Learning`, `#Social`, `#Productivity`, `#Leisure`. `GoalState` is `#active`, `#paused`, `#completed`.\n" #
     "- **Day of week** in the Insights summary is `0 = Sunday ... 6 = Saturday`.\n" #
@@ -63,7 +64,8 @@ mixin () {
     "- `listMyCheckIns() : [CheckIn]` — query.\n" #
     "- `getCheckInsForGoal(goalId) : [CheckIn]` — query.\n" #
     "- `deleteCheckIn(checkInId) : { #ok; #err : { #notFound; #unauthorized; #sealed : Text } }` — deletes a check-in; terminal Lock-In sessions are sealed and cannot be undone.\n" #
-    "- `markCheckInIfThenUsed(checkInId) : { #ok; #err : { #notFound; #unauthorized } }` — tags a check-in as having used the if-then plan. Idempotent: re-tagging is a no-op success.\n" #
+    "- `markCheckInIfThenUsed(checkInId) : { #ok; #err : { #notFound; #unauthorized } }` — records the \"used my plan\" answer on a check-in. Idempotent: re-tagging is a no-op success. Answering this way clears a prior declined answer, because the two answers are mutually exclusive.\n" #
+    "- `markCheckInFollowUpDeclined(checkInId) : { #ok; #err : { #notFound; #unauthorized } }` — records that the follow-up question was asked and the user declined to answer. Idempotent and ownership-checked, mirroring `markCheckInIfThenUsed`. Declining never sets `executedIfThen`, so a declined check-in stays on the did-not-use side of the effectiveness split. Declining clears a prior \"used my plan\" answer.\n" #
     "- `getCheckInsForPeriod(goalId, fromTimestamp, toTimestamp) : [CheckIn]` — query.\n" #
     "- `getCheckInsForGoalTimeline(goalId, fromTimestamp) : [CheckIn]` — query; newest-first.\n" #
     "\n" #
@@ -98,7 +100,7 @@ mixin () {
     "\n" #
     "## Mutation Retry Safety\n" #
     "\n" #
-    "- **Idempotent**: `markCheckInIfThenUsed` is idempotent — re-tagging an already-tagged check-in returns `#ok` without change. `ensureAdminRole` (internal) is idempotent.\n" #
+    "- **Idempotent**: `markCheckInIfThenUsed` and `markCheckInFollowUpDeclined` are idempotent — re-recording an answer returns `#ok` without change. `ensureAdminRole` (internal) is idempotent.\n" #
     "- **Destructive**: `deleteGoal` and `deleteHabit` are hard deletes — final, no soft-delete or recovery. `deleteCheckIn` cannot undo sealed Lock-In sessions. `devReset` wipes all state.\n" #
     "- **Duplicate-call behavior**: `recordCheckIn` enforces one-per-day per goal (and Lock-In-specific rules), trapping on duplicates rather than silently overwriting.\n" #
     "\n" #

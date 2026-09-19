@@ -1,17 +1,18 @@
 {
-  "overview": "A habit tracker that helps you build routines with if-then plans, daily check-ins, and follow-through insights.",
+  "overview": "A habit tracker built around if-then plans, with daily check-ins, lock-in windows, and insights into how well plans are followed.",
   "features": [
-    "Track daily habits with swipe-to-check-in",
-    "Set if-then plans for obstacles",
-    "Follow-up question on completed habits",
-    "Insights comparing plan usage",
-    "Lock-In habits with missed-window check-ins"
+    "Check habits off each day",
+    "Answer whether you used your if-then plan",
+    "Undo and re-check a habit",
+    "See insights on plan effectiveness",
+    "Track missed windows and obstacles"
   ],
   "category": "habit-tracker",
   "tags": [
     "productivity",
     "habits",
-    "self-improvement"
+    "self-improvement",
+    "tracking"
   ],
-  "last_updated": "2026-09-19T12:35:46.352Z"
+  "last_updated": "2026-09-19T14:02:52.174Z"
 }

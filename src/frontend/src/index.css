@@ -1091,9 +1091,9 @@
       rgba(80, 80, 85, 0.2);
   }
 
-  /* Optional dismiss control — a labelled grey button that permanently hides
-     the note for this check-in. Reads as a quiet, secondary action distinct
-     from the emerald 'Used it' chip. */
+  /* Optional decline control — a labelled grey button that records the
+     declined answer on the check-in itself. Reads as a quiet, secondary action
+     distinct from the emerald 'Used it' chip. */
   .ifthen-note-dismiss {
     @apply ml-auto inline-flex items-center rounded-md transition-smooth;
     @apply px-2.5 py-1.5 text-xs font-medium cursor-pointer;
@@ -1120,6 +1120,19 @@
   }
   .ifthen-note-hint {
     color: oklch(var(--ifthen-note-muted));
+  }
+
+  /* Quiet not-answered state — shown once the user declines the follow-up
+     question. A settled, low-key line with no action and no chrome. */
+  .ifthen-declined {
+    @apply flex items-center justify-center rounded-md;
+    @apply px-2.5 py-1.5;
+    background-color: oklch(var(--muted) / 0.35);
+    border: 1px solid oklch(var(--border) / 0.6);
+  }
+  .ifthen-declined-label {
+    color: oklch(var(--ifthen-note-muted));
+    letter-spacing: 0.02em;
   }
 }
 

@@ -33044,6 +33044,7 @@ const CheckIn = Record({
   "obstacleTemplateId": Opt(ObstacleTemplateId),
   "timestamp": Timestamp,
   "executedIfThen": Bool,
+  "followUpDeclined": Bool,
   "lockInStartedAt": Opt(Int),
   "lockInEndedAt": Opt(Int)
 });
@@ -33244,6 +33245,19 @@ Service({
   ),
   "listPartnerOverviews": Func([], [Vec(PartnerOverview)], ["query"]),
   "listPendingRequests": Func([], [Vec(ConnectionPublic)], ["query"]),
+  "markCheckInFollowUpDeclined": Func(
+    [CheckInId],
+    [
+      Variant({
+        "ok": Null,
+        "err": Variant({
+          "notFound": Null,
+          "unauthorized": Null
+        })
+      })
+    ],
+    []
+  ),
   "markCheckInIfThenUsed": Func(
     [CheckInId],
     [
@@ -33445,6 +33459,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "obstacleTemplateId": IDL2.Opt(ObstacleTemplateId2),
     "timestamp": Timestamp2,
     "executedIfThen": IDL2.Bool,
+    "followUpDeclined": IDL2.Bool,
     "lockInStartedAt": IDL2.Opt(IDL2.Int),
     "lockInEndedAt": IDL2.Opt(IDL2.Int)
   });
@@ -33652,6 +33667,19 @@ const idlFactory = ({ IDL: IDL2 }) => {
       [],
       [IDL2.Vec(ConnectionPublic2)],
       ["query"]
+    ),
+    "markCheckInFollowUpDeclined": IDL2.Func(
+      [CheckInId2],
+      [
+        IDL2.Variant({
+          "ok": IDL2.Null,
+          "err": IDL2.Variant({
+            "notFound": IDL2.Null,
+            "unauthorized": IDL2.Null
+          })
+        })
+      ],
+      []
     ),
     "markCheckInIfThenUsed": IDL2.Func(
       [CheckInId2],
@@ -34227,6 +34255,20 @@ class Backend {
       return from_candid_vec_n65(this._uploadFile, this._downloadFile, result);
     }
   }
+  async markCheckInFollowUpDeclined(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.markCheckInFollowUpDeclined(arg0);
+        return from_candid_variant_n79(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.markCheckInFollowUpDeclined(arg0);
+      return from_candid_variant_n79(this._uploadFile, this._downloadFile, result);
+    }
+  }
   async markCheckInIfThenUsed(arg0) {
     if (this.processError) {
       try {
@@ -34593,6 +34635,7 @@ function from_candid_record_n42(_uploadFile, _downloadFile, value) {
     obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n39(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     timestamp: value.timestamp,
     executedIfThen: value.executedIfThen,
+    followUpDeclined: value.followUpDeclined,
     lockInStartedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInStartedAt)),
     lockInEndedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInEndedAt))
   };
@@ -79526,21 +79569,6 @@ const SKIP_COLOR$3 = "#0369A1";
 const GREY_COLOR = "#4B5563";
 const MISSED_COLOR$1 = "#6B7280";
 const SWIPE_THRESHOLD = 60;
-const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
-const PLACEHOLDER_CHECK_IN_ID = 0n;
-function isIfThenDismissed(checkInId) {
-  if (checkInId === void 0) return false;
-  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return false;
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1";
-}
-function persistIfThenDismissal(checkInId) {
-  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return;
-  try {
-    localStorage.setItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`, "1");
-  } catch {
-  }
-}
 const MISSED_SHEET_KEY_PREFIX = "cumulative-missed-sheet-";
 function missedSheetKey(goalId, failureType) {
   const today = (/* @__PURE__ */ new Date()).toDateString();
@@ -79556,12 +79584,9 @@ function markMissedSheetShown(goalId, failureType) {
   } catch {
   }
 }
-function clearCheckInMarkers(goalId, checkInId) {
+function clearCheckInMarkers(goalId, _checkInId) {
   if (typeof window === "undefined") return;
   try {
-    if (checkInId !== void 0 && checkInId !== PLACEHOLDER_CHECK_IN_ID) {
-      localStorage.removeItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`);
-    }
     localStorage.removeItem(missedSheetKey(goalId, "start"));
     localStorage.removeItem(missedSheetKey(goalId, "checkout"));
   } catch {
@@ -79702,15 +79727,15 @@ function GoalCard$1({
   onMissedWindowTap,
   inProgressPulse = false,
   executedIfThen = false,
+  followUpDeclined = false,
   ifThenCheckInId,
-  onMarkIfThenUsed
+  onMarkIfThenUsed,
+  onDeclineIfThen
 }) {
   var _a3;
   const [showSkipModal, setShowSkipModal] = reactExports.useState(false);
   const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
-  const [, setIfThenDismissTick] = reactExports.useState(0);
-  const [pendingIfThenDismiss, setPendingIfThenDismiss] = reactExports.useState(false);
   const [ifThenUsedConfirming, setIfThenUsedConfirming] = reactExports.useState(false);
   const [isTapped, _setIsTapped] = reactExports.useState(false);
   const exitCommittedRef = reactExports.useRef(false);
@@ -80019,20 +80044,15 @@ function GoalCard$1({
     setShowSkipModal(true);
   }
   function handleIfThenUsed() {
-    if (ifThenCheckInId !== void 0 && ifThenCheckInId !== 0n) {
+    if (ifThenCheckInId !== void 0) {
       onMarkIfThenUsed == null ? void 0 : onMarkIfThenUsed(goal.id, ifThenCheckInId);
     }
     setIfThenUsedConfirming(true);
     setTimeout(() => setIfThenUsedConfirming(false), 620);
   }
-  function handleIfThenDismiss() {
+  function handleIfThenDecline() {
     if (ifThenCheckInId === void 0) return;
-    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) {
-      setPendingIfThenDismiss(true);
-    } else {
-      persistIfThenDismissal(ifThenCheckInId);
-    }
-    setIfThenDismissTick((n) => n + 1);
+    onDeclineIfThen == null ? void 0 : onDeclineIfThen(goal.id, ifThenCheckInId);
   }
   function handleSkipModalClose() {
     setShowSkipModal(false);
@@ -80075,14 +80095,8 @@ function GoalCard$1({
   });
   const isSuccessOrSkip = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
   const isMissedLockIn = isLockIn && ((checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut");
-  const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && !pendingIfThenDismiss && !isIfThenDismissed(ifThenCheckInId);
-  reactExports.useEffect(() => {
-    if (!pendingIfThenDismiss) return;
-    if (ifThenCheckInId === void 0) return;
-    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) return;
-    persistIfThenDismissal(ifThenCheckInId);
-    setPendingIfThenDismiss(false);
-  }, [pendingIfThenDismiss, ifThenCheckInId]);
+  const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && !followUpDeclined;
+  const showIfThenDeclined = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && followUpDeclined;
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -80551,7 +80565,7 @@ function GoalCard$1({
                           className: "ifthen-note-dismiss shrink-0",
                           onClick: (e) => {
                             e.stopPropagation();
-                            handleIfThenDismiss();
+                            handleIfThenDecline();
                           },
                           onPointerDown: (e) => {
                             e.stopPropagation();
@@ -80559,15 +80573,23 @@ function GoalCard$1({
                           },
                           onPointerUp: (e) => e.stopPropagation(),
                           onPointerMove: (e) => e.stopPropagation(),
-                          "aria-label": "Dismiss this if-then follow-up note",
-                          "data-ocid": `goal.ifthen_note.dismiss.${index2 + 1}`,
-                          children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Dismiss" })
+                          "aria-label": "Decline this if-then follow-up question",
+                          "data-ocid": `goal.ifthen_note.decline.${index2 + 1}`,
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Decline" })
                         }
                       )
                     ] })
                   },
                   "ifthen-note"
                 ) }),
+                showIfThenDeclined && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: "ifthen-declined w-full",
+                    "data-ocid": `goal.ifthen_declined.${index2 + 1}`,
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ifthen-declined-label text-[11px]", children: "Not answered" })
+                  }
+                ),
                 isLockIn && (lockInState === "missed-start" || lockInState === "missed-checkout") && mode2 === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-start w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "button",
                   {
@@ -85200,6 +85222,7 @@ function DashboardPage$1() {
     /* @__PURE__ */ new Map()
   );
   const [ifThenCheckInIdMap, setIfThenCheckInIdMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const [pendingIfThenAnswers, setPendingIfThenAnswers] = reactExports.useState(/* @__PURE__ */ new Map());
   const [insightGoal, setInsightGoal] = reactExports.useState(null);
   const [undoTarget, setUndoTarget] = reactExports.useState(null);
   const [isUndoing, setIsUndoing] = reactExports.useState(false);
@@ -85218,6 +85241,7 @@ function DashboardPage$1() {
         setOptimisticDoneMap(/* @__PURE__ */ new Map());
         committedMissedExitsRef.current.clear();
         setIfThenCheckInIdMap(/* @__PURE__ */ new Map());
+        setPendingIfThenAnswers(/* @__PURE__ */ new Map());
         scheduleReset();
       }, ms + 1e3);
     }
@@ -85293,11 +85317,13 @@ function DashboardPage$1() {
       if (isCheckInToday(c2.timestamp, userTimezone)) {
         const checkInType = c2.checkInType === CheckInType.success ? "success" : c2.checkInType === CheckInType.skip ? "skip" : c2.checkInType === CheckInType.missed ? "missed" : c2.checkInType === CheckInType.inProgress ? "inProgress" : c2.checkInType === CheckInType.missedCheckIn ? "missedCheckIn" : c2.checkInType === CheckInType.missedCheckOut ? "missedCheckOut" : "skip";
         const executedIfThen = c2.executedIfThen ?? false;
+        const followUpDeclined = c2.followUpDeclined ?? false;
         const doneGoal = goals.find((g2) => goalKey(g2.id) === goalKey(c2.goalId));
         map.set(goalKey(c2.goalId), {
           checkInId: c2.id,
           checkInType,
           executedIfThen,
+          followUpDeclined,
           isLockIn: (doneGoal == null ? void 0 : doneGoal.isLockIn) ?? false,
           obstacleTemplateId: c2.obstacleTemplateId,
           timestamp: c2.timestamp
@@ -85481,6 +85507,40 @@ function DashboardPage$1() {
       queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
     }
   });
+  const markIfThenDeclinedMutation = useMutation({
+    mutationFn: async (checkInId) => {
+      if (!actor) return null;
+      return actor.markCheckInFollowUpDeclined(checkInId);
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
+    }
+  });
+  const markIfThenUsed = markIfThenUsedMutation.mutate;
+  const markIfThenDeclined = markIfThenDeclinedMutation.mutate;
+  reactExports.useEffect(() => {
+    if (pendingIfThenAnswers.size === 0) return;
+    for (const [key, answer] of pendingIfThenAnswers) {
+      const checkInId = ifThenCheckInIdMap.get(key);
+      if (checkInId === void 0 || checkInId === 0n) continue;
+      if (answer === "used") {
+        markIfThenUsed(checkInId);
+      } else {
+        markIfThenDeclined(checkInId);
+      }
+      setPendingIfThenAnswers((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, [
+    pendingIfThenAnswers,
+    ifThenCheckInIdMap,
+    markIfThenUsed,
+    markIfThenDeclined
+  ]);
   const handleCardExitComplete = reactExports.useCallback((goalId) => {
     const key = goalKey(goalId);
     if (erroredCardIdsRef.current.has(key)) return;
@@ -85565,8 +85625,27 @@ function DashboardPage$1() {
       note
     });
   }
-  function handleMarkIfThenUsed(_goalId, checkInId) {
+  function handleMarkIfThenUsed(goalId, checkInId) {
+    if (checkInId === 0n) {
+      setPendingIfThenAnswers((prev) => {
+        const next = new Map(prev);
+        next.set(goalKey(goalId), "used");
+        return next;
+      });
+      return;
+    }
     markIfThenUsedMutation.mutate(checkInId);
+  }
+  function handleDeclineIfThen(goalId, checkInId) {
+    if (checkInId === 0n) {
+      setPendingIfThenAnswers((prev) => {
+        const next = new Map(prev);
+        next.set(goalKey(goalId), "declined");
+        return next;
+      });
+      return;
+    }
+    markIfThenDeclinedMutation.mutate(checkInId);
   }
   const cleanupDoneRef = reactExports.useRef(false);
   reactExports.useEffect(() => {
@@ -85632,6 +85711,12 @@ function DashboardPage$1() {
         return next;
       });
       setIfThenCheckInIdMap((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      setPendingIfThenAnswers((prev) => {
         if (!prev.has(key)) return prev;
         const next = new Map(prev);
         next.delete(key);
@@ -86171,8 +86256,10 @@ function DashboardPage$1() {
                         lockInStartTime: goal.startTime,
                         lockInEndTime: goal.endTime,
                         executedIfThen: (entryDone == null ? void 0 : entryDone.executedIfThen) ?? false,
+                        followUpDeclined: (entryDone == null ? void 0 : entryDone.followUpDeclined) ?? false,
                         ifThenCheckInId: ifThenCheckInIdMap.get(key) ?? (entryDone == null ? void 0 : entryDone.checkInId),
-                        onMarkIfThenUsed: handleMarkIfThenUsed
+                        onMarkIfThenUsed: handleMarkIfThenUsed,
+                        onDeclineIfThen: handleDeclineIfThen
                       },
                       key
                     );

@@ -37,6 +37,7 @@ export interface CheckIn {
     obstacleTemplateId?: ObstacleTemplateId;
     timestamp: Timestamp;
     executedIfThen: boolean;
+    followUpDeclined: boolean;
     lockInStartedAt?: bigint;
     lockInEndedAt?: bigint;
 }
@@ -431,6 +432,13 @@ export interface backendInterface {
      */
     listPartnerOverviews(): Promise<Array<PartnerOverview>>;
     listPendingRequests(): Promise<Array<ConnectionPublic>>;
+    markCheckInFollowUpDeclined(checkInId: CheckInId): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: Variant_notFound_unauthorized;
+    }>;
     markCheckInIfThenUsed(checkInId: CheckInId): Promise<{
         __kind__: "ok";
         ok: null;

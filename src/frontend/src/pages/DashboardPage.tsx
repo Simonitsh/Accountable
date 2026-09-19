@@ -158,6 +158,9 @@ interface DoneEntry {
     | "missedCheckIn"
     | "missedCheckOut";
   executedIfThen?: boolean;
+  /** Whether the user declined the if-then follow-up question for this
+   *  check-in. Recorded on the check-in itself (followUpDeclined). */
+  followUpDeclined?: boolean;
   isLockIn?: boolean;
   obstacleTemplateId?: bigint;
   /** Persisted check-in timestamp (IC nanoseconds) — used to derive the
@@ -793,6 +796,16 @@ export function DashboardPage() {
     Map<string, bigint>
   >(new Map());
 
+  // ── If-then follow-up: answers recorded before the server confirms the
+  // check-in. Held in APP-LEVEL state (never inside the habit card, never in
+  // browser storage) so the answer survives the user navigating away from the
+  // Done tab, and is sent as soon as the real check-in id arrives — regardless
+  // of which screen the user is on. If the app is closed before the check-in
+  // is confirmed the answer is lost and the question is asked again next time.
+  const [pendingIfThenAnswers, setPendingIfThenAnswers] = useState<
+    Map<string, "used" | "declined">
+  >(new Map());
+
   // ── Goal Insight sheet state ─────────────────────────────────────────────
   const [insightGoal, setInsightGoal] = useState<HabitPublic | null>(null);
 
@@ -828,8 +841,11 @@ export function DashboardPage() {
         setOptimisticDoneMap(new Map());
         committedMissedExitsRef.current.clear();
         // The if-then follow-up is scoped to today's check-in only — nothing
-        // carries across the day boundary.
+        // carries across the day boundary. Clear the held answers alongside the
+        // id map: an answer that never flushed before midnight must not bind to
+        // the next day's check-in for the same habit when its real id arrives.
         setIfThenCheckInIdMap(new Map());
+        setPendingIfThenAnswers(new Map());
         // Schedule the next reset (for the following day)
         scheduleReset();
       }, ms + 1000); // +1s buffer to land safely past midnight
@@ -989,11 +1005,15 @@ export function DashboardPage() {
                       : "skip";
         // Read executedIfThen from the check-in record
         const executedIfThen = c.executedIfThen ?? false;
+        // Read the declined answer from the check-in record — the follow-up
+        // question state lives on the check-in, never in browser storage.
+        const followUpDeclined = c.followUpDeclined ?? false;
         const doneGoal = goals.find((g) => goalKey(g.id) === goalKey(c.goalId));
         map.set(goalKey(c.goalId), {
           checkInId: c.id,
           checkInType,
           executedIfThen,
+          followUpDeclined,
           isLockIn: doneGoal?.isLockIn ?? false,
           obstacleTemplateId: c.obstacleTemplateId,
           timestamp: c.timestamp,
@@ -1259,6 +1279,56 @@ export function DashboardPage() {
     },
   });
 
+  // ── If-then follow-up: record a declined answer on the check-in itself ──
+  // Called from the Done card when the user declines the follow-up question.
+  // The answer lives on the check-in record (followUpDeclined) — never in
+  // browser storage — so undoing the check-in removes it with it.
+  const markIfThenDeclinedMutation = useMutation({
+    mutationFn: async (checkInId: bigint) => {
+      if (!actor) return null;
+      return actor.markCheckInFollowUpDeclined(checkInId);
+    },
+    onSuccess: () => {
+      // The check-in's followUpDeclined flag changed — refresh so the Done card
+      // shows the quiet not-answered state.
+      queryClient.invalidateQueries({ queryKey: ["myCheckIns"] });
+    },
+  });
+
+  // ── Flush held if-then answers as soon as the real check-in id arrives ──
+  // An answer recorded while the card still showed the optimistic placeholder
+  // is held in app-level state keyed by goal. This effect runs regardless of
+  // the active tab or screen, so the answer is sent the moment the server
+  // confirms the check-in — even if the user has navigated away from Done.
+  // `mutate` is stable across renders in React Query v5; depending on the whole
+  // mutation object would re-run this effect on every render and, once an answer
+  // is flushed, could re-enter the mutation before the pending entry clears.
+  const markIfThenUsed = markIfThenUsedMutation.mutate;
+  const markIfThenDeclined = markIfThenDeclinedMutation.mutate;
+  useEffect(() => {
+    if (pendingIfThenAnswers.size === 0) return;
+    for (const [key, answer] of pendingIfThenAnswers) {
+      const checkInId = ifThenCheckInIdMap.get(key);
+      if (checkInId === undefined || checkInId === 0n) continue;
+      if (answer === "used") {
+        markIfThenUsed(checkInId);
+      } else {
+        markIfThenDeclined(checkInId);
+      }
+      setPendingIfThenAnswers((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, [
+    pendingIfThenAnswers,
+    ifThenCheckInIdMap,
+    markIfThenUsed,
+    markIfThenDeclined,
+  ]);
+
   // Called by GoalCard when its Phase-1 exit animation finishes.
   // We clear the exitingMap so the card disappears from Active.
   // todayDoneMap (from backend) will add it to Done once the
@@ -1407,8 +1477,34 @@ export function DashboardPage() {
 
   // Called by the Done card's if-then follow-up note when the user taps
   // 'Used it'. Tags the already-created check-in — never creates a new one.
-  function handleMarkIfThenUsed(_goalId: bigint, checkInId: bigint) {
+  // If the real check-in id has not arrived yet (placeholder 0n), the answer is
+  // held in app-level state and flushed by the effect above once it lands.
+  function handleMarkIfThenUsed(goalId: bigint, checkInId: bigint) {
+    if (checkInId === 0n) {
+      setPendingIfThenAnswers((prev) => {
+        const next = new Map(prev);
+        next.set(goalKey(goalId), "used");
+        return next;
+      });
+      return;
+    }
     markIfThenUsedMutation.mutate(checkInId);
+  }
+
+  // Called by the Done card when the user declines the if-then follow-up
+  // question. Records the answer on the check-in itself; a decline recorded
+  // before the server confirms the check-in is held in app-level state and
+  // flushed once the real id arrives.
+  function handleDeclineIfThen(goalId: bigint, checkInId: bigint) {
+    if (checkInId === 0n) {
+      setPendingIfThenAnswers((prev) => {
+        const next = new Map(prev);
+        next.set(goalKey(goalId), "declined");
+        return next;
+      });
+      return;
+    }
+    markIfThenDeclinedMutation.mutate(checkInId);
   }
 
   // ── Bug 5: on data load, clean up any non-Lock-In goals with inProgress check-ins ──
@@ -1495,23 +1591,27 @@ export function DashboardPage() {
       });
       // Clear the if-then follow-up note tracking for this habit so a fresh
       // check-in right after the undo starts clean: the old (now-deleted)
-      // check-in id is removed, so the note's dismissal key (derived from the
-      // check-in id) no longer references the deleted check-in and the note
-      // shows again for the new check-in.
+      // check-in id is removed, so the note re-derives from the new check-in
+      // and the question is asked again.
       setIfThenCheckInIdMap((prev) => {
         if (!prev.has(key)) return prev;
         const next = new Map(prev);
         next.delete(key);
         return next;
       });
-      // Drop any dismissal still waiting on the deleted check-in's id so it
-      // cannot bind to a future check-in for this habit.
-      // Clear every browser-storage marker this app holds about the deleted
-      // check-in: the if-then follow-up dismissal keyed by its check-in id, and
-      // the missed-window sheet markers keyed by this habit + today. Without
-      // this the next check-in on this habit would inherit the deleted
-      // check-in's dismissal and never show the follow-up question or the
-      // missed-window sheet again today.
+      // Drop any answer still waiting on the deleted check-in's id so it cannot
+      // bind to a future check-in for this habit. Both answers live on the
+      // check-in itself, so deleting it removes them with it — no other
+      // cleanup is needed for the follow-up question.
+      setPendingIfThenAnswers((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+      // Clear the missed-window sheet markers keyed by this habit + today.
+      // Without this the next check-in on this habit would inherit the deleted
+      // check-in's marker and never show the missed-window sheet again today.
       clearCheckInMarkers(undoTarget.goalId, entry.checkInId);
       // Mark as recently undone for bounce animation
       setRecentlyUndone((prev) => new Set(prev).add(key));
@@ -2170,11 +2270,15 @@ export function DashboardPage() {
                             lockInStartTime={goal.startTime}
                             lockInEndTime={goal.endTime}
                             executedIfThen={entryDone?.executedIfThen ?? false}
+                            followUpDeclined={
+                              entryDone?.followUpDeclined ?? false
+                            }
                             ifThenCheckInId={
                               ifThenCheckInIdMap.get(key) ??
                               entryDone?.checkInId
                             }
                             onMarkIfThenUsed={handleMarkIfThenUsed}
+                            onDeclineIfThen={handleDeclineIfThen}
                           />
                         );
                       })}

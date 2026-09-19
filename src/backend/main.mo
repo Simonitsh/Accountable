@@ -227,6 +227,7 @@ actor {
           lockInStartedAt = null : ?Int;
           lockInEndedAt = null : ?Int;
           executedIfThen = false;
+          followUpDeclined = false;
           note = null : ?Text;
         })
         .payload("id", func (c : CheckInTypes.CheckIn) : Nat = c.id)
@@ -239,6 +240,7 @@ actor {
         .payload("lockInStartedAt", func (c : CheckInTypes.CheckIn) : Int = switch (c.lockInStartedAt) { case null 0; case (?t) t })
         .payload("lockInEndedAt", func (c : CheckInTypes.CheckIn) : Int = switch (c.lockInEndedAt) { case null 0; case (?t) t })
         .payload("executedIfThen", func (c : CheckInTypes.CheckIn) : Bool = c.executedIfThen)
+        .payload("followUpDeclined", func (c : CheckInTypes.CheckIn) : Bool = c.followUpDeclined)
         .ownedBy("owner")
         .controllerOrScoped()
         .build(),

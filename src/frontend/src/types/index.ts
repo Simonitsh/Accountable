@@ -264,6 +264,10 @@ export interface CheckIn {
   lockInStartedAt?: number;
   lockInEndedAt?: number;
   executedIfThen: boolean;
+  /** Whether the user declined the if-then follow-up question for this
+   *  check-in. The follow-up question state lives on the check-in itself —
+   *  never in browser storage — so undoing the check-in removes it with it. */
+  followUpDeclined: boolean;
 }
 
 export interface Connection {

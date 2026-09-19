@@ -2541,6 +2541,9 @@ video {
 .uppercase {
   text-transform: uppercase;
 }
+.lowercase {
+  text-transform: lowercase;
+}
 .normal-case {
   text-transform: none;
 }
@@ -3820,9 +3823,9 @@ video {
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
       rgba(80, 80, 85, 0.2);
   }
-/* Optional dismiss control — a labelled grey button that permanently hides
-     the note for this check-in. Reads as a quiet, secondary action distinct
-     from the emerald 'Used it' chip. */
+/* Optional decline control — a labelled grey button that records the
+     declined answer on the check-in itself. Reads as a quiet, secondary action
+     distinct from the emerald 'Used it' chip. */
 .ifthen-note-dismiss {
   margin-left: auto;
   display: inline-flex;
@@ -3857,6 +3860,24 @@ video {
   }
 .ifthen-note-hint {
     color: oklch(var(--ifthen-note-muted));
+  }
+/* Quiet not-answered state — shown once the user declines the follow-up
+     question. A settled, low-key line with no action and no chrome. */
+.ifthen-declined {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 2px);
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+    background-color: oklch(var(--muted) / 0.35);
+    border: 1px solid oklch(var(--border) / 0.6);
+}
+.ifthen-declined-label {
+    color: oklch(var(--ifthen-note-muted));
+    letter-spacing: 0.02em;
   }
 .\[--cell-size\:--spacing\(8\)\] {
   --cell-size: var(--spacing(8));
