@@ -80794,6 +80794,22 @@ function formatDateLabel(nanoTs) {
     month: "short"
   });
 }
+function obstacleLabelForId(id2) {
+  if (id2 === void 0) return null;
+  const template = OBSTACLE_TEMPLATES[Number(id2) - 1];
+  return template ? template.label : null;
+}
+function predictedObstacleLabels(ids) {
+  if (!ids || ids.length === 0) return [];
+  const labels = /* @__PURE__ */ new Set();
+  for (const id2 of ids) {
+    const label = obstacleLabelForId(id2);
+    if (label) labels.add(label);
+  }
+  return OBSTACLE_TEMPLATES.filter((t) => labels.has(t.label)).map(
+    (t) => t.label
+  );
+}
 function TimelineNodeCircle({
   type,
   hasSpark = false
@@ -80928,6 +80944,7 @@ function TimelineItem({ checkIn }) {
   const time2 = formatTime$1(checkIn.timestamp);
   const isRevival = isSuccess && checkIn.executedIfThen;
   const note = (_a3 = checkIn.note) == null ? void 0 : _a3.trim();
+  const obstacleLabel = isSkip || isMissedLockIn ? obstacleLabelForId(checkIn.obstacleTemplateId) : null;
   let primaryText;
   let primaryColor;
   if (isSuccess) {
@@ -80952,7 +80969,7 @@ function TimelineItem({ checkIn }) {
     primaryText = "Missed • No action taken";
     primaryColor = MISSED_COLOR;
   }
-  const showNoReasonFallback = isMissedLockIn && !note;
+  const showNoReasonFallback = isMissedLockIn && !obstacleLabel && !note;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", "data-ocid": "goal_insight.timeline_item", children: [
     isInProgress ? /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineInProgressNode, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(TimelineNodeCircle, { type: checkIn.checkInType, hasSpark: isRevival }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 pb-5", children: [
@@ -80976,6 +80993,25 @@ function TimelineItem({ checkIn }) {
           className: "text-xs mt-0.5",
           style: { color: "oklch(var(--muted-foreground) / 0.7)" },
           children: "Waiting for today's action"
+        }
+      ),
+      obstacleLabel && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "p",
+        {
+          className: "text-xs mt-1 leading-snug",
+          style: { color: "oklch(var(--muted-foreground))" },
+          "data-ocid": "goal_insight.timeline_obstacle",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "span",
+              {
+                className: "font-mono uppercase tracking-widest mr-1.5",
+                style: { color: SKIP_COLOR$2 },
+                children: "Obstacle"
+              }
+            ),
+            obstacleLabel
+          ]
         }
       ),
       note && (isSkip || isMissedLockIn) && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -81137,6 +81173,7 @@ function GoalInsightSheet({
   const habitName = goal.wishDescription || goal.wish || "Habit";
   const macroWish = goal.wish;
   const outcome = goal.outcome;
+  const obstacleLabels = predictedObstacleLabels(goal.obstacleTemplateIds);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { children: isOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       motion.div,
@@ -81221,6 +81258,27 @@ function GoalInsightSheet({
                         ]
                       }
                     ),
+                    obstacleLabels.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "p",
+                      {
+                        className: "text-sm font-body leading-snug",
+                        style: { color: "oklch(var(--muted-foreground))" },
+                        "data-ocid": "goal_insight.obstacles",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "span",
+                            {
+                              className: "text-xs font-mono uppercase tracking-widest mr-1.5",
+                              style: {
+                                color: "#F97316"
+                              },
+                              children: "Obstacles"
+                            }
+                          ),
+                          obstacleLabels.join(" · ")
+                        ]
+                      }
+                    ),
                     outcome && /* @__PURE__ */ jsxRuntimeExports.jsxs(
                       "p",
                       {
@@ -81233,9 +81291,9 @@ function GoalInsightSheet({
                             {
                               className: "text-xs font-mono uppercase tracking-widest mr-1.5",
                               style: {
-                                color: "#F97316"
+                                color: SUCCESS_COLOR$2
                               },
-                              children: "Obstacles"
+                              children: "Outcome"
                             }
                           ),
                           outcome

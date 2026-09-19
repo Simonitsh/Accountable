@@ -5,6 +5,7 @@ import { CheckInType } from "../backend";
 import type { CheckIn } from "../backend.d.ts";
 import { useBackend } from "../hooks/useBackend";
 import type { HabitPublic } from "../types";
+import { OBSTACLE_TEMPLATES } from "../types";
 import { isLockInActiveWindow } from "../utils/goalDisplay";
 
 // ─── Accent colours (matching index.css semantic tokens) ─────────────────────
@@ -42,6 +43,38 @@ function formatDateLabel(nanoTs: bigint): string {
     day: "numeric",
     month: "short",
   });
+}
+
+/**
+ * Resolves a single recorded obstacle id to its built-in display label.
+ * OBSTACLE_TEMPLATES is ordered identically to the backend's builtinObstacles
+ * (stable ids 1-7), so each id maps directly to an index. Out-of-range ids
+ * (e.g. the mock backend's BigInt(0)) resolve to null rather than a wrong label.
+ */
+function obstacleLabelForId(id: bigint | undefined): string | null {
+  if (id === undefined) return null;
+  const template = OBSTACLE_TEMPLATES[Number(id) - 1];
+  return template ? template.label : null;
+}
+
+/**
+ * Resolves a habit's predicted obstacleTemplateIds to their display labels, in
+ * the fixed order of the seven built-in options. Out-of-range ids are skipped.
+ * These are the habit's own predicted obstacles — unrelated to the parent
+ * macro goal's outcome text.
+ */
+function predictedObstacleLabels(ids: bigint[] | undefined): string[] {
+  if (!ids || ids.length === 0) return [];
+  const labels = new Set<string>();
+  for (const id of ids) {
+    const label = obstacleLabelForId(id);
+    if (label) labels.add(label);
+  }
+  // OBSTACLE_TEMPLATES is already in the fixed built-in order, so filtering it
+  // preserves that order regardless of the order the ids were saved in.
+  return OBSTACLE_TEMPLATES.filter((t) => labels.has(t.label)).map(
+    (t) => t.label,
+  );
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -197,6 +230,14 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
   // category and never counted in the obstacle-breakdown analytics.
   const note = checkIn.note?.trim();
 
+  // The obstacle the user selected for this skip / missed Lock-In entry,
+  // resolved from the recorded obstacleTemplateId. A stored #missed day never
+  // carries one, so it stays null and shows no obstacle line.
+  const obstacleLabel =
+    isSkip || isMissedLockIn
+      ? obstacleLabelForId(checkIn.obstacleTemplateId)
+      : null;
+
   let primaryText: string;
   let primaryColor: string;
 
@@ -226,10 +267,11 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
     primaryColor = MISSED_COLOR;
   }
 
-  // For missed Lock-In check-ins with no note, keep the existing fallback.
-  // A stored #missed day never carries an obstacle or note, so it shows no
-  // reason line at all — matching a scheduled past day with no record.
-  const showNoReasonFallback = isMissedLockIn && !note;
+  // For missed Lock-In check-ins with no obstacle and no note, keep the
+  // existing fallback. A stored #missed day never carries an obstacle or note,
+  // so it shows no reason line at all — matching a scheduled past day with no
+  // record.
+  const showNoReasonFallback = isMissedLockIn && !obstacleLabel && !note;
 
   return (
     <div className="flex gap-3" data-ocid="goal_insight.timeline_item">
@@ -264,6 +306,21 @@ function TimelineItem({ checkIn }: { checkIn: CheckIn }) {
             style={{ color: "oklch(var(--muted-foreground) / 0.7)" }}
           >
             Waiting for today's action
+          </p>
+        )}
+        {obstacleLabel && (
+          <p
+            className="text-xs mt-1 leading-snug"
+            style={{ color: "oklch(var(--muted-foreground))" }}
+            data-ocid="goal_insight.timeline_obstacle"
+          >
+            <span
+              className="font-mono uppercase tracking-widest mr-1.5"
+              style={{ color: SKIP_COLOR }}
+            >
+              Obstacle
+            </span>
+            {obstacleLabel}
           </p>
         )}
         {note && (isSkip || isMissedLockIn) && (
@@ -499,6 +556,9 @@ export function GoalInsightSheet({
   const habitName = goal.wishDescription || goal.wish || "Habit";
   const macroWish = goal.wish;
   const outcome = goal.outcome;
+  // The habit's own predicted obstacles, in the fixed order of the seven
+  // built-in options. Distinct from the parent macro goal's outcome text.
+  const obstacleLabels = predictedObstacleLabels(goal.obstacleTemplateIds);
 
   return (
     <AnimatePresence>
@@ -586,6 +646,23 @@ export function GoalInsightSheet({
                         {macroWish}
                       </p>
                     )}
+                    {obstacleLabels.length > 0 && (
+                      <p
+                        className="text-sm font-body leading-snug"
+                        style={{ color: "oklch(var(--muted-foreground))" }}
+                        data-ocid="goal_insight.obstacles"
+                      >
+                        <span
+                          className="text-xs font-mono uppercase tracking-widest mr-1.5"
+                          style={{
+                            color: "#F97316",
+                          }}
+                        >
+                          Obstacles
+                        </span>
+                        {obstacleLabels.join(" \u00b7 ")}
+                      </p>
+                    )}
                     {outcome && (
                       <p
                         className="text-sm font-body leading-snug line-clamp-2"
@@ -595,10 +672,10 @@ export function GoalInsightSheet({
                         <span
                           className="text-xs font-mono uppercase tracking-widest mr-1.5"
                           style={{
-                            color: "#F97316",
+                            color: SUCCESS_COLOR,
                           }}
                         >
-                          Obstacles
+                          Outcome
                         </span>
                         {outcome}
                       </p>
