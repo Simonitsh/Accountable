@@ -79526,12 +79526,20 @@ const SKIP_COLOR$3 = "#0369A1";
 const GREY_COLOR = "#4B5563";
 const MISSED_COLOR$1 = "#6B7280";
 const SWIPE_THRESHOLD = 60;
-const IF_THEN_NOTE_WINDOW_MS = 45e3;
-const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
+const IF_THEN_DISMISS_KEY_PREFIX$1 = "cumulative-ifthen-dismiss-";
+const PLACEHOLDER_CHECK_IN_ID = 0n;
 function isIfThenDismissed(checkInId) {
   if (checkInId === void 0) return false;
+  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return false;
   if (typeof window === "undefined") return false;
-  return localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1";
+  return localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX$1}${checkInId}`) === "1";
+}
+function persistIfThenDismissal(checkInId) {
+  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return;
+  try {
+    localStorage.setItem(`${IF_THEN_DISMISS_KEY_PREFIX$1}${checkInId}`, "1");
+  } catch {
+  }
 }
 const MISSED_SHEET_KEY_PREFIX = "cumulative-missed-sheet-";
 function missedSheetKey(goalId, failureType) {
@@ -79684,7 +79692,6 @@ function GoalCard$1({
   inProgressPulse = false,
   executedIfThen = false,
   ifThenCheckInId,
-  ifThenCheckInTimestamp,
   onMarkIfThenUsed
 }) {
   var _a3;
@@ -79692,6 +79699,8 @@ function GoalCard$1({
   const [showMissedSheet, setShowMissedSheet] = reactExports.useState(false);
   const [showWoopCatch, setShowWoopCatch] = reactExports.useState(false);
   const [, setIfThenDismissTick] = reactExports.useState(0);
+  const [pendingIfThenDismiss, setPendingIfThenDismiss] = reactExports.useState(false);
+  const [ifThenUsedConfirming, setIfThenUsedConfirming] = reactExports.useState(false);
   const [isTapped, _setIsTapped] = reactExports.useState(false);
   const exitCommittedRef = reactExports.useRef(false);
   const prefersReducedMotion2 = useReducedMotion();
@@ -80002,13 +80011,15 @@ function GoalCard$1({
     if (ifThenCheckInId !== void 0 && ifThenCheckInId !== 0n) {
       onMarkIfThenUsed == null ? void 0 : onMarkIfThenUsed(goal.id, ifThenCheckInId);
     }
+    setIfThenUsedConfirming(true);
+    setTimeout(() => setIfThenUsedConfirming(false), 620);
   }
   function handleIfThenDismiss() {
-    if (ifThenCheckInId !== void 0) {
-      localStorage.setItem(
-        `${IF_THEN_DISMISS_KEY_PREFIX}${ifThenCheckInId}`,
-        "1"
-      );
+    if (ifThenCheckInId === void 0) return;
+    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) {
+      setPendingIfThenDismiss(true);
+    } else {
+      persistIfThenDismissal(ifThenCheckInId);
     }
     setIfThenDismissTick((n) => n + 1);
   }
@@ -80053,8 +80064,14 @@ function GoalCard$1({
   });
   const isSuccessOrSkip = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
   const isMissedLockIn = isLockIn && ((checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut");
-  const ifThenNoteWithinWindow = ifThenCheckInTimestamp !== void 0 && Date.now() - Number(ifThenCheckInTimestamp / 1000000n) <= IF_THEN_NOTE_WINDOW_MS;
-  const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && ifThenNoteWithinWindow && !isIfThenDismissed(ifThenCheckInId);
+  const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && !pendingIfThenDismiss && !isIfThenDismissed(ifThenCheckInId);
+  reactExports.useEffect(() => {
+    if (!pendingIfThenDismiss) return;
+    if (ifThenCheckInId === void 0) return;
+    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) return;
+    persistIfThenDismissal(ifThenCheckInId);
+    setPendingIfThenDismiss(false);
+  }, [pendingIfThenDismiss, ifThenCheckInId]);
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -80475,12 +80492,20 @@ function GoalCard$1({
                     id2
                   )) })
                 ] }),
-                mode2 === "done" && showIfThenNote && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
+                /* @__PURE__ */ jsxRuntimeExports.jsx(AnimatePresence, { initial: false, children: mode2 === "done" && showIfThenNote && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  motion.div,
                   {
-                    className: "ifthen-note w-full",
+                    className: cn(
+                      "ifthen-note w-full",
+                      ifThenUsedConfirming && "ifthen-note-confirming"
+                    ),
                     "data-ocid": `goal.ifthen_note.${index2 + 1}`,
-                    children: [
+                    initial: prefersReducedMotion2 ? { opacity: 0 } : { opacity: 0, height: 0, y: -6 },
+                    animate: prefersReducedMotion2 ? { opacity: 1 } : { opacity: 1, height: "auto", y: 0 },
+                    exit: prefersReducedMotion2 ? { opacity: 0 } : { opacity: 0, height: 0, y: -4 },
+                    transition: prefersReducedMotion2 ? { duration: 0 } : ifThenUsedConfirming ? { duration: 0.42, ease: [0.34, 1.56, 0.64, 1] } : { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
+                    style: { overflow: "hidden" },
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-start text-left gap-0.5 min-w-0", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ifthen-note-label text-xs font-medium", children: "I used my if-then plan" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ifthen-note-hint text-[11px] leading-snug line-clamp-2", children: goal.ifThenPlan })
@@ -80528,9 +80553,10 @@ function GoalCard$1({
                           children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Dismiss" })
                         }
                       )
-                    ]
-                  }
-                ),
+                    ] })
+                  },
+                  "ifthen-note"
+                ) }),
                 isLockIn && (lockInState === "missed-start" || lockInState === "missed-checkout") && mode2 === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-start w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "button",
                   {
@@ -84579,6 +84605,7 @@ function WoopWizard({
 }
 const NEW_HABIT_KEY = "cumulative-new-habit-id";
 const NEW_HABIT_DURATION_MS = 1e4;
+const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
 function goalKey(id2) {
   return String(id2);
 }
@@ -85163,6 +85190,7 @@ function DashboardPage$1() {
     /* @__PURE__ */ new Map()
   );
   const [ifThenCheckInIdMap, setIfThenCheckInIdMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const pendingIfThenDismissRef = reactExports.useRef(/* @__PURE__ */ new Set());
   const [insightGoal, setInsightGoal] = reactExports.useState(null);
   const [undoTarget, setUndoTarget] = reactExports.useState(null);
   const [isUndoing, setIsUndoing] = reactExports.useState(false);
@@ -85180,6 +85208,8 @@ function DashboardPage$1() {
         setSwipeDirectionMap(/* @__PURE__ */ new Map());
         setOptimisticDoneMap(/* @__PURE__ */ new Map());
         committedMissedExitsRef.current.clear();
+        pendingIfThenDismissRef.current.clear();
+        setIfThenCheckInIdMap(/* @__PURE__ */ new Map());
         scheduleReset();
       }, ms + 1e3);
     }
@@ -85402,6 +85432,17 @@ function DashboardPage$1() {
           next.set(goalKey(variables.goalId), data.id);
           return next;
         });
+        const pendingKey = goalKey(variables.goalId);
+        if (pendingIfThenDismissRef.current.has(pendingKey)) {
+          pendingIfThenDismissRef.current.delete(pendingKey);
+          try {
+            localStorage.setItem(
+              `${IF_THEN_DISMISS_KEY_PREFIX}${data.id}`,
+              "1"
+            );
+          } catch {
+          }
+        }
       }
       queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
       void fetchWeekHistory();
@@ -85599,6 +85640,7 @@ function DashboardPage$1() {
         next.delete(key);
         return next;
       });
+      pendingIfThenDismissRef.current.delete(key);
       setRecentlyUndone((prev) => new Set(prev).add(key));
       setTimeout(() => {
         setRecentlyUndone((prev) => {
@@ -86133,7 +86175,6 @@ function DashboardPage$1() {
                         lockInEndTime: goal.endTime,
                         executedIfThen: (entryDone == null ? void 0 : entryDone.executedIfThen) ?? false,
                         ifThenCheckInId: ifThenCheckInIdMap.get(key) ?? (entryDone == null ? void 0 : entryDone.checkInId),
-                        ifThenCheckInTimestamp: entryDone == null ? void 0 : entryDone.timestamp,
                         onMarkIfThenUsed: handleMarkIfThenUsed
                       },
                       key

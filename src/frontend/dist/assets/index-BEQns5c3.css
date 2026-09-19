@@ -3745,35 +3745,51 @@ video {
       rgba(80, 80, 85, 0.2) !important;
   }
 /* ─── If-then plan note (success check-in, optional) ──────────────────── */
-/* A slim, quiet row that appears on the successful check-in confirmation
-     ONLY when the habit has an if-then plan set. It sits as a subtle inset
-     wash above the card's emboss — visually lighter than the primary success
-     state so it reads as optional. One tap on the action records the check-in
-     with executedIfThen=true; ignoring it (or dismissing) records normally.
-     No glow, no neon — mirrors the app's solid-accent language. */
+/* A quiet row that appears on the Done card when the habit has an if-then
+     plan set. It reads as part of the card it is attached to: the same
+     rounded-2xl shape as the card surface, a wash tinted from the card's own
+     background, and no outer emboss — so it looks like one object rather than
+     a strip stuck on top. It stays until the user answers it. */
 .ifthen-note {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border-radius: var(--radius);
+  border-radius: 1rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     padding-left: 0.75rem;
     padding-right: 0.75rem;
     padding-top: 0.625rem;
     padding-bottom: 0.625rem;
-    background-color: oklch(var(--ifthen-note-bg));
-    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px
-      rgba(80, 80, 85, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    border-left: 1px solid rgba(255, 255, 255, 0.04);
-    border-right: none;
-    border-bottom: none;
+    background-color: color-mix(
+      in srgb,
+      oklch(var(--ifthen-note-border)) 7%,
+      oklch(var(--ifthen-note-bg))
+    );
+    border: 1px solid oklch(var(--ifthen-note-border) / 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .light .ifthen-note {
-    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5), inset -2px -2px 5px
-      rgba(80, 80, 85, 0.3) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid oklch(var(--ifthen-note-border) / 0.28) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  }
+/* 'Used it' confirmation — a brief emerald pulse that draws the eye toward
+     the glowing bolt beside the habit name as the note settles away. */
+@keyframes ifthen-note-confirm {
+    0% {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 0
+        oklch(var(--ifthen-note-border) / 0);
+    }
+    45% {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 16px 3px
+        oklch(var(--ifthen-note-border) / 0.45);
+    }
+    100% {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 0
+        oklch(var(--ifthen-note-border) / 0);
+    }
+  }
+.ifthen-note-confirming {
+    animation: ifthen-note-confirm 0.6s ease-out;
   }
 /* The optional tappable action — a quiet emerald chip that reads as
      "positive, additive, one-tap" without competing with the primary success
@@ -4030,6 +4046,11 @@ video {
     animation: none;
     opacity: 1;
     transform: scale(1);
+  }
+  /* If-then note: the entrance, the 'Used it' confirmation, and the dismissal
+     all render without animation for reduced-motion users. */
+  .ifthen-note-confirming {
+    animation: none;
   }
 }
 

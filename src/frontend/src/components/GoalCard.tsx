@@ -7,7 +7,7 @@ import {
   TriangleAlert,
   Zap,
 } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { GoalAnalytics, HabitPublic } from "../types";
 
@@ -24,11 +24,6 @@ const MISSED_COLOR = "#6B7280"; // Missed day — definite muted grey ball
 
 const SWIPE_THRESHOLD = 60;
 
-// How long the if-then follow-up note stays available on the Done card after
-// the habit is completed. After this window the note simply disappears and the
-// habit stays done without the if-then tag (a normal outcome).
-const IF_THEN_NOTE_WINDOW_MS = 45_000;
-
 // localStorage key prefix for permanently dismissing the if-then follow-up note
 // per check-in. The full key is `${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`.
 // Persisting by check-in id means the dismissal survives GoalCard unmounting
@@ -36,12 +31,27 @@ const IF_THEN_NOTE_WINDOW_MS = 45_000;
 // backend-driven executedIfThen flag does for 'Used it'.
 const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
 
+// The optimistic check-in placeholder id. A dismissal recorded while the card
+// still shows this id cannot be persisted yet (the real id has not arrived), so
+// it is held in memory and applied to the real check-in once it lands.
+const PLACEHOLDER_CHECK_IN_ID = 0n;
+
 function isIfThenDismissed(checkInId: bigint | undefined): boolean {
   if (checkInId === undefined) return false;
+  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return false;
   if (typeof window === "undefined") return false;
   return (
     localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1"
   );
+}
+
+function persistIfThenDismissal(checkInId: bigint): void {
+  if (checkInId === PLACEHOLDER_CHECK_IN_ID) return;
+  try {
+    localStorage.setItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`, "1");
+  } catch {
+    // best-effort — persistence is a nicety, not a requirement
+  }
 }
 
 // localStorage key prefix for the missed-window sheet's auto-show marker.
@@ -283,10 +293,6 @@ interface GoalCardProps {
   /** Check-in id for the if-then follow-up note (Done card). Set only for
    *  habits with an if-then plan that were just completed. */
   ifThenCheckInId?: bigint;
-  /** Persisted timestamp (IC nanoseconds) of the check-in the if-then
-   *  follow-up note refers to. Used to derive the note's visibility from real
-   *  elapsed time so it can never reappear once the display window passes. */
-  ifThenCheckInTimestamp?: bigint;
   /** Called when the user taps 'Used it' on the if-then follow-up note. */
   onMarkIfThenUsed?: (goalId: bigint, checkInId: bigint) => void;
 }
@@ -318,7 +324,6 @@ export function GoalCard({
   inProgressPulse = false,
   executedIfThen = false,
   ifThenCheckInId,
-  ifThenCheckInTimestamp,
   onMarkIfThenUsed,
 }: GoalCardProps) {
   const [showSkipModal, setShowSkipModal] = useState(false);
@@ -326,12 +331,19 @@ export function GoalCard({
   // WOOP Catch sheet — shown on left swipe for normal (non-LockIn) habits
   const [showWoopCatch, setShowWoopCatch] = useState(false);
   // Re-render trigger for the if-then note. The note's visibility is DERIVED
-  // fresh on every render from persisted inputs (check-in timestamp,
-  // executedIfThen, localStorage dismissal) — this state only forces a
-  // re-render so a localStorage dismissal write takes effect immediately. It
-  // never holds the note's visibility, so it cannot cause the note to reappear
-  // on remount.
+  // fresh on every render from persisted inputs (executedIfThen, localStorage
+  // dismissal) — this state only forces a re-render so a dismissal write takes
+  // effect immediately. It never holds the note's visibility, so it cannot
+  // cause the note to reappear on remount.
   const [, setIfThenDismissTick] = useState(0);
+  // Dismissal recorded while the card still shows the optimistic placeholder
+  // check-in (id 0n). Held in memory until the real check-in id arrives, then
+  // applied to it — so a dismissal made right after a swipe is never lost and
+  // never leaks onto a later check-in.
+  const [pendingIfThenDismiss, setPendingIfThenDismiss] = useState(false);
+  // 'Used it' confirmation: while true the note plays its celebratory settle
+  // (a brief emerald pulse) before it animates away.
+  const [ifThenUsedConfirming, setIfThenUsedConfirming] = useState(false);
   // Press feedback: brief scale-down + inward shadow on clean tap
   const [isTapped, _setIsTapped] = useState(false);
   // exitCommittedRef: once set to true, no re-render can revert this card
@@ -771,26 +783,33 @@ export function GoalCard({
   function handleIfThenUsed() {
     // Tagging the check-in as used flips executedIfThen to true (via
     // markCheckInIfThenUsed → backend refetch), which the derived visibility
-    // reads to hide the note. No in-moment state to clear. Guard against the
-    // optimistic 0n placeholder id — the real id lands via onSuccess and the
-    // note re-evaluates once ifThenCheckInIdMap is populated.
+    // reads to hide the note. Guard against the optimistic 0n placeholder id —
+    // the real id lands via onSuccess and the note re-evaluates once
+    // ifThenCheckInIdMap is populated.
     if (ifThenCheckInId !== undefined && ifThenCheckInId !== 0n) {
       onMarkIfThenUsed?.(goal.id, ifThenCheckInId);
     }
+    // Play the celebratory confirmation, then let the note settle away. The
+    // backend refetch hides it via executedIfThen; the local flag covers the
+    // brief window before that lands.
+    setIfThenUsedConfirming(true);
+    setTimeout(() => setIfThenUsedConfirming(false), 620);
   }
 
   function handleIfThenDismiss() {
-    // Persist the dismissal keyed by check-in id so the note stays hidden for
-    // this check-in across page/tab navigation (GoalCard unmounts on tab
-    // switch). Mirrors the localStorage persistent-UI pattern used by useTheme
-    // and DashboardPage's NEW_HABIT_KEY. The tick forces a re-render so the
-    // derived visibility re-evaluates and hides the note immediately.
-    if (ifThenCheckInId !== undefined) {
-      localStorage.setItem(
-        `${IF_THEN_DISMISS_KEY_PREFIX}${ifThenCheckInId}`,
-        "1",
-      );
+    // Record the dismissal against the real check-in it belongs to. While the
+    // card still shows the optimistic placeholder (id 0n) the real id has not
+    // arrived, so the dismissal is held in memory and applied by the effect
+    // above once the server confirms — it is never written against the
+    // placeholder, so it can never suppress a later check-in.
+    if (ifThenCheckInId === undefined) return;
+    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) {
+      setPendingIfThenDismiss(true);
+    } else {
+      persistIfThenDismissal(ifThenCheckInId);
     }
+    // Force a re-render so the derived visibility re-evaluates and the note
+    // animates away immediately.
     setIfThenDismissTick((n) => n + 1);
   }
 
@@ -868,26 +887,31 @@ export function GoalCard({
   // If-then follow-up note visibility — DERIVED fresh on every render from
   // persisted, non-volatile inputs so it can never reappear after navigating
   // away and back:
-  //   (a) real elapsed time since the check-in is still within the display
-  //       window (Date.now() - persisted timestamp),
-  //   (b) the check-in has not already been tagged as used (executedIfThen),
-  //   (c) the note was not explicitly dismissed (localStorage, keyed by
-  //       check-in id — survives remounts).
-  // Because elapsed time is derived from the persisted timestamp rather than an
-  // in-moment timer, once the window passes the note stays hidden on every
-  // remount, and letting it fade naturally needs no saved flag.
-  const ifThenNoteWithinWindow =
-    ifThenCheckInTimestamp !== undefined &&
-    Date.now() - Number(ifThenCheckInTimestamp / 1_000_000n) <=
-      IF_THEN_NOTE_WINDOW_MS;
+  //   (a) the check-in has not already been tagged as used (executedIfThen),
+  //   (b) the note was not explicitly dismissed (localStorage, keyed by
+  //       check-in id — survives remounts; a dismissal recorded against the
+  //       placeholder is held in memory until the real id arrives).
+  // The note stays until the user answers it — there is no time window. It is
+  // scoped to today's check-in only: when the day rolls over the card resets
+  // and the note is gone with it.
   const showIfThenNote =
     mode === "done" &&
     hasIfThenPlan &&
     ifThenCheckInId !== undefined &&
     (isSuccessOrSkip || isMissedLockIn) &&
     !executedIfThen &&
-    ifThenNoteWithinWindow &&
+    !pendingIfThenDismiss &&
     !isIfThenDismissed(ifThenCheckInId);
+
+  // Bind a dismissal recorded against the placeholder to the real check-in as
+  // soon as the server-confirmed id arrives.
+  useEffect(() => {
+    if (!pendingIfThenDismiss) return;
+    if (ifThenCheckInId === undefined) return;
+    if (ifThenCheckInId === PLACEHOLDER_CHECK_IN_ID) return;
+    persistIfThenDismissal(ifThenCheckInId);
+    setPendingIfThenDismiss(false);
+  }, [pendingIfThenDismiss, ifThenCheckInId]);
 
   // We intentionally only depend on isExiting and goal.id here.
   useEffect(() => {
@@ -1401,62 +1425,94 @@ export function GoalCard({
               </div>
             </div>
 
-            {/* If-then follow-up note — shown on the Done card for a short
-                window after a habit with an if-then plan is completed. The
-                habit is already done; tapping 'Used it' tags the already-created
-                check-in, dismissing/ignoring leaves it done without the tag. */}
-            {mode === "done" && showIfThenNote && (
-              <div
-                className="ifthen-note w-full"
-                data-ocid={`goal.ifthen_note.${index + 1}`}
-              >
-                <div className="flex flex-col items-start text-left gap-0.5 min-w-0">
-                  <span className="ifthen-note-label text-xs font-medium">
-                    I used my if-then plan
-                  </span>
-                  <span className="ifthen-note-hint text-[11px] leading-snug line-clamp-2">
-                    {goal.ifThenPlan}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="ifthen-note-action shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleIfThenUsed();
-                  }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    modalOpenedDuringGestureRef.current = true;
-                  }}
-                  onPointerUp={(e) => e.stopPropagation()}
-                  onPointerMove={(e) => e.stopPropagation()}
-                  aria-label="Record this check-in as using my if-then plan"
-                  data-ocid={`goal.ifthen_note.action.${index + 1}`}
+            {/* If-then follow-up note — stays on the Done card until the user
+                answers it (no time window). The habit is already done; tapping
+                'Used it' tags the already-created check-in, dismissing hides
+                the note for this check-in only. It reads as part of the card:
+                same rounded surface, same tinted wash, no separate chrome. */}
+            <AnimatePresence initial={false}>
+              {mode === "done" && showIfThenNote && (
+                <motion.div
+                  key="ifthen-note"
+                  className={cn(
+                    "ifthen-note w-full",
+                    ifThenUsedConfirming && "ifthen-note-confirming",
+                  )}
+                  data-ocid={`goal.ifthen_note.${index + 1}`}
+                  initial={
+                    prefersReducedMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, height: 0, y: -6 }
+                  }
+                  animate={
+                    prefersReducedMotion
+                      ? { opacity: 1 }
+                      : { opacity: 1, height: "auto", y: 0 }
+                  }
+                  exit={
+                    prefersReducedMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, height: 0, y: -4 }
+                  }
+                  transition={
+                    prefersReducedMotion
+                      ? { duration: 0 }
+                      : ifThenUsedConfirming
+                        ? { duration: 0.42, ease: [0.34, 1.56, 0.64, 1] }
+                        : { duration: 0.22, ease: [0.4, 0, 0.2, 1] }
+                  }
+                  style={{ overflow: "hidden" }}
                 >
-                  <Zap size={12} />
-                  <span>Used it</span>
-                </button>
-                <button
-                  type="button"
-                  className="ifthen-note-dismiss shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleIfThenDismiss();
-                  }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    modalOpenedDuringGestureRef.current = true;
-                  }}
-                  onPointerUp={(e) => e.stopPropagation()}
-                  onPointerMove={(e) => e.stopPropagation()}
-                  aria-label="Dismiss this if-then follow-up note"
-                  data-ocid={`goal.ifthen_note.dismiss.${index + 1}`}
-                >
-                  <span>Dismiss</span>
-                </button>
-              </div>
-            )}
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-start text-left gap-0.5 min-w-0">
+                      <span className="ifthen-note-label text-xs font-medium">
+                        I used my if-then plan
+                      </span>
+                      <span className="ifthen-note-hint text-[11px] leading-snug line-clamp-2">
+                        {goal.ifThenPlan}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="ifthen-note-action shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleIfThenUsed();
+                      }}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        modalOpenedDuringGestureRef.current = true;
+                      }}
+                      onPointerUp={(e) => e.stopPropagation()}
+                      onPointerMove={(e) => e.stopPropagation()}
+                      aria-label="Record this check-in as using my if-then plan"
+                      data-ocid={`goal.ifthen_note.action.${index + 1}`}
+                    >
+                      <Zap size={12} />
+                      <span>Used it</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="ifthen-note-dismiss shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleIfThenDismiss();
+                      }}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        modalOpenedDuringGestureRef.current = true;
+                      }}
+                      onPointerUp={(e) => e.stopPropagation()}
+                      onPointerMove={(e) => e.stopPropagation()}
+                      aria-label="Dismiss this if-then follow-up note"
+                      data-ocid={`goal.ifthen_note.dismiss.${index + 1}`}
+                    >
+                      <span>Dismiss</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Log What Happened button — amber CTA for missed Lock-In windows */}
             {isLockIn &&

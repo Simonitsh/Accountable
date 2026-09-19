@@ -1,18 +1,17 @@
 {
-  "overview": "A WOOP-based habit and goal tracker that helps users plan, check in daily, and see their progress.",
+  "overview": "A habit tracker that helps you build routines with if-then plans, daily check-ins, and follow-through insights.",
   "features": [
-    "Create habits with a guided WOOP wizard",
-    "Predict multiple obstacles that might get in the way",
-    "Check in daily and record what actually got in the way",
-    "Edit habits and their obstacles inline",
-    "See insights comparing predicted and actual obstacles"
+    "Track daily habits with swipe-to-check-in",
+    "Set if-then plans for obstacles",
+    "Follow-up question on completed habits",
+    "Insights comparing plan usage",
+    "Streaks and weekly calendar"
   ],
   "category": "habit-tracker",
   "tags": [
     "productivity",
     "habits",
-    "goals",
     "self-improvement"
   ],
-  "last_updated": "2026-09-18T23:49:47.842Z"
+  "last_updated": "2026-09-19T12:10:26.920Z"
 }
