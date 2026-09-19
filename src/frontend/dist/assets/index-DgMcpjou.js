@@ -80096,7 +80096,6 @@ function GoalCard$1({
   const isSuccessOrSkip = (checkInToday == null ? void 0 : checkInToday.checkInType) === "success" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "skip";
   const isMissedLockIn = isLockIn && ((checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckIn" || (checkInToday == null ? void 0 : checkInToday.checkInType) === "missedCheckOut");
   const showIfThenNote = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && !followUpDeclined;
-  const showIfThenDeclined = mode2 === "done" && hasIfThenPlan && ifThenCheckInId !== void 0 && (isSuccessOrSkip || isMissedLockIn) && !executedIfThen && followUpDeclined;
   reactExports.useEffect(() => {
     if (isExiting) {
       if (exitTimerRef.current !== null) return;
@@ -80582,14 +80581,6 @@ function GoalCard$1({
                   },
                   "ifthen-note"
                 ) }),
-                showIfThenDeclined && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "div",
-                  {
-                    className: "ifthen-declined w-full",
-                    "data-ocid": `goal.ifthen_declined.${index2 + 1}`,
-                    children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ifthen-declined-label text-[11px]", children: "Not answered" })
-                  }
-                ),
                 isLockIn && (lockInState === "missed-start" || lockInState === "missed-checkout") && mode2 === "active" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-start w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "button",
                   {

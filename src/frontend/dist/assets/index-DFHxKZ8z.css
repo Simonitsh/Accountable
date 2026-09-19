@@ -3861,24 +3861,6 @@ video {
 .ifthen-note-hint {
     color: oklch(var(--ifthen-note-muted));
   }
-/* Quiet not-answered state — shown once the user declines the follow-up
-     question. A settled, low-key line with no action and no chrome. */
-.ifthen-declined {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: calc(var(--radius) - 2px);
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
-    background-color: oklch(var(--muted) / 0.35);
-    border: 1px solid oklch(var(--border) / 0.6);
-}
-.ifthen-declined-label {
-    color: oklch(var(--ifthen-note-muted));
-    letter-spacing: 0.02em;
-  }
 .\[--cell-size\:--spacing\(8\)\] {
   --cell-size: var(--spacing(8));
 }

@@ -883,7 +883,8 @@ export function GoalCard({
   // with it and a fresh check-in asks the question again. The note stays until
   // the user answers it — there is no time window. It is scoped to today's
   // check-in only: when the day rolls over the card resets and the note is
-  // gone with it.
+  // gone with it. Declining leaves the card completely clean — no bar and no
+  // replacement wording — while the stored answer keeps the question away.
   const showIfThenNote =
     mode === "done" &&
     hasIfThenPlan &&
@@ -891,17 +892,6 @@ export function GoalCard({
     (isSuccessOrSkip || isMissedLockIn) &&
     !executedIfThen &&
     !followUpDeclined;
-
-  // Quiet not-answered state: the user declined the follow-up question for this
-  // check-in. It reads as a settled, low-key line on the card — no action, no
-  // chrome — and disappears with the check-in on undo.
-  const showIfThenDeclined =
-    mode === "done" &&
-    hasIfThenPlan &&
-    ifThenCheckInId !== undefined &&
-    (isSuccessOrSkip || isMissedLockIn) &&
-    !executedIfThen &&
-    followUpDeclined;
 
   // We intentionally only depend on isExiting and goal.id here.
   useEffect(() => {
@@ -1503,19 +1493,6 @@ export function GoalCard({
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* Quiet not-answered state — the user declined the follow-up
-                question for this check-in. Low-key, no action, no chrome. */}
-            {showIfThenDeclined && (
-              <div
-                className="ifthen-declined w-full"
-                data-ocid={`goal.ifthen_declined.${index + 1}`}
-              >
-                <span className="ifthen-declined-label text-[11px]">
-                  Not answered
-                </span>
-              </div>
-            )}
 
             {/* Log What Happened button — amber CTA for missed Lock-In windows */}
             {isLockIn &&

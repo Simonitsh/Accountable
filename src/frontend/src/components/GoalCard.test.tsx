@@ -15,7 +15,7 @@ vi.mock("../hooks/useBackend", () => ({
 // The follow-up question's visibility is DERIVED fresh on every render from the
 // check-in record itself:
 //   show the question  ⇔  !executedIfThen && !followUpDeclined
-//   quiet "Not answered" ⇔  !executedIfThen && followUpDeclined
+//   declined           ⇔  !executedIfThen && followUpDeclined → nothing shown
 // Both answers live on the check-in, so undoing the check-in removes them with
 // it and a fresh check-in asks the question again. Nothing about the question
 // is read from or written to browser storage.
@@ -83,14 +83,17 @@ describe("GoalCard — if-then follow-up question", () => {
     expect(screen.getByTestId("goal.revival_icon")).toBeInTheDocument();
   });
 
-  it("hides the question and shows the quiet not-answered state when declined", () => {
+  it("hides the question and leaves the card clean when declined", () => {
     renderDoneCard({ followUpDeclined: true });
 
     expect(
       screen.queryByText("I used my if-then plan"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Not answered")).toBeInTheDocument();
-    expect(screen.getByTestId("goal.ifthen_declined.1")).toBeInTheDocument();
+    // Declining leaves no bar and no replacement wording of any kind.
+    expect(screen.queryByText("Not answered")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("goal.ifthen_declined.1"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not show the question for a habit with no if-then plan", () => {

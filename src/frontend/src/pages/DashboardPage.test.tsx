@@ -274,7 +274,7 @@ describe("DashboardPage — if-then follow-up cycle", () => {
     expect(screen.getByTestId("goal.revival_icon")).toBeInTheDocument();
   });
 
-  it("hides the question and shows the quiet not-answered state when declined", async () => {
+  it("hides the question and leaves the card clean when declined", async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -290,7 +290,11 @@ describe("DashboardPage — if-then follow-up cycle", () => {
         screen.queryByText("I used my if-then plan"),
       ).not.toBeInTheDocument(),
     );
-    expect(screen.getByText("Not answered")).toBeInTheDocument();
+    // Declining leaves no bar and no replacement wording of any kind.
+    expect(screen.queryByText("Not answered")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("goal.ifthen_declined.1"),
+    ).not.toBeInTheDocument();
   });
 
   it("never reads or writes follow-up question state in browser storage", async () => {

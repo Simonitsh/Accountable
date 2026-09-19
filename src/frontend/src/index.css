@@ -1121,19 +1121,6 @@
   .ifthen-note-hint {
     color: oklch(var(--ifthen-note-muted));
   }
-
-  /* Quiet not-answered state — shown once the user declines the follow-up
-     question. A settled, low-key line with no action and no chrome. */
-  .ifthen-declined {
-    @apply flex items-center justify-center rounded-md;
-    @apply px-2.5 py-1.5;
-    background-color: oklch(var(--muted) / 0.35);
-    border: 1px solid oklch(var(--border) / 0.6);
-  }
-  .ifthen-declined-label {
-    color: oklch(var(--ifthen-note-muted));
-    letter-spacing: 0.02em;
-  }
 }
 
 /* ── Hold-to-undo tracing border keyframe ─────────────────────────────────── */
