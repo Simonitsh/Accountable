@@ -13,6 +13,7 @@ export interface AnalyticsSummary {
     bestDayOfWeek?: bigint;
     overallIfThenEffectiveness: IfThenEffectiveness;
     habits: Array<HabitAnalytics>;
+    predictedObstaclePool: Array<ObstacleStat>;
     worstDayOfWeek?: bigint;
 }
 export type AvatarColor = string | null;

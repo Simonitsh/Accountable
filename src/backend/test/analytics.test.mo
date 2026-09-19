@@ -146,7 +146,27 @@ test("computeHabitAnalytics: shown-up days exclude #skip and #missed", func() {
     makeCheckIn(2, DateUtils.DAY_NS, #skip),
     makeCheckIn(3, 2 * DateUtils.DAY_NS, #missed),
   ];
-  let analytics = Analytics.computeHabitAnalytics(makeHabit(), checkIns, []);
+  let analytics = Analytics.computeHabitAnalytics(makeHabit(), checkIns);
   // Only the #success counts as a shown-up day.
   expect.nat(analytics.shownUpDays).equal(1);
+});
+
+// ---------------------------------------------------------------------------
+// computeHabitAnalytics() — predicted obstacles are per-habit, never pooled
+// ---------------------------------------------------------------------------
+
+test("computeHabitAnalytics: predicted obstacles are the habit's own only", func() {
+  let habit = makeHabit(); // obstacleTemplateIds = [1]
+  let analytics = Analytics.computeHabitAnalytics(habit, []);
+
+  // Exactly the habit's own prediction, with count 1 — not a cross-habit pool.
+  expect.nat(analytics.predictedObstacles.size()).equal(1);
+  expect.nat(analytics.predictedObstacles[0].count).equal(1);
+  expect.nat(analytics.predictedObstacles[0].obstacleTemplateId ?? 0).equal(1);
+});
+
+test("computeHabitAnalytics: a habit with no predictions reports an empty list", func() {
+  let habit = { makeHabit() with obstacleTemplateIds = [] };
+  let analytics = Analytics.computeHabitAnalytics(habit, []);
+  expect.nat(analytics.predictedObstacles.size()).equal(0);
 });

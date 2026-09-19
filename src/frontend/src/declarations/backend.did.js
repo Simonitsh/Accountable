@@ -134,6 +134,7 @@ export const AnalyticsSummary = IDL.Record({
   'bestDayOfWeek' : IDL.Opt(IDL.Nat),
   'overallIfThenEffectiveness' : IfThenEffectiveness,
   'habits' : IDL.Vec(HabitAnalytics),
+  'predictedObstaclePool' : IDL.Vec(ObstacleStat),
   'worstDayOfWeek' : IDL.Opt(IDL.Nat),
 });
 export const CheckInType = IDL.Variant({
@@ -538,6 +539,7 @@ export const idlFactory = ({ IDL }) => {
     'bestDayOfWeek' : IDL.Opt(IDL.Nat),
     'overallIfThenEffectiveness' : IfThenEffectiveness,
     'habits' : IDL.Vec(HabitAnalytics),
+    'predictedObstaclePool' : IDL.Vec(ObstacleStat),
     'worstDayOfWeek' : IDL.Opt(IDL.Nat),
   });
   const CheckInType = IDL.Variant({

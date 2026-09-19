@@ -165,17 +165,48 @@ module {
     });
   };
 
-  /// Predicted obstacles across the caller's habits, counted by how many
-  /// habits predicted each one and sorted by frequency (most frequent first).
-  /// Every habit contributes ALL of its predicted obstacles, so the count is a
-  /// genuine number of habits rather than a placeholder.
-  func computePredictedObstacles(
-    habits : [GoalTypes.HabitPublic],
+  /// The predicted obstacles of a SINGLE habit, counted by how many times that
+  /// habit predicted each one and sorted by frequency (most frequent first).
+  /// This is per-habit only — it never consults other habits. A habit that
+  /// predicted tiredness once reports tiredness with count 1; a habit that
+  /// predicted nothing reports an empty list.
+  func computeHabitPredictedObstacles(
+    habit : GoalTypes.HabitPublic,
   ) : [AnalyticsTypes.ObstacleStat] {
     let counts = Map.empty<Common.ObstacleTemplateId, Nat>();
-    for (h in habits.values()) {
-      for (id in h.obstacleTemplateIds.values()) {
-        counts.add(id, (counts.get(id) ?? 0) + 1);
+    for (id in habit.obstacleTemplateIds.values()) {
+      counts.add(id, (counts.get(id) ?? 0) + 1);
+    };
+    let stats = counts.entries().map(func((id, count)) {
+      {
+        obstacleTemplateId = ?id;
+        obstacleName = obstacleName(id);
+        count;
+      };
+    }).toArray();
+    stats.sort(func(a, b) {
+      if (a.count > b.count) #less
+      else if (a.count < b.count) #greater
+      else #equal
+    });
+  };
+
+  /// Pools the per-habit predicted-obstacle lists into one cross-habit count,
+  /// sorted by frequency (most frequent first). Each obstacle's count is the
+  /// genuine number of habits that predicted it — computed once from the
+  /// per-habit lists, never by re-pooling an already-pooled list.
+  func computePredictedObstaclePool(
+    perHabitPredicted : [[AnalyticsTypes.ObstacleStat]],
+  ) : [AnalyticsTypes.ObstacleStat] {
+    let counts = Map.empty<Common.ObstacleTemplateId, Nat>();
+    for (habitPredicted in perHabitPredicted.values()) {
+      for (stat in habitPredicted.values()) {
+        switch (stat.obstacleTemplateId) {
+          case null {};
+          case (?id) {
+            counts.add(id, (counts.get(id) ?? 0) + 1);
+          };
+        };
       };
     };
     let stats = counts.entries().map(func((id, count)) {
@@ -192,11 +223,12 @@ module {
     });
   };
 
-  /// Per-habit analytics for a single habit and its check-ins.
+  /// Per-habit analytics for a single habit and its check-ins. The habit's
+  /// predicted obstacles are derived from the habit itself, so they are always
+  /// that habit's own predictions.
   public func computeHabitAnalytics(
     habit : GoalTypes.HabitPublic,
     checkIns : [CheckInTypes.CheckIn],
-    predictedObstacles : [AnalyticsTypes.ObstacleStat],
   ) : AnalyticsTypes.HabitAnalytics {
     // Shown-up days: count only genuine successes. Skips and missed days are
     // excluded.
@@ -208,6 +240,8 @@ module {
     let ifThen = computeIfThenEffectiveness(checkIns);
 
     let actualObstacles = computeActualObstacles(checkIns);
+
+    let predictedObstacles = computeHabitPredictedObstacles(habit);
 
     {
       habitId = habit.id;
@@ -236,16 +270,20 @@ module {
     }).toArray();
     let allCheckIns = checkIns.values().filter(func(c) { c.owner == caller }).toArray();
 
-    // The predicted pool is shared across the caller's habits: every habit
-    // contributes all of its predicted obstacles, and each obstacle carries a
-    // genuine count of how many habits predicted it.
     let habitPublics = ownedHabits.map(func(g) { GoalLib.toHabitPublic(g) });
-    let predictedPool = computePredictedObstacles(habitPublics);
 
+    // Each habit's analytics carry that habit's OWN predicted obstacles.
     let habitAnalytics = habitPublics.map(func(gPublic) {
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == gPublic.id });
-      computeHabitAnalytics(gPublic, goalCheckIns, predictedPool);
+      computeHabitAnalytics(gPublic, goalCheckIns);
     });
+
+    // The cross-habit pool is computed exactly once, from the per-habit
+    // predicted lists, so each obstacle's count is the genuine number of
+    // habits that predicted it.
+    let predictedObstaclePool = computePredictedObstaclePool(
+      habitAnalytics.map(func(h) { h.predictedObstacles })
+    );
 
     let overallIfThen = computeIfThenEffectiveness(allCheckIns);
     let dayOfWeek = computeDayOfWeek(allCheckIns, timezoneOffsetMinutes);
@@ -258,6 +296,7 @@ module {
       bestDayOfWeek = bestDay(dayOfWeek);
       worstDayOfWeek = worstDay(dayOfWeek);
       categoryBreakdown;
+      predictedObstaclePool;
     };
   };
 };

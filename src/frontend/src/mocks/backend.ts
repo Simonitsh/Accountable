@@ -632,16 +632,20 @@ export const mockBackend: backendInterface = {
             rate: 0.8,
           },
         },
+        // This habit's OWN predictions — one entry per obstacle the if-then
+        // plan anticipated, each with a per-habit count of 1. Cross-habit
+        // pooling happens once on the backend and lands in
+        // predictedObstaclePool below.
         predictedObstacles: [
           {
             obstacleTemplateId: BigInt(1),
             obstacleName: "Low Energy",
-            count: BigInt(3),
+            count: BigInt(1),
           },
           {
             obstacleTemplateId: BigInt(2),
             obstacleName: "No Time",
-            count: BigInt(2),
+            count: BigInt(1),
           },
         ],
         actualObstacles: [
@@ -676,6 +680,21 @@ export const mockBackend: backendInterface = {
         },
         predictedObstacles: [],
         actualObstacles: [],
+      },
+    ],
+    // Cross-habit pooled predicted-obstacle counts, computed once by the
+    // backend from every habit's own predictedObstacles list. Habit 11
+    // predicted "Low Energy" and "No Time"; habit 13 predicted nothing.
+    predictedObstaclePool: [
+      {
+        obstacleTemplateId: BigInt(1),
+        obstacleName: "Low Energy",
+        count: BigInt(1),
+      },
+      {
+        obstacleTemplateId: BigInt(2),
+        obstacleName: "No Time",
+        count: BigInt(1),
       },
     ],
   }),

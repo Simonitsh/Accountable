@@ -343,8 +343,9 @@ export interface HabitAnalytics {
   category: GoalCategory;
   shownUpDays: bigint;
   ifThenEffectiveness: IfThenEffectiveness;
-  /** Every obstacle this habit predicted (at least one), each with its own
-   *  genuine count. The Insights obstacle pool aggregates across all habits. */
+  /** This habit's OWN predicted obstacles (at least one), each with its own
+   *  per-habit count. These are NOT pooled across habits — the cross-habit
+   *  pooled counts live on AnalyticsSummary.predictedObstaclePool. */
   predictedObstacles: ObstacleStat[];
   actualObstacles: ObstacleStat[];
 }
@@ -357,6 +358,11 @@ export interface AnalyticsSummary {
   bestDayOfWeek?: bigint;
   worstDayOfWeek?: bigint;
   categoryBreakdown: CategoryStat[];
+  /** Cross-habit pooled predicted-obstacle counts, computed once by the
+   *  backend from every habit's own predictedObstacles list. The Insights
+   *  obstacle section reads this directly instead of re-pooling per-habit
+   *  lists on the client. */
+  predictedObstaclePool: ObstacleStat[];
 }
 
 /**

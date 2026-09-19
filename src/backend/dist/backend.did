@@ -297,6 +297,7 @@ type AnalyticsSummary =
    dayOfWeek: vec DayOfWeekStat;
    habits: vec HabitAnalytics;
    overallIfThenEffectiveness: IfThenEffectiveness;
+   predictedObstaclePool: vec ObstacleStat;
    worstDayOfWeek: opt nat;
  };
 service : {

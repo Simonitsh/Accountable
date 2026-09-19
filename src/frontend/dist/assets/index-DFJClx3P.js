@@ -33024,6 +33024,7 @@ const AnalyticsSummary = Record({
   "bestDayOfWeek": Opt(Nat),
   "overallIfThenEffectiveness": IfThenEffectiveness,
   "habits": Vec(HabitAnalytics),
+  "predictedObstaclePool": Vec(ObstacleStat),
   "worstDayOfWeek": Opt(Nat)
 });
 const CheckInType$1 = Variant({
@@ -33424,6 +33425,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "bestDayOfWeek": IDL2.Opt(IDL2.Nat),
     "overallIfThenEffectiveness": IfThenEffectiveness2,
     "habits": IDL2.Vec(HabitAnalytics2),
+    "predictedObstaclePool": IDL2.Vec(ObstacleStat2),
     "worstDayOfWeek": IDL2.Opt(IDL2.Nat)
   });
   const CheckInType2 = IDL2.Variant({
@@ -34551,6 +34553,7 @@ function from_candid_record_n28(_uploadFile, _downloadFile, value) {
     bestDayOfWeek: record_opt_to_undefined(from_candid_opt_n32(_uploadFile, _downloadFile, value.bestDayOfWeek)),
     overallIfThenEffectiveness: value.overallIfThenEffectiveness,
     habits: from_candid_vec_n33(_uploadFile, _downloadFile, value.habits),
+    predictedObstaclePool: from_candid_vec_n36(_uploadFile, _downloadFile, value.predictedObstaclePool),
     worstDayOfWeek: record_opt_to_undefined(from_candid_opt_n32(_uploadFile, _downloadFile, value.worstDayOfWeek))
   };
 }
@@ -92095,10 +92098,7 @@ function aggregateObstacles(obstacles) {
 }
 function ObstaclesSection({ data }) {
   const habits = (data == null ? void 0 : data.habits) ?? [];
-  const predicted = reactExports.useMemo(
-    () => aggregateObstacles(habits.flatMap((h2) => h2.predictedObstacles)),
-    [habits]
-  );
+  const predicted = reactExports.useMemo(() => (data == null ? void 0 : data.predictedObstaclePool) ?? [], [data]);
   const actual = reactExports.useMemo(
     () => aggregateObstacles(habits.flatMap((h2) => h2.actualObstacles)),
     [habits]

@@ -360,6 +360,8 @@ function CategoryBreakdownSection({ data }: { data?: AnalyticsSummary }) {
 // ─── Obstacles: what gets in the way vs expected ─────────────────────────────
 // Aggregate obstacle counts across ALL of the user's habits (not per-habit),
 // summing by obstacle name so the section reads across the whole practice.
+// Used for the ACTUAL-obstacles column only: the backend already pools the
+// predicted side once into AnalyticsSummary.predictedObstaclePool.
 function aggregateObstacles(obstacles: ObstacleStat[]): ObstacleStat[] {
   const byName = new Map<string, ObstacleStat>();
   for (const obstacle of obstacles) {
@@ -376,13 +378,11 @@ function aggregateObstacles(obstacles: ObstacleStat[]): ObstacleStat[] {
 function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
   const habits = data?.habits ?? [];
 
-  // Predicted obstacles come from every obstacle each habit's if-then plan
-  // anticipated; actual obstacles come from the check-ins that actually got in
-  // the way. Both sides pool across ALL habits and rank by genuine count.
-  const predicted = useMemo(
-    () => aggregateObstacles(habits.flatMap((h) => h.predictedObstacles)),
-    [habits],
-  );
+  // Predicted obstacles are pooled once by the backend and read straight from
+  // the summary — no client-side re-pooling. Actual obstacles come from the
+  // check-ins that actually got in the way, so they are still pooled here
+  // across ALL habits and ranked by genuine count.
+  const predicted = useMemo(() => data?.predictedObstaclePool ?? [], [data]);
   const actual = useMemo(
     () => aggregateObstacles(habits.flatMap((h) => h.actualObstacles)),
     [habits],

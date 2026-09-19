@@ -59,6 +59,7 @@ export interface AnalyticsSummary {
     bestDayOfWeek?: bigint;
     overallIfThenEffectiveness: IfThenEffectiveness;
     habits: Array<HabitAnalytics>;
+    predictedObstaclePool: Array<ObstacleStat>;
     worstDayOfWeek?: bigint;
 }
 export type AvatarColor = string | null;
@@ -1369,6 +1370,7 @@ function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uin
     bestDayOfWeek: [] | [bigint];
     overallIfThenEffectiveness: _IfThenEffectiveness;
     habits: Array<_HabitAnalytics>;
+    predictedObstaclePool: Array<_ObstacleStat>;
     worstDayOfWeek: [] | [bigint];
 }): {
     categoryBreakdown: Array<CategoryStat>;
@@ -1376,6 +1378,7 @@ function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uin
     bestDayOfWeek?: bigint;
     overallIfThenEffectiveness: IfThenEffectiveness;
     habits: Array<HabitAnalytics>;
+    predictedObstaclePool: Array<ObstacleStat>;
     worstDayOfWeek?: bigint;
 } {
     return {
@@ -1384,6 +1387,7 @@ function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uin
         bestDayOfWeek: record_opt_to_undefined(from_candid_opt_n32(_uploadFile, _downloadFile, value.bestDayOfWeek)),
         overallIfThenEffectiveness: value.overallIfThenEffectiveness,
         habits: from_candid_vec_n33(_uploadFile, _downloadFile, value.habits),
+        predictedObstaclePool: from_candid_vec_n36(_uploadFile, _downloadFile, value.predictedObstaclePool),
         worstDayOfWeek: record_opt_to_undefined(from_candid_opt_n32(_uploadFile, _downloadFile, value.worstDayOfWeek))
     };
 }

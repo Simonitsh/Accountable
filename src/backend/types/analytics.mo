@@ -60,11 +60,11 @@ module {
     /// rolled up into an overall number later without losing detail.
     shownUpDays : Nat;
     ifThenEffectiveness : IfThenEffectiveness;
-    /// The obstacles the user predicted for this habit (saved permanently,
-    /// non-editable). Each entry's `count` is the number of habits that
-    /// predicted that obstacle — the predicted pool is shared across the
-    /// caller's habits, so a habit contributes all of its predicted obstacles
-    /// and each carries a genuine count.
+    /// The obstacles the user predicted for THIS habit only (saved
+    /// permanently, non-editable). Each entry's `count` is how many times this
+    /// habit predicted that obstacle — normally 1, since a habit's predicted
+    /// obstacles are a set. Cross-habit pooling lives in
+    /// `AnalyticsSummary.predictedObstaclePool`, not here.
     predictedObstacles : [ObstacleStat];
     /// Obstacles actually recorded on this habit's check-ins, sorted by how
     /// often they came up (most frequent first).
@@ -83,5 +83,11 @@ module {
     /// have check-ins. null when there is no data.
     worstDayOfWeek : ?Nat;
     categoryBreakdown : [CategoryStat];
+    /// Predicted obstacles pooled across all of the caller's habits, computed
+    /// once from the per-habit `predictedObstacles` lists. Each entry's
+    /// `count` is the genuine number of habits that predicted that obstacle
+    /// (three habits predicting tiredness => count 3), sorted by frequency
+    /// (most frequent first).
+    predictedObstaclePool : [ObstacleStat];
   };
 };
