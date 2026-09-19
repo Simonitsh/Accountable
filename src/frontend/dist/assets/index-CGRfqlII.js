@@ -79526,18 +79526,18 @@ const SKIP_COLOR$3 = "#0369A1";
 const GREY_COLOR = "#4B5563";
 const MISSED_COLOR$1 = "#6B7280";
 const SWIPE_THRESHOLD = 60;
-const IF_THEN_DISMISS_KEY_PREFIX$1 = "cumulative-ifthen-dismiss-";
+const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
 const PLACEHOLDER_CHECK_IN_ID = 0n;
 function isIfThenDismissed(checkInId) {
   if (checkInId === void 0) return false;
   if (checkInId === PLACEHOLDER_CHECK_IN_ID) return false;
   if (typeof window === "undefined") return false;
-  return localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX$1}${checkInId}`) === "1";
+  return localStorage.getItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`) === "1";
 }
 function persistIfThenDismissal(checkInId) {
   if (checkInId === PLACEHOLDER_CHECK_IN_ID) return;
   try {
-    localStorage.setItem(`${IF_THEN_DISMISS_KEY_PREFIX$1}${checkInId}`, "1");
+    localStorage.setItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`, "1");
   } catch {
   }
 }
@@ -79553,6 +79553,17 @@ function isMissedSheetShown(goalId, failureType) {
 function markMissedSheetShown(goalId, failureType) {
   try {
     localStorage.setItem(missedSheetKey(goalId, failureType), "1");
+  } catch {
+  }
+}
+function clearCheckInMarkers(goalId, checkInId) {
+  if (typeof window === "undefined") return;
+  try {
+    if (checkInId !== void 0 && checkInId !== PLACEHOLDER_CHECK_IN_ID) {
+      localStorage.removeItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`);
+    }
+    localStorage.removeItem(missedSheetKey(goalId, "start"));
+    localStorage.removeItem(missedSheetKey(goalId, "checkout"));
   } catch {
   }
 }
@@ -84605,7 +84616,6 @@ function WoopWizard({
 }
 const NEW_HABIT_KEY = "cumulative-new-habit-id";
 const NEW_HABIT_DURATION_MS = 1e4;
-const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
 function goalKey(id2) {
   return String(id2);
 }
@@ -85190,7 +85200,6 @@ function DashboardPage$1() {
     /* @__PURE__ */ new Map()
   );
   const [ifThenCheckInIdMap, setIfThenCheckInIdMap] = reactExports.useState(/* @__PURE__ */ new Map());
-  const pendingIfThenDismissRef = reactExports.useRef(/* @__PURE__ */ new Set());
   const [insightGoal, setInsightGoal] = reactExports.useState(null);
   const [undoTarget, setUndoTarget] = reactExports.useState(null);
   const [isUndoing, setIsUndoing] = reactExports.useState(false);
@@ -85208,7 +85217,6 @@ function DashboardPage$1() {
         setSwipeDirectionMap(/* @__PURE__ */ new Map());
         setOptimisticDoneMap(/* @__PURE__ */ new Map());
         committedMissedExitsRef.current.clear();
-        pendingIfThenDismissRef.current.clear();
         setIfThenCheckInIdMap(/* @__PURE__ */ new Map());
         scheduleReset();
       }, ms + 1e3);
@@ -85432,17 +85440,6 @@ function DashboardPage$1() {
           next.set(goalKey(variables.goalId), data.id);
           return next;
         });
-        const pendingKey = goalKey(variables.goalId);
-        if (pendingIfThenDismissRef.current.has(pendingKey)) {
-          pendingIfThenDismissRef.current.delete(pendingKey);
-          try {
-            localStorage.setItem(
-              `${IF_THEN_DISMISS_KEY_PREFIX}${data.id}`,
-              "1"
-            );
-          } catch {
-          }
-        }
       }
       queryClient2.invalidateQueries({ queryKey: ["myCheckIns"] });
       void fetchWeekHistory();
@@ -85640,7 +85637,7 @@ function DashboardPage$1() {
         next.delete(key);
         return next;
       });
-      pendingIfThenDismissRef.current.delete(key);
+      clearCheckInMarkers(undoTarget.goalId, entry.checkInId);
       setRecentlyUndone((prev) => new Set(prev).add(key));
       setTimeout(() => {
         setRecentlyUndone((prev) => {

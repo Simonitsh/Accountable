@@ -81,6 +81,33 @@ function markMissedSheetShown(goalId: bigint, failureType: string): void {
   }
 }
 
+/**
+ * Removes every localStorage marker this app holds about a single check-in, so
+ * an undone check-in leaves no trace behind:
+ *   - the if-then follow-up dismissal marker for that check-in id, and
+ *   - the missed-window sheet markers for that habit and today's date (both
+ *     failure types), since the sheet marker is keyed by habit + day rather
+ *     than by check-in id.
+ * Called by the Undo flow. Without this, a re-check-in on the same habit would
+ * inherit the deleted check-in's dismissal and never show the follow-up
+ * question or the missed-window sheet again.
+ */
+export function clearCheckInMarkers(
+  goalId: bigint,
+  checkInId: bigint | undefined,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (checkInId !== undefined && checkInId !== PLACEHOLDER_CHECK_IN_ID) {
+      localStorage.removeItem(`${IF_THEN_DISMISS_KEY_PREFIX}${checkInId}`);
+    }
+    localStorage.removeItem(missedSheetKey(goalId, "start"));
+    localStorage.removeItem(missedSheetKey(goalId, "checkout"));
+  } catch {
+    // best-effort — persistence is a nicety, not a requirement
+  }
+}
+
 export type DayStatus = "success" | "skip" | "missed" | "none";
 
 // ─── Lock-In types & helpers ──────────────────────────────────────────────────

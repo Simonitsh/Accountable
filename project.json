@@ -5,7 +5,7 @@
     "Set if-then plans for obstacles",
     "Follow-up question on completed habits",
     "Insights comparing plan usage",
-    "Streaks and weekly calendar"
+    "Lock-In habits with missed-window check-ins"
   ],
   "category": "habit-tracker",
   "tags": [
@@ -13,5 +13,5 @@
     "habits",
     "self-improvement"
   ],
-  "last_updated": "2026-09-19T12:10:26.920Z"
+  "last_updated": "2026-09-19T12:35:46.352Z"
 }

@@ -6,7 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckInType, GoalState } from "../backend";
 import type { CheckIn as BackendCheckIn } from "../backend.d.ts";
-import { GoalCard, getLockInState } from "../components/GoalCard";
+import {
+  GoalCard,
+  clearCheckInMarkers,
+  getLockInState,
+} from "../components/GoalCard";
 import type { DayStatus, LockInCheckIn } from "../components/GoalCard";
 import { GoalInsightSheet } from "../components/GoalInsightSheet";
 import GoalWizard from "../components/GoalWizard";
@@ -32,11 +36,6 @@ import { CATEGORY_DETAILS } from "../types";
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const NEW_HABIT_KEY = "cumulative-new-habit-id";
 const NEW_HABIT_DURATION_MS = 10_000;
-
-// localStorage key prefix for dismissing the if-then follow-up note per
-// check-in. Must match GoalCard's IF_THEN_DISMISS_KEY_PREFIX so a dismissal
-// recorded here is read back by the card's derived visibility.
-const IF_THEN_DISMISS_KEY_PREFIX = "cumulative-ifthen-dismiss-";
 
 function goalKey(id: bigint): string {
   return String(id);
@@ -794,12 +793,6 @@ export function DashboardPage() {
     Map<string, bigint>
   >(new Map());
 
-  // ── If-then dismissals recorded while the card still showed the optimistic
-  // placeholder check-in (id 0n). Held here until the server-confirmed id
-  // arrives, then written against that real check-in — so a dismissal made
-  // right after a swipe is never lost, and never leaks onto a later check-in.
-  const pendingIfThenDismissRef = useRef<Set<string>>(new Set());
-
   // ── Goal Insight sheet state ─────────────────────────────────────────────
   const [insightGoal, setInsightGoal] = useState<HabitPublic | null>(null);
 
@@ -836,7 +829,6 @@ export function DashboardPage() {
         committedMissedExitsRef.current.clear();
         // The if-then follow-up is scoped to today's check-in only — nothing
         // carries across the day boundary.
-        pendingIfThenDismissRef.current.clear();
         setIfThenCheckInIdMap(new Map());
         // Schedule the next reset (for the following day)
         scheduleReset();
@@ -1209,20 +1201,6 @@ export function DashboardPage() {
           next.set(goalKey(variables.goalId), data.id);
           return next;
         });
-        // A dismissal recorded against the placeholder is now bound to the
-        // real check-in it belongs to.
-        const pendingKey = goalKey(variables.goalId);
-        if (pendingIfThenDismissRef.current.has(pendingKey)) {
-          pendingIfThenDismissRef.current.delete(pendingKey);
-          try {
-            localStorage.setItem(
-              `${IF_THEN_DISMISS_KEY_PREFIX}${data.id}`,
-              "1",
-            );
-          } catch {
-            // best-effort — persistence is a nicety, not a requirement
-          }
-        }
       }
       // Invalidate so todayDoneMap re-derives from the fresh backend data.
       // The card is already visually in Done via exitingMap optimistic state.
@@ -1528,7 +1506,13 @@ export function DashboardPage() {
       });
       // Drop any dismissal still waiting on the deleted check-in's id so it
       // cannot bind to a future check-in for this habit.
-      pendingIfThenDismissRef.current.delete(key);
+      // Clear every browser-storage marker this app holds about the deleted
+      // check-in: the if-then follow-up dismissal keyed by its check-in id, and
+      // the missed-window sheet markers keyed by this habit + today. Without
+      // this the next check-in on this habit would inherit the deleted
+      // check-in's dismissal and never show the follow-up question or the
+      // missed-window sheet again today.
+      clearCheckInMarkers(undoTarget.goalId, entry.checkInId);
       // Mark as recently undone for bounce animation
       setRecentlyUndone((prev) => new Set(prev).add(key));
       setTimeout(() => {
