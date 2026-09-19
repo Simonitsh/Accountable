@@ -121,7 +121,7 @@ func makeHabit() : GoalTypes.HabitPublic {
     wish = "wish";
     wishDescription = "desc";
     outcome = "outcome";
-    obstacleTemplateId = null;
+    obstacleTemplateIds = [1];
     ifThenPlan = "";
     state = #active;
     createdAt = 0;
@@ -146,7 +146,7 @@ test("computeHabitAnalytics: shown-up days exclude #skip and #missed", func() {
     makeCheckIn(2, DateUtils.DAY_NS, #skip),
     makeCheckIn(3, 2 * DateUtils.DAY_NS, #missed),
   ];
-  let analytics = Analytics.computeHabitAnalytics(makeHabit(), checkIns);
+  let analytics = Analytics.computeHabitAnalytics(makeHabit(), checkIns, []);
   // Only the #success counts as a shown-up day.
   expect.nat(analytics.shownUpDays).equal(1);
 });

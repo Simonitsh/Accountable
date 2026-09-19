@@ -60,10 +60,12 @@ module {
     /// rolled up into an overall number later without losing detail.
     shownUpDays : Nat;
     ifThenEffectiveness : IfThenEffectiveness;
-    /// The obstacle the user predicted at habit creation (saved permanently,
-    /// non-editable). `count` is always 0 — it is the predicted identity, not
-    /// a measured frequency.
-    predictedObstacle : ?ObstacleStat;
+    /// The obstacles the user predicted for this habit (saved permanently,
+    /// non-editable). Each entry's `count` is the number of habits that
+    /// predicted that obstacle — the predicted pool is shared across the
+    /// caller's habits, so a habit contributes all of its predicted obstacles
+    /// and each carries a genuine count.
+    predictedObstacles : [ObstacleStat];
     /// Obstacles actually recorded on this habit's check-ins, sorted by how
     /// often they came up (most frequent first).
     actualObstacles : [ObstacleStat];

@@ -47,17 +47,25 @@ function parseHHMMToMinutes(time: string): number {
 }
 
 /**
- * Resolves a habit's saved obstacleTemplateId (a stable 1-7 bigint matching
- * the backend's built-in obstacles) to its display label. OBSTACLE_TEMPLATES
- * is ordered identically to the backend's builtinObstacles, so the id maps
- * directly to an index. Returns undefined when the habit has no obstacle or
- * the id is out of range. The habit's obstacle is unrelated to the parent
- * goal's outcome text.
+ * Resolves a habit's saved obstacleTemplateIds (stable 1-7 bigints matching
+ * the backend's built-in obstacles) to their display labels. OBSTACLE_TEMPLATES
+ * is ordered identically to the backend's builtinObstacles, so each id maps
+ * directly to an index. Returns the labels in the fixed built-in order,
+ * skipping any id that is out of range. The habit's obstacles are unrelated to
+ * the parent goal's outcome text.
  */
-function obstacleLabelForId(id: bigint | undefined): string | undefined {
-  if (id === undefined) return undefined;
-  const template = OBSTACLE_TEMPLATES[Number(id) - 1];
-  return template?.label;
+function obstacleLabelsForIds(ids: bigint[] | undefined): string[] {
+  if (!ids || ids.length === 0) return [];
+  const labels = new Set<string>();
+  for (const id of ids) {
+    const template = OBSTACLE_TEMPLATES[Number(id) - 1];
+    if (template) labels.add(template.label);
+  }
+  // OBSTACLE_TEMPLATES is already in the fixed built-in order, so filtering it
+  // preserves that order regardless of the order the ids were saved in.
+  return OBSTACLE_TEMPLATES.filter((t) => labels.has(t.label)).map(
+    (t) => t.label,
+  );
 }
 
 interface SelectedObstacle {
@@ -129,12 +137,15 @@ export function EditHabitPage() {
   const [themeColor, setThemeColor] = useState("#2563EB");
   const [obstacles, setObstacles] = useState<SelectedObstacle[]>([]);
   // Resolved reusable obstacle template ids keyed by built-in label. Populated
-  // when a built-in obstacle is picked; the resolved id is sent as
-  // obstacleTemplateId in the update payload so the habit links to a real,
-  // reusable template record (find-or-create dedup on the backend).
+  // when a built-in obstacle is picked; the resolved ids are sent as
+  // obstacleTemplateIds in the update payload so the habit links to real,
+  // reusable template records (find-or-create dedup on the backend).
   const [obstacleTemplateIds, setObstacleTemplateIds] = useState<
     Record<string, bigint>
   >({});
+  // Set when the user tries to save with no obstacle selected. Cleared as soon
+  // as they pick one.
+  const [obstacleError, setObstacleError] = useState<string | null>(null);
   const [scheduledDays, setScheduledDays] = useState<string[]>([
     "mon",
     "tue",
@@ -175,24 +186,24 @@ export function EditHabitPage() {
       setLockInDurationMinutes(0);
     }
 
-    // Pre-select the habit's saved obstacle from its own obstacleTemplateId
-    // (a stable 1-7 bigint matching the backend's built-in obstacles). The
-    // obstacle is unrelated to the parent goal's outcome text.
-    const savedLabel = obstacleLabelForId(habit.obstacleTemplateId);
-    const builtinChips: SelectedObstacle[] = [];
-    if (savedLabel) {
-      const preset = OBSTACLE_TEMPLATES.find(
-        (t) => t.label.toLowerCase() === savedLabel.toLowerCase(),
-      );
-      if (preset) {
-        builtinChips.push({
-          id: preset.id,
-          label: preset.label,
-          kind: "builtin",
-        });
-      }
-    }
+    // Pre-select EVERY obstacle the habit has saved, from its own
+    // obstacleTemplateIds (stable 1-7 bigints matching the backend's built-in
+    // obstacles). A habit with none saved stays empty — we never auto-fill.
+    // The obstacles are unrelated to the parent goal's outcome text.
+    const savedLabels = obstacleLabelsForIds(habit.obstacleTemplateIds);
+    const builtinChips: SelectedObstacle[] = OBSTACLE_TEMPLATES.filter((t) =>
+      savedLabels.includes(t.label),
+    ).map((t) => ({ id: t.id, label: t.label, kind: "builtin" as const }));
     setObstacles(builtinChips);
+    // Seed the resolved-id map with the saved ids so an untouched save
+    // round-trips the exact same set without re-resolving every label.
+    const savedIdByLabel: Record<string, bigint> = {};
+    for (const id of habit.obstacleTemplateIds ?? []) {
+      const template = OBSTACLE_TEMPLATES[Number(id) - 1];
+      if (template) savedIdByLabel[template.label] = id;
+    }
+    setObstacleTemplateIds(savedIdByLabel);
+    setObstacleError(null);
 
     const rawDays = (habit as unknown as { scheduledDays?: string[] })
       .scheduledDays;
@@ -282,6 +293,7 @@ export function EditHabitPage() {
     setObstacles((prev) =>
       isAdding ? [...prev, chip] : prev.filter((o) => o.id !== chip.id),
     );
+    if (isAdding) setObstacleError(null);
     // Resolve the built-in label to a real, reusable obstacle template id
     // (find-or-create). The first pick creates the record; every later pick
     // of the same label reuses the same one — the existing dedup pattern.
@@ -317,10 +329,14 @@ export function EditHabitPage() {
   function buildPayload(
     overrides?: Partial<UpdateHabitRequest>,
   ): UpdateHabitRequest {
-    const selectedBuiltin = obstacles.find((o) => o.kind === "builtin");
-    const obstacleTemplateId = selectedBuiltin
-      ? obstacleTemplateIds[selectedBuiltin.label]
-      : undefined;
+    // Send the full resulting set of selected obstacles, in the fixed built-in
+    // order. The backend replaces the habit's whole obstacleTemplateIds list
+    // when this field is provided.
+    const selectedIds = OBSTACLE_TEMPLATES.filter((t) =>
+      obstacles.some((o) => o.id === t.id),
+    )
+      .map((t) => obstacleTemplateIds[t.label])
+      .filter((id): id is bigint => id !== undefined);
     // wish (goal text) and wishDescription (habit name) are immutable for ALL
     // existing goals after creation. EditHabitPage only edits existing habits,
     // so we never send these fields on update — the backend preserves them.
@@ -353,12 +369,10 @@ export function EditHabitPage() {
           : BigInt(0),
       ...overrides,
     };
-    // Persist the resolved reusable obstacle template link for the selected
-    // built-in obstacle. The backend replaces the habit's single
-    // obstacleTemplateId when provided and leaves it unchanged when absent.
-    if (obstacleTemplateId !== undefined) {
-      payload.obstacleTemplateId = obstacleTemplateId;
-    }
+    // Persist the resolved reusable obstacle template links for every selected
+    // built-in obstacle. The backend replaces the habit's whole list when this
+    // field is provided.
+    payload.obstacleTemplateIds = selectedIds;
     return payload;
   }
 
@@ -383,6 +397,12 @@ export function EditHabitPage() {
   }
 
   const handleGeneralSave = () => {
+    // At least one predicted obstacle is required whenever a habit is saved.
+    if (obstacles.length === 0) {
+      setObstacleError("Pick at least one obstacle before saving.");
+      return;
+    }
+    setObstacleError(null);
     saveMutation.mutate(buildPayload({ isTimeEdit: undefined }), {
       onSuccess: () => {
         navigate({ to: "/goals" });
@@ -680,7 +700,19 @@ export function EditHabitPage() {
 
                 {/* Obstacles */}
                 <div className="space-y-4" style={insetCard}>
-                  <p className={sectionLabel}>Obstacles</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className={`${sectionLabel} mb-0`}>Obstacles</p>
+                    <span
+                      className="text-[10px] font-mono tracking-widest text-muted-foreground/50 uppercase"
+                      data-ocid="edit_habit.obstacle_required_marker"
+                    >
+                      Required
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70 -mt-2">
+                    Pick every obstacle that could get in the way. At least one
+                    is required.
+                  </p>
                   <div
                     className="flex flex-wrap gap-2"
                     data-ocid="edit_habit.obstacle_list"
@@ -724,6 +756,15 @@ export function EditHabitPage() {
                       );
                     })}
                   </div>
+                  {obstacleError && (
+                    <p
+                      className="text-xs font-medium"
+                      style={{ color: "#EF4444" }}
+                      data-ocid="edit_habit.obstacle.field_error"
+                    >
+                      {obstacleError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Color Picker */}

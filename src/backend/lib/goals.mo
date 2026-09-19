@@ -21,6 +21,17 @@ import DateUtils "./date-utils";
 /// (goalId required); the habit inherits the parent's category and its
 /// wish/wishDescription/outcome are sourced from the parent (read-only).
 module {
+  /// Validates a predicted-obstacle list: it must be non-empty and every id
+  /// must be one of the seven built-in obstacles. Returns false otherwise.
+  /// This is the server-side enforcement of the built-in-only restriction.
+  func validPredictedObstacles(ids : [Common.ObstacleTemplateId]) : Bool {
+    if (ids.size() == 0) return false;
+    let builtins = GoalTypes.builtinObstacles();
+    ids.all(func(id) {
+      builtins.find(func(t : GoalTypes.ObstacleTemplate) : Bool { t.id == id }) != null;
+    });
+  };
+
   /// Projects a stored Goal to its macro-goal public form.
   /// Caller must ensure the Goal is a macro goal (goalId = null).
   public func toMacroGoalPublic(goal : GoalTypes.Goal) : GoalTypes.MacroGoalPublic {
@@ -47,7 +58,7 @@ module {
       wish = goal.wish;
       wishDescription = goal.wishDescription;
       outcome = goal.outcome;
-      obstacleTemplateId = goal.obstacleTemplateId;
+      obstacleTemplateIds = goal.obstacleTemplateIds;
       ifThenPlan = goal.ifThenPlan;
       state = goal.state;
       createdAt = goal.createdAt;
@@ -83,7 +94,7 @@ module {
       var wish = request.wish;
       var wishDescription = request.wishDescription;
       outcome = request.outcome;
-      obstacleTemplateId = null;
+      obstacleTemplateIds = [] : [Common.ObstacleTemplateId];
       var ifThenPlan = "";
       var state = #active;
       createdAt = now;
@@ -124,6 +135,12 @@ module {
       case (?p) p;
     };
 
+    // Predicted obstacles: at least one is required, and every id must be one
+    // of the seven built-ins. Enforced here on the server.
+    if (not validPredictedObstacles(request.obstacleTemplateIds)) {
+      return #err(#invalidInput);
+    };
+
     let isLockIn = request.isLockIn;
     let lockInDurationMinutes = switch (request.lockInDurationMinutes) { case null 0; case (?n) n };
     let startTimeMinutes = switch (request.startTimeMinutes) { case null 0; case (?n) n };
@@ -162,7 +179,7 @@ module {
       var wish = parent.wish;
       var wishDescription = wishDescription;
       outcome = parent.outcome;
-      obstacleTemplateId = request.obstacleTemplateId;
+      obstacleTemplateIds = request.obstacleTemplateIds;
       var ifThenPlan = request.ifThenPlan;
       var state = #active;
       createdAt = now;
@@ -437,13 +454,14 @@ module {
       case _ {};
     };
 
-    // Expected-obstacle template link: update only when the edit supplies one.
-    // `obstacleTemplateId` is an immutable field, so when the edit provides a
-    // new value the record must be rebuilt and replaced in the list rather than
-    // mutated in place.
-    switch (request.obstacleTemplateId) {
+    // Predicted obstacles: when the edit supplies a replacement list it must be
+    // non-empty and contain only the seven built-in ids. `obstacleTemplateIds`
+    // is an immutable field, so when the edit provides a new list the record
+    // must be rebuilt and replaced in the list rather than mutated in place.
+    switch (request.obstacleTemplateIds) {
       case null { #ok(toHabitPublic(habit)) };
-      case (?id) {
+      case (?ids) {
+        if (not validPredictedObstacles(ids)) return #err(#invalidInput);
         let updated : GoalTypes.Goal = {
           id = habit.id;
           owner = habit.owner;
@@ -451,7 +469,7 @@ module {
           var wish = habit.wish;
           var wishDescription = habit.wishDescription;
           outcome = habit.outcome;
-          obstacleTemplateId = ?id;
+          obstacleTemplateIds = ids;
           var ifThenPlan = habit.ifThenPlan;
           var state = habit.state;
           createdAt = habit.createdAt;

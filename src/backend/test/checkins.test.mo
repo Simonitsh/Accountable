@@ -237,7 +237,7 @@ func makeGoal(
     var wish = "wish";
     var wishDescription = "desc";
     outcome = "outcome";
-    obstacleTemplateId = null;
+    obstacleTemplateIds = [1];
     var ifThenPlan = "";
     var state = #active;
     createdAt = 0;

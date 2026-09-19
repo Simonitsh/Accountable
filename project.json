@@ -1,18 +1,18 @@
 {
-  "overview": "A habit tracker that helps users build routines with Lock-In windows, If-Then recovery plans, and progress history.",
+  "overview": "A WOOP-based habit and goal tracker that helps users plan, check in daily, and see their progress.",
   "features": [
-    "Track daily habits with Lock-In windows",
-    "Behavioral Timeline showing habit history day by day",
-    "If-Then recovery plans for missed habits",
-    "7-day progress tracker on each habit card",
-    "Deliberate skip tracking with obstacles"
+    "Create habits with a guided WOOP wizard",
+    "Predict multiple obstacles that might get in the way",
+    "Check in daily and record what actually got in the way",
+    "Edit habits and their obstacles inline",
+    "See insights comparing predicted and actual obstacles"
   ],
-  "category": "productivity",
+  "category": "habit-tracker",
   "tags": [
-    "habits",
     "productivity",
-    "tracking",
-    "wellness"
+    "habits",
+    "goals",
+    "self-improvement"
   ],
-  "last_updated": "2026-09-18T22:56:30.683Z"
+  "last_updated": "2026-09-18T23:49:47.842Z"
 }

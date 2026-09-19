@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  Check,
   CheckCircle2,
   Clock,
   Edit3,
@@ -13,6 +14,7 @@ import {
   Pause,
   Play,
   Save,
+  Tag,
   Target,
   X,
 } from "lucide-react";
@@ -64,17 +66,25 @@ const EDIT_THEME_COLORS = [
 ];
 
 /**
- * Resolves a habit's saved obstacleTemplateId (a stable 1-7 bigint matching
- * the backend's built-in obstacles) to its display label. OBSTACLE_TEMPLATES
- * is ordered identically to the backend's builtinObstacles, so the id maps
- * directly to an index. Returns undefined when the habit has no obstacle or
- * the id is out of range. The habit's obstacle is unrelated to the parent
- * goal's outcome text.
+ * Resolves a habit's saved obstacleTemplateIds (stable 1-7 bigints matching
+ * the backend's built-in obstacles) to their display labels. OBSTACLE_TEMPLATES
+ * is ordered identically to the backend's builtinObstacles, so each id maps
+ * directly to an index. Returns the labels in the fixed built-in order,
+ * skipping any id that is out of range. The habit's obstacles are unrelated to
+ * the parent goal's outcome text.
  */
-function obstacleLabelForId(id: bigint | undefined): string | undefined {
-  if (id === undefined) return undefined;
-  const template = OBSTACLE_TEMPLATES[Number(id) - 1];
-  return template?.label;
+function obstacleLabelsForIds(ids: bigint[] | undefined): string[] {
+  if (!ids || ids.length === 0) return [];
+  const labels = new Set<string>();
+  for (const id of ids) {
+    const template = OBSTACLE_TEMPLATES[Number(id) - 1];
+    if (template) labels.add(template.label);
+  }
+  // OBSTACLE_TEMPLATES is already in the fixed built-in order, so filtering it
+  // preserves that order regardless of the order the ids were saved in.
+  return OBSTACLE_TEMPLATES.filter((t) => labels.has(t.label)).map(
+    (t) => t.label,
+  );
 }
 
 /**
@@ -158,13 +168,10 @@ function GoalEditForm({
   isSaving,
   existingLockInGoals = [],
 }: GoalEditFormProps) {
-  // Pre-select the habit's saved obstacle from its own obstacleTemplateId
-  // (a stable 1-7 bigint matching the backend's built-in obstacles). The
-  // obstacle is unrelated to the parent goal's outcome text.
-  const existingPreset = (() => {
-    const label = obstacleLabelForId(goal.obstacleTemplateId);
-    return label ? [label] : [];
-  })();
+  // Pre-select the habit's saved obstacles from its own obstacleTemplateIds
+  // (stable 1-7 bigints matching the backend's built-in obstacles). The
+  // obstacles are unrelated to the parent goal's outcome text.
+  const existingPreset = obstacleLabelsForIds(goal.obstacleTemplateIds);
 
   // Pre-populate duration wheels from stored startTime/endTime
   const initDuration = (() => {
@@ -195,15 +202,25 @@ function GoalEditForm({
   const [overlapError, setOverlapError] = useState<string | null>(null);
   const resolveObstacleLabel = useResolveObstacleLabel();
   // Resolved reusable obstacle template ids keyed by built-in label. Populated
-  // when a built-in obstacle is picked; the resolved id is sent as
-  // obstacleTemplateId in the update payload so the habit links to a real,
-  // reusable template record (find-or-create dedup on the backend).
+  // when a built-in obstacle is picked; the resolved ids are sent as
+  // obstacleTemplateIds in the update payload so the habit links to real,
+  // reusable template records (find-or-create dedup on the backend).
   const [obstacleTemplateIds, setObstacleTemplateIds] = useState<
     Record<string, bigint>
   >({});
+  // Set when the user tries to remove the last obstacle. Cleared as soon as
+  // they pick one again. Neutral in tone — the user has done nothing wrong.
+  const [obstacleNote, setObstacleNote] = useState(false);
 
   function togglePreset(label: string) {
     const isAdding = !form.obstacles.includes(label);
+    // At least one obstacle is required. Removing the last one is prevented:
+    // the chip stays selected and a calm note explains why.
+    if (!isAdding && form.obstacles.length === 1) {
+      setObstacleNote(true);
+      return;
+    }
+    setObstacleNote(false);
     setForm((f) => ({
       ...f,
       obstacles: isAdding
@@ -252,15 +269,16 @@ function GoalEditForm({
       req.startTime = form.lockInStartTime || undefined;
     if (form.lockInEndTime !== (goal.endTime ?? ""))
       req.endTime = form.lockInEndTime || undefined;
-    // Persist the resolved reusable obstacle template link for the selected
-    // built-in obstacle (first selected preset). The backend replaces the
-    // habit's single obstacleTemplateId when provided and leaves it unchanged
-    // when absent.
-    const selectedBuiltin = form.obstacles[0];
-    const resolvedId = selectedBuiltin
-      ? obstacleTemplateIds[selectedBuiltin]
-      : undefined;
-    if (resolvedId !== undefined) req.obstacleTemplateId = resolvedId;
+    // Persist the resolved reusable obstacle template links for EVERY selected
+    // built-in obstacle, in the fixed built-in order. The backend replaces the
+    // habit's whole obstacleTemplateIds list when provided and leaves it
+    // unchanged when absent.
+    const resolvedIds = OBSTACLE_TEMPLATES.filter((t) =>
+      form.obstacles.includes(t.label),
+    )
+      .map((t) => obstacleTemplateIds[t.label])
+      .filter((id): id is bigint => id !== undefined);
+    if (resolvedIds.length > 0) req.obstacleTemplateIds = resolvedIds;
     onSave(req);
   }
 
@@ -377,11 +395,19 @@ function GoalEditForm({
         </p>
       </div>
 
-      {/* Obstacles (read-display) */}
+      {/* Obstacles (multi-select) */}
       <div className="space-y-2">
-        <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-          Obstacles
-        </Label>
+        <div className="flex items-baseline gap-1.5">
+          <Label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+            Obstacles
+          </Label>
+          <span
+            className="text-[10px] font-mono text-muted-foreground/50"
+            data-ocid="goals.edit_obstacle_required_marker"
+          >
+            required
+          </span>
+        </div>
         {/* Preset chips */}
         <div className="flex flex-wrap gap-1.5">
           {OBSTACLE_TEMPLATES.map((template) => {
@@ -392,6 +418,7 @@ function GoalEditForm({
                 key={template.id}
                 type="button"
                 onClick={() => togglePreset(label)}
+                aria-pressed={selected}
                 data-ocid={`goals.edit_obstacle_${label.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`}
                 className="text-xs px-2.5 py-1 rounded-full border transition-smooth"
                 style={
@@ -413,6 +440,14 @@ function GoalEditForm({
             );
           })}
         </div>
+        {obstacleNote && (
+          <p
+            className="text-[11px] text-muted-foreground/70 leading-snug"
+            data-ocid="goals.edit_obstacle_note"
+          >
+            A habit needs at least one obstacle. Keep one selected to save.
+          </p>
+        )}
         {form.obstacles.length > 0 && (
           <p className="text-[10px] text-muted-foreground/60">
             {form.obstacles.length} obstacle
@@ -837,9 +872,9 @@ function GoalDetailPanel({
   const isPaused = goal.state === GoalState.paused;
   const isCompleted = goal.state === GoalState.completed;
 
-  // The habit's saved obstacle label, resolved from its own obstacleTemplateId
-  // (unrelated to the parent goal's outcome text).
-  const obstacleLabel = obstacleLabelForId(goal.obstacleTemplateId);
+  // The habit's saved obstacle labels, resolved from its own
+  // obstacleTemplateIds (unrelated to the parent goal's outcome text).
+  const obstacleLabels = obstacleLabelsForIds(goal.obstacleTemplateIds);
 
   function handleSaveEdit(req: UpdateHabitRequest) {
     onUpdateGoal(goal.id, req);
@@ -993,13 +1028,13 @@ function GoalDetailPanel({
             className="space-y-3"
             data-ocid="goals.detail_view"
           >
-            {obstacleLabel && (
+            {obstacleLabels.length > 0 && (
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">
                   Obstacles
                 </p>
                 <p className="text-sm text-foreground leading-relaxed">
-                  {obstacleLabel}
+                  {obstacleLabels.join(", ")}
                 </p>
               </div>
             )}
@@ -1090,6 +1125,181 @@ function GoalDetailPanel({
   );
 }
 
+// ─── Inline obstacle quick picker ─────────────────────────────────────────────
+//
+// The quick obstacle picker that lives inline on each My Habits list row. It
+// stays on the list (never navigates to the full edit screen), multi-selects
+// over the same seven built-in options, and shows ALL of the habit's saved
+// predicted obstacles as selected.
+//
+// Changes are held in local draft state until the user taps Done, then saved
+// once as UpdateHabitRequest.obstacleTemplateIds. Tapping a chip never saves.
+// Dismissing without Done discards the draft. Removing the last obstacle is
+// prevented: the chip stays selected and a calm, neutral note explains that a
+// habit needs at least one obstacle.
+
+interface ObstacleQuickPickerProps {
+  habit: HabitPublic;
+  onSave: (habitId: bigint, req: UpdateHabitRequest) => void;
+  isSaving: boolean;
+}
+
+function ObstacleQuickPicker({
+  habit,
+  onSave,
+  isSaving,
+}: ObstacleQuickPickerProps) {
+  const savedLabels = obstacleLabelsForIds(habit.obstacleTemplateIds);
+  const [draft, setDraft] = useState<string[]>(savedLabels);
+  const [note, setNote] = useState(false);
+  const resolveObstacleLabel = useResolveObstacleLabel();
+  // Resolved reusable obstacle template ids keyed by built-in label. Populated
+  // when a built-in obstacle is picked; the resolved ids are sent as
+  // obstacleTemplateIds so the habit links to real, reusable template records.
+  const [resolvedIds, setResolvedIds] = useState<Record<string, bigint>>({});
+
+  function toggle(label: string) {
+    const isAdding = !draft.includes(label);
+    // At least one obstacle is required. Removing the last one is prevented:
+    // the chip stays selected and a calm note explains why.
+    if (!isAdding && draft.length === 1) {
+      setNote(true);
+      return;
+    }
+    setNote(false);
+    setDraft((prev) =>
+      isAdding ? [...prev, label] : prev.filter((o) => o !== label),
+    );
+    if (isAdding) {
+      void resolveObstacleLabel(label)
+        .then((id) => setResolvedIds((prev) => ({ ...prev, [label]: id })))
+        .catch(() => {
+          // Backend not ready — the chip stays selected without a template id.
+        });
+    }
+  }
+
+  function handleDone() {
+    // Send the full set in the fixed built-in order. Labels already saved keep
+    // their existing ids; any label the user just picked is resolved here.
+    const orderedLabels = OBSTACLE_TEMPLATES.filter((t) =>
+      draft.includes(t.label),
+    ).map((t) => t.label);
+    void Promise.all(
+      orderedLabels.map(async (label) => {
+        const known = resolvedIds[label];
+        if (known !== undefined) return known;
+        try {
+          return await resolveObstacleLabel(label);
+        } catch {
+          return undefined;
+        }
+      }),
+    ).then((ids) => {
+      const resolved = ids.filter((id): id is bigint => id !== undefined);
+      if (resolved.length === 0) return;
+      onSave(habit.id, {
+        timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
+        obstacleTemplateIds: resolved,
+      });
+    });
+  }
+
+  return (
+    <div
+      className="mt-3 pt-3 border-t border-border/20 space-y-2"
+      data-ocid="goals.quick_obstacle_picker"
+    >
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+          Obstacles
+        </span>
+        <span
+          className="text-[10px] font-mono text-muted-foreground/50"
+          data-ocid="goals.quick_obstacle_required_marker"
+        >
+          required
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {OBSTACLE_TEMPLATES.map((template) => {
+          const selected = draft.includes(template.label);
+          return (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => toggle(template.label)}
+              aria-pressed={selected}
+              data-ocid={`goals.quick_obstacle_${template.id}`}
+              className="text-xs px-2.5 py-1 rounded-full border transition-smooth"
+              style={
+                selected
+                  ? {
+                      background: "oklch(var(--color-accent-success) / 0.12)",
+                      borderColor: "oklch(var(--color-accent-success) / 0.4)",
+                      color: "oklch(var(--color-accent-success))",
+                    }
+                  : {
+                      background: "oklch(var(--muted) / 0.4)",
+                      borderColor: "oklch(var(--border))",
+                      color: "oklch(var(--muted-foreground))",
+                    }
+              }
+            >
+              {template.label}
+            </button>
+          );
+        })}
+      </div>
+      {note && (
+        <p
+          className="text-[11px] text-muted-foreground/70 leading-snug"
+          data-ocid="goals.quick_obstacle_note"
+        >
+          A habit needs at least one obstacle. Keep one selected to save.
+        </p>
+      )}
+      <div className="flex items-center gap-2 pt-0.5">
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleDone}
+          disabled={isSaving}
+          className="gap-1.5 h-7 text-xs button-primary-neon"
+          data-ocid="goals.quick_obstacle_done_button"
+        >
+          {isSaving ? (
+            <>
+              <span className="w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" />
+              Saving…
+            </>
+          ) : (
+            <>
+              <Check size={12} />
+              Done
+            </>
+          )}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setDraft(savedLabels);
+            setNote(false);
+          }}
+          disabled={isSaving}
+          className="gap-1.5 h-7 text-xs"
+          data-ocid="goals.quick_obstacle_cancel_button"
+        >
+          <X size={12} />
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Delete confirmation dialog ──────────────────────────────────────────────
 //
 // Confirms a single-habit hard-delete. Warns the user that deleting the habit
@@ -1155,6 +1365,7 @@ export function GoalsPage() {
   const [changingStateId, setChangingStateId] = useState<bigint | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HabitPublic | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [obstaclePickerId, setObstaclePickerId] = useState<bigint | null>(null);
   const { actor, isFetching } = useBackend();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -1213,6 +1424,7 @@ export function GoalsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myGoals"] });
       toast.success("Habit updated successfully.");
+      setObstaclePickerId(null);
     },
     onError: (err: Error) => {
       console.error("[GoalsPage] updateHabit error:", err);
@@ -1424,12 +1636,24 @@ export function GoalsPage() {
                         : "border-border/20 bg-card hover:border-primary/20"
                     }`}
                     actions={
-                      <Edit3
-                        size={14}
-                        className={`transition-smooth ${
-                          isExpanded ? "text-primary" : ""
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setObstaclePickerId((prev) =>
+                            prev === goal.id ? null : goal.id,
+                          )
+                        }
+                        aria-expanded={obstaclePickerId === goal.id}
+                        aria-label={`Edit obstacles for ${goal.wishDescription || goal.wish}`}
+                        data-ocid={`goals.quick_obstacle_open_button.${index + 1}`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-smooth ${
+                          obstaclePickerId === goal.id
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted/40 text-muted-foreground hover:text-foreground"
                         }`}
-                      />
+                      >
+                        <Tag size={13} />
+                      </button>
                     }
                   >
                     {/* Clickable region — toggles expand/collapse. Kept as a
@@ -1481,6 +1705,14 @@ export function GoalsPage() {
                         </p>
                       )}
                     </button>
+                    {obstaclePickerId === goal.id && (
+                      <ObstacleQuickPicker
+                        key={`obstacles-${goal.id}`}
+                        habit={goal}
+                        onSave={handleUpdateGoal}
+                        isSaving={updateGoalMutation.isPending}
+                      />
+                    )}
                   </GoalCardShell>
                   {isExpanded && (
                     <motion.div

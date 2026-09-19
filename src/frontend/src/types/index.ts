@@ -154,14 +154,18 @@ export interface CreateMacroGoalRequest {
  * CreateHabitRequest — mirrors the backend CreateHabitRequest.
  * Creates a new habit (the daily keystone action) linked to an existing
  * macro goal via `goalId` (required). Carries the habit-level fields:
- * ifThenPlan, obstacleTemplateId, isLockIn, schedule, and optional
+ * ifThenPlan, obstacleTemplateIds, isLockIn, schedule, and optional
  * iconName/themeColor. NO category, wish, wishDescription, or outcome
  * (those belong to the parent macro goal).
+ *
+ * `obstacleTemplateIds` is REQUIRED and holds EVERY predicted obstacle the
+ * user selected (at least one). The backend stores the full list on the
+ * habit; the actual check-in obstacle stays a single optional id.
  */
 export interface CreateHabitRequest {
   goalId: bigint;
   ifThenPlan: string;
-  obstacleTemplateId?: number;
+  obstacleTemplateIds: bigint[];
   isLockIn: boolean;
   scheduledDays?: string[];
   startTime?: string;
@@ -339,7 +343,9 @@ export interface HabitAnalytics {
   category: GoalCategory;
   shownUpDays: bigint;
   ifThenEffectiveness: IfThenEffectiveness;
-  predictedObstacle?: ObstacleStat;
+  /** Every obstacle this habit predicted (at least one), each with its own
+   *  genuine count. The Insights obstacle pool aggregates across all habits. */
+  predictedObstacles: ObstacleStat[];
   actualObstacles: ObstacleStat[];
 }
 

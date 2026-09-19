@@ -439,23 +439,41 @@ export default function WoopWizard({
     existingLockInGoals,
     editingGoalId,
   ]);
-  const primaryObstacle = form.selectedObstacles[0]?.label ?? "";
+  // Selected obstacles in the FIXED order of the seven built-in
+  // OBSTACLE_TEMPLATES — never pick order. Every display surface (obstacle
+  // step summary, if-then plan chips, review) and the persisted
+  // obstacleTemplateIds list read from this single derived value so the order
+  // is consistent everywhere.
+  const orderedSelectedObstacles = useMemo(
+    () =>
+      OBSTACLE_TEMPLATES.filter((t) =>
+        form.selectedObstacles.some((o) => o.id === t.id),
+      ),
+    [form.selectedObstacles],
+  );
+  const primaryObstacle = orderedSelectedObstacles[0]?.label ?? "";
 
   const createGoalMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Actor not ready — please wait and retry.");
 
-      // Resolve the primary obstacle to a real, reusable obstacle template id
-      // so the habit links to a persisted ObstacleTemplate record instead of
-      // storing the builtin label only as text in goal.outcome. Obstacles are
-      // locked to the seven built-in OBSTACLE_TEMPLATES, so every selection
-      // resolves via useResolveObstacleLabel (find-or-create — the first pick
-      // creates the record, later picks of the same label reuse the same id).
-      const primaryObs = form.selectedObstacles[0];
-      let obstacleTemplateId: bigint | undefined;
-      if (primaryObs) {
-        obstacleTemplateId = await resolveObstacleLabel(primaryObs.label);
-      }
+      // Resolve EVERY selected obstacle to a real, reusable obstacle template
+      // id so the habit links to persisted ObstacleTemplate records instead of
+      // storing the builtin labels only as text. Obstacles are locked to the
+      // seven built-in OBSTACLE_TEMPLATES, so every selection resolves via
+      // useResolveObstacleLabel (find-or-create — the first pick creates the
+      // record, later picks of the same label reuse the same id).
+      //
+      // The full list is sent as CreateHabitRequest.obstacleTemplateIds. The
+      // selections are read in the fixed OBSTACLE_TEMPLATES order (never pick
+      // order) so the persisted list is deterministic regardless of the order
+      // the user tapped the chips.
+      const orderedSelectedObstacles = OBSTACLE_TEMPLATES.filter((t) =>
+        form.selectedObstacles.some((o) => o.id === t.id),
+      );
+      const obstacleTemplateIds = await Promise.all(
+        orderedSelectedObstacles.map((obs) => resolveObstacleLabel(obs.label)),
+      );
 
       // goalId is required as BigInt. Prefer presetGoalId (the wizard was
       // opened pre-scoped to a goal); fall back to selectedGoalId when the
@@ -481,7 +499,7 @@ export default function WoopWizard({
         // exactly this. Pass the trimmed typed habit name here.
         wishDescription: assembledHabit || form.habitAction.trim() || undefined,
         ifThenPlan: form.ifThenPlan.trim(),
-        obstacleTemplateId,
+        obstacleTemplateIds,
         isLockIn: form.isLockIn,
         scheduledDays: form.scheduledDays,
         startTime:
@@ -1631,10 +1649,10 @@ export default function WoopWizard({
                     {errors.obstacles}
                   </p>
                 )}
-                {form.selectedObstacles.length > 0 && (
+                {orderedSelectedObstacles.length > 0 && (
                   <p className="text-base text-accent-success">
                     Selected:{" "}
-                    {form.selectedObstacles.map((o) => o.label).join(", ")}
+                    {orderedSelectedObstacles.map((o) => o.label).join(", ")}
                   </p>
                 )}
               </div>
@@ -1654,7 +1672,7 @@ export default function WoopWizard({
                       <span className="text-base font-mono tracking-widest text-muted-foreground uppercase shrink-0">
                         IF
                       </span>
-                      {form.selectedObstacles.map((obs) => (
+                      {orderedSelectedObstacles.map((obs) => (
                         <span
                           key={obs.id}
                           className="px-3 py-1.5 rounded-xl text-base font-medium"
@@ -1780,7 +1798,7 @@ export default function WoopWizard({
                       Obstacle(s)
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {form.selectedObstacles.map((obs) => (
+                      {orderedSelectedObstacles.map((obs) => (
                         <span
                           key={obs.id}
                           className="px-3 py-1 rounded-lg text-base font-medium"

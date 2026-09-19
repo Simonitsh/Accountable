@@ -28,6 +28,7 @@ mixin () {
     "- **Identifiers** (`goalId`, `checkInId`, `connectionId`, `interactionId`, `obstacleTemplateId`) are `Nat`.\n" #
     "- **Principals** are `Principal` values; the caller's own principal is `caller`.\n" #
     "- **Optional values** use `?T` / `null`. For example `obstacleTemplateId` on a check-in is `null` when no template was recorded; `goalId` on a `Goal` is `null` for a macro goal and set for a habit.\n" #
+    "- **Predicted obstacles** on a habit are a non-empty list of built-in obstacle ids (`obstacleTemplateIds : [Nat]`). The list is restricted to the seven built-ins and must contain at least one entry. The **actual** obstacle on a check-in is a single optional id (`obstacleTemplateId : ?Nat`) — it records the one obstacle that genuinely got in the way that day.\n" #
     "- **Variants** are Candid variants. `checkInType` is one of `#success`, `#skip`, `#missed`, `#inProgress`, `#missedCheckIn`, `#missedCheckOut`. `#skip` is a deliberate skip and always carries an `obstacleTemplateId`; `#missed` is a scheduled day that passed with no interaction and never carries one. `GoalCategory` is one of `#Health`, `#Learning`, `#Social`, `#Productivity`, `#Leisure`. `GoalState` is `#active`, `#paused`, `#completed`.\n" #
     "- **Day of week** in the Insights summary is `0 = Sunday ... 6 = Saturday`.\n" #
     "\n" #
@@ -44,13 +45,13 @@ mixin () {
     "\n" #
     "### Goals & Habits\n" #
     "- `createMacroGoal(request) : { #ok : MacroGoalPublic; #err : Text }` — creates a container with category/wish/outcome.\n" #
-    "- `createHabit(request) : { #ok : HabitPublic; #err : Text }` — creates a habit inside an existing macro goal (`goalId` required).\n" #
+    "- `createHabit(request) : { #ok : HabitPublic; #err : Text }` — creates a habit inside an existing macro goal (`goalId` required). `CreateHabitRequest.obstacleTemplateIds` is REQUIRED and must be a non-empty list of built-in obstacle ids; an empty list or an id outside the seven built-ins is rejected with `#invalidInput`.\n" #
     "- `getMacroGoal(goalId) : ?MacroGoalPublic` — query; owner only.\n" #
     "- `getHabit(habitId) : ?HabitPublic` — query; owner only.\n" #
     "- `updateGoalState(goalId, newState) : Bool` — transitions a goal's state; traps on error.\n" #
     "- `deleteGoal(goalId) : { #ok; #err : Text }` — hard-deletes a macro goal and all child habits, check-ins, and interactions atomically.\n" #
     "- `deleteHabit(habitId) : { #ok; #err : Text }` — hard-deletes a single habit and its check-ins/interactions atomically.\n" #
-    "- `updateHabit(habitId, request) : { #ok : HabitPublic; #err : Text }` — edits editable habit fields; wish/outcome/category are immutable. `UpdateHabitRequest` now accepts an optional `obstacleTemplateId` (`?Nat`): when provided, the habit's expected-obstacle template link is updated; when absent, it is left unchanged.\n" #
+    "- `updateHabit(habitId, request) : { #ok : HabitPublic; #err : Text }` — edits editable habit fields; wish/outcome/category are immutable. `UpdateHabitRequest` accepts an optional `obstacleTemplateIds` (`?[Nat]`): when provided, it REPLACES the habit's full predicted-obstacle list and must be non-empty and contain only the seven built-in ids (otherwise `#invalidInput`); when absent, the list is left unchanged.\n" #
     "- `updateMacroGoal(goalId, request) : { #ok : MacroGoalPublic; #err : Text }` — edits cosmetic macro-goal fields only.\n" #
     "- `listMyGoals() : [GoalWithHabitsPublic]` — query; macro goals grouped with linked habits.\n" #
     "- `listHabitsByParent(parentGoalId) : { #ok : [HabitPublic]; #err : Text }` — query.\n" #
@@ -106,7 +107,7 @@ mixin () {
     "- Many endpoints **trap** (reject the message) on caller error rather than returning a `Result` — e.g. anonymous callers, unregistered callers, and one-per-day violations. A trap rolls back the whole message and reaches the frontend as an opaque reject.\n" #
     "- `getAnalytics` counts only the caller's own data; it never leaks other users' habits or check-ins.\n" #
     "- Shown-up days exclude deliberate skips (`#skip`) and missed days (`#missed`), so the count reflects genuine effort, not grading.\n" #
-    "- The predicted obstacle on a habit is saved permanently at creation and is not editable; the Insights summary compares it against obstacles actually recorded on check-ins.\n" #
+    "- The predicted obstacles on a habit are saved permanently at creation and are not editable; the Insights summary compares them against obstacles actually recorded on check-ins. A habit may predict several obstacles, and the Insights predicted pool counts how many of the caller's habits predicted each one.\n" #
     "- `getUserProfile` and `listAllUsers` expose email only to the owner or an admin; partner-facing paths strip it.\n" #
     "- OQL `execute` is read-only and controller-scoped for connection/interaction entities; user-scoped entities expose only the caller's own rows.\n"
   ;

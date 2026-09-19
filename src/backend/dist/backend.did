@@ -36,7 +36,7 @@ type UpdateHabitRequest =
    isLockIn: opt bool;
    isTimeEdit: opt bool;
    lockInDurationMinutes: opt nat;
-   obstacleTemplateId: opt ObstacleTemplateId;
+   obstacleTemplateIds: opt vec ObstacleTemplateId;
    scheduledDays: opt vec text;
    startTime: opt text;
    startTimeMinutes: opt nat;
@@ -138,7 +138,7 @@ type HabitPublic =
    isLockIn: bool;
    lastEditedAt: opt Timestamp;
    lockInDurationMinutes: nat;
-   obstacleTemplateId: opt ObstacleTemplateId;
+   obstacleTemplateIds: vec ObstacleTemplateId;
    outcome: text;
    owner: UserId;
    scheduledDays: vec text;
@@ -157,7 +157,7 @@ type HabitAnalytics =
    habitId: GoalId;
    habitName: text;
    ifThenEffectiveness: IfThenEffectiveness;
-   predictedObstacle: opt ObstacleStat;
+   predictedObstacles: vec ObstacleStat;
    shownUpDays: nat;
  };
 type GoalWithHabitsPublic = 
@@ -219,7 +219,7 @@ type CreateHabitRequest =
    ifThenPlan: text;
    isLockIn: bool;
    lockInDurationMinutes: opt nat;
-   obstacleTemplateId: opt ObstacleTemplateId;
+   obstacleTemplateIds: vec ObstacleTemplateId;
    scheduledDays: opt vec text;
    startTime: opt text;
    startTimeMinutes: opt nat;

@@ -165,10 +165,38 @@ module {
     });
   };
 
+  /// Predicted obstacles across the caller's habits, counted by how many
+  /// habits predicted each one and sorted by frequency (most frequent first).
+  /// Every habit contributes ALL of its predicted obstacles, so the count is a
+  /// genuine number of habits rather than a placeholder.
+  func computePredictedObstacles(
+    habits : [GoalTypes.HabitPublic],
+  ) : [AnalyticsTypes.ObstacleStat] {
+    let counts = Map.empty<Common.ObstacleTemplateId, Nat>();
+    for (h in habits.values()) {
+      for (id in h.obstacleTemplateIds.values()) {
+        counts.add(id, (counts.get(id) ?? 0) + 1);
+      };
+    };
+    let stats = counts.entries().map(func((id, count)) {
+      {
+        obstacleTemplateId = ?id;
+        obstacleName = obstacleName(id);
+        count;
+      };
+    }).toArray();
+    stats.sort(func(a, b) {
+      if (a.count > b.count) #less
+      else if (a.count < b.count) #greater
+      else #equal
+    });
+  };
+
   /// Per-habit analytics for a single habit and its check-ins.
   public func computeHabitAnalytics(
     habit : GoalTypes.HabitPublic,
     checkIns : [CheckInTypes.CheckIn],
+    predictedObstacles : [AnalyticsTypes.ObstacleStat],
   ) : AnalyticsTypes.HabitAnalytics {
     // Shown-up days: count only genuine successes. Skips and missed days are
     // excluded.
@@ -179,15 +207,6 @@ module {
 
     let ifThen = computeIfThenEffectiveness(checkIns);
 
-    let predictedObstacle = switch (habit.obstacleTemplateId) {
-      case null null;
-      case (?id) ?{
-        obstacleTemplateId = ?id;
-        obstacleName = obstacleName(id);
-        count = 0;
-      };
-    };
-
     let actualObstacles = computeActualObstacles(checkIns);
 
     {
@@ -196,7 +215,7 @@ module {
       category = habit.category;
       shownUpDays;
       ifThenEffectiveness = ifThen;
-      predictedObstacle;
+      predictedObstacles;
       actualObstacles;
     };
   };
@@ -217,10 +236,15 @@ module {
     }).toArray();
     let allCheckIns = checkIns.values().filter(func(c) { c.owner == caller }).toArray();
 
-    let habitAnalytics = ownedHabits.map(func(g) {
-      let gPublic = GoalLib.toHabitPublic(g);
-      let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == g.id });
-      computeHabitAnalytics(gPublic, goalCheckIns);
+    // The predicted pool is shared across the caller's habits: every habit
+    // contributes all of its predicted obstacles, and each obstacle carries a
+    // genuine count of how many habits predicted it.
+    let habitPublics = ownedHabits.map(func(g) { GoalLib.toHabitPublic(g) });
+    let predictedPool = computePredictedObstacles(habitPublics);
+
+    let habitAnalytics = habitPublics.map(func(gPublic) {
+      let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == gPublic.id });
+      computeHabitAnalytics(gPublic, goalCheckIns, predictedPool);
     });
 
     let overallIfThen = computeIfThenEffectiveness(allCheckIns);

@@ -20,6 +20,7 @@ export function makeHabit(overrides: Partial<HabitPublic> = {}): HabitPublic {
     themeColor: "#10B981",
     wishDescription: "Run every morning",
     ifThenPlan: "If I feel tired, I will put on my shoes",
+    obstacleTemplateIds: [1n],
     updatedAt: FIXED_TS_NS,
     state: GoalState.active,
     category: GoalCategory.Health,

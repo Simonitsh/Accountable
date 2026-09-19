@@ -75,8 +75,8 @@ export interface CreateHabitRequest {
   'themeColor' : [] | [string],
   'wishDescription' : [] | [string],
   'ifThenPlan' : string,
-  'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'isLockIn' : boolean,
+  'obstacleTemplateIds' : Array<ObstacleTemplateId>,
   'lockInDurationMinutes' : [] | [bigint],
 }
 export interface CreateMacroGoalRequest {
@@ -121,12 +121,12 @@ export interface GoalWithHabitsPublic {
 }
 export interface HabitAnalytics {
   'ifThenEffectiveness' : IfThenEffectiveness,
-  'predictedObstacle' : [] | [ObstacleStat],
   'habitName' : string,
   'habitId' : GoalId,
   'actualObstacles' : Array<ObstacleStat>,
   'shownUpDays' : bigint,
   'category' : GoalCategory,
+  'predictedObstacles' : Array<ObstacleStat>,
 }
 export interface HabitPublic {
   'id' : GoalId,
@@ -145,9 +145,9 @@ export interface HabitPublic {
   'ifThenPlan' : string,
   'updatedAt' : Timestamp,
   'state' : GoalState,
-  'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'category' : GoalCategory,
   'isLockIn' : boolean,
+  'obstacleTemplateIds' : Array<ObstacleTemplateId>,
   'outcome' : string,
   'lockInDurationMinutes' : bigint,
 }
@@ -228,8 +228,8 @@ export interface UpdateHabitRequest {
   'themeColor' : [] | [string],
   'isTimeEdit' : [] | [boolean],
   'ifThenPlan' : [] | [string],
-  'obstacleTemplateId' : [] | [ObstacleTemplateId],
   'isLockIn' : [] | [boolean],
+  'obstacleTemplateIds' : [] | [Array<ObstacleTemplateId>],
   'lockInDurationMinutes' : [] | [bigint],
 }
 export type UpdateMacroGoalRequest = {};

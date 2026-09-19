@@ -171,7 +171,7 @@ actor {
           var wish = "";
           var wishDescription = "";
           outcome = "";
-          obstacleTemplateId = null : ?Common.ObstacleTemplateId;
+          obstacleTemplateIds = [] : [Common.ObstacleTemplateId];
           var ifThenPlan = "";
           var state = #active : Common.GoalState;
           createdAt = 0 : Common.Timestamp;
@@ -194,7 +194,7 @@ actor {
         .payload("wish", func (g : GoalTypes.Goal) : Text = g.wish)
         .payload("wishDescription", func (g : GoalTypes.Goal) : Text = g.wishDescription)
         .payload("outcome", func (g : GoalTypes.Goal) : Text = g.outcome)
-        .payload("obstacleTemplateId", func (g : GoalTypes.Goal) : Nat = switch (g.obstacleTemplateId) { case null 0; case (?n) n })
+        .payload("obstacleTemplateIds", func (g : GoalTypes.Goal) : Text = g.obstacleTemplateIds.values().map(func(id) { id.toText() }).join(","))
         .payload("ifThenPlan", func (g : GoalTypes.Goal) : Text = g.ifThenPlan)
         .payload("state", func (g : GoalTypes.Goal) : Text = switch (g.state) { case (#active) "active"; case (#paused) "paused"; case (#completed) "completed" })
         .payload("createdAt", func (g : GoalTypes.Goal) : Int = g.createdAt)

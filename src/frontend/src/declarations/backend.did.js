@@ -20,8 +20,8 @@ export const CreateHabitRequest = IDL.Record({
   'themeColor' : IDL.Opt(IDL.Text),
   'wishDescription' : IDL.Opt(IDL.Text),
   'ifThenPlan' : IDL.Text,
-  'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'isLockIn' : IDL.Bool,
+  'obstacleTemplateIds' : IDL.Vec(ObstacleTemplateId),
   'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
 });
 export const UserId = IDL.Principal;
@@ -55,9 +55,9 @@ export const HabitPublic = IDL.Record({
   'ifThenPlan' : IDL.Text,
   'updatedAt' : Timestamp,
   'state' : GoalState,
-  'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'category' : GoalCategory,
   'isLockIn' : IDL.Bool,
+  'obstacleTemplateIds' : IDL.Vec(ObstacleTemplateId),
   'outcome' : IDL.Text,
   'lockInDurationMinutes' : IDL.Nat,
 });
@@ -121,12 +121,12 @@ export const ObstacleStat = IDL.Record({
 });
 export const HabitAnalytics = IDL.Record({
   'ifThenEffectiveness' : IfThenEffectiveness,
-  'predictedObstacle' : IDL.Opt(ObstacleStat),
   'habitName' : IDL.Text,
   'habitId' : GoalId,
   'actualObstacles' : IDL.Vec(ObstacleStat),
   'shownUpDays' : IDL.Nat,
   'category' : GoalCategory,
+  'predictedObstacles' : IDL.Vec(ObstacleStat),
 });
 export const AnalyticsSummary = IDL.Record({
   'categoryBreakdown' : IDL.Vec(CategoryStat),
@@ -266,8 +266,8 @@ export const UpdateHabitRequest = IDL.Record({
   'themeColor' : IDL.Opt(IDL.Text),
   'isTimeEdit' : IDL.Opt(IDL.Bool),
   'ifThenPlan' : IDL.Opt(IDL.Text),
-  'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
   'isLockIn' : IDL.Opt(IDL.Bool),
+  'obstacleTemplateIds' : IDL.Opt(IDL.Vec(ObstacleTemplateId)),
   'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
 });
 export const UpdateMacroGoalRequest = IDL.Record({});
@@ -424,8 +424,8 @@ export const idlFactory = ({ IDL }) => {
     'themeColor' : IDL.Opt(IDL.Text),
     'wishDescription' : IDL.Opt(IDL.Text),
     'ifThenPlan' : IDL.Text,
-    'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'isLockIn' : IDL.Bool,
+    'obstacleTemplateIds' : IDL.Vec(ObstacleTemplateId),
     'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
   });
   const UserId = IDL.Principal;
@@ -459,9 +459,9 @@ export const idlFactory = ({ IDL }) => {
     'ifThenPlan' : IDL.Text,
     'updatedAt' : Timestamp,
     'state' : GoalState,
-    'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'category' : GoalCategory,
     'isLockIn' : IDL.Bool,
+    'obstacleTemplateIds' : IDL.Vec(ObstacleTemplateId),
     'outcome' : IDL.Text,
     'lockInDurationMinutes' : IDL.Nat,
   });
@@ -525,12 +525,12 @@ export const idlFactory = ({ IDL }) => {
   });
   const HabitAnalytics = IDL.Record({
     'ifThenEffectiveness' : IfThenEffectiveness,
-    'predictedObstacle' : IDL.Opt(ObstacleStat),
     'habitName' : IDL.Text,
     'habitId' : GoalId,
     'actualObstacles' : IDL.Vec(ObstacleStat),
     'shownUpDays' : IDL.Nat,
     'category' : GoalCategory,
+    'predictedObstacles' : IDL.Vec(ObstacleStat),
   });
   const AnalyticsSummary = IDL.Record({
     'categoryBreakdown' : IDL.Vec(CategoryStat),
@@ -670,8 +670,8 @@ export const idlFactory = ({ IDL }) => {
     'themeColor' : IDL.Opt(IDL.Text),
     'isTimeEdit' : IDL.Opt(IDL.Bool),
     'ifThenPlan' : IDL.Opt(IDL.Text),
-    'obstacleTemplateId' : IDL.Opt(ObstacleTemplateId),
     'isLockIn' : IDL.Opt(IDL.Bool),
+    'obstacleTemplateIds' : IDL.Opt(IDL.Vec(ObstacleTemplateId)),
     'lockInDurationMinutes' : IDL.Opt(IDL.Nat),
   });
   const UpdateMacroGoalRequest = IDL.Record({});

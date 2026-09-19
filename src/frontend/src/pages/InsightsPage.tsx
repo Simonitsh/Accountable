@@ -376,15 +376,11 @@ function aggregateObstacles(obstacles: ObstacleStat[]): ObstacleStat[] {
 function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
   const habits = data?.habits ?? [];
 
-  // Predicted obstacles come from each habit's if-then plan obstacle; actual
-  // obstacles come from the check-ins that actually got in the way.
+  // Predicted obstacles come from every obstacle each habit's if-then plan
+  // anticipated; actual obstacles come from the check-ins that actually got in
+  // the way. Both sides pool across ALL habits and rank by genuine count.
   const predicted = useMemo(
-    () =>
-      aggregateObstacles(
-        habits
-          .map((h) => h.predictedObstacle)
-          .filter((o): o is ObstacleStat => !!o),
-      ),
+    () => aggregateObstacles(habits.flatMap((h) => h.predictedObstacles)),
     [habits],
   );
   const actual = useMemo(

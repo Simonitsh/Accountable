@@ -70,7 +70,10 @@ module {
     var wish : Text;
     var wishDescription : Text;
     outcome : Text;
-    obstacleTemplateId : ?Common.ObstacleTemplateId;
+    /// ALL predicted obstacles the user selected at creation. Restricted to the
+    /// seven built-in obstacles and never empty — the backend rejects an empty
+    /// list and any id outside the built-ins. Immutable after creation.
+    obstacleTemplateIds : [Common.ObstacleTemplateId];
     var ifThenPlan : Text;
     var state : Common.GoalState;
     createdAt : Common.Timestamp;
@@ -117,7 +120,9 @@ module {
     wish : Text;
     wishDescription : Text;
     outcome : Text;
-    obstacleTemplateId : ?Common.ObstacleTemplateId;
+    /// ALL predicted obstacles for this habit, in the order the user selected
+    /// them. Always at least one entry; every id is one of the seven built-ins.
+    obstacleTemplateIds : [Common.ObstacleTemplateId];
     ifThenPlan : Text;
     state : Common.GoalState;
     createdAt : Common.Timestamp;
@@ -171,7 +176,10 @@ module {
   /// wishDescription.
   public type CreateHabitRequest = {
     goalId : Common.GoalId;
-    obstacleTemplateId : ?Common.ObstacleTemplateId;
+    /// ALL predicted obstacles the user selected. REQUIRED and non-empty —
+    /// creation is rejected with #invalidInput when the list is empty or
+    /// contains an id outside the seven built-ins.
+    obstacleTemplateIds : [Common.ObstacleTemplateId];
     ifThenPlan : Text;
     themeColor : ?Text;
     isLockIn : Bool;
@@ -204,9 +212,11 @@ module {
     /// When true, applies the daily edit lockout check (Time-tab save).
     /// When false or null, skips the lockout check (General-tab save — unlimited).
     isTimeEdit : ?Bool;
-    /// Optional expected-obstacle template link. When provided, updates the
-    /// habit's obstacleTemplateId; when absent, leaves it unchanged.
-    obstacleTemplateId : ?Common.ObstacleTemplateId;
+    /// Optional replacement set of predicted obstacles. When provided, it
+    /// REPLACES the habit's full predicted-obstacle list; when absent, the list
+    /// is left unchanged. A provided list must be non-empty and contain only
+    /// the seven built-in ids, or the update is rejected with #invalidInput.
+    obstacleTemplateIds : ?[Common.ObstacleTemplateId];
   };
 
   /// Update request for a macro goal. `wish`/`wishDescription`/`outcome`/
