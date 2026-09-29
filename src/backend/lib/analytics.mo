@@ -49,8 +49,20 @@ module {
   };
 
   /// If-then plan effectiveness: follow-through on days the plan was used
-  /// (`executedIfThen = true`) versus days it was not. Only terminal check-ins
-  /// count toward `total`; #inProgress is excluded.
+  /// (`executedIfThen = true`) versus days it was not.
+  ///
+  /// Only check-ins that represent a day the user actually engaged with count:
+  /// `#success`, `#skip`, `#missedCheckIn`, and `#missedCheckOut`. `#missed`
+  /// (an auto-filled day the user never opened the app, so no plan could be
+  /// used) and `#inProgress` (a Lock-In session still open) are excluded from
+  /// BOTH buckets — counting them would deflate the "not used" side with days
+  /// the plan was never available.
+  ///
+  /// Limitation: a declined or unanswered follow-up stays in the "not used"
+  /// bucket. The app has no "did not use my plan" answer, so a check-in that
+  /// was never answered is indistinguishable from one where the user chose not
+  /// to use the plan. This makes the "not used" side a conservative lower
+  /// bound on genuine non-use.
   public func computeIfThenEffectiveness(
     checkIns : [CheckInTypes.CheckIn],
   ) : AnalyticsTypes.IfThenEffectiveness {
@@ -59,7 +71,7 @@ module {
     var notUsedSuccess : Nat = 0;
     var notUsedTotal : Nat = 0;
     for (c in checkIns.values()) {
-      if (isTerminal(c.checkInType)) {
+      if (countsForIfThen(c.checkInType)) {
         if (c.executedIfThen) {
           usedTotal += 1;
           if (c.checkInType == #success) usedSuccess += 1;
@@ -72,6 +84,17 @@ module {
     {
       usedPlan = { successes = usedSuccess; total = usedTotal; rate = rate(usedSuccess, usedTotal) };
       notUsedPlan = { successes = notUsedSuccess; total = notUsedTotal; rate = rate(notUsedSuccess, notUsedTotal) };
+    };
+  };
+
+  /// A check-in counts toward the if-then split only when it represents a day
+  /// the user engaged with: a success, a deliberate skip, or a Lock-In
+  /// checkout that was missed. `#missed` (auto-filled, app never opened) and
+  /// `#inProgress` (session still open) are excluded.
+  func countsForIfThen(checkInType : Common.CheckInType) : Bool {
+    switch (checkInType) {
+      case (#success or #skip or #missedCheckIn or #missedCheckOut) { true };
+      case (#missed or #inProgress) { false };
     };
   };
 
@@ -102,32 +125,57 @@ module {
     });
   };
 
-  /// Day-of-week index with the highest follow-through rate among days that
-  /// have at least one check-in. null when no day has data.
-  func bestDay(stats : [AnalyticsTypes.DayOfWeekStat]) : ?Nat {
-    var best : ?Nat = null;
-    var bestRate : Float = -1.0;
-    for (s in stats.values()) {
-      if (s.total > 0 and s.rate > bestRate) {
-        bestRate := s.rate;
-        best := ?s.dayOfWeek;
-      };
-    };
-    best;
-  };
+  /// Minimum number of check-ins a weekday needs before it can be picked as
+  /// the best or worst day. A single 1/1 day must never outrank a real 20/25
+  /// day, so the filter is applied BEFORE choosing either extreme.
+  let MIN_DAY_SAMPLE : Nat = 4;
 
-  /// Day-of-week index with the lowest follow-through rate among days that
-  /// have at least one check-in. null when no day has data.
-  func worstDay(stats : [AnalyticsTypes.DayOfWeekStat]) : ?Nat {
-    var worst : ?Nat = null;
-    var worstRate : Float = 2.0;
+  /// Minimum rate gap between the best and worst eligible weekday before
+  /// either is reported. Below this the two are too close to call a pattern.
+  let MIN_DAY_GAP : Float = 0.15;
+
+  /// Picks the best and worst eligible weekdays in one pass.
+  ///
+  /// A weekday is eligible only when its `total >= MIN_DAY_SAMPLE`. Among
+  /// eligible weekdays, ties on rate are broken by larger total, then by
+  /// earlier weekday (lower index). Both results are null unless there are at
+  /// least two eligible weekdays, the best and worst differ, and their rate
+  /// gap is at least `MIN_DAY_GAP`.
+  public func pickBestWorst(stats : [AnalyticsTypes.DayOfWeekStat]) : (?Nat, ?Nat) {
+    var best : ?AnalyticsTypes.DayOfWeekStat = null;
+    var worst : ?AnalyticsTypes.DayOfWeekStat = null;
+    var eligibleCount : Nat = 0;
     for (s in stats.values()) {
-      if (s.total > 0 and s.rate < worstRate) {
-        worstRate := s.rate;
-        worst := ?s.dayOfWeek;
+      if (s.total >= MIN_DAY_SAMPLE) {
+        eligibleCount += 1;
+        switch (best) {
+          case null { best := ?s };
+          case (?b) {
+            if (s.rate > b.rate or (s.rate == b.rate and s.total > b.total)) {
+              best := ?s;
+            };
+          };
+        };
+        switch (worst) {
+          case null { worst := ?s };
+          case (?w) {
+            if (s.rate < w.rate or (s.rate == w.rate and s.total > w.total)) {
+              worst := ?s;
+            };
+          };
+        };
       };
     };
-    worst;
+    switch (best, worst) {
+      case (?b, ?w) {
+        if (eligibleCount < 2 or b.dayOfWeek == w.dayOfWeek or (b.rate - w.rate) < MIN_DAY_GAP) {
+          (null, null);
+        } else {
+          (?b.dayOfWeek, ?w.dayOfWeek);
+        };
+      };
+      case _ { (null, null) };
+    };
   };
 
   /// Follow-through rolled up per category. Each habit's category comes from
@@ -151,6 +199,7 @@ module {
       };
       {
         category = cat;
+        habitCount = catHabitIds.size();
         successes;
         total;
         rate = rate(successes, total);
@@ -258,7 +307,17 @@ module {
       if (c.checkInType == #success) shownUpDays += 1;
     };
 
-    let ifThen = computeIfThenEffectiveness(checkIns);
+    // A habit with no if-then plan can never have used one, so its
+    // effectiveness is reported as zeros rather than deflating the "not used"
+    // side with days the plan was never available.
+    let ifThen = if (habit.ifThenPlan == "") {
+      {
+        usedPlan = { successes = 0; total = 0; rate = 0.0 };
+        notUsedPlan = { successes = 0; total = 0; rate = 0.0 };
+      };
+    } else {
+      computeIfThenEffectiveness(checkIns);
+    };
 
     let actualObstacles = computeActualObstacles(checkIns);
 
@@ -293,6 +352,11 @@ module {
 
     let habitPublics = ownedHabits.map(func(g) { GoalLib.toHabitPublic(g) });
 
+    // Habits with a non-empty if-then plan. The overall if-then figure only
+    // considers check-ins of these habits — a habit with no plan can never
+    // have used one, so including it would deflate the "not used" side.
+    let plannedHabitIds = habitPublics.filter(func(h) { h.ifThenPlan != "" }).map(func(h) { h.id });
+
     // Each habit's analytics carry that habit's OWN predicted obstacles.
     let habitAnalytics = habitPublics.map(func(gPublic) {
       let goalCheckIns = allCheckIns.filter(func(c) { c.goalId == gPublic.id });
@@ -306,16 +370,21 @@ module {
       habitAnalytics.map(func(h) { h.predictedObstacles })
     );
 
-    let overallIfThen = computeIfThenEffectiveness(allCheckIns);
+    let overallCheckIns = allCheckIns.filter(func(c) {
+      plannedHabitIds.find(func(id) { id == c.goalId }) != null
+    });
+    let overallIfThen = computeIfThenEffectiveness(overallCheckIns);
     let dayOfWeek = computeDayOfWeek(allCheckIns, timezoneOffsetMinutes);
     let categoryBreakdown = computeCategoryBreakdown(ownedHabits, allCheckIns);
+
+    let (bestDayOfWeek, worstDayOfWeek) = pickBestWorst(dayOfWeek);
 
     {
       habits = habitAnalytics;
       overallIfThenEffectiveness = overallIfThen;
       dayOfWeek;
-      bestDayOfWeek = bestDay(dayOfWeek);
-      worstDayOfWeek = worstDay(dayOfWeek);
+      bestDayOfWeek;
+      worstDayOfWeek;
       categoryBreakdown;
       predictedObstaclePool;
     };

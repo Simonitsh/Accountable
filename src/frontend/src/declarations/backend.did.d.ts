@@ -32,6 +32,7 @@ export type AvatarShape = [] | [
 export interface CategoryStat {
   'successes' : bigint,
   'total' : bigint,
+  'habitCount' : bigint,
   'rate' : number,
   'category' : GoalCategory,
 }
@@ -308,7 +309,6 @@ export interface _SERVICE {
    * / sibling habits.
    */
   'deleteHabit' : ActorMethod<[GoalId], { 'ok' : null } | { 'err' : string }>,
-  'devReset' : ActorMethod<[], undefined>,
   'execute' : ActorMethod<[string], Result>,
   'getAnalytics' : ActorMethod<[bigint], AnalyticsSummary>,
   'getApiDoc' : ActorMethod<[], string>,

@@ -290,19 +290,4 @@ actor {
     ] : [OqlEntity.Decl]
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // DEV-ONLY: Full data reset — wipes all canister state so the app behaves
-  // as if no user has ever onboarded. NOT a production feature.
-  // ─────────────────────────────────────────────────────────────────────────
-  public func devReset() : async () {
-    profiles.clear();
-    goals.clear();
-    nextGoalId[0] := 0;
-    checkIns.clear();
-    nextCheckInId[0] := 0;
-    connections.clear();
-    nextConnectionId[0] := 0;
-    interactions.clear();
-    nextInteractionId[0] := 0;
-  };
 };

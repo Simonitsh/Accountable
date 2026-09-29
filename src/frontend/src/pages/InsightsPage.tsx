@@ -3,11 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBackend } from "@/hooks/useBackend";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import {
+  OBSTACLE_EVIDENCE_MIN,
+  aggregateObstacles,
+  rankActualObstacles,
+  rankExpectedObstacles,
+  totalActualOccurrences,
+} from "@/lib/insights";
 import type {
   AnalyticsSummary,
   CategoryStat,
   IfThenEffectiveness,
-  ObstacleStat,
 } from "@/types/index";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -35,7 +41,7 @@ function useInsights() {
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const timezoneOffsetMinutes = profile?.timezoneOffsetMinutes ?? 0n;
 
-  return useQuery<AnalyticsSummary>({
+  const query = useQuery<AnalyticsSummary>({
     queryKey: ["analytics", timezoneOffsetMinutes.toString()],
     queryFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
@@ -47,6 +53,13 @@ function useInsights() {
     // first request already carries the correct offset.
     enabled: !!actor && actorReady && !profileLoading && !!profile,
   });
+
+  // TanStack Query v5 reports `isLoading` as false for a DISABLED query, so
+  // while the profile is still loading the insights query is disabled and
+  // `isLoading` stays false — the page would skip the skeleton and flash the
+  // warm "gathering data" placeholders. Treat the profile-loading window as
+  // loading too so the skeleton covers the whole wait.
+  return { ...query, isLoading: profileLoading || query.isLoading };
 }
 
 // ─── Category metadata ───────────────────────────────────────────────────────
@@ -99,6 +112,11 @@ function SectionHeading({
 // we surface a real number. Below this, the warm "gathering data" state stays.
 const MIN_DATA_POINTS = 3;
 
+// The if-then card needs a deeper history than the rest of the page before it
+// compares the two sides — 20 days on each side. Kept separate from
+// MIN_DATA_POINTS so the other sections keep their lighter gate.
+const IF_THEN_MIN_PER_SIDE = 20;
+
 function HighlightCard({
   effectiveness,
 }: {
@@ -110,8 +128,8 @@ function HighlightCard({
   const hasEnoughData =
     !!used &&
     !!notUsed &&
-    used.total >= MIN_DATA_POINTS &&
-    notUsed.total >= MIN_DATA_POINTS;
+    used.total >= BigInt(IF_THEN_MIN_PER_SIDE) &&
+    notUsed.total >= BigInt(IF_THEN_MIN_PER_SIDE);
 
   // Default to the warm gathering state; only override when there's enough
   // data on both sides to make the comparison meaningful.
@@ -120,41 +138,26 @@ function HighlightCard({
     "We're gathering how often your if-then plans help you follow through. Soon you'll see your momentum here.";
   let followThroughValue = "—";
   let progressWidth = "0%";
-  let caption = "Keep going — every small win builds the picture.";
+  let caption = `${
+    used?.total ?? 0n
+  } of ${IF_THEN_MIN_PER_SIDE} days with your plan so far.`;
 
   if (hasEnoughData) {
-    const usedRate = used.rate;
-    const notUsedRate = notUsed.rate;
-    const multiplier =
-      notUsedRate > 0 ? usedRate / notUsedRate : Number.POSITIVE_INFINITY;
-    const usedPct = Math.round(usedRate * 100);
-    const notUsedPct = Math.round(notUsedRate * 100);
+    const usedPct = Math.round(used.rate * 100);
+    const notUsedPct = Math.round(notUsed.rate * 100);
 
-    if (usedRate > notUsedRate) {
-      // Favorable — prefer a clean multiplier, but fall back to a plain
-      // comparison when the "didn't use it" side is too low for a multiplier
-      // to read sensibly (it would blow up into a nonsensical number).
-      if (notUsedRate >= 0.1 && multiplier >= 1.5 && multiplier <= 5) {
-        const rounded = Math.round(multiplier);
-        headline = `${rounded}x more likely to follow through`;
-        subtitle = `When you use your if-then plan, you follow through ${rounded}× more often than on days you don't.`;
-      } else {
-        headline = "Your plan makes follow-through easier";
-        subtitle = `You follow through ${usedPct}% of the time with your plan, versus ${notUsedPct}% without it.`;
-      }
-      followThroughValue = `${usedPct}%`;
-      progressWidth = `${usedPct}%`;
-      caption = `Based on ${used.total} days with your plan and ${notUsed.total} without.`;
-    } else {
-      // Flat or unfavorable — never a grade. Reframe as encouragement to keep
-      // using the plan, matching the page's forward-looking tone.
-      headline = "Keep using your plan";
-      subtitle =
-        "Every time you use your if-then plan, you're building a habit that sticks. The momentum is still growing.";
-      followThroughValue = `${usedPct}%`;
-      progressWidth = `${usedPct}%`;
-      caption = `You've followed through ${used.total} times with your plan so far — keep it up.`;
-    }
+    // Plain percentages only — no multiplier, no rounding up. A clear
+    // difference needs the plan side to lead by at least 10 points; anything
+    // else (including the plan side being lower) stays neutral and never
+    // grades the user.
+    headline =
+      usedPct >= notUsedPct + 10
+        ? "Your plan tends to help"
+        : "No clear difference yet";
+    subtitle = `You followed through ${usedPct}% of the time on days you used your plan, and ${notUsedPct}% on days you didn't.`;
+    followThroughValue = `${usedPct}%`;
+    progressWidth = `${usedPct}%`;
+    caption = `Based on ${used.total} days with your plan and ${notUsed.total} without. This shows a pattern, not a cause.`;
   }
 
   return (
@@ -233,17 +236,17 @@ function DayCard({
 }
 
 function BestWorstDaySection({ data }: { data?: AnalyticsSummary }) {
-  // A day is only meaningful once it has enough check-ins behind it.
+  // The backend already decides whether a standout day exists: it returns
+  // null (undefined) until there is enough data behind the comparison, so the
+  // frontend trusts that result instead of re-gating on its own threshold.
   const dayStat = (index?: bigint) =>
     data?.dayOfWeek.find((s) => s.dayOfWeek === index);
 
   const bestStat = dayStat(data?.bestDayOfWeek);
   const worstStat = dayStat(data?.worstDayOfWeek);
 
-  const bestReady =
-    !!bestStat && bestStat.total >= MIN_DATA_POINTS && !!bestStat.dayName;
-  const worstReady =
-    !!worstStat && worstStat.total >= MIN_DATA_POINTS && !!worstStat.dayName;
+  const bestReady = !!bestStat && !!bestStat.dayName;
+  const worstReady = !!worstStat && !!worstStat.dayName;
 
   const bestValue = bestReady ? bestStat.dayName : "—";
   const worstValue = worstReady ? worstStat.dayName : "—";
@@ -271,7 +274,7 @@ function BestWorstDaySection({ data }: { data?: AnalyticsSummary }) {
           caption={bestCaption}
         />
         <DayCard
-          label="Worst day"
+          label="Toughest day"
           icon={<CalendarDays className="w-3.5 h-3.5" />}
           accent="text-accent-skip"
           value={worstValue}
@@ -304,24 +307,22 @@ function CategoryBreakdownSection({ data }: { data?: AnalyticsSummary }) {
           const Icon = cat.icon;
           const stat = statByCategory.get(cat.category);
 
-          // Three states per category:
-          //  - no stat at all → no habits yet → "nothing here yet"
-          //  - stat but too little data → warm gathering state
+          // Three states per category, driven by the backend's habitCount:
+          //  - no habits in the category → "Nothing here yet"
+          //  - habits but too little check-in data → warm gathering state
           //  - enough data → real rate + progress
           let value = "—";
           let progressWidth = "0%";
           let hint: string | null = null;
 
-          if (stat) {
-            if (stat.total >= MIN_DATA_POINTS) {
-              const pct = Math.round(stat.rate * 100);
-              value = `${pct}%`;
-              progressWidth = `${pct}%`;
-            } else {
-              hint = "Gathering a little more data…";
-            }
-          } else {
+          if (!stat || stat.habitCount === 0n) {
             hint = "Nothing here yet";
+          } else if (stat.total < BigInt(MIN_DATA_POINTS)) {
+            hint = "Gathering a little more data…";
+          } else {
+            const pct = Math.round(stat.rate * 100);
+            value = `${pct}%`;
+            progressWidth = `${pct}%`;
           }
 
           return (
@@ -365,45 +366,31 @@ function CategoryBreakdownSection({ data }: { data?: AnalyticsSummary }) {
 }
 
 // ─── Obstacles: what gets in the way vs expected ─────────────────────────────
-// Aggregate obstacle counts across ALL of the user's habits (not per-habit),
-// summing by obstacle name so the section reads across the whole practice.
-// Used for the ACTUAL-obstacles column only: the backend already pools the
-// predicted side once into AnalyticsSummary.predictedObstaclePool.
-function aggregateObstacles(obstacles: ObstacleStat[]): ObstacleStat[] {
-  const byName = new Map<string, ObstacleStat>();
-  for (const obstacle of obstacles) {
-    const existing = byName.get(obstacle.obstacleName);
-    if (existing) {
-      existing.count = existing.count + obstacle.count;
-    } else {
-      byName.set(obstacle.obstacleName, { ...obstacle });
-    }
-  }
-  return [...byName.values()].sort((a, b) => Number(b.count - a.count));
-}
-
+// The ranking and aggregation live in lib/insights.ts as pure helpers so they
+// can be unit-tested. This section only reads their results.
 function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
   const habits = data?.habits ?? [];
 
   // Predicted obstacles are pooled once by the backend and read straight from
   // the summary — no client-side re-pooling. Actual obstacles come from the
-  // check-ins that actually got in the way, so they are still pooled here
-  // across ALL habits and ranked by genuine count.
+  // check-ins that actually got in the way, so they are pooled here across ALL
+  // habits and ranked by genuine count.
   const predicted = useMemo(() => data?.predictedObstaclePool ?? [], [data]);
   const actual = useMemo(
     () => aggregateObstacles(habits.flatMap((h) => h.actualObstacles)),
     [habits],
   );
 
-  // Gate on enough total check-in history across all habits before surfacing
-  // any real obstacle, and require at least one obstacle to show.
-  const totalShownUp = habits.reduce((sum, h) => sum + h.shownUpDays, 0n);
+  // Gate on obstacle evidence: only surface real rows once the total number of
+  // recorded actual obstacle occurrences across all habits reaches the
+  // threshold.
   const hasEnoughData =
-    totalShownUp >= BigInt(MIN_DATA_POINTS) &&
-    (predicted.length > 0 || actual.length > 0);
+    totalActualOccurrences(actual) >= BigInt(OBSTACLE_EVIDENCE_MIN);
 
-  const predictedRows = hasEnoughData ? predicted.slice(0, 2) : [];
-  const actualRows = hasEnoughData ? actual.slice(0, 2) : [];
+  const expectedRows = hasEnoughData
+    ? rankExpectedObstacles(predicted, actual)
+    : [];
+  const actualRows = hasEnoughData ? rankActualObstacles(actual) : [];
 
   return (
     <section className="px-4 pt-6" data-ocid="insights.obstacles_section">
@@ -419,8 +406,8 @@ function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
               Expected
             </p>
             <div className="flex flex-col gap-2">
-              {predictedRows.length > 0 ? (
-                predictedRows.map((o) => (
+              {expectedRows.length > 0 ? (
+                expectedRows.map((o) => (
                   <ObstacleRow key={o.obstacleName} label={o.obstacleName} />
                 ))
               ) : (
@@ -438,13 +425,14 @@ function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
             <div className="flex flex-col gap-2">
               {actualRows.length > 0 ? (
                 actualRows.map((o) => (
-                  <ObstacleRow key={o.obstacleName} label={o.obstacleName} />
+                  <ObstacleRow
+                    key={o.obstacleName}
+                    label={o.obstacleName}
+                    count={o.count}
+                  />
                 ))
               ) : (
-                <>
-                  <PlaceholderObstacle label="—" />
-                  <PlaceholderObstacle label="—" />
-                </>
+                <PlaceholderObstacle label="No repeats yet" />
               )}
             </div>
           </div>
@@ -459,11 +447,16 @@ function ObstaclesSection({ data }: { data?: AnalyticsSummary }) {
   );
 }
 
-function ObstacleRow({ label }: { label: string }) {
+function ObstacleRow({ label, count }: { label: string; count?: bigint }) {
   return (
     <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-muted/40">
       <span className="w-1.5 h-1.5 rounded-full bg-accent-skip shrink-0" />
-      <span className="text-sm text-foreground">{label}</span>
+      <span className="text-sm text-foreground min-w-0 truncate">{label}</span>
+      {count !== undefined && (
+        <span className="ml-auto text-xs text-muted-foreground shrink-0">
+          ×{count.toString()}
+        </span>
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ export type AvatarShape = Variant_Star_Pentagon_Triangle_Hexagon_Square | null;
 export interface CategoryStat {
     successes: bigint;
     total: bigint;
+    habitCount: bigint;
     rate: number;
     category: GoalCategory;
 }
@@ -371,7 +372,6 @@ export interface backendInterface {
         __kind__: "err";
         err: string;
     }>;
-    devReset(): Promise<void>;
     execute(qJson: string): Promise<Result>;
     getAnalytics(timezoneOffsetMinutes: bigint): Promise<AnalyticsSummary>;
     getApiDoc(): Promise<string>;

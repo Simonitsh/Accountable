@@ -274,6 +274,7 @@ type Cell =
 type CategoryStat = 
  record {
    category: GoalCategory;
+   habitCount: nat;
    rate: float64;
    successes: nat;
    total: nat;
@@ -350,7 +351,6 @@ service : {
                                        err: text;
                                        ok;
                                      });
-  devReset: () -> ();
   execute: (qJson: text) -> (Result) query;
   getAnalytics: (timezoneOffsetMinutes: int) -> (AnalyticsSummary) query;
   getApiDoc: () -> (text) query;

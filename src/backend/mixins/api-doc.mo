@@ -87,14 +87,11 @@ mixin () {
     "- `listPartnerOverviews() : [PartnerOverview]` — query; accepted mutual partners only.\n" #
     "\n" #
     "### Insights\n" #
-    "- `getAnalytics(timezoneOffsetMinutes : Int) : AnalyticsSummary` — query. Computes, on-the-fly from the caller's own habits and check-ins (nothing persisted): per-habit shown-up days (genuine successes only), if-then plan effectiveness (follow-through with vs without the plan, per habit and overall), day-of-week follow-through with best/worst day, per-category follow-through, and planned-vs-actual obstacle comparison. Each habit's `predictedObstacles` are that habit's own predictions only; the cross-habit pool is reported once on the summary as `predictedObstaclePool`, where each obstacle's `count` is the genuine number of the caller's habits that predicted it. Only terminal check-ins (`#success`, `#skip`, `#missed`, `#missedCheckIn`, `#missedCheckOut`) count toward any total or rate — `#inProgress` is excluded, so a Lock-In day with a start record and a checkout record counts once. Day-of-week bucketing uses each check-in's own recorded `tzOffsetMinutes`, falling back to the `timezoneOffsetMinutes` argument for legacy records with `null`. Requires a signed-in caller; anonymous callers get an empty summary (no habits/check-ins).\n" #
+    "- `getAnalytics(timezoneOffsetMinutes : Int) : AnalyticsSummary` — query. Computes, on-the-fly from the caller's own habits and check-ins (nothing persisted): per-habit shown-up days (genuine successes only), if-then plan effectiveness (follow-through with vs without the plan, per habit and overall), day-of-week follow-through with best/worst day, per-category follow-through, and planned-vs-actual obstacle comparison. Each habit's `predictedObstacles` are that habit's own predictions only; the cross-habit pool is reported once on the summary as `predictedObstaclePool`, where each obstacle's `count` is the genuine number of the caller's habits that predicted it. Only terminal check-ins (`#success`, `#skip`, `#missed`, `#missedCheckIn`, `#missedCheckOut`) count toward any total or rate — `#inProgress` is excluded, so a Lock-In day with a start record and a checkout record counts once. The if-then split is narrower still: `#missed` (an auto-filled day the app was never opened, so no plan could be used) and `#inProgress` are excluded from BOTH the used and not-used buckets, and a habit with no if-then plan reports zeros for both buckets (the overall figure considers only check-ins of habits that have a plan). A declined or unanswered follow-up stays in the not-used bucket, because the app has no \"did not use my plan\" answer — so the not-used side is a conservative lower bound on genuine non-use. `bestDayOfWeek` and `worstDayOfWeek` are both null unless at least two weekdays each have `total >= 4`, the two differ, and their rate gap is at least 0.15; ties on rate break by larger total, then earlier weekday. `categoryBreakdown` always returns all five categories, each carrying `habitCount` (how many of the caller's habits are in that category) so the UI can tell \"no habits here yet\" from \"not enough check-ins yet\". Day-of-week bucketing uses each check-in's own recorded `tzOffsetMinutes`, falling back to the `timezoneOffsetMinutes` argument for legacy records with `null`. Requires a signed-in caller; anonymous callers get an empty summary (no habits/check-ins).\n" #
     "\n" #
     "### OQL (read-only analysis)\n" #
     "- `schema() : Text` — query; JSON catalogue of exposed entities.\n" #
     "- `execute(qJson : Text) : Result` — query; runs a JSON query over the exposed entities. Read-only; used by the Data Intelligence agent.\n" #
-    "\n" #
-    "### Dev\n" #
-    "- `devReset() : ()` — **dev-only** full data reset. Wipes all canister state. Not a production feature.\n" #
     "\n" #
     "## Lifecycle & Polling\n" #
     "\n" #
@@ -103,7 +100,7 @@ mixin () {
     "## Mutation Retry Safety\n" #
     "\n" #
     "- **Idempotent**: `markCheckInIfThenUsed` and `markCheckInFollowUpDeclined` are idempotent — re-recording an answer returns `#ok` without change. `ensureAdminRole` (internal) is idempotent.\n" #
-    "- **Destructive**: `deleteGoal` and `deleteHabit` are hard deletes — final, no soft-delete or recovery. `deleteCheckIn` cannot undo sealed Lock-In sessions. `devReset` wipes all state.\n" #
+    "- **Destructive**: `deleteGoal` and `deleteHabit` are hard deletes — final, no soft-delete or recovery. `deleteCheckIn` cannot undo sealed Lock-In sessions.\n" #
     "- **Duplicate-call behavior**: `recordCheckIn` enforces one-per-day per goal (and Lock-In-specific rules), trapping on duplicates rather than silently overwriting.\n" #
     "\n" #
     "## Errors, Traps & Gotchas\n" #

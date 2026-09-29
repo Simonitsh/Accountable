@@ -552,12 +552,14 @@ export const mockBackend: backendInterface = {
         category: GoalCategory.Health,
         successes: BigInt(17),
         total: BigInt(20),
+        habitCount: BigInt(1),
         rate: 0.85,
       },
       {
         category: GoalCategory.Learning,
         successes: BigInt(6),
         total: BigInt(9),
+        habitCount: BigInt(1),
         rate: 0.67,
       },
     ],
@@ -861,8 +863,6 @@ export const mockBackend: backendInterface = {
 
   // ─── OQL ────────────────────────────────────────────────────────────────────
   getApiDoc: async () => "{}",
-
-  devReset: async () => {},
 
   execute: async (_qJson: string) => ({
     hasMore: false,

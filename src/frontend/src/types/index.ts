@@ -321,6 +321,10 @@ export interface CategoryStat {
   category: GoalCategory;
   successes: bigint;
   total: bigint;
+  /** Number of habits the user has in this category. 0 means the category is
+   *  empty — distinct from a category with habits but too little check-in
+   *  data to show a rate. */
+  habitCount: bigint;
   rate: number;
 }
 

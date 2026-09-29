@@ -3,6 +3,7 @@ import Principal "mo:core/Principal";
 import Common "../types/common";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
+import AnalyticsTypes "../types/analytics";
 import DateUtils "../lib/date-utils";
 import Analytics "../lib/analytics";
 
@@ -322,4 +323,219 @@ test("computeDayOfWeek: a legacy check-in (null offset) uses the fallback argume
   expect.nat(stats[5].total).equal(1);
   expect.nat(stats[5].successes).equal(1);
   expect.nat(stats[4].total).equal(0);
+});
+
+// ---------------------------------------------------------------------------
+// If-then effectiveness — #missed and #inProgress excluded from both buckets
+// ---------------------------------------------------------------------------
+
+/// Builds a check-in with an explicit `executedIfThen` answer.
+func makeCheckInIfThen(id : Nat, ts : Int, checkInType : Common.CheckInType, executedIfThen : Bool) : CheckInTypes.CheckIn {
+  {
+    id;
+    goalId = 1;
+    owner = Principal.fromText("aaaaa-aa");
+    checkInType;
+    obstacleTemplateId = null;
+    timestamp = ts;
+    lockInStartedAt = null;
+    lockInEndedAt = null;
+    executedIfThen;
+    followUpDeclined = false;
+    tzOffsetMinutes = null;
+    note = null;
+  };
+};
+
+test("if-then: #missed is excluded from both buckets", func() {
+  // A success where the plan was used, plus an auto-filled #missed day that
+  // must not land in the "not used" bucket.
+  let checkIns = [
+    makeCheckInIfThen(1, 0, #success, true),
+    makeCheckInIfThen(2, DateUtils.DAY_NS, #missed, false),
+  ];
+  let ifThen = Analytics.computeIfThenEffectiveness(checkIns);
+  expect.nat(ifThen.usedPlan.total).equal(1);
+  expect.nat(ifThen.usedPlan.successes).equal(1);
+  expect.nat(ifThen.notUsedPlan.total).equal(0);
+  expect.nat(ifThen.notUsedPlan.successes).equal(0);
+});
+
+test("if-then: #inProgress is excluded from both buckets", func() {
+  let checkIns = [
+    makeCheckInIfThen(1, 0, #inProgress, true),
+    makeCheckInIfThen(2, DateUtils.DAY_NS, #success, false),
+  ];
+  let ifThen = Analytics.computeIfThenEffectiveness(checkIns);
+  expect.nat(ifThen.usedPlan.total).equal(0);
+  expect.nat(ifThen.notUsedPlan.total).equal(1);
+  expect.nat(ifThen.notUsedPlan.successes).equal(1);
+});
+
+test("if-then: a skip with executedIfThen = true counts on the used side", func() {
+  let checkIns = [makeCheckInIfThen(1, 0, #skip, true)];
+  let ifThen = Analytics.computeIfThenEffectiveness(checkIns);
+  expect.nat(ifThen.usedPlan.total).equal(1);
+  expect.nat(ifThen.usedPlan.successes).equal(0);
+  expect.nat(ifThen.notUsedPlan.total).equal(0);
+});
+
+test("if-then: #missedCheckIn and #missedCheckOut stay in the buckets", func() {
+  let checkIns = [
+    makeCheckInIfThen(1, 0, #missedCheckIn, true),
+    makeCheckInIfThen(2, DateUtils.DAY_NS, #missedCheckOut, false),
+  ];
+  let ifThen = Analytics.computeIfThenEffectiveness(checkIns);
+  expect.nat(ifThen.usedPlan.total).equal(1);
+  expect.nat(ifThen.notUsedPlan.total).equal(1);
+});
+
+test("computeHabitAnalytics: a habit with no if-then plan reports zeros for both buckets", func() {
+  // makeHabit() has ifThenPlan = "".
+  let checkIns = [
+    makeCheckInIfThen(1, 0, #success, true),
+    makeCheckInIfThen(2, DateUtils.DAY_NS, #success, false),
+  ];
+  let analytics = Analytics.computeHabitAnalytics(makeHabit(), checkIns);
+  expect.nat(analytics.ifThenEffectiveness.usedPlan.total).equal(0);
+  expect.nat(analytics.ifThenEffectiveness.notUsedPlan.total).equal(0);
+});
+
+test("computeHabitAnalytics: a habit WITH a plan reports its real split", func() {
+  let habit = { makeHabit() with ifThenPlan = "After coffee, I will run" };
+  let checkIns = [
+    makeCheckInIfThen(1, 0, #success, true),
+    makeCheckInIfThen(2, DateUtils.DAY_NS, #success, false),
+  ];
+  let analytics = Analytics.computeHabitAnalytics(habit, checkIns);
+  expect.nat(analytics.ifThenEffectiveness.usedPlan.total).equal(1);
+  expect.nat(analytics.ifThenEffectiveness.notUsedPlan.total).equal(1);
+});
+
+// ---------------------------------------------------------------------------
+// Best / worst day — MIN_DAY_SAMPLE, tie-breaks, and the gap gate
+// ---------------------------------------------------------------------------
+
+/// Builds a DayOfWeekStat directly so best/worst selection can be exercised
+/// without constructing real timestamps.
+func makeDow(dayOfWeek : Nat, successes : Nat, total : Nat) : AnalyticsTypes.DayOfWeekStat {
+  {
+    dayOfWeek;
+    dayName = "day";
+    successes;
+    total;
+    rate = if (total == 0) 0.0 else successes.toFloat() / total.toFloat();
+  };
+};
+
+test("best/worst: a 1/1 Wednesday does NOT beat a Thursday at 20/25", func() {
+  // Wednesday (3) has a perfect but tiny sample; Thursday (4) has a real one.
+  // Wednesday is below MIN_DAY_SAMPLE, so it is not eligible at all — and with
+  // only Thursday eligible, both extremes are null rather than naming the
+  // tiny Wednesday as best.
+  let stats = [
+    makeDow(3, 1, 1),
+    makeDow(4, 20, 25),
+  ];
+  let (best, worst) = Analytics.pickBestWorst(stats);
+  expect.bool(best == null).isTrue();
+  expect.bool(worst == null).isTrue();
+});
+
+test("best/worst: an ineligible tiny day is ignored while two real days compete", func() {
+  // Wednesday (3) at 1/1 is below MIN_DAY_SAMPLE and must be ignored. Monday
+  // (1) at 9/10 and Thursday (4) at 5/10 are both eligible; Monday is best,
+  // Thursday is worst, and the tiny Wednesday is never named.
+  let stats = [
+    makeDow(1, 9, 10),
+    makeDow(3, 1, 1),
+    makeDow(4, 5, 10),
+  ];
+  let (best, worst) = Analytics.pickBestWorst(stats);
+  expect.bool(best == ?1).isTrue();
+  expect.bool(worst == ?4).isTrue();
+});
+
+test("best/worst: all weekdays at equal rate → both null", func() {
+  let stats = [
+    makeDow(1, 4, 5),
+    makeDow(2, 4, 5),
+    makeDow(3, 4, 5),
+  ];
+  let (best, worst) = Analytics.pickBestWorst(stats);
+  expect.bool(best == null).isTrue();
+  expect.bool(worst == null).isTrue();
+});
+
+test("best/worst: a single eligible weekday → both null", func() {
+  let stats = [
+    makeDow(1, 5, 5),
+    makeDow(2, 1, 1), // below MIN_DAY_SAMPLE, not eligible
+  ];
+  let (best, worst) = Analytics.pickBestWorst(stats);
+  expect.bool(best == null).isTrue();
+  expect.bool(worst == null).isTrue();
+});
+
+test("best/worst: a rate gap under 0.15 → both null", func() {
+  // 0.80 vs 0.70 — a 0.10 gap, too close to call.
+  let stats = [
+    makeDow(1, 8, 10),
+    makeDow(2, 7, 10),
+  ];
+  let (best, worst) = Analytics.pickBestWorst(stats);
+  expect.bool(best == null).isTrue();
+  expect.bool(worst == null).isTrue();
+});
+
+test("best/worst: a gap of at least 0.15 reports both, and they differ", func() {
+  // 0.90 vs 0.50 — a 0.40 gap.
+  let stats = [
+    makeDow(1, 9, 10),
+    makeDow(2, 5, 10),
+  ];
+  let (best, worst) = Analytics.pickBestWorst(stats);
+  expect.bool(best == ?1).isTrue();
+  expect.bool(worst == ?2).isTrue();
+  expect.bool(best != worst).isTrue();
+});
+
+test("best/worst: equal rates tie-break by larger total, then earlier weekday", func() {
+  // Monday (1) and Tuesday (2) both at 1.0; Tuesday has the larger total, so
+  // it wins best. Wednesday (3) at 0.0 is the worst.
+  let stats = [
+    makeDow(1, 4, 4),
+    makeDow(2, 8, 8),
+    makeDow(3, 0, 4),
+  ];
+  let (best, worst) = Analytics.pickBestWorst(stats);
+  expect.bool(best == ?2).isTrue();
+  expect.bool(worst == ?3).isTrue();
+});
+
+// ---------------------------------------------------------------------------
+// Category breakdown — habitCount
+// ---------------------------------------------------------------------------
+
+test("computeCategoryBreakdown: habitCount is 0 for empty categories", func() {
+  let cats = Analytics.computeCategoryBreakdown([], []);
+  expect.nat(cats.size()).equal(5);
+  for (c in cats.values()) {
+    expect.nat(c.habitCount).equal(0);
+  };
+});
+
+test("computeCategoryBreakdown: habitCount counts the caller's habits per category", func() {
+  let habits = [
+    makeGoal(1, #Health),
+    makeGoal(2, #Health),
+    makeGoal(3, #Learning),
+  ];
+  let cats = Analytics.computeCategoryBreakdown(habits, []);
+  // #Health is first, #Learning second in the fixed category list.
+  expect.nat(cats[0].habitCount).equal(2);
+  expect.nat(cats[1].habitCount).equal(1);
+  expect.nat(cats[2].habitCount).equal(0);
+  expect.nat(cats[3].habitCount).equal(0);
+  expect.nat(cats[4].habitCount).equal(0);
 });

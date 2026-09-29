@@ -74,70 +74,6 @@ function _mergeNamespaces(n, m2) {
     fetch(link.href, fetchOpts);
   }
 })();
-const scriptRel = "modulepreload";
-const assetsURL = function(dep) {
-  return "/" + dep;
-};
-const seen = {};
-const __vitePreload = function preload(baseModule, deps, importerUrl) {
-  let promise = Promise.resolve();
-  if (deps && deps.length > 0) {
-    document.getElementsByTagName("link");
-    const cspNonceMeta = document.querySelector(
-      "meta[property=csp-nonce]"
-    );
-    const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
-    promise = Promise.allSettled(
-      deps.map((dep) => {
-        dep = assetsURL(dep);
-        if (dep in seen) return;
-        seen[dep] = true;
-        const isCss = dep.endsWith(".css");
-        const cssSelector = isCss ? '[rel="stylesheet"]' : "";
-        if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
-          return;
-        }
-        const link = document.createElement("link");
-        link.rel = isCss ? "stylesheet" : scriptRel;
-        if (!isCss) {
-          link.as = "script";
-        }
-        link.crossOrigin = "";
-        link.href = dep;
-        if (cspNonce) {
-          link.setAttribute("nonce", cspNonce);
-        }
-        document.head.appendChild(link);
-        if (isCss) {
-          return new Promise((res, rej) => {
-            link.addEventListener("load", res);
-            link.addEventListener(
-              "error",
-              () => rej(new Error(`Unable to preload CSS for ${dep}`))
-            );
-          });
-        }
-      })
-    );
-  }
-  function handlePreloadError(err) {
-    const e = new Event("vite:preloadError", {
-      cancelable: true
-    });
-    e.payload = err;
-    window.dispatchEvent(e);
-    if (!e.defaultPrevented) {
-      throw err;
-    }
-  }
-  return promise.then((res) => {
-    for (const item of res || []) {
-      if (item.status !== "rejected") continue;
-      handlePreloadError(item.reason);
-    }
-    return baseModule().catch(handlePreloadError);
-  });
-};
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x2) {
   return x2 && x2.__esModule && Object.prototype.hasOwnProperty.call(x2, "default") ? x2["default"] : x2;
@@ -179,7 +115,7 @@ reactJsxRuntime_production.jsxs = jsxProd;
   jsxRuntime.exports = reactJsxRuntime_production;
 }
 var jsxRuntimeExports = jsxRuntime.exports;
-let ExternalBlob$1 = class ExternalBlob {
+class ExternalBlob {
   constructor(directURL, blob) {
     __publicField(this, "_blob");
     __publicField(this, "directURL");
@@ -214,7 +150,7 @@ let ExternalBlob$1 = class ExternalBlob {
     this.onProgress = onProgress;
     return this;
   }
-};
+}
 var ReplicaRejectCode;
 (function(ReplicaRejectCode2) {
   ReplicaRejectCode2[ReplicaRejectCode2["SysFatal"] = 1] = "SysFatal";
@@ -11305,7 +11241,7 @@ async function createActorWithConfig(createActor2, options) {
     const hashWithPrefix = new TextDecoder().decode(new Uint8Array(bytes));
     const hash = hashWithPrefix.substring(MOTOKO_DEDUPLICATION_SENTINEL.length);
     const url = await storageClient.getDirectURL(hash);
-    return ExternalBlob$1.fromURL(url);
+    return ExternalBlob.fromURL(url);
   };
   return createActor2(config.backend_canister_id, uploadFile, downloadFile, actorOptions);
 }
@@ -26372,7 +26308,7 @@ ReactDOMSharedInternals.d = {
   r: requestFormReset,
   D: prefetchDNS,
   C: preconnect,
-  L: preload2,
+  L: preload,
   m: preloadModule,
   X: preinitScript,
   S: preinitStyle,
@@ -26404,7 +26340,7 @@ function preconnect(href, crossOrigin) {
   previousDispatcher.C(href, crossOrigin);
   preconnectAs("preconnect", href, crossOrigin);
 }
-function preload2(href, as, options) {
+function preload(href, as, options) {
   previousDispatcher.L(href, as, options);
   var ownerDocument = globalDocument;
   if (ownerDocument && href && as) {
@@ -32995,6 +32931,7 @@ const Result = Record({
 const CategoryStat = Record({
   "successes": Nat,
   "total": Nat,
+  "habitCount": Nat,
   "rate": Float64,
   "category": GoalCategory$1
 });
@@ -33059,9 +32996,9 @@ const CheckIn = Record({
   "lockInStartedAt": Opt(Int),
   "lockInEndedAt": Opt(Int)
 });
-const UserRole$1 = Variant({ "admin": Null, "user": Null });
+const UserRole = Variant({ "admin": Null, "user": Null });
 const AvatarColor = Opt(Text);
-const AvatarColorMode$1 = Variant({
+const AvatarColorMode = Variant({
   "Fill": Null,
   "BorderOnly": Null
 });
@@ -33081,10 +33018,10 @@ const UserProfilePublic = Record({
   "username": Text,
   "displayName": Text,
   "timezoneOffsetMinutes": Int,
-  "role": UserRole$1,
+  "role": UserRole,
   "email": Opt(Text),
   "avatarColor": AvatarColor,
-  "avatarColorMode": AvatarColorMode$1,
+  "avatarColorMode": AvatarColorMode,
   "avatarShape": AvatarShape
 });
 const FeedItem$1 = Record({
@@ -33093,26 +33030,26 @@ const FeedItem$1 = Record({
   "partnerDisplayName": Text,
   "partnerAvatarColor": AvatarColor,
   "highFiveCount": Nat,
-  "partnerAvatarColorMode": AvatarColorMode$1,
+  "partnerAvatarColorMode": AvatarColorMode,
   "partnerAvatarShape": AvatarShape
 });
 const PartnerHabitDetail$1 = Record({
   "habits": Vec(HabitPublic),
   "profile": UserProfilePublic
 });
-const PartnerHabitError$1 = Variant({
+const PartnerHabitError = Variant({
   "notPartner": Null,
   "profileNotFound": Null
 });
 const ConnectionId = Nat;
-const ConnectionStatus$1 = Variant({
+const ConnectionStatus = Variant({
   "pending": Null,
   "rejected": Null,
   "accepted": Null
 });
 const ConnectionPublic = Record({
   "id": ConnectionId,
-  "status": ConnectionStatus$1,
+  "status": ConnectionStatus,
   "createdAt": Timestamp,
   "toPrincipal": UserId,
   "fromPrincipal": UserId
@@ -33143,11 +33080,11 @@ const RecordCheckInRequest = Record({
   "lockInStartedAt": Opt(Int),
   "lockInEndedAt": Opt(Int)
 });
-const InteractionType$1 = Variant({ "highFive": Null });
+const InteractionType = Variant({ "highFive": Null });
 const InteractionId = Nat;
 const Interaction = Record({
   "id": InteractionId,
-  "interactionType": InteractionType$1,
+  "interactionType": InteractionType,
   "fromPrincipal": UserId,
   "checkInId": CheckInId,
   "timestamp": Timestamp
@@ -33209,7 +33146,6 @@ Service({
     [Variant({ "ok": Null, "err": Text })],
     []
   ),
-  "devReset": Func([], [], []),
   "execute": Func([Text], [Result], ["query"]),
   "getAnalytics": Func([Int], [AnalyticsSummary], ["query"]),
   "getApiDoc": Func([], [Text], ["query"]),
@@ -33231,7 +33167,7 @@ Service({
   "getPartnerFeed": Func([], [Vec(FeedItem$1)], ["query"]),
   "getPartnerHabits": Func(
     [Principal2],
-    [Variant({ "ok": PartnerHabitDetail$1, "err": PartnerHabitError$1 })],
+    [Variant({ "ok": PartnerHabitDetail$1, "err": PartnerHabitError })],
     ["query"]
   ),
   "getUserProfile": Func(
@@ -33284,7 +33220,7 @@ Service({
   ),
   "recordCheckIn": Func([RecordCheckInRequest], [CheckIn], []),
   "recordInteraction": Func(
-    [CheckInId, InteractionType$1],
+    [CheckInId, InteractionType],
     [Interaction],
     []
   ),
@@ -33315,7 +33251,7 @@ Service({
       Opt(Text),
       AvatarShape,
       AvatarColor,
-      Opt(AvatarColorMode$1),
+      Opt(AvatarColorMode),
       Opt(Text),
       Opt(Text),
       Opt(Int)
@@ -33412,6 +33348,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const CategoryStat2 = IDL2.Record({
     "successes": IDL2.Nat,
     "total": IDL2.Nat,
+    "habitCount": IDL2.Nat,
     "rate": IDL2.Float64,
     "category": GoalCategory2
   });
@@ -33626,7 +33563,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
       [IDL2.Variant({ "ok": IDL2.Null, "err": IDL2.Text })],
       []
     ),
-    "devReset": IDL2.Func([], [], []),
     "execute": IDL2.Func([IDL2.Text], [Result2], ["query"]),
     "getAnalytics": IDL2.Func([IDL2.Int], [AnalyticsSummary2], ["query"]),
     "getApiDoc": IDL2.Func([], [IDL2.Text], ["query"]),
@@ -33750,51 +33686,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     )
   });
 };
-class ExternalBlob2 {
-  constructor(directURL, blob) {
-    __publicField(this, "_blob");
-    __publicField(this, "directURL");
-    __publicField(this, "contentType");
-    __publicField(this, "filename");
-    __publicField(this, "onProgress");
-    if (blob) {
-      this._blob = blob;
-    }
-    this.directURL = directURL;
-  }
-  static fromURL(url) {
-    return new ExternalBlob2(url, null);
-  }
-  static fromBytes(blob, contentType, filename) {
-    const url = URL.createObjectURL(new Blob([new Uint8Array(blob)], {
-      type: (contentType == null ? void 0 : contentType.trim()) || "application/octet-stream"
-    }));
-    const externalBlob = new ExternalBlob2(url, blob);
-    if (contentType == null ? void 0 : contentType.trim()) {
-      externalBlob.contentType = contentType.trim();
-    }
-    if (filename == null ? void 0 : filename.trim()) {
-      externalBlob.filename = filename.trim();
-    }
-    return externalBlob;
-  }
-  async getBytes() {
-    if (this._blob) {
-      return this._blob;
-    }
-    const response = await fetch(this.directURL);
-    const blob = await response.blob();
-    this._blob = new Uint8Array(await blob.arrayBuffer());
-    return this._blob;
-  }
-  getDirectURL() {
-    return this.directURL;
-  }
-  withUploadProgress(onProgress) {
-    this.onProgress = onProgress;
-    return this;
-  }
-}
 new TextEncoder().encode("icfs-chunk/");
 new TextEncoder().encode("icfs-metadata/");
 new TextEncoder().encode("ynode/");
@@ -33809,11 +33700,6 @@ function candid_none() {
 function record_opt_to_undefined(arg) {
   return arg == null ? void 0 : arg;
 }
-var AvatarColorMode = /* @__PURE__ */ ((AvatarColorMode2) => {
-  AvatarColorMode2["Fill"] = "Fill";
-  AvatarColorMode2["BorderOnly"] = "BorderOnly";
-  return AvatarColorMode2;
-})(AvatarColorMode || {});
 var CheckInType = /* @__PURE__ */ ((CheckInType2) => {
   CheckInType2["skip"] = "skip";
   CheckInType2["missed"] = "missed";
@@ -33823,12 +33709,6 @@ var CheckInType = /* @__PURE__ */ ((CheckInType2) => {
   CheckInType2["inProgress"] = "inProgress";
   return CheckInType2;
 })(CheckInType || {});
-var ConnectionStatus = /* @__PURE__ */ ((ConnectionStatus2) => {
-  ConnectionStatus2["pending"] = "pending";
-  ConnectionStatus2["rejected"] = "rejected";
-  ConnectionStatus2["accepted"] = "accepted";
-  return ConnectionStatus2;
-})(ConnectionStatus || {});
 var GoalCategory = /* @__PURE__ */ ((GoalCategory2) => {
   GoalCategory2["Productivity"] = "Productivity";
   GoalCategory2["Learning"] = "Learning";
@@ -33843,33 +33723,6 @@ var GoalState = /* @__PURE__ */ ((GoalState2) => {
   GoalState2["paused"] = "paused";
   return GoalState2;
 })(GoalState || {});
-var InteractionType = /* @__PURE__ */ ((InteractionType2) => {
-  InteractionType2["highFive"] = "highFive";
-  return InteractionType2;
-})(InteractionType || {});
-var PartnerHabitError = /* @__PURE__ */ ((PartnerHabitError2) => {
-  PartnerHabitError2["notPartner"] = "notPartner";
-  PartnerHabitError2["profileNotFound"] = "profileNotFound";
-  return PartnerHabitError2;
-})(PartnerHabitError || {});
-var UserRole = /* @__PURE__ */ ((UserRole2) => {
-  UserRole2["admin"] = "admin";
-  UserRole2["user"] = "user";
-  return UserRole2;
-})(UserRole || {});
-var Variant_Star_Pentagon_Triangle_Hexagon_Square = /* @__PURE__ */ ((Variant_Star_Pentagon_Triangle_Hexagon_Square2) => {
-  Variant_Star_Pentagon_Triangle_Hexagon_Square2["Star"] = "Star";
-  Variant_Star_Pentagon_Triangle_Hexagon_Square2["Pentagon"] = "Pentagon";
-  Variant_Star_Pentagon_Triangle_Hexagon_Square2["Triangle"] = "Triangle";
-  Variant_Star_Pentagon_Triangle_Hexagon_Square2["Hexagon"] = "Hexagon";
-  Variant_Star_Pentagon_Triangle_Hexagon_Square2["Square"] = "Square";
-  return Variant_Star_Pentagon_Triangle_Hexagon_Square2;
-})(Variant_Star_Pentagon_Triangle_Hexagon_Square || {});
-var Variant_notFound_unauthorized = /* @__PURE__ */ ((Variant_notFound_unauthorized2) => {
-  Variant_notFound_unauthorized2["notFound"] = "notFound";
-  Variant_notFound_unauthorized2["unauthorized"] = "unauthorized";
-  return Variant_notFound_unauthorized2;
-})(Variant_notFound_unauthorized || {});
 class Backend {
   constructor(actor, _uploadFile, _downloadFile, processError2) {
     this.actor = actor;
@@ -33945,20 +33798,6 @@ class Backend {
     } else {
       const result = await this.actor.deleteHabit(arg0);
       return from_candid_variant_n18(this._uploadFile, this._downloadFile, result);
-    }
-  }
-  async devReset() {
-    if (this.processError) {
-      try {
-        const result = await this.actor.devReset();
-        return result;
-      } catch (e) {
-        this.processError(e);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.devReset();
-      return result;
     }
   }
   async execute(arg0) {
@@ -34631,6 +34470,7 @@ function from_candid_record_n31(_uploadFile, _downloadFile, value) {
   return {
     successes: value.successes,
     total: value.total,
+    habitCount: value.habitCount,
     rate: value.rate,
     category: from_candid_GoalCategory_n9(_uploadFile, _downloadFile, value.category)
   };
@@ -35074,22 +34914,6 @@ function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
   });
   return new Backend(actor, _uploadFile, _downloadFile, options.processError);
 }
-const backend = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  AvatarColorMode,
-  Backend,
-  CheckInType,
-  ConnectionStatus,
-  ExternalBlob: ExternalBlob2,
-  GoalCategory,
-  GoalState,
-  InteractionType,
-  PartnerHabitError,
-  UserRole,
-  Variant_Star_Pentagon_Triangle_Hexagon_Square,
-  Variant_notFound_unauthorized,
-  createActor
-}, Symbol.toStringTag, { value: "Module" }));
 function useBackend() {
   const { actor, isFetching } = useActor(createActor);
   const actorReady = !!actor && !isFetching;
@@ -50272,6 +50096,70 @@ function MyQrTab() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "max-w-md text-center text-sm text-muted-foreground", children: "Have a partner scan this code to send you a request." })
   ] });
 }
+const scriptRel = "modulepreload";
+const assetsURL = function(dep) {
+  return "/" + dep;
+};
+const seen = {};
+const __vitePreload = function preload2(baseModule, deps, importerUrl) {
+  let promise = Promise.resolve();
+  if (deps && deps.length > 0) {
+    document.getElementsByTagName("link");
+    const cspNonceMeta = document.querySelector(
+      "meta[property=csp-nonce]"
+    );
+    const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
+    promise = Promise.allSettled(
+      deps.map((dep) => {
+        dep = assetsURL(dep);
+        if (dep in seen) return;
+        seen[dep] = true;
+        const isCss = dep.endsWith(".css");
+        const cssSelector = isCss ? '[rel="stylesheet"]' : "";
+        if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
+          return;
+        }
+        const link = document.createElement("link");
+        link.rel = isCss ? "stylesheet" : scriptRel;
+        if (!isCss) {
+          link.as = "script";
+        }
+        link.crossOrigin = "";
+        link.href = dep;
+        if (cspNonce) {
+          link.setAttribute("nonce", cspNonce);
+        }
+        document.head.appendChild(link);
+        if (isCss) {
+          return new Promise((res, rej) => {
+            link.addEventListener("load", res);
+            link.addEventListener(
+              "error",
+              () => rej(new Error(`Unable to preload CSS for ${dep}`))
+            );
+          });
+        }
+      })
+    );
+  }
+  function handlePreloadError(err) {
+    const e = new Event("vite:preloadError", {
+      cancelable: true
+    });
+    e.payload = err;
+    window.dispatchEvent(e);
+    if (!e.defaultPrevented) {
+      throw err;
+    }
+  }
+  return promise.then((res) => {
+    for (const item of res || []) {
+      if (item.status !== "rejected") continue;
+      handlePreloadError(item.reason);
+    }
+    return baseModule().catch(handlePreloadError);
+  });
+};
 function useConnections() {
   const { actor, actorReady } = useBackend();
   const { isAuthenticated } = useAuth();
@@ -92048,11 +91936,49 @@ function GoalsPage$1() {
     )
   ] });
 }
+const OBSTACLE_EVIDENCE_MIN = 3;
+const OBSTACLE_ACTUAL_MIN_COUNT = 2;
+const OBSTACLE_ACTUAL_LIMIT = 2;
+const OBSTACLE_EXPECTED_LIMIT = 3;
+function aggregateObstacles(obstacles) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const obstacle of obstacles) {
+    const existing = byName.get(obstacle.obstacleName);
+    if (existing) {
+      existing.count = existing.count + obstacle.count;
+    } else {
+      byName.set(obstacle.obstacleName, { ...obstacle });
+    }
+  }
+  return [...byName.values()].sort((a2, b2) => Number(b2.count - a2.count));
+}
+function totalActualOccurrences(obstacles) {
+  return obstacles.reduce((sum, obstacle) => sum + obstacle.count, 0n);
+}
+function rankActualObstacles(obstacles) {
+  return aggregateObstacles(obstacles).filter((obstacle) => obstacle.count >= BigInt(OBSTACLE_ACTUAL_MIN_COUNT)).slice(0, OBSTACLE_ACTUAL_LIMIT);
+}
+function rankExpectedObstacles(predicted, actual) {
+  const actualByName = new Map(
+    actual.map((obstacle) => [obstacle.obstacleName, obstacle.count])
+  );
+  return [...predicted].sort((a2, b2) => {
+    const byPredicted = Number(b2.count - a2.count);
+    if (byPredicted !== 0) return byPredicted;
+    const actualA = actualByName.get(a2.obstacleName) ?? 0n;
+    const actualB = actualByName.get(b2.obstacleName) ?? 0n;
+    const byActual = Number(actualB - actualA);
+    if (byActual !== 0) return byActual;
+    const idA = a2.obstacleTemplateId ?? 0n;
+    const idB = b2.obstacleTemplateId ?? 0n;
+    return Number(idA - idB);
+  }).slice(0, OBSTACLE_EXPECTED_LIMIT);
+}
 function useInsights() {
   const { actor, actorReady } = useBackend();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const timezoneOffsetMinutes = (profile == null ? void 0 : profile.timezoneOffsetMinutes) ?? 0n;
-  return useQuery({
+  const query = useQuery({
     queryKey: ["analytics", timezoneOffsetMinutes.toString()],
     queryFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
@@ -92064,6 +91990,7 @@ function useInsights() {
     // first request already carries the correct offset.
     enabled: !!actor && actorReady && !profileLoading && !!profile
   });
+  return { ...query, isLoading: profileLoading || query.isLoading };
 }
 const CATEGORY_ROWS = [
   { category: GoalCategory.Health, label: "Health", icon: HeartPulse },
@@ -92100,42 +92027,26 @@ function SectionHeading({
   ] });
 }
 const MIN_DATA_POINTS = 3;
+const IF_THEN_MIN_PER_SIDE = 20;
 function HighlightCard({
   effectiveness
 }) {
   const used = effectiveness == null ? void 0 : effectiveness.usedPlan;
   const notUsed = effectiveness == null ? void 0 : effectiveness.notUsedPlan;
-  const hasEnoughData = !!used && !!notUsed && used.total >= MIN_DATA_POINTS && notUsed.total >= MIN_DATA_POINTS;
+  const hasEnoughData = !!used && !!notUsed && used.total >= BigInt(IF_THEN_MIN_PER_SIDE) && notUsed.total >= BigInt(IF_THEN_MIN_PER_SIDE);
   let headline = "Your plans are taking shape";
   let subtitle = "We're gathering how often your if-then plans help you follow through. Soon you'll see your momentum here.";
   let followThroughValue = "—";
   let progressWidth = "0%";
-  let caption = "Keep going — every small win builds the picture.";
+  let caption = `${(used == null ? void 0 : used.total) ?? 0n} of ${IF_THEN_MIN_PER_SIDE} days with your plan so far.`;
   if (hasEnoughData) {
-    const usedRate = used.rate;
-    const notUsedRate = notUsed.rate;
-    const multiplier = notUsedRate > 0 ? usedRate / notUsedRate : Number.POSITIVE_INFINITY;
-    const usedPct = Math.round(usedRate * 100);
-    const notUsedPct = Math.round(notUsedRate * 100);
-    if (usedRate > notUsedRate) {
-      if (notUsedRate >= 0.1 && multiplier >= 1.5 && multiplier <= 5) {
-        const rounded = Math.round(multiplier);
-        headline = `${rounded}x more likely to follow through`;
-        subtitle = `When you use your if-then plan, you follow through ${rounded}× more often than on days you don't.`;
-      } else {
-        headline = "Your plan makes follow-through easier";
-        subtitle = `You follow through ${usedPct}% of the time with your plan, versus ${notUsedPct}% without it.`;
-      }
-      followThroughValue = `${usedPct}%`;
-      progressWidth = `${usedPct}%`;
-      caption = `Based on ${used.total} days with your plan and ${notUsed.total} without.`;
-    } else {
-      headline = "Keep using your plan";
-      subtitle = "Every time you use your if-then plan, you're building a habit that sticks. The momentum is still growing.";
-      followThroughValue = `${usedPct}%`;
-      progressWidth = `${usedPct}%`;
-      caption = `You've followed through ${used.total} times with your plan so far — keep it up.`;
-    }
+    const usedPct = Math.round(used.rate * 100);
+    const notUsedPct = Math.round(notUsed.rate * 100);
+    headline = usedPct >= notUsedPct + 10 ? "Your plan tends to help" : "No clear difference yet";
+    subtitle = `You followed through ${usedPct}% of the time on days you used your plan, and ${notUsedPct}% on days you didn't.`;
+    followThroughValue = `${usedPct}%`;
+    progressWidth = `${usedPct}%`;
+    caption = `Based on ${used.total} days with your plan and ${notUsed.total} without. This shows a pattern, not a cause.`;
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-neumorphic p-5", "data-ocid": "insights.highlight_card", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-accent-success", children: [
@@ -92195,8 +92106,8 @@ function BestWorstDaySection({ data }) {
   const dayStat = (index2) => data == null ? void 0 : data.dayOfWeek.find((s) => s.dayOfWeek === index2);
   const bestStat = dayStat(data == null ? void 0 : data.bestDayOfWeek);
   const worstStat = dayStat(data == null ? void 0 : data.worstDayOfWeek);
-  const bestReady = !!bestStat && bestStat.total >= MIN_DATA_POINTS && !!bestStat.dayName;
-  const worstReady = !!worstStat && worstStat.total >= MIN_DATA_POINTS && !!worstStat.dayName;
+  const bestReady = !!bestStat && !!bestStat.dayName;
+  const worstReady = !!worstStat && !!worstStat.dayName;
   const bestValue = bestReady ? bestStat.dayName : "—";
   const worstValue = worstReady ? worstStat.dayName : "—";
   const bestCaption = bestReady ? "Your strongest follow-through day so far." : "We'll show your standout day here once there's enough data.";
@@ -92224,7 +92135,7 @@ function BestWorstDaySection({ data }) {
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         DayCard,
         {
-          label: "Worst day",
+          label: "Toughest day",
           icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarDays, { className: "w-3.5 h-3.5" }),
           accent: "text-accent-skip",
           value: worstValue,
@@ -92258,16 +92169,14 @@ function CategoryBreakdownSection({ data }) {
         let value = "—";
         let progressWidth = "0%";
         let hint = null;
-        if (stat) {
-          if (stat.total >= MIN_DATA_POINTS) {
-            const pct = Math.round(stat.rate * 100);
-            value = `${pct}%`;
-            progressWidth = `${pct}%`;
-          } else {
-            hint = "Gathering a little more data…";
-          }
-        } else {
+        if (!stat || stat.habitCount === 0n) {
           hint = "Nothing here yet";
+        } else if (stat.total < BigInt(MIN_DATA_POINTS)) {
+          hint = "Gathering a little more data…";
+        } else {
+          const pct = Math.round(stat.rate * 100);
+          value = `${pct}%`;
+          progressWidth = `${pct}%`;
         }
         return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -92301,18 +92210,6 @@ function CategoryBreakdownSection({ data }) {
     ] })
   ] });
 }
-function aggregateObstacles(obstacles) {
-  const byName = /* @__PURE__ */ new Map();
-  for (const obstacle of obstacles) {
-    const existing = byName.get(obstacle.obstacleName);
-    if (existing) {
-      existing.count = existing.count + obstacle.count;
-    } else {
-      byName.set(obstacle.obstacleName, { ...obstacle });
-    }
-  }
-  return [...byName.values()].sort((a2, b2) => Number(b2.count - a2.count));
-}
 function ObstaclesSection({ data }) {
   const habits = (data == null ? void 0 : data.habits) ?? [];
   const predicted = reactExports.useMemo(() => (data == null ? void 0 : data.predictedObstaclePool) ?? [], [data]);
@@ -92320,10 +92217,9 @@ function ObstaclesSection({ data }) {
     () => aggregateObstacles(habits.flatMap((h2) => h2.actualObstacles)),
     [habits]
   );
-  const totalShownUp = habits.reduce((sum, h2) => sum + h2.shownUpDays, 0n);
-  const hasEnoughData = totalShownUp >= BigInt(MIN_DATA_POINTS) && (predicted.length > 0 || actual.length > 0);
-  const predictedRows = hasEnoughData ? predicted.slice(0, 2) : [];
-  const actualRows = hasEnoughData ? actual.slice(0, 2) : [];
+  const hasEnoughData = totalActualOccurrences(actual) >= BigInt(OBSTACLE_EVIDENCE_MIN);
+  const expectedRows = hasEnoughData ? rankExpectedObstacles(predicted, actual) : [];
+  const actualRows = hasEnoughData ? rankActualObstacles(actual) : [];
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "px-4 pt-6", "data-ocid": "insights.obstacles_section", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       SectionHeading,
@@ -92337,27 +92233,35 @@ function ObstaclesSection({ data }) {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-body uppercase tracking-wider text-muted-foreground mb-2", children: "Expected" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-2", children: predictedRows.length > 0 ? predictedRows.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ObstacleRow, { label: o2.obstacleName }, o2.obstacleName)) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-2", children: expectedRows.length > 0 ? expectedRows.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ObstacleRow, { label: o2.obstacleName }, o2.obstacleName)) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" })
           ] }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-body uppercase tracking-wider text-muted-foreground mb-2", children: "Actual" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-2", children: actualRows.length > 0 ? actualRows.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ObstacleRow, { label: o2.obstacleName }, o2.obstacleName)) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "—" })
-          ] }) })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-2", children: actualRows.length > 0 ? actualRows.map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+            ObstacleRow,
+            {
+              label: o2.obstacleName,
+              count: o2.count
+            },
+            o2.obstacleName
+          )) : /* @__PURE__ */ jsxRuntimeExports.jsx(PlaceholderObstacle, { label: "No repeats yet" }) })
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-4", children: hasEnoughData ? "Spotting the patterns that get in the way helps you plan around them." : "Understanding what really gets in the way helps you plan around it. We'll surface that here soon." })
     ] })
   ] });
 }
-function ObstacleRow({ label }) {
+function ObstacleRow({ label, count: count2 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 rounded-lg px-3 py-2 bg-muted/40", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-accent-skip shrink-0" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground", children: label })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-foreground min-w-0 truncate", children: label }),
+    count2 !== void 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ml-auto text-xs text-muted-foreground shrink-0", children: [
+      "×",
+      count2.toString()
+    ] })
   ] });
 }
 function PlaceholderObstacle({ label }) {
@@ -94810,42 +94714,13 @@ const router = createRouter({ routeTree });
 function App() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(RouterProvider, { router });
 }
-const __vite_import_meta_env__ = { "BASE_URL": "/", "DEV": false, "MODE": "production", "PROD": true, "SSR": false };
 BigInt.prototype.toJSON = function() {
   return this.toString();
 };
-const RESET_KEY = "cumulative_reset_v1";
-async function runDevResetIfNeeded() {
-  if (localStorage.getItem(RESET_KEY)) return;
-  try {
-    const canisterId = (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      __vite_import_meta_env__ == null ? void 0 : __vite_import_meta_env__.CANISTER_ID_BACKEND
-    );
-    if (!canisterId) return;
-    const noopUpload = async (_file) => new Uint8Array();
-    const noopDownload = async (_file) => {
-      const { ExternalBlob: ExternalBlob3 } = await __vitePreload(async () => {
-        const { ExternalBlob: ExternalBlob4 } = await Promise.resolve().then(() => backend);
-        return { ExternalBlob: ExternalBlob4 };
-      }, true ? void 0 : void 0);
-      return ExternalBlob3.fromBytes(new Uint8Array());
-    };
-    const actor = createActor(
-      canisterId,
-      noopUpload,
-      noopDownload
-    );
-    await actor.devReset();
-    localStorage.setItem(RESET_KEY, "1");
-  } catch {
-  }
-}
 const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(QueryClientProvider, { client: queryClient, children: /* @__PURE__ */ jsxRuntimeExports.jsx(InternetIdentityProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
-void runDevResetIfNeeded();
 const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   JSON_KEY_PRINCIPAL,

@@ -95,6 +95,7 @@ export const Result = IDL.Record({
 export const CategoryStat = IDL.Record({
   'successes' : IDL.Nat,
   'total' : IDL.Nat,
+  'habitCount' : IDL.Nat,
   'rate' : IDL.Float64,
   'category' : GoalCategory,
 });
@@ -310,7 +311,6 @@ export const idlService = IDL.Service({
       [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
-  'devReset' : IDL.Func([], [], []),
   'execute' : IDL.Func([IDL.Text], [Result], ['query']),
   'getAnalytics' : IDL.Func([IDL.Int], [AnalyticsSummary], ['query']),
   'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
@@ -516,6 +516,7 @@ export const idlFactory = ({ IDL }) => {
   const CategoryStat = IDL.Record({
     'successes' : IDL.Nat,
     'total' : IDL.Nat,
+    'habitCount' : IDL.Nat,
     'rate' : IDL.Float64,
     'category' : GoalCategory,
   });
@@ -731,7 +732,6 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
-    'devReset' : IDL.Func([], [], []),
     'execute' : IDL.Func([IDL.Text], [Result], ['query']),
     'getAnalytics' : IDL.Func([IDL.Int], [AnalyticsSummary], ['query']),
     'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),

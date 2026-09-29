@@ -34,8 +34,12 @@ module {
   };
 
   /// Follow-through rolled up for a single habit category.
+  /// `habitCount` is how many of the caller's habits fall in this category —
+  /// it lets the UI distinguish "no habits here yet" from "habits exist but
+  /// not enough check-ins yet".
   public type CategoryStat = {
     category : GoalTypes.GoalCategory;
+    habitCount : Nat;
     successes : Nat;
     total : Nat;
     rate : Float;

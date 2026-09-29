@@ -67,6 +67,7 @@ export type AvatarShape = Variant_Star_Pentagon_Triangle_Hexagon_Square | null;
 export interface CategoryStat {
     successes: bigint;
     total: bigint;
+    habitCount: bigint;
     rate: number;
     category: GoalCategory;
 }
@@ -417,7 +418,6 @@ export interface backendInterface {
         __kind__: "err";
         err: string;
     }>;
-    devReset(): Promise<void>;
     execute(qJson: string): Promise<Result>;
     getAnalytics(timezoneOffsetMinutes: bigint): Promise<AnalyticsSummary>;
     getApiDoc(): Promise<string>;
@@ -653,20 +653,6 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.deleteHabit(arg0);
             return from_candid_variant_n18(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async devReset(): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.devReset();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.devReset();
-            return result;
         }
     }
     async execute(arg0: string): Promise<Result> {
@@ -1438,17 +1424,20 @@ function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uin
 function from_candid_record_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     successes: bigint;
     total: bigint;
+    habitCount: bigint;
     rate: number;
     category: _GoalCategory;
 }): {
     successes: bigint;
     total: bigint;
+    habitCount: bigint;
     rate: number;
     category: GoalCategory;
 } {
     return {
         successes: value.successes,
         total: value.total,
+        habitCount: value.habitCount,
         rate: value.rate,
         category: from_candid_GoalCategory_n9(_uploadFile, _downloadFile, value.category)
     };
