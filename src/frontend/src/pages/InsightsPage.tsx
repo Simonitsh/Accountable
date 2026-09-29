@@ -1,4 +1,6 @@
 import { GoalCategory } from "@/backend";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useBackend } from "@/hooks/useBackend";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type {
@@ -11,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
   CalendarDays,
+  CloudOff,
   GraduationCap,
   HeartPulse,
   Lightbulb,
@@ -29,7 +32,7 @@ import { useMemo } from "react";
 // so real values can be wired in during a follow-up step without reshaping.
 function useInsights() {
   const { actor, actorReady } = useBackend();
-  const { data: profile } = useUserProfile();
+  const { data: profile, isLoading: profileLoading } = useUserProfile();
   const timezoneOffsetMinutes = profile?.timezoneOffsetMinutes ?? 0n;
 
   return useQuery<AnalyticsSummary>({
@@ -38,7 +41,11 @@ function useInsights() {
       if (!actor) throw new Error("Backend is not ready");
       return actor.getAnalytics(timezoneOffsetMinutes);
     },
-    enabled: !!actor && actorReady,
+    // Wait for the profile before the first request: firing with the default
+    // offset 0 would bucket check-ins into the wrong local day, then refetch
+    // once the real offset arrives. Gate on the profile having loaded so the
+    // first request already carries the correct offset.
+    enabled: !!actor && actorReady && !profileLoading && !!profile,
   });
 }
 
@@ -470,9 +477,70 @@ function PlaceholderObstacle({ label }: { label: string }) {
   );
 }
 
+// ─── Loading skeleton ────────────────────────────────────────────────────────
+// Layout-matched placeholders so the page keeps its shape while the summary
+// loads, instead of flashing the warm "gathering data" copy.
+function InsightsSkeleton() {
+  const blocks = Array.from({ length: 4 }, (_, i) => `insights-skeleton-${i}`);
+  return (
+    <div
+      className="flex flex-col gap-6 px-4 pt-4"
+      data-ocid="insights.loading_state"
+      aria-busy="true"
+    >
+      {blocks.map((id) => (
+        <div key={id} className="card-neumorphic p-5">
+          <Skeleton className="h-4 w-28" />
+          <div className="mt-4 flex items-center gap-4">
+            <Skeleton className="h-16 w-16 rounded-full" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+          </div>
+          <Skeleton className="mt-5 h-2 w-full rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Error state ─────────────────────────────────────────────────────────────
+// Neutral, non-alarming recovery state — a failed request must never read as
+// "Your plans are taking shape".
+function InsightsError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="px-4 pt-6" data-ocid="insights.error_state" role="alert">
+      <div className="card-neumorphic p-6 flex flex-col items-center text-center gap-3">
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: "oklch(var(--muted) / 0.6)",
+            boxShadow:
+              "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)",
+          }}
+        >
+          <CloudOff className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <p className="font-display text-base font-semibold text-foreground">
+          Couldn't load your insights — try again
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onRetry}
+          data-ocid="insights.retry_button"
+        >
+          Try again
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ───────────────────────────────────────────────────────────────
 export function InsightsPage() {
-  const { data } = useInsights();
+  const { data, isError, isLoading, refetch } = useInsights();
   const prefersReducedMotion = useReducedMotion();
 
   const container = useMemo(
@@ -516,21 +584,29 @@ export function InsightsPage() {
         animate="show"
         className="flex flex-col"
       >
-        <motion.div variants={item} className="px-4 pt-4">
-          <HighlightCard effectiveness={data?.overallIfThenEffectiveness} />
-        </motion.div>
+        {isLoading ? (
+          <InsightsSkeleton />
+        ) : isError ? (
+          <InsightsError onRetry={() => void refetch()} />
+        ) : (
+          <>
+            <motion.div variants={item} className="px-4 pt-4">
+              <HighlightCard effectiveness={data?.overallIfThenEffectiveness} />
+            </motion.div>
 
-        <motion.div variants={item}>
-          <BestWorstDaySection data={data} />
-        </motion.div>
+            <motion.div variants={item}>
+              <BestWorstDaySection data={data} />
+            </motion.div>
 
-        <motion.div variants={item}>
-          <CategoryBreakdownSection data={data} />
-        </motion.div>
+            <motion.div variants={item}>
+              <CategoryBreakdownSection data={data} />
+            </motion.div>
 
-        <motion.div variants={item}>
-          <ObstaclesSection data={data} />
-        </motion.div>
+            <motion.div variants={item}>
+              <ObstaclesSection data={data} />
+            </motion.div>
+          </>
+        )}
       </motion.div>
     </div>
   );

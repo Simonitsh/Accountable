@@ -65,6 +65,12 @@ mixin (
     AuthLib.setTimezone(profiles, caller, tz);
   };
 
+  // Sets both the IANA timezone name and the current UTC offset on the
+  // caller's profile. Idempotent; traps when the offset is outside -720..840.
+  public shared ({ caller }) func syncTimezone(tz : Text, offsetMinutes : Int) : async () {
+    AuthLib.syncTimezone(profiles, caller, tz, offsetMinutes);
+  };
+
   public shared query ({ caller }) func listAllUsers() : async [AuthTypes.UserProfilePublic] {
     if (not AuthLib.isAdmin(profiles, caller)) {
       Runtime.trap("admin only");

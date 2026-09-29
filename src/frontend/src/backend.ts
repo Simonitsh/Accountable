@@ -76,6 +76,7 @@ export interface Cell {
 }
 export interface CheckIn {
     id: CheckInId;
+    tzOffsetMinutes?: bigint;
     owner: UserId;
     note?: string;
     goalId: GoalId;
@@ -507,6 +508,7 @@ export interface backendInterface {
     schema(): Promise<string>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;
     setTimezone(tz: string): Promise<void>;
+    syncTimezone(tz: string, offsetMinutes: bigint): Promise<void>;
     /**
      * / Transition a goal (macro or habit) to a new state.
      */
@@ -1139,6 +1141,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async syncTimezone(arg0: string, arg1: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.syncTimezone(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.syncTimezone(arg0, arg1);
+            return result;
+        }
+    }
     async updateGoalState(arg0: GoalId, arg1: GoalState): Promise<boolean> {
         if (this.processError) {
             try {
@@ -1232,7 +1248,7 @@ function from_candid_CategoryStat_n30(_uploadFile: (file: ExternalBlob) => Promi
 function from_candid_Cell_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Cell): Cell {
     return from_candid_record_n24(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckInType_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CheckInType): CheckInType {
+function from_candid_CheckInType_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CheckInType): CheckInType {
     return "skip" in value ? CheckInType.skip : "missed" in value ? CheckInType.missed : "missedCheckIn" in value ? CheckInType.missedCheckIn : "missedCheckOut" in value ? CheckInType.missedCheckOut : "success" in value ? CheckInType.success : "inProgress" in value ? CheckInType.inProgress : value;
 }
 function from_candid_CheckIn_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CheckIn): CheckIn {
@@ -1304,7 +1320,7 @@ function from_candid_opt_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 function from_candid_opt_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ObstacleTemplateId]): ObstacleTemplateId | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+function from_candid_opt_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_HabitPublic]): HabitPublic | null {
@@ -1481,6 +1497,7 @@ function from_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }
 function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: _CheckInId;
+    tzOffsetMinutes: [] | [bigint];
     owner: _UserId;
     note: [] | [string];
     goalId: _GoalId;
@@ -1493,6 +1510,7 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
     lockInEndedAt: [] | [bigint];
 }): {
     id: CheckInId;
+    tzOffsetMinutes?: bigint;
     owner: UserId;
     note?: string;
     goalId: GoalId;
@@ -1506,16 +1524,17 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         id: value.id,
+        tzOffsetMinutes: record_opt_to_undefined(from_candid_opt_n43(_uploadFile, _downloadFile, value.tzOffsetMinutes)),
         owner: value.owner,
         note: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.note)),
         goalId: value.goalId,
-        checkInType: from_candid_CheckInType_n43(_uploadFile, _downloadFile, value.checkInType),
+        checkInType: from_candid_CheckInType_n44(_uploadFile, _downloadFile, value.checkInType),
         obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n39(_uploadFile, _downloadFile, value.obstacleTemplateId)),
         timestamp: value.timestamp,
         executedIfThen: value.executedIfThen,
         followUpDeclined: value.followUpDeclined,
-        lockInStartedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInStartedAt)),
-        lockInEndedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInEndedAt))
+        lockInStartedAt: record_opt_to_undefined(from_candid_opt_n43(_uploadFile, _downloadFile, value.lockInStartedAt)),
+        lockInEndedAt: record_opt_to_undefined(from_candid_opt_n43(_uploadFile, _downloadFile, value.lockInEndedAt))
     };
 }
 function from_candid_record_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {

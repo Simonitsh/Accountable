@@ -16,5 +16,17 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
+    // Pin the pool and its worker bounds explicitly. The build environment
+    // exports VITEST_MAX_FORKS / VITEST_MAX_THREADS without matching MIN
+    // values, which makes tinypool throw
+    // "options.minThreads and options.maxThreads must not conflict" at
+    // startup. Explicit bounds keep the run deterministic.
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 2,
+      },
+    },
   },
 });

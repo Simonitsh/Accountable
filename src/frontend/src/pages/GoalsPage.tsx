@@ -27,6 +27,7 @@ import { GoalCardShell } from "../components/GoalCardShell";
 import SuggestionButton from "../components/SuggestionButton";
 import { useBackend, useDeleteHabit } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
+import { getCurrentTimezoneOffsetMinutes } from "../lib/timezone";
 import type {
   GoalState as GoalStateType,
   GoalWithHabitsPublic,
@@ -257,7 +258,7 @@ function GoalEditForm({
 
   function handleSave() {
     const req: UpdateHabitRequest = {
-      timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
+      timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes()),
     };
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
       req.ifThenPlan = form.ifThenPlan.trim();
@@ -1199,7 +1200,7 @@ function ObstacleQuickPicker({
       const resolved = ids.filter((id): id is bigint => id !== undefined);
       if (resolved.length === 0) return;
       onSave(habit.id, {
-        timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
+        timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes()),
         obstacleTemplateIds: resolved,
       });
     });

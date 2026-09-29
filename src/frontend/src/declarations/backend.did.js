@@ -147,6 +147,7 @@ export const CheckInType = IDL.Variant({
 });
 export const CheckIn = IDL.Record({
   'id' : CheckInId,
+  'tzOffsetMinutes' : IDL.Opt(IDL.Int),
   'owner' : UserId,
   'note' : IDL.Opt(IDL.Text),
   'goalId' : GoalId,
@@ -398,6 +399,7 @@ export const idlService = IDL.Service({
   'schema' : IDL.Func([], [IDL.Text], ['query']),
   'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
   'setTimezone' : IDL.Func([IDL.Text], [], []),
+  'syncTimezone' : IDL.Func([IDL.Text, IDL.Int], [], []),
   'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
   'updateHabit' : IDL.Func(
       [GoalId, UpdateHabitRequest],
@@ -566,6 +568,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const CheckIn = IDL.Record({
     'id' : CheckInId,
+    'tzOffsetMinutes' : IDL.Opt(IDL.Int),
     'owner' : UserId,
     'note' : IDL.Opt(IDL.Text),
     'goalId' : GoalId,
@@ -825,6 +828,7 @@ export const idlFactory = ({ IDL }) => {
     'schema' : IDL.Func([], [IDL.Text], ['query']),
     'sendConnectionRequest' : IDL.Func([UserId], [ConnectionPublic], []),
     'setTimezone' : IDL.Func([IDL.Text], [], []),
+    'syncTimezone' : IDL.Func([IDL.Text, IDL.Int], [], []),
     'updateGoalState' : IDL.Func([GoalId, GoalState], [IDL.Bool], []),
     'updateHabit' : IDL.Func(
         [GoalId, UpdateHabitRequest],

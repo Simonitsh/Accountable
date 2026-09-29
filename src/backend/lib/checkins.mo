@@ -123,6 +123,7 @@ module {
       lockInEndedAt = request.lockInEndedAt;
       executedIfThen = request.executedIfThen;
       followUpDeclined = false;
+      tzOffsetMinutes = ?request.timezoneOffsetMinutes;
       note = request.note;
     };
     checkIns.add(checkIn);
@@ -190,6 +191,7 @@ module {
           lockInEndedAt = null;
           executedIfThen = false;
           followUpDeclined = false;
+          tzOffsetMinutes = ?timezoneOffsetMinutes;
           note = null;
         };
         checkIns.add(missedCheckIn);

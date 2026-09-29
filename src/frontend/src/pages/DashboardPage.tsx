@@ -24,6 +24,7 @@ import {
 } from "../hooks/useDashboardHeader";
 import { useTheme } from "../hooks/useTheme";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { getCurrentTimezoneOffsetMinutes } from "../lib/timezone";
 import type {
   GoalAnalytics,
   GoalWithHabitsPublic,
@@ -40,22 +41,6 @@ const NEW_HABIT_DURATION_MS = 10_000;
 function goalKey(id: bigint): string {
   return String(id);
 }
-/**
- * Returns the UTC offset in minutes for a given IANA timezone string.
- * e.g. "America/New_York" → -300 (in winter), +330 for "Asia/Kolkata".
- * Falls back to the browser's own offset if tz is empty or unrecognised.
- */
-const getTimezoneOffsetMinutes = (tz: string): number => {
-  if (!tz) return -new Date().getTimezoneOffset();
-  try {
-    const date = new Date();
-    const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-    const tzDate = new Date(date.toLocaleString("en-US", { timeZone: tz }));
-    return Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
-  } catch {
-    return -new Date().getTimezoneOffset();
-  }
-};
 
 /**
  * Returns true if the IC nanosecond timestamp falls on today's calendar day
@@ -1188,9 +1173,7 @@ export function DashboardPage() {
         lockInEndedAt,
         executedIfThen: executedIfThen ?? false,
         note,
-        timezoneOffsetMinutes: BigInt(
-          getTimezoneOffsetMinutes(userTimezone ?? ""),
-        ),
+        timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes()),
       });
     },
     onSuccess: (data, variables) => {

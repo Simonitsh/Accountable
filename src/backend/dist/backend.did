@@ -264,6 +264,7 @@ type CheckIn =
    obstacleTemplateId: opt ObstacleTemplateId;
    owner: UserId;
    timestamp: Timestamp;
+   tzOffsetMinutes: opt int;
  };
 type Cell = 
  record {
@@ -426,6 +427,7 @@ service : {
   schema: () -> (text) query;
   sendConnectionRequest: (target: UserId) -> (ConnectionPublic);
   setTimezone: (tz: text) -> ();
+  syncTimezone: (tz: text, offsetMinutes: int) -> ();
   /// Transition a goal (macro or habit) to a new state.
   updateGoalState: (goalId: GoalId, newState: GoalState) -> (bool);
   /// Update an editable habit. wish/wishDescription/outcome/category are

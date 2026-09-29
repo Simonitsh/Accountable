@@ -37,8 +37,20 @@ module {
     };
   };
 
+  /// A terminal check-in is one that represents a finished day: a success, a
+  /// deliberate skip, or any of the missed variants. #inProgress is NOT
+  /// terminal — a Lock-In session writes one at start and a separate terminal
+  /// record at checkout, so counting it would halve a perfect day's rate.
+  func isTerminal(checkInType : Common.CheckInType) : Bool {
+    switch (checkInType) {
+      case (#success or #skip or #missed or #missedCheckIn or #missedCheckOut) { true };
+      case (#inProgress) { false };
+    };
+  };
+
   /// If-then plan effectiveness: follow-through on days the plan was used
-  /// (`executedIfThen = true`) versus days it was not.
+  /// (`executedIfThen = true`) versus days it was not. Only terminal check-ins
+  /// count toward `total`; #inProgress is excluded.
   public func computeIfThenEffectiveness(
     checkIns : [CheckInTypes.CheckIn],
   ) : AnalyticsTypes.IfThenEffectiveness {
@@ -47,12 +59,14 @@ module {
     var notUsedSuccess : Nat = 0;
     var notUsedTotal : Nat = 0;
     for (c in checkIns.values()) {
-      if (c.executedIfThen) {
-        usedTotal += 1;
-        if (c.checkInType == #success) usedSuccess += 1;
-      } else {
-        notUsedTotal += 1;
-        if (c.checkInType == #success) notUsedSuccess += 1;
+      if (isTerminal(c.checkInType)) {
+        if (c.executedIfThen) {
+          usedTotal += 1;
+          if (c.checkInType == #success) usedSuccess += 1;
+        } else {
+          notUsedTotal += 1;
+          if (c.checkInType == #success) notUsedSuccess += 1;
+        };
       };
     };
     {
@@ -62,14 +76,20 @@ module {
   };
 
   /// Follow-through per day of the week across the given check-ins, bucketed
-  /// in the user's local time (timezoneOffsetMinutes).
+  /// in the user's local time. Each check-in is bucketed with ITS OWN recorded
+  /// `tzOffsetMinutes`; legacy records with null fall back to the
+  /// `timezoneOffsetMinutes` argument. Only terminal check-ins count toward
+  /// `total`; #inProgress is excluded.
   public func computeDayOfWeek(checkIns : [CheckInTypes.CheckIn], timezoneOffsetMinutes : Int) : [AnalyticsTypes.DayOfWeekStat] {
     var successes = [var 0, 0, 0, 0, 0, 0, 0];
     var totals = [var 0, 0, 0, 0, 0, 0, 0];
     for (c in checkIns.values()) {
-      let d = DateUtils.dayOfWeek(c.timestamp, timezoneOffsetMinutes);
-      totals[d] += 1;
-      if (c.checkInType == #success) successes[d] += 1;
+      if (isTerminal(c.checkInType)) {
+        let offset = c.tzOffsetMinutes ?? timezoneOffsetMinutes;
+        let d = DateUtils.dayOfWeek(c.timestamp, offset);
+        totals[d] += 1;
+        if (c.checkInType == #success) successes[d] += 1;
+      };
     };
     Array.tabulate(7, func(i) {
       {
@@ -112,7 +132,8 @@ module {
 
   /// Follow-through rolled up per category. Each habit's category comes from
   /// its existing `category` field; check-ins are attributed to a category via
-  /// their habit's id.
+  /// their habit's id. Only terminal check-ins count toward `total`;
+  /// #inProgress is excluded.
   public func computeCategoryBreakdown(
     habits : [GoalTypes.Goal],
     checkIns : [CheckInTypes.CheckIn],
@@ -123,7 +144,7 @@ module {
       var successes : Nat = 0;
       var total : Nat = 0;
       for (c in checkIns.values()) {
-        if (catHabitIds.find(func(id) { id == c.goalId }) != null) {
+        if (isTerminal(c.checkInType) and catHabitIds.find(func(id) { id == c.goalId }) != null) {
           total += 1;
           if (c.checkInType == #success) successes += 1;
         };

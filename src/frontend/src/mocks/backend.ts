@@ -777,6 +777,8 @@ export const mockBackend: backendInterface = {
 
   setTimezone: async () => undefined,
 
+  syncTimezone: async (_tz: string, _offsetMinutes: bigint) => undefined,
+
   listAllUsers: async () => [],
 
   // ─── Connections / partners ─────────────────────────────────────────────────

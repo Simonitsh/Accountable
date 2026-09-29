@@ -3,9 +3,11 @@ import List "mo:core/List";
 import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Int "mo:core/Int";
+import Runtime "mo:core/Runtime";
 import DateUtils "../lib/date-utils";
 import CheckIns "../lib/checkins";
 import Analytics "../lib/analytics";
+import AuthLib "../lib/auth";
 import Common "../types/common";
 import CheckInTypes "../types/checkins";
 import GoalTypes "../types/goals";
@@ -274,6 +276,7 @@ func makeCheckIn(
     lockInEndedAt = null;
     executedIfThen = false;
     followUpDeclined = false;
+    tzOffsetMinutes = null;
     note = null;
   };
 };
@@ -640,6 +643,182 @@ suite(
         let stats = Analytics.computeIfThenEffectiveness(checkIns.toArray());
         expect.nat(stats.usedPlan.total).equal(0);
         expect.nat(stats.notUsedPlan.total).equal(1);
+      },
+    );
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// syncTimezone() — sets both fields, idempotent, range-validated
+// ─────────────────────────────────────────────────────────────────────────────
+suite(
+  "syncTimezone()",
+  func() {
+    test(
+      "sets both timezone and timezoneOffsetMinutes",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
+        profiles.add(owner, makeProfile(owner, UTC_0));
+        AuthLib.syncTimezone(profiles, owner, "Europe/Berlin", 120);
+        let p = profiles.get(owner) ?? Runtime.trap("profile missing");
+        expect.text(p.timezone).equal("Europe/Berlin");
+        expect.int(p.timezoneOffsetMinutes).equal(120);
+      },
+    );
+
+    test(
+      "is a no-op when both values are unchanged",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
+        profiles.add(owner, makeProfile(owner, UTC_0));
+        // First call writes; the second call with identical values must not.
+        AuthLib.syncTimezone(profiles, owner, "Europe/Berlin", 120);
+        AuthLib.syncTimezone(profiles, owner, "Europe/Berlin", 120);
+        let p = profiles.get(owner) ?? Runtime.trap("profile missing");
+        expect.text(p.timezone).equal("Europe/Berlin");
+        expect.int(p.timezoneOffsetMinutes).equal(120);
+      },
+    );
+
+    test(
+      "rejects an offset below -720",
+      func() {
+        // syncTimezone traps synchronously, and Motoko try/catch only works in
+        // async contexts, so the range rule is asserted through the pure
+        // predicate the trap is built on.
+        expect.bool(AuthLib.isValidTimezoneOffset(-721)).isFalse();
+        expect.bool(AuthLib.isValidTimezoneOffset(-720)).isTrue();
+      },
+    );
+
+    test(
+      "rejects an offset above 840",
+      func() {
+        expect.bool(AuthLib.isValidTimezoneOffset(841)).isFalse();
+        expect.bool(AuthLib.isValidTimezoneOffset(840)).isTrue();
+      },
+    );
+
+    test(
+      "accepts the boundary offsets -720 and 840",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
+        profiles.add(owner, makeProfile(owner, UTC_0));
+        AuthLib.syncTimezone(profiles, owner, "Etc/GMT+12", -720);
+        AuthLib.syncTimezone(profiles, owner, "Pacific/Kiritimati", 840);
+        let p = profiles.get(owner) ?? Runtime.trap("profile missing");
+        expect.int(p.timezoneOffsetMinutes).equal(840);
+      },
+    );
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// autoFailMissedGoals() — the #missed record carries the owner's offset and
+// does not block a real check-in on the following local day
+// ─────────────────────────────────────────────────────────────────────────────
+suite(
+  "autoFailMissedGoals() timezone stamping",
+  func() {
+    test(
+      "stamps the #missed record with the owner's profile offset",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        let goals = List.empty<GoalTypes.Goal>();
+        goals.add(makeGoal(1, owner, ALL_DAYS, false));
+        let nextId : [var Nat] = [var 0];
+        let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
+        profiles.add(owner, makeProfile(owner, 120)); // UTC+2
+        // now = Monday 00:00 UTC → local now = Monday 02:00; yesterday = Sunday.
+        let count = CheckIns.autoFailMissedGoals(checkIns, goals, nextId, profiles, MON_2024_01_01);
+        expect.nat(count).equal(1);
+        let recorded = checkIns.toArray();
+        expect.nat(recorded.size()).equal(1);
+        // The recorded offset is the owner's profile offset.
+        expect.option(recorded[0].tzOffsetMinutes, func(n : Int) : Text { n.toText() }, func(a, b) { a == b }).equal(?120);
+      },
+    );
+
+    test(
+      "a #missed stamped at local 23:59:59 does not block a real check-in the next local day",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        let goals = List.empty<GoalTypes.Goal>();
+        goals.add(makeGoal(1, owner, ALL_DAYS, false));
+        let nextId : [var Nat] = [var 0];
+        let profiles = Map.empty<Common.UserId, AuthTypes.UserProfile>();
+        profiles.add(owner, makeProfile(owner, 120)); // UTC+2
+        // now = Monday 00:00 UTC → local Monday 02:00; yesterday = Sunday local.
+        ignore CheckIns.autoFailMissedGoals(checkIns, goals, nextId, profiles, MON_2024_01_01);
+        let missed = checkIns.at(0);
+        // The #missed is stamped one ns before Sunday's local midnight, i.e.
+        // Sunday 23:59:59.999999999 local = Sunday 21:59:59.999999999 UTC.
+        expect.int(missed.timestamp).equal(MON_2024_01_01 - 2 * HOUR_NS - 1);
+        // A real check-in on Monday local (Monday 10:00 local = Monday 08:00 UTC)
+        // must not be rejected as "already checked in today".
+        let mondayLocal10 = MON_2024_01_01 + 8 * HOUR_NS;
+        expect.bool(DateUtils.sameDay(missed.timestamp, mondayLocal10, 120)).isFalse();
+      },
+    );
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// recordCheckIn() — the recorded check-in carries the request's offset
+// ─────────────────────────────────────────────────────────────────────────────
+suite(
+  "recordCheckIn() timezone stamping",
+  func() {
+    test(
+      "stamps tzOffsetMinutes from request.timezoneOffsetMinutes",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        let goals = List.empty<GoalTypes.Goal>();
+        goals.add(makeGoal(1, owner, ALL_DAYS, false));
+        let request : CheckInTypes.RecordCheckInRequest = {
+          goalId = 1;
+          checkInType = #success;
+          obstacleTemplateId = null;
+          lockInStartedAt = null;
+          lockInEndedAt = null;
+          executedIfThen = false;
+          timezoneOffsetMinutes = 120; // UTC+2
+          note = null;
+        };
+        let recorded = CheckIns.recordCheckIn(checkIns, goals, 0, owner, request);
+        // The persisted record carries the offset the request was made with.
+        expect.option(recorded.tzOffsetMinutes, func(n : Int) : Text { n.toText() }, func(a, b) { a == b }).equal(?120);
+        // And the stored record matches what was returned.
+        let stored = checkIns.at(0);
+        expect.option(stored.tzOffsetMinutes, func(n : Int) : Text { n.toText() }, func(a, b) { a == b }).equal(?120);
+      },
+    );
+
+    test(
+      "stamps a negative offset from the request",
+      func() {
+        let owner = Principal.fromText("aaaaa-aa");
+        let checkIns = List.empty<CheckInTypes.CheckIn>();
+        let goals = List.empty<GoalTypes.Goal>();
+        goals.add(makeGoal(1, owner, ALL_DAYS, false));
+        let request : CheckInTypes.RecordCheckInRequest = {
+          goalId = 1;
+          checkInType = #success;
+          obstacleTemplateId = null;
+          lockInStartedAt = null;
+          lockInEndedAt = null;
+          executedIfThen = false;
+          timezoneOffsetMinutes = -300; // UTC-5
+          note = null;
+        };
+        let recorded = CheckIns.recordCheckIn(checkIns, goals, 0, owner, request);
+        expect.option(recorded.tzOffsetMinutes, func(n : Int) : Text { n.toText() }, func(a, b) { a == b }).equal(?-300);
       },
     );
   },

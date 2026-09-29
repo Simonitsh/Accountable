@@ -30,6 +30,7 @@ export interface Cell {
 }
 export interface CheckIn {
     id: CheckInId;
+    tzOffsetMinutes?: bigint;
     owner: UserId;
     note?: string;
     goalId: GoalId;
@@ -461,6 +462,7 @@ export interface backendInterface {
     schema(): Promise<string>;
     sendConnectionRequest(target: UserId): Promise<ConnectionPublic>;
     setTimezone(tz: string): Promise<void>;
+    syncTimezone(tz: string, offsetMinutes: bigint): Promise<void>;
     /**
      * / Transition a goal (macro or habit) to a new state.
      */

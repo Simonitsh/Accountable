@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import type { UserProfilePublic } from "../backend.d.ts";
+import {
+  getCurrentTimezoneOffsetMinutes,
+  getDeviceTimezone,
+} from "../lib/timezone";
 import { useAuth } from "./useAuth";
 import { useBackend } from "./useBackend";
 
@@ -31,7 +35,6 @@ export function useUserProfile() {
   const { isAuthenticated } = useAuth();
   const retryCount = useRef(0);
   const queryClient = useQueryClient();
-  const timezoneSyncedRef = useRef(false);
 
   const query = useQuery<UserProfilePublic | null>({
     queryKey: ["userProfile"],
@@ -59,32 +62,62 @@ export function useUserProfile() {
     retryDelay: 300,
   });
 
-  // Timezone mutation — called once if profile.timezone is empty
+  // Timezone sync — writes BOTH the IANA zone name and the current UTC offset
+  // to the profile. The backend's syncTimezone is idempotent, so calling it on
+  // every load and every tab re-focus is safe and keeps DST shifts and travel
+  // reflected without a manual refresh.
   const timezoneMutation = useMutation({
-    mutationFn: async (tz: string) => {
+    mutationFn: async ({
+      tz,
+      offsetMinutes,
+    }: {
+      tz: string;
+      offsetMinutes: number;
+    }) => {
       if (!actor) throw new Error("actor not ready");
-      return actor.setTimezone(tz);
+      // syncTimezone is now part of the generated bindings, so call it through
+      // the real signature. The generated method takes the offset as a bigint.
+      return actor.syncTimezone(tz, BigInt(offsetMinutes));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
   });
 
-  const timezoneMutateRef = useRef<(tz: string) => void>(
-    timezoneMutation.mutate,
-  );
+  const timezoneMutateRef = useRef<
+    (vars: {
+      tz: string;
+      offsetMinutes: number;
+    }) => void
+  >(timezoneMutation.mutate);
   timezoneMutateRef.current = timezoneMutation.mutate;
 
+  // Sync on load once the profile has arrived, and again whenever the tab
+  // becomes visible. Only fires when the device zone or offset actually
+  // differs from what the profile stores, so a steady-state session makes no
+  // redundant writes.
   useEffect(() => {
-    if (!query.data || timezoneSyncedRef.current) return;
-    if (query.data.timezone && query.data.timezone.trim() !== "") {
-      timezoneSyncedRef.current = true;
-      return;
-    }
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (!detected) return;
-    timezoneSyncedRef.current = true;
-    timezoneMutateRef.current(detected);
+    const profile = query.data;
+    if (!profile) return;
+
+    const syncIfChanged = () => {
+      const tz = getDeviceTimezone();
+      if (!tz) return;
+      const offsetMinutes = getCurrentTimezoneOffsetMinutes();
+      const storedTz = profile.timezone ?? "";
+      const storedOffset = Number(profile.timezoneOffsetMinutes ?? 0n);
+      if (tz === storedTz && offsetMinutes === storedOffset) return;
+      timezoneMutateRef.current({ tz, offsetMinutes });
+    };
+
+    syncIfChanged();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") syncIfChanged();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [query.data]);
 
   return query;

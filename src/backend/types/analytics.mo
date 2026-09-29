@@ -3,7 +3,8 @@ import GoalTypes "goals";
 
 module {
   /// Follow-through rate: the fraction of check-ins that were actual
-  /// successes. `total` counts every check-in (success, skip, and missed);
+  /// successes. `total` counts terminal check-ins only; #inProgress excluded
+  /// (terminal = #success, #skip, #missed, #missedCheckIn, #missedCheckOut).
   /// `rate` is `successes / total`, or `0.0` when `total == 0`.
   public type FollowThroughRate = {
     successes : Nat;

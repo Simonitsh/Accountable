@@ -14,6 +14,7 @@ import { ScrollWheelPicker } from "../components/ScrollWheelPicker";
 import SuggestionButton from "../components/SuggestionButton";
 import { useBackend } from "../hooks/useBackend";
 import { getPlaceholder } from "../lib/placeholders";
+import { getCurrentTimezoneOffsetMinutes } from "../lib/timezone";
 import { OBSTACLE_TEMPLATES, useResolveObstacleLabel } from "../types/index";
 import { isLockInActiveWindow } from "../utils/goalDisplay";
 
@@ -341,7 +342,7 @@ export function EditHabitPage() {
     // existing goals after creation. EditHabitPage only edits existing habits,
     // so we never send these fields on update — the backend preserves them.
     const payload: UpdateHabitRequest = {
-      timezoneOffsetMinutes: BigInt(-new Date().getTimezoneOffset()),
+      timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes()),
       ifThenPlan: ifThenPlan.trim(),
       themeColor,
       isLockIn: habit?.isLockIn ?? false,

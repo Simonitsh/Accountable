@@ -18,6 +18,12 @@ module {
     // The two flags are mutually exclusive; declining never counts as using
     // the plan.
     followUpDeclined : Bool;
+    // The timezone offset (minutes east of UTC) in effect when this check-in
+    // was recorded. Persisted per record so historical day bucketing stays
+    // correct across DST changes and travel. null on legacy records written
+    // before this field existed; analytics falls back to the caller-supplied
+    // offset for those.
+    tzOffsetMinutes : ?Int;
     note : ?Text;
   };
 

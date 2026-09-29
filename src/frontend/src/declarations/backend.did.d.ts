@@ -38,6 +38,7 @@ export interface CategoryStat {
 export interface Cell { 'value' : Value, 'name' : string }
 export interface CheckIn {
   'id' : CheckInId,
+  'tzOffsetMinutes' : [] | [bigint],
   'owner' : UserId,
   'note' : [] | [string],
   'goalId' : GoalId,
@@ -396,6 +397,7 @@ export interface _SERVICE {
   'schema' : ActorMethod<[], string>,
   'sendConnectionRequest' : ActorMethod<[UserId], ConnectionPublic>,
   'setTimezone' : ActorMethod<[string], undefined>,
+  'syncTimezone' : ActorMethod<[string, bigint], undefined>,
   /**
    * / Transition a goal (macro or habit) to a new state.
    */

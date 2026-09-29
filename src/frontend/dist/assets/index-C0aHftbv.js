@@ -32898,6 +32898,16 @@ function useAuth() {
     logout: clear
   };
 }
+function getDeviceTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+  } catch {
+    return "";
+  }
+}
+function getCurrentTimezoneOffsetMinutes() {
+  return -(/* @__PURE__ */ new Date()).getTimezoneOffset() || 0;
+}
 const GoalId = Nat;
 const ObstacleTemplateId = Nat;
 const CreateHabitRequest = Record({
@@ -33037,6 +33047,7 @@ const CheckInType$1 = Variant({
 });
 const CheckIn = Record({
   "id": CheckInId,
+  "tzOffsetMinutes": Opt(Int),
   "owner": UserId,
   "note": Opt(Text),
   "goalId": GoalId,
@@ -33287,6 +33298,7 @@ Service({
   "schema": Func([], [Text], ["query"]),
   "sendConnectionRequest": Func([UserId], [ConnectionPublic], []),
   "setTimezone": Func([Text], [], []),
+  "syncTimezone": Func([Text, Int], [], []),
   "updateGoalState": Func([GoalId, GoalState$1], [Bool], []),
   "updateHabit": Func(
     [GoalId, UpdateHabitRequest],
@@ -33452,6 +33464,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
   });
   const CheckIn2 = IDL2.Record({
     "id": CheckInId2,
+    "tzOffsetMinutes": IDL2.Opt(IDL2.Int),
     "owner": UserId2,
     "note": IDL2.Opt(IDL2.Text),
     "goalId": GoalId2,
@@ -33710,6 +33723,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "schema": IDL2.Func([], [IDL2.Text], ["query"]),
     "sendConnectionRequest": IDL2.Func([UserId2], [ConnectionPublic2], []),
     "setTimezone": IDL2.Func([IDL2.Text], [], []),
+    "syncTimezone": IDL2.Func([IDL2.Text, IDL2.Int], [], []),
     "updateGoalState": IDL2.Func([GoalId2, GoalState2], [IDL2.Bool], []),
     "updateHabit": IDL2.Func(
       [GoalId2, UpdateHabitRequest2],
@@ -34395,6 +34409,20 @@ class Backend {
       return result;
     }
   }
+  async syncTimezone(arg0, arg1) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.syncTimezone(arg0, arg1);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.syncTimezone(arg0, arg1);
+      return result;
+    }
+  }
   async updateGoalState(arg0, arg1) {
     if (this.processError) {
       try {
@@ -34470,7 +34498,7 @@ function from_candid_CategoryStat_n30(_uploadFile, _downloadFile, value) {
 function from_candid_Cell_n23(_uploadFile, _downloadFile, value) {
   return from_candid_record_n24(_uploadFile, _downloadFile, value);
 }
-function from_candid_CheckInType_n43(_uploadFile, _downloadFile, value) {
+function from_candid_CheckInType_n44(_uploadFile, _downloadFile, value) {
   return "skip" in value ? "skip" : "missed" in value ? "missed" : "missedCheckIn" in value ? "missedCheckIn" : "missedCheckOut" in value ? "missedCheckOut" : "success" in value ? "success" : "inProgress" in value ? "inProgress" : value;
 }
 function from_candid_CheckIn_n41(_uploadFile, _downloadFile, value) {
@@ -34542,7 +34570,7 @@ function from_candid_opt_n32(_uploadFile, _downloadFile, value) {
 function from_candid_opt_n39(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n44(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n43(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n45(_uploadFile, _downloadFile, value) {
@@ -34628,16 +34656,17 @@ function from_candid_record_n38(_uploadFile, _downloadFile, value) {
 function from_candid_record_n42(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
+    tzOffsetMinutes: record_opt_to_undefined(from_candid_opt_n43(_uploadFile, _downloadFile, value.tzOffsetMinutes)),
     owner: value.owner,
     note: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.note)),
     goalId: value.goalId,
-    checkInType: from_candid_CheckInType_n43(_uploadFile, _downloadFile, value.checkInType),
+    checkInType: from_candid_CheckInType_n44(_uploadFile, _downloadFile, value.checkInType),
     obstacleTemplateId: record_opt_to_undefined(from_candid_opt_n39(_uploadFile, _downloadFile, value.obstacleTemplateId)),
     timestamp: value.timestamp,
     executedIfThen: value.executedIfThen,
     followUpDeclined: value.followUpDeclined,
-    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInStartedAt)),
-    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n44(_uploadFile, _downloadFile, value.lockInEndedAt))
+    lockInStartedAt: record_opt_to_undefined(from_candid_opt_n43(_uploadFile, _downloadFile, value.lockInStartedAt)),
+    lockInEndedAt: record_opt_to_undefined(from_candid_opt_n43(_uploadFile, _downloadFile, value.lockInEndedAt))
   };
 }
 function from_candid_record_n48(_uploadFile, _downloadFile, value) {
@@ -35130,7 +35159,6 @@ function useUserProfile() {
   const { isAuthenticated } = useAuth();
   const retryCount = reactExports.useRef(0);
   const queryClient2 = useQueryClient();
-  const timezoneSyncedRef = reactExports.useRef(false);
   const query = useQuery({
     queryKey: ["userProfile"],
     queryFn: async () => {
@@ -35157,28 +35185,37 @@ function useUserProfile() {
     retryDelay: 300
   });
   const timezoneMutation = useMutation({
-    mutationFn: async (tz) => {
+    mutationFn: async ({
+      tz,
+      offsetMinutes
+    }) => {
       if (!actor) throw new Error("actor not ready");
-      return actor.setTimezone(tz);
+      return actor.syncTimezone(tz, BigInt(offsetMinutes));
     },
     onSuccess: () => {
       queryClient2.invalidateQueries({ queryKey: ["userProfile"] });
     }
   });
-  const timezoneMutateRef = reactExports.useRef(
-    timezoneMutation.mutate
-  );
+  const timezoneMutateRef = reactExports.useRef(timezoneMutation.mutate);
   timezoneMutateRef.current = timezoneMutation.mutate;
   reactExports.useEffect(() => {
-    if (!query.data || timezoneSyncedRef.current) return;
-    if (query.data.timezone && query.data.timezone.trim() !== "") {
-      timezoneSyncedRef.current = true;
-      return;
-    }
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (!detected) return;
-    timezoneSyncedRef.current = true;
-    timezoneMutateRef.current(detected);
+    const profile = query.data;
+    if (!profile) return;
+    const syncIfChanged = () => {
+      const tz = getDeviceTimezone();
+      if (!tz) return;
+      const offsetMinutes = getCurrentTimezoneOffsetMinutes();
+      const storedTz = profile.timezone ?? "";
+      const storedOffset = Number(profile.timezoneOffsetMinutes ?? 0n);
+      if (tz === storedTz && offsetMinutes === storedOffset) return;
+      timezoneMutateRef.current({ tz, offsetMinutes });
+    };
+    syncIfChanged();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") syncIfChanged();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [query.data]);
   return query;
 }
@@ -37836,7 +37873,7 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$W = [
+const __iconNode$X = [
   [
     "path",
     {
@@ -37845,7 +37882,18 @@ const __iconNode$W = [
     }
   ]
 ];
-const Activity = createLucideIcon("activity", __iconNode$W);
+const Activity = createLucideIcon("activity", __iconNode$X);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$W = [
+  ["path", { d: "M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16", key: "jecpp" }],
+  ["rect", { width: "20", height: "14", x: "2", y: "6", rx: "2", key: "i6l2r4" }]
+];
+const Briefcase = createLucideIcon("briefcase", __iconNode$W);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37853,17 +37901,6 @@ const Activity = createLucideIcon("activity", __iconNode$W);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$V = [
-  ["path", { d: "M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16", key: "jecpp" }],
-  ["rect", { width: "20", height: "14", x: "2", y: "6", rx: "2", key: "i6l2r4" }]
-];
-const Briefcase = createLucideIcon("briefcase", __iconNode$V);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$U = [
   ["path", { d: "M8 2v4", key: "1cmpym" }],
   ["path", { d: "M16 2v4", key: "4m81vk" }],
   ["rect", { width: "18", height: "18", x: "3", y: "4", rx: "2", key: "1hopcy" }],
@@ -37875,7 +37912,20 @@ const __iconNode$U = [
   ["path", { d: "M12 18h.01", key: "mhygvu" }],
   ["path", { d: "M16 18h.01", key: "kzsmim" }]
 ];
-const CalendarDays = createLucideIcon("calendar-days", __iconNode$U);
+const CalendarDays = createLucideIcon("calendar-days", __iconNode$V);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$U = [
+  ["line", { x1: "2", x2: "22", y1: "2", y2: "22", key: "a6p6uj" }],
+  ["path", { d: "M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16", key: "qmtpty" }],
+  ["path", { d: "M9.5 4h5L17 7h3a2 2 0 0 1 2 2v7.5", key: "1ufyfc" }],
+  ["path", { d: "M14.121 15.121A3 3 0 1 1 9.88 10.88", key: "11zox6" }]
+];
+const CameraOff = createLucideIcon("camera-off", __iconNode$U);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37883,19 +37933,6 @@ const CalendarDays = createLucideIcon("calendar-days", __iconNode$U);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$T = [
-  ["line", { x1: "2", x2: "22", y1: "2", y2: "22", key: "a6p6uj" }],
-  ["path", { d: "M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16", key: "qmtpty" }],
-  ["path", { d: "M9.5 4h5L17 7h3a2 2 0 0 1 2 2v7.5", key: "1ufyfc" }],
-  ["path", { d: "M14.121 15.121A3 3 0 1 1 9.88 10.88", key: "11zox6" }]
-];
-const CameraOff = createLucideIcon("camera-off", __iconNode$T);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$S = [
   [
     "path",
     {
@@ -37905,52 +37942,64 @@ const __iconNode$S = [
   ],
   ["circle", { cx: "12", cy: "13", r: "3", key: "1vg3eu" }]
 ];
-const Camera = createLucideIcon("camera", __iconNode$S);
+const Camera = createLucideIcon("camera", __iconNode$T);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$R = [
+const __iconNode$S = [
   ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
   ["path", { d: "M18 17V9", key: "2bz60n" }],
   ["path", { d: "M13 17V5", key: "1frdt8" }],
   ["path", { d: "M8 17v-3", key: "17ska0" }]
 ];
-const ChartColumn = createLucideIcon("chart-column", __iconNode$R);
+const ChartColumn = createLucideIcon("chart-column", __iconNode$S);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$Q = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$Q);
+const __iconNode$R = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$R);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$P = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-const ChevronDown = createLucideIcon("chevron-down", __iconNode$P);
+const __iconNode$Q = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$Q);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$O = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-const ChevronLeft = createLucideIcon("chevron-left", __iconNode$O);
+const __iconNode$P = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$P);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$N = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-const ChevronRight = createLucideIcon("chevron-right", __iconNode$N);
+const __iconNode$O = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$O);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$N = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+];
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$N);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37959,10 +38008,9 @@ const ChevronRight = createLucideIcon("chevron-right", __iconNode$N);
  */
 const __iconNode$M = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$M);
+const CircleCheck = createLucideIcon("circle-check", __iconNode$M);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37970,10 +38018,11 @@ const CircleAlert = createLucideIcon("circle-alert", __iconNode$M);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$L = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ["path", { d: "M18 20a6 6 0 0 0-12 0", key: "1qehca" }],
+  ["circle", { cx: "12", cy: "10", r: "4", key: "1h16sb" }],
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
 ];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$L);
+const CircleUserRound = createLucideIcon("circle-user-round", __iconNode$L);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37981,11 +38030,10 @@ const CircleCheck = createLucideIcon("circle-check", __iconNode$L);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$K = [
-  ["path", { d: "M18 20a6 6 0 0 0-12 0", key: "1qehca" }],
-  ["circle", { cx: "12", cy: "10", r: "4", key: "1h16sb" }],
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
 ];
-const CircleUserRound = createLucideIcon("circle-user-round", __iconNode$K);
+const Clock = createLucideIcon("clock", __iconNode$K);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -37993,10 +38041,14 @@ const CircleUserRound = createLucideIcon("circle-user-round", __iconNode$K);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$J = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
+  ["path", { d: "m2 2 20 20", key: "1ooewy" }],
+  ["path", { d: "M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193", key: "yfwify" }],
+  [
+    "path",
+    { d: "M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07", key: "jlfiyv" }
+  ]
 ];
-const Clock = createLucideIcon("clock", __iconNode$J);
+const CloudOff = createLucideIcon("cloud-off", __iconNode$J);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -84690,17 +84742,6 @@ const NEW_HABIT_DURATION_MS = 1e4;
 function goalKey(id2) {
   return String(id2);
 }
-const getTimezoneOffsetMinutes = (tz) => {
-  if (!tz) return -(/* @__PURE__ */ new Date()).getTimezoneOffset();
-  try {
-    const date = /* @__PURE__ */ new Date();
-    const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-    const tzDate = new Date(date.toLocaleString("en-US", { timeZone: tz }));
-    return Math.round((tzDate.getTime() - utcDate.getTime()) / 6e4);
-  } catch {
-    return -(/* @__PURE__ */ new Date()).getTimezoneOffset();
-  }
-};
 function isCheckInToday(ts, tz) {
   const ms = Number(ts / 1000000n);
   const d2 = new Date(ms);
@@ -85501,9 +85542,7 @@ function DashboardPage$1() {
         lockInEndedAt,
         executedIfThen: executedIfThen ?? false,
         note,
-        timezoneOffsetMinutes: BigInt(
-          getTimezoneOffsetMinutes(userTimezone ?? "")
-        )
+        timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes())
       });
     },
     onSuccess: (data, variables) => {
@@ -87174,7 +87213,7 @@ function EditHabitPage$1() {
       (t) => obstacles.some((o2) => o2.id === t.id)
     ).map((t) => obstacleTemplateIds[t.label]).filter((id22) => id22 !== void 0);
     const payload = {
-      timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
+      timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes()),
       ifThenPlan: ifThenPlan.trim(),
       themeColor,
       isLockIn: (habit == null ? void 0 : habit.isLockIn) ?? false,
@@ -90691,7 +90730,7 @@ function GoalEditForm({
   }
   function handleSave() {
     const req = {
-      timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset())
+      timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes())
     };
     if (form.ifThenPlan.trim() !== goal.ifThenPlan)
       req.ifThenPlan = form.ifThenPlan.trim();
@@ -91524,7 +91563,7 @@ function ObstacleQuickPicker({
       const resolved = ids.filter((id2) => id2 !== void 0);
       if (resolved.length === 0) return;
       onSave(habit.id, {
-        timezoneOffsetMinutes: BigInt(-(/* @__PURE__ */ new Date()).getTimezoneOffset()),
+        timezoneOffsetMinutes: BigInt(getCurrentTimezoneOffsetMinutes()),
         obstacleTemplateIds: resolved
       });
     });
@@ -92011,7 +92050,7 @@ function GoalsPage$1() {
 }
 function useInsights() {
   const { actor, actorReady } = useBackend();
-  const { data: profile } = useUserProfile();
+  const { data: profile, isLoading: profileLoading } = useUserProfile();
   const timezoneOffsetMinutes = (profile == null ? void 0 : profile.timezoneOffsetMinutes) ?? 0n;
   return useQuery({
     queryKey: ["analytics", timezoneOffsetMinutes.toString()],
@@ -92019,7 +92058,11 @@ function useInsights() {
       if (!actor) throw new Error("Backend is not ready");
       return actor.getAnalytics(timezoneOffsetMinutes);
     },
-    enabled: !!actor && actorReady
+    // Wait for the profile before the first request: firing with the default
+    // offset 0 would bucket check-ins into the wrong local day, then refetch
+    // once the real offset arrives. Gate on the profile having loaded so the
+    // first request already carries the correct offset.
+    enabled: !!actor && actorReady && !profileLoading && !!profile
   });
 }
 const CATEGORY_ROWS = [
@@ -92323,8 +92366,56 @@ function PlaceholderObstacle({ label }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-muted-foreground", children: label })
   ] });
 }
+function InsightsSkeleton() {
+  const blocks = Array.from({ length: 4 }, (_2, i) => `insights-skeleton-${i}`);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "flex flex-col gap-6 px-4 pt-4",
+      "data-ocid": "insights.loading_state",
+      "aria-busy": "true",
+      children: blocks.map((id2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-neumorphic p-5", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-28" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 flex items-center gap-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-16 w-16 rounded-full" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 space-y-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-3/4" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-full" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "mt-5 h-2 w-full rounded-full" })
+      ] }, id2))
+    }
+  );
+}
+function InsightsError({ onRetry }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 pt-6", "data-ocid": "insights.error_state", role: "alert", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-neumorphic p-6 flex flex-col items-center text-center gap-3", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "w-12 h-12 rounded-full flex items-center justify-center",
+        style: {
+          backgroundColor: "oklch(var(--muted) / 0.6)",
+          boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.04)"
+        },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(CloudOff, { className: "w-6 h-6 text-muted-foreground" })
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-base font-semibold text-foreground", children: "Couldn't load your insights — try again" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Button,
+      {
+        type: "button",
+        variant: "secondary",
+        onClick: onRetry,
+        "data-ocid": "insights.retry_button",
+        children: "Try again"
+      }
+    )
+  ] }) });
+}
 function InsightsPage$1() {
-  const { data } = useInsights();
+  const { data, isError, isLoading, refetch } = useInsights();
   const prefersReducedMotion2 = useReducedMotion();
   const container = reactExports.useMemo(
     () => ({
@@ -92352,19 +92443,19 @@ function InsightsPage$1() {
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-bold text-foreground tracking-tight", children: "Insights" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-0.5", children: "A gentle look at how your plans are working" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
       motion.div,
       {
         variants: container,
         initial: prefersReducedMotion2 ? false : "hidden",
         animate: "show",
         className: "flex flex-col",
-        children: [
+        children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(InsightsSkeleton, {}) : isError ? /* @__PURE__ */ jsxRuntimeExports.jsx(InsightsError, { onRetry: () => void refetch() }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, className: "px-4 pt-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightCard, { effectiveness: data == null ? void 0 : data.overallIfThenEffectiveness }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BestWorstDaySection, { data }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(CategoryBreakdownSection, { data }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { variants: item, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ObstaclesSection, { data }) })
-        ]
+        ] })
       }
     )
   ] });

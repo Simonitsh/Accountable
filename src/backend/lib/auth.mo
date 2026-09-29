@@ -263,6 +263,36 @@ module {
     };
   };
 
+  /// True iff `offsetMinutes` is a valid UTC offset: -720 (UTC-12) through
+  /// 840 (UTC+14) inclusive.
+  public func isValidTimezoneOffset(offsetMinutes : Int) : Bool {
+    offsetMinutes >= -720 and offsetMinutes <= 840;
+  };
+
+  /// Sets BOTH the IANA timezone name and the current UTC offset (minutes east
+  /// of UTC) on the caller's profile. Idempotent: when both values already
+  /// match, nothing is written. Traps when `offsetMinutes` is outside the
+  /// valid range -720..840 (UTC-12 .. UTC+14).
+  public func syncTimezone(
+    profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
+    caller : Common.UserId,
+    tz : Text,
+    offsetMinutes : Int,
+  ) : () {
+    if (not isValidTimezoneOffset(offsetMinutes)) {
+      Runtime.trap("Timezone offset out of range (-720..840 minutes)");
+    };
+    switch (profiles.get(caller)) {
+      case (?p) {
+        if (p.timezone != tz or p.timezoneOffsetMinutes != offsetMinutes) {
+          p.timezone := tz;
+          p.timezoneOffsetMinutes := offsetMinutes;
+        };
+      };
+      case null { Runtime.trap("Profile not found") };
+    };
+  };
+
   public func ensureRegistered(
     profiles : Map.Map<Common.UserId, AuthTypes.UserProfile>,
     caller : Common.UserId,
